@@ -1,0 +1,91 @@
+<div class="app-container">
+  
+  <header class="top-header">
+    <div class="user-profile">
+      <div class="avatar">DT</div>
+      <div class="user-info">
+        <span class="user-name">David Timoteus</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Unduh Laporan PDF">
+        <span class="material-symbols-outlined">picture_as_pdf</span>
+      </button>
+      <button class="icon-btn" title="Notifikasi">
+        <span class="material-symbols-outlined">notifications</span>
+      </button>
+    </div>
+  </header>
+
+  <div id="viewRiwayat" class="view-section active">
+    
+    <div class="content-header">
+      <h2>Riwayat Kas</h2>
+      <button class="btn-add-floating" onclick="switchTab('tambah')" title="Catat Transaksi Baru">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+    </div>
+
+    <div id="riwayatList" class="transaction-list">
+      <div class="loading-text">Memuat riwayat kas...</div>
+    </div>
+    
+    <div class="pagination" id="paginationControls"></div>
+  </div>
+
+  <div id="viewTambah" class="view-section">
+    
+    <div class="content-header">
+      <h2>Catat Baru</h2>
+      <button class="btn-back" onclick="switchTab('riwayat')">
+        <span class="material-symbols-outlined">arrow_back</span> Kembali
+      </button>
+    </div>
+
+    <div class="card form-card">
+      <form id="transaksiForm" onsubmit="handleFormSubmit(event)">
+        
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Tanggal</label>
+            <input type="date" id="tanggal" required>
+          </div>
+          <div class="form-group half">
+            <label>Jenis</label>
+            <select id="jenis" required>
+              <option value="" disabled selected>Pilih Jenis</option>
+              <option value="Pendapatan">Pendapatan</option>
+              <option value="Pengeluaran">Pengeluaran</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Kategori</label>
+          <input type="text" id="kategori" list="kategoriList" autocomplete="off" placeholder="Pilih atau ketik kategori..." required>
+          <datalist id="kategoriList"></datalist>
+        </div>
+
+        <div class="form-group">
+          <label>Sumber / Akun</label>
+          <input type="text" id="sumber" placeholder="Contoh: Dompet, BCA">
+        </div>
+
+        <div class="form-group">
+          <label>Keterangan</label>
+          <input type="text" id="keterangan" placeholder="Keterangan opsional">
+        </div>
+
+        <div class="form-group">
+          <label>Nominal (Rp)</label>
+          <input type="number" id="nominal" min="0" placeholder="0" required>
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn-primary">Simpan Transaksi</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast" class="toast">Berhasil disimpan!</div>

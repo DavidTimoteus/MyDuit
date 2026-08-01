@@ -1,0 +1,144 @@
+<script>
+  let currentPage = 1;
+  const limitPerPage = 8;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    resetTanggal();
+    loadRiwayat(currentPage);
+    google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+  });
+
+  function resetTanggal() {
+    document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
+  }
+
+  /**
+   * Fungsi Navigasi Pindah Halaman / Tab
+   */
+  function switchTab(targetView) {
+    document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+
+    if (targetView === 'riwayat') {
+      document.getElementById('viewRiwayat').classList.add('active');
+      loadRiwayat(currentPage);
+    } else if (targetView === 'tambah') {
+      document.getElementById('viewTambah').classList.add('active');
+    }
+  }
+
+  function populateKategori(list) {
+    if (!list) return;
+    const datalist = document.getElementById('kategoriList');
+    datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
+  }
+
+  /**
+   * Memuat Riwayat Kas dari Server (dengan Anti-Lag & Error Handling)
+   */
+  function loadRiwayat(page) {
+    currentPage = page;
+    const container = document.getElementById('riwayatList');
+    container.innerHTML = '<div class="loading-text">Memuat riwayat kas...</div>';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.status === 'success') {
+          renderRiwayatUI(res.data);
+          renderPaginationUI(res.totalPages, res.currentPage);
+        } else {
+          container.innerHTML = `<div class="error-text">Gagal memuat data: ${res ? res.message : 'Terjadi kesalahan server'}</div>`;
+        }
+      })
+      .withFailureHandler(err => {
+        container.innerHTML = `<div class="error-text">Koneksi terputus/error: ${err.message || err}</div>`;
+      })
+      .getRiwayatKasServer(page, limitPerPage);
+  }
+
+  /**
+   * Render Kartu Transaksi Grid 2x2
+   */
+  function renderRiwayatUI(data) {
+    const container = document.getElementById('riwayatList');
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="empty-text">Belum ada catatan transaksi.</div>';
+      return;
+    }
+
+    container.innerHTML = data.map(item => {
+      const isPendapatan = String(item.jenis).toLowerCase() === 'pendapatan';
+      const sign = isPendapatan ? '+' : '-';
+      const className = isPendapatan ? 'pendapatan' : 'pengeluaran';
+      const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
+      const teksKeterangan = item.keterangan || item.sumber || item.kategori || 'Tanpa Keterangan';
+
+      return `
+        <div class="tx-card">
+          <div class="tx-keterangan" title="${teksKeterangan}">${teksKeterangan}</div>
+          <div class="tx-tanggal">${item.tanggal || '-'}</div>
+          
+          <div class="tx-nominal ${className}">${sign}Rp${formattedNominal}</div>
+          <div class="tx-kategori">${item.kategori || '-'}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderPaginationUI(totalPages, current) {
+    const controls = document.getElementById('paginationControls');
+    if (!totalPages || totalPages <= 1) {
+      controls.innerHTML = '';
+      return;
+    }
+
+    let html = '';
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadRiwayat(${i})">${i}</button>`;
+    }
+    controls.innerHTML = html;
+  }
+
+  /**
+   * Submit Form Transaksi Baru (Optimistic UI)
+   */
+  function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const formData = {
+      tanggal: document.getElementById('tanggal').value,
+      jenis: document.getElementById('jenis').value,
+      kategori: document.getElementById('kategori').value,
+      sumber: document.getElementById('sumber').value,
+      keterangan: document.getElementById('keterangan').value,
+      nominal: document.getElementById('nominal').value
+    };
+
+    // 1. Reset Form & Pindah Otomatis ke Halaman Riwayat
+    document.getElementById('transaksiForm').reset();
+    resetTanggal();
+    switchTab('riwayat');
+    showToast('success', 'Transaksi berhasil dicatat!');
+
+    // 2. Simpan Data ke Server di Background
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.status === 'success') {
+          loadRiwayat(1); // Reload data halaman pertama
+          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+        } else {
+          showToast('error', 'Gagal menyimpan: ' + (res ? res.message : 'Error server'));
+        }
+      })
+      .withFailureHandler(err => {
+        showToast('error', 'Koneksi error: ' + (err.message || err));
+      })
+      .simpanTransaksiServer(formData);
+  }
+
+  function showToast(type, text) {
+    const toast = document.getElementById('toast');
+    toast.className = `toast show ${type}`;
+    toast.innerText = text;
+    setTimeout(() => { toast.classList.remove('show'); }, 3500);
+  }
+</script>
