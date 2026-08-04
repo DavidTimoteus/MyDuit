@@ -1,6 +1,6 @@
 <script>
   let currentPage = 1;
-  const limitPerPage = 8;
+  const limitPerPage = 10;
 
   document.addEventListener('DOMContentLoaded', () => {
     resetTanggal();
@@ -12,17 +12,23 @@
     document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
   }
 
-  /**
-   * Fungsi Navigasi Pindah Halaman / Tab
-   */
   function switchTab(targetView) {
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-
+    
+    // Ubah status aktif ikon Navigasi
+    const iconRiwayat = document.getElementById('icon-riwayat');
+    
     if (targetView === 'riwayat') {
       document.getElementById('viewRiwayat').classList.add('active');
+      document.getElementById('pageTitle').innerText = 'Riwayat Kas';
+      iconRiwayat.style.fontVariationSettings = "'FILL' 1";
+      iconRiwayat.parentElement.classList.replace('text-textSecondary', 'text-primary');
       loadRiwayat(currentPage);
     } else if (targetView === 'tambah') {
       document.getElementById('viewTambah').classList.add('active');
+      document.getElementById('pageTitle').innerText = 'Catat Transaksi';
+      iconRiwayat.style.fontVariationSettings = "'FILL' 0";
+      iconRiwayat.parentElement.classList.replace('text-primary', 'text-textSecondary');
     }
   }
 
@@ -32,13 +38,10 @@
     datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
   }
 
-  /**
-   * Memuat Riwayat Kas dari Server (dengan Anti-Lag & Error Handling)
-   */
   function loadRiwayat(page) {
     currentPage = page;
     const container = document.getElementById('riwayatList');
-    container.innerHTML = '<div class="loading-text">Memuat riwayat kas...</div>';
+    container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
 
     google.script.run
       .withSuccessHandler(res => {
@@ -46,39 +49,61 @@
           renderRiwayatUI(res.data);
           renderPaginationUI(res.totalPages, res.currentPage);
         } else {
-          container.innerHTML = `<div class="error-text">Gagal memuat data: ${res ? res.message : 'Terjadi kesalahan server'}</div>`;
+          container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error server'}</div>`;
         }
       })
       .withFailureHandler(err => {
-        container.innerHTML = `<div class="error-text">Koneksi terputus/error: ${err.message || err}</div>`;
+        container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Koneksi terputus/error: ${err.message || err}</div>`;
       })
       .getRiwayatKasServer(page, limitPerPage);
   }
 
   /**
-   * Render Kartu Transaksi Grid 2x2
+   * Render DOM menggunakan sintaks kelas Tailwind (Sesuai Snippet HTML Mobile)
    */
   function renderRiwayatUI(data) {
     const container = document.getElementById('riwayatList');
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="empty-text">Belum ada catatan transaksi.</div>';
+      container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm">Belum ada catatan transaksi.</div>';
       return;
     }
 
     container.innerHTML = data.map(item => {
       const isPendapatan = String(item.jenis).toLowerCase() === 'pendapatan';
+      
+      // Styling Kondisional Berdasarkan Jenis Transaksi
       const sign = isPendapatan ? '+' : '-';
-      const className = isPendapatan ? 'pendapatan' : 'pengeluaran';
+      const textAmountColor = isPendapatan ? 'text-income' : 'text-expense';
+      const iconBg = isPendapatan ? 'bg-green-100' : 'bg-red-50';
+      const iconColor = isPendapatan ? 'text-green-600' : 'text-red-500';
+      const iconSymbol = isPendapatan ? 'trending_up' : 'trending_down';
+      
       const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
-      const teksKeterangan = item.keterangan || item.sumber || item.kategori || 'Tanpa Keterangan';
+      const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
 
       return `
-        <div class="tx-card">
-          <div class="tx-keterangan" title="${teksKeterangan}">${teksKeterangan}</div>
-          <div class="tx-tanggal">${item.tanggal || '-'}</div>
+        <div class="bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-4 hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-gray-100">
           
-          <div class="tx-nominal ${className}">${sign}Rp${formattedNominal}</div>
-          <div class="tx-kategori">${item.kategori || '-'}</div>
+          <div class="flex items-center gap-3 w-full">
+            <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined ${iconColor} text-[20px]">${iconSymbol}</span>
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
+              <div class="flex items-center gap-2 text-xs text-textSecondary">
+                <span>${item.tanggal || '-'}</span>
+                <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                <span class="truncate">${item.kategori || '-'}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="text-right shrink-0 flex flex-col items-end">
+            <p class="font-bold ${textAmountColor} text-[15px] mb-0.5">${sign}Rp ${formattedNominal}</p>
+            <p class="text-[10px] text-textSecondary">${item.sumber || 'Tunai'}</p>
+          </div>
+          
         </div>
       `;
     }).join('');
@@ -93,17 +118,13 @@
 
     let html = '';
     for (let i = 1; i <= totalPages; i++) {
-      html += `<button class="page-btn ${i === current ? 'active' : ''}" onclick="loadRiwayat(${i})">${i}</button>`;
+      html += `<button class="w-8 h-8 rounded text-sm font-medium transition-colors ${i === current ? 'bg-primary text-white' : 'bg-surfaceContainerLowest text-textSecondary hover:bg-gray-100'} border border-gray-200" onclick="loadRiwayat(${i})">${i}</button>`;
     }
     controls.innerHTML = html;
   }
 
-  /**
-   * Submit Form Transaksi Baru (Optimistic UI)
-   */
   function handleFormSubmit(e) {
     e.preventDefault();
-
     const formData = {
       tanggal: document.getElementById('tanggal').value,
       jenis: document.getElementById('jenis').value,
@@ -113,17 +134,16 @@
       nominal: document.getElementById('nominal').value
     };
 
-    // 1. Reset Form & Pindah Otomatis ke Halaman Riwayat
+    // Optimistic UI
     document.getElementById('transaksiForm').reset();
     resetTanggal();
     switchTab('riwayat');
     showToast('success', 'Transaksi berhasil dicatat!');
 
-    // 2. Simpan Data ke Server di Background
     google.script.run
       .withSuccessHandler(res => {
         if (res && res.status === 'success') {
-          loadRiwayat(1); // Reload data halaman pertama
+          loadRiwayat(1);
           google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
         } else {
           showToast('error', 'Gagal menyimpan: ' + (res ? res.message : 'Error server'));
@@ -135,10 +155,13 @@
       .simpanTransaksiServer(formData);
   }
 
+  let toastTimeout;
   function showToast(type, text) {
     const toast = document.getElementById('toast');
     toast.className = `toast show ${type}`;
     toast.innerText = text;
-    setTimeout(() => { toast.classList.remove('show'); }, 3500);
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 3000);
   }
 </script>
