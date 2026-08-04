@@ -144,7 +144,7 @@ function renderRiwayatUI(data) {
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
             <div class="flex items-center gap-2 text-xs text-textSecondary">
-              <span>${item.tanggal || '-'}</span>
+              <span>${formatTanggalRelatif(item.tanggal) || '-'}</span>
               <span class="w-1 h-1 rounded-full bg-gray-300"></span>
               <span class="truncate">${item.kategori || '-'}</span>
             </div>
@@ -226,7 +226,7 @@ function renderRiwayatUI(data) {
     toast.innerText = text;
     
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 70);
   }
 
   // Variabel penyimpan baris yang akan dihapus
@@ -367,5 +367,45 @@ function resetFormState() {
   document.getElementById('btnSubmit').innerText = 'Simpan Transaksi';
   document.getElementById('pageTitle').innerText = 'Catat Transaksi';
   resetTanggal();
+}
+
+// Helper untuk mengonversi string tanggal menjadi "Hari ini", "Kemarin", atau tanggal asli
+function formatTanggalRelatif(dateStr) {
+  if (!dateStr) return '';
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Parsing string tanggal (Mendukung dd:MM:yyyy, dd/MM/yyyy, maupun yyyy-MM-dd)
+  const parts = String(dateStr).trim().split(/[:/\-]/);
+  
+  if (parts.length === 3) {
+    let d, m, y;
+    if (parts[0].length === 4) {
+      // Format YYYY-MM-DD
+      y = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10) - 1;
+      d = parseInt(parts[2], 10);
+    } else {
+      // Format DD:MM:YYYY atau DD/MM/YYYY
+      d = parseInt(parts[0], 10);
+      m = parseInt(parts[1], 10) - 1;
+      y = parseInt(parts[2], 10);
+    }
+
+    const targetDate = new Date(y, m, d);
+
+    // Bandingkan dengan Hari Ini & Kemarin
+    if (targetDate.getTime() === today.getTime()) {
+      return 'Hari ini';
+    } else if (targetDate.getTime() === yesterday.getTime()) {
+      return 'Kemarin';
+    }
+  }
+
+  return dateStr; // Jika bukan Hari ini / Kemarin, tampilkan tanggal biasa (dd:MM:yyyy)
 }
 </script>
