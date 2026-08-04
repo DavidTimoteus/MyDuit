@@ -1,6 +1,9 @@
 <script>
   let currentPage = 1;
   const limitPerPage = 10;
+  let globalData = [];
+  let activeFilterJenis = 'Semua';
+  let lastTapTime = 0;
 
   document.addEventListener('DOMContentLoaded', () => {
     resetTanggal();
@@ -9,210 +12,199 @@
   });
 
   function resetTanggal() {
-    document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
-  }
-
-/**
- * Fungsi Navigasi Tab / Membuka Form Tambah Transaksi
- * @param {string} tabName - 'beranda', 'tambah', 'laporan', dll.
- */
-function switchTab(tabName) {
-  if (tabName === 'tambah') {
-    // 1. Tampilkan modal/section formulir tambah transaksi
-    const modalForm = document.getElementById('modalFormTransaksi') || document.getElementById('formTambahSection');
-    if (modalForm) {
-      modalForm.classList.remove('hidden');
-    }
-
-    // 2. Reset isi form jika ada
-    const formElement = document.getElementById('formTransaksi');
-    if (formElement) {
-      formElement.reset();
-    }
-
-    // 3. Set default tanggal ke hari ini (YYYY-MM-DD)
-    const inputTanggal = document.getElementById('inputTanggal');
+    const inputTanggal = document.getElementById('tanggal');
     if (inputTanggal) {
-      const todayISO = new Date().toISOString().split('T')[0];
-      inputTanggal.value = todayISO;
+      inputTanggal.value = new Date().toISOString().split('T')[0];
     }
-    return;
   }
 
-  // Logika perpindahan tab standar lainnya (Beranda, Laporan, dll.)
-  const tabs = document.querySelectorAll('.tab-content');
-  tabs.forEach(tab => tab.classList.add('hidden'));
+  function resetFormState() {
+    const form = document.getElementById('transaksiForm');
+    if (form) form.reset();
 
-  const targetTab = document.getElementById('tab-' + tabName) || document.getElementById(tabName + 'Section');
-  if (targetTab) {
-    targetTab.classList.remove('hidden');
-  }
+    const editInput = document.getElementById('editRowIndex');
+    if (editInput) editInput.value = '';
 
-  // Update indikator aktif pada navigasi bawah/bar
-  const navItems = document.querySelectorAll('.nav-item');
-  navItems.forEach(item => item.classList.remove('active', 'text-emerald-600'));
-  
-  const activeNav = document.getElementById('nav-' + tabName);
-  if (activeNav) {
-    activeNav.classList.add('active', 'text-emerald-600');
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.innerText = 'Simpan Transaksi';
+
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle && document.getElementById('viewTambah').classList.contains('active')) {
+      pageTitle.innerText = 'Catat Transaksi';
+    }
+
+    resetTanggal();
   }
-}
 
   function switchTab(targetView) {
-
     if (targetView === 'tambah' && !document.getElementById('editRowIndex').value) {
-         resetFormState();
-       }
+      resetFormState();
+    }
 
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
-    
-    // Ubah status aktif ikon Navigasi
+
     const iconRiwayat = document.getElementById('icon-riwayat');
-    
+
     if (targetView === 'riwayat') {
       document.getElementById('viewRiwayat').classList.add('active');
-      document.getElementById('pageTitle').innerText = 'Riwayat Kas';
-      iconRiwayat.style.fontVariationSettings = "'FILL' 1";
-      iconRiwayat.parentElement.classList.replace('text-textSecondary', 'text-primary');
+      const pageTitle = document.getElementById('pageTitle');
+      if (pageTitle) pageTitle.innerText = 'Riwayat Kas';
+
+      if (iconRiwayat) {
+        iconRiwayat.style.fontVariationSettings = "'FILL' 1";
+        iconRiwayat.parentElement.classList.replace('text-textSecondary', 'text-primary');
+      }
       loadRiwayat(currentPage);
     } else if (targetView === 'tambah') {
       document.getElementById('viewTambah').classList.add('active');
-      document.getElementById('pageTitle').innerText = 'Catat Transaksi';
-      iconRiwayat.style.fontVariationSettings = "'FILL' 0";
-      iconRiwayat.parentElement.classList.replace('text-primary', 'text-textSecondary');
+      const pageTitle = document.getElementById('pageTitle');
+      if (pageTitle) {
+        const isEdit = Boolean(document.getElementById('editRowIndex').value);
+        pageTitle.innerText = isEdit ? 'Edit Transaksi' : 'Catat Transaksi';
+      }
+
+      if (iconRiwayat) {
+        iconRiwayat.style.fontVariationSettings = "'FILL' 0";
+        iconRiwayat.parentElement.classList.replace('text-primary', 'text-textSecondary');
+      }
     }
   }
 
   function populateKategori(list) {
     if (!list) return;
     const datalist = document.getElementById('kategoriList');
-    datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
+    if (datalist) {
+      datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
+    }
   }
 
-// 1. Tambahkan Variabel State di bagian atas script
-let globalData = [];
-let activeFilterJenis = 'Semua';
+  function loadRiwayat(page) {
+    currentPage = page;
+    const container = document.getElementById('riwayatList');
+    if (container) {
+      container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
+    }
 
-// 2. Perbarui Fungsi loadRiwayat
-function loadRiwayat(page) {
-  currentPage = page;
-  const container = document.getElementById('riwayatList');
-  container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
-
-  google.script.run
-    .withSuccessHandler(res => {
-      if (res && res.status === 'success') {
-        globalData = res.data || [];
-        applyFilterAndSearch(); // Terapkan filter & pencarian setelah data dimuat
-        renderPaginationUI(res.totalPages, res.currentPage);
-      } else {
-        container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error server'}</div>`;
-      }
-    })
-    .withFailureHandler(err => {
-      container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Koneksi terputus/error: ${err.message || err}</div>`;
-    })
-    .getRiwayatKasServer(page, limitPerPage);
-}
-
-// 3. Tambahkan Fungsi Pengelola Pencarian & Filter Chip
-function setFilterJenis(jenis, el) {
-  activeFilterJenis = jenis;
-  document.querySelectorAll('#filterChips .chip-btn').forEach(btn => {
-    btn.className = "chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
-  });
-  el.className = "chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap";
-  applyFilterAndSearch();
-}
-
-function handleSearchFilter() {
-  applyFilterAndSearch();
-}
-
-function applyFilterAndSearch() {
-  const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
-  
-  const filtered = globalData.filter(item => {
-    const jenis = String(item.jenis || '').toLowerCase();
-    const isIncome = (jenis === 'pemasukan' || jenis === 'pendapatan');
-    
-    // Filter Berdasarkan Chip Jenis
-    let matchesJenis = true;
-    if (activeFilterJenis === 'Pemasukan') matchesJenis = isIncome;
-    if (activeFilterJenis === 'Pengeluaran') matchesJenis = !isIncome && jenis !== '';
-
-    // Filter Berdasarkan Kata Kunci Pencarian
-    const matchesSearch = !query || 
-      String(item.kategori || '').toLowerCase().includes(query) ||
-      String(item.keterangan || '').toLowerCase().includes(query) ||
-      String(item.sumber || '').toLowerCase().includes(query) ||
-      String(item.tanggal || '').toLowerCase().includes(query) ||
-      String(item.nominal || '').toLowerCase().includes(query);
-
-    return matchesJenis && matchesSearch;
-  });
-
-  renderRiwayatUI(filtered);
-}
-
-// 4. Perbarui Pengecekan Jenis pada renderRiwayatUI
-function renderRiwayatUI(data) {
-  const container = document.getElementById('riwayatList');
-  if (!data || data.length === 0) {
-    container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm">Data transaksi tidak ditemukan.</div>';
-    return;
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.status === 'success') {
+          globalData = res.data || [];
+          applyFilterAndSearch();
+          renderPaginationUI(res.totalPages, res.currentPage);
+        } else {
+          if (container) {
+            container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error server'}</div>`;
+          }
+        }
+      })
+      .withFailureHandler(err => {
+        if (container) {
+          container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Koneksi terputus/error: ${err.message || err}</div>`;
+        }
+      })
+      .getRiwayatKasServer(page, limitPerPage);
   }
 
-  container.innerHTML = data.map(item => {
-    const jenisLower = String(item.jenis).toLowerCase();
-    const isPemasukan = (jenisLower === 'pemasukan' || jenisLower === 'pendapatan');
-    
-    const sign = isPemasukan ? '+' : '-';
-    const textAmountColor = isPemasukan ? 'text-income' : 'text-expense';
-    const iconBg = isPemasukan ? 'bg-green-100' : 'bg-red-50';
-    const iconColor = isPemasukan ? 'text-green-600' : 'text-red-500';
-    const iconSymbol = isPemasukan ? 'trending_up' : 'trending_down';
-    
-    const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
-    const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
+  function setFilterJenis(jenis, el) {
+    activeFilterJenis = jenis;
+    document.querySelectorAll('#filterChips .chip-btn').forEach(btn => {
+      btn.className = "chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
+    });
+    if (el) {
+      el.className = "chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap";
+    }
+    applyFilterAndSearch();
+  }
 
-    return `
-      <div onclick="toggleDeleteBtn(this)" 
-       ondblclick="handleCardDoubleTap(${item.rowIndex}, this)" 
-       ontouchend="handleMobileTouchTap(event, ${item.rowIndex}, this)"
-       data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
-       class="tx-card-item relative bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-gray-200 select-none">
-        
-        <div class="flex items-center gap-3 w-full min-w-0">
-          <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined ${iconColor} text-[20px]">${iconSymbol}</span>
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
-            <div class="flex items-center gap-2 text-xs text-textSecondary">
-              <span>${formatTanggalRelatif(item.tanggal) || '-'}</span>
-              <span class="w-1 h-1 rounded-full bg-gray-300"></span>
-              <span class="truncate">${item.kategori || '-'}</span>
+  function handleSearchFilter() {
+    applyFilterAndSearch();
+  }
+
+  function applyFilterAndSearch() {
+    const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+
+    const filtered = globalData.filter(item => {
+      const jenis = String(item.jenis || '').toLowerCase();
+      const isIncome = (jenis === 'pemasukan' || jenis === 'pendapatan');
+
+      let matchesJenis = true;
+      if (activeFilterJenis === 'Pemasukan') matchesJenis = isIncome;
+      if (activeFilterJenis === 'Pengeluaran') matchesJenis = !isIncome && jenis !== '';
+
+      const matchesSearch = !query ||
+        String(item.kategori || '').toLowerCase().includes(query) ||
+        String(item.keterangan || '').toLowerCase().includes(query) ||
+        String(item.sumber || '').toLowerCase().includes(query) ||
+        String(item.tanggal || '').toLowerCase().includes(query) ||
+        String(item.nominal || '').toLowerCase().includes(query);
+
+      return matchesJenis && matchesSearch;
+    });
+
+    renderRiwayatUI(filtered);
+  }
+
+  function renderRiwayatUI(data) {
+    const container = document.getElementById('riwayatList');
+    if (!container) return;
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm">Data transaksi tidak ditemukan.</div>';
+      return;
+    }
+
+    container.innerHTML = data.map(item => {
+      const jenisLower = String(item.jenis).toLowerCase();
+      const isPemasukan = (jenisLower === 'pemasukan' || jenisLower === 'pendapatan');
+
+      const sign = isPemasukan ? '+' : '-';
+      const textAmountColor = isPemasukan ? 'text-income' : 'text-expense';
+      const iconBg = isPemasukan ? 'bg-green-100' : 'bg-red-50';
+      const iconColor = isPemasukan ? 'text-green-600' : 'text-red-500';
+      const iconSymbol = isPemasukan ? 'trending_up' : 'trending_down';
+
+      const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
+      const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
+
+      return `
+        <div onclick="toggleDeleteBtn(this)" 
+         ondblclick="handleCardDoubleTap(${item.rowIndex}, this)" 
+         ontouchend="handleMobileTouchTap(event, ${item.rowIndex}, this)"
+         data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
+         class="tx-card-item relative bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-gray-200 select-none">
+          
+          <div class="flex items-center gap-3 w-full min-w-0">
+            <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined ${iconColor} text-[20px]">${iconSymbol}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
+              <div class="flex items-center gap-2 text-xs text-textSecondary">
+                <span>${item.tanggal || '-'}</span>
+                <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+                <span class="truncate">${item.kategori || '-'}</span>
+              </div>
             </div>
           </div>
+
+          <div class="text-right shrink-0 flex flex-col items-end">
+            <p class="font-bold ${textAmountColor} text-[15px] mb-0.5">${sign}Rp ${formattedNominal}</p>
+            <p class="text-[10px] text-textSecondary">${item.sumber || 'Tunai'}</p>
+          </div>
+
+          <button onclick="openDeleteModal(${item.rowIndex}, event)" title="Hapus Transaksi" class="delete-btn-action hidden shrink-0 ml-2 w-9 h-9 rounded-full bg-red-50 hover:bg-red-100 text-expense flex items-center justify-center transition-all">
+            <span class="material-symbols-outlined text-[20px]">delete</span>
+          </button>
+
         </div>
-
-        <div class="text-right shrink-0 flex flex-col items-end">
-          <p class="font-bold ${textAmountColor} text-[15px] mb-0.5">${sign}Rp ${formattedNominal}</p>
-          <p class="text-[10px] text-textSecondary">${item.sumber || 'Tunai'}</p>
-        </div>
-
-        <button onclick="openDeleteModal(${item.rowIndex}, event)" title="Hapus Transaksi" class="delete-btn-action hidden shrink-0 ml-2 w-9 h-9 rounded-full bg-red-50 hover:bg-red-100 text-expense flex items-center justify-center transition-all">
-          <span class="material-symbols-outlined text-[20px]">delete</span>
-        </button>
-
-      </div>
-    `;
-  }).join('');
-}
+      `;
+    }).join('');
+  }
 
   function renderPaginationUI(totalPages, current) {
     const controls = document.getElementById('paginationControls');
+    if (!controls) return;
+
     if (!totalPages || totalPages <= 1) {
       controls.innerHTML = '';
       return;
@@ -225,323 +217,259 @@ function renderRiwayatUI(data) {
     controls.innerHTML = html;
   }
 
-  function handleFormSubmit(e) {
-  e.preventDefault();
-
-  const editRowIndex = document.getElementById('editRowIndex').value;
-  const isEditMode = Boolean(editRowIndex);
-  const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
-
-  const formData = {
-    tanggal: document.getElementById('tanggal').value,
-    jenis: document.getElementById('jenis').value,
-    kategori: document.getElementById('kategori').value,
-    sumber: document.getElementById('sumber').value,
-    keterangan: document.getElementById('keterangan').value,
-    nominal: document.getElementById('nominal').value
-  };
-
-  if (isEditMode) {
-    formData.rowIndex = Number(editRowIndex);
+  /* --- HANDLER EDIT TRANSAKSI (AMABAN & TERUJI) --- */
+  function handleCardDoubleTap(rowIndex, cardEl) {
+    try {
+      const rawData = cardEl.getAttribute('data-item');
+      if (!rawData) return;
+      const item = JSON.parse(rawData);
+      openEditMode(item);
+    } catch (err) {
+      console.error("Gagal membuka mode edit:", err);
+    }
   }
 
-  // Reset form dan navigasi
-  resetFormState();
-  switchTab('riwayat');
-  showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+  function handleMobileTouchTap(event, rowIndex, cardEl) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    if (tapLength < 300 && tapLength > 0) {
+      event.preventDefault();
+      handleCardDoubleTap(rowIndex, cardEl);
+    }
+    lastTapTime = currentTime;
+  }
 
-  // Eksekusi ke Server
-  google.script.run
-    .withSuccessHandler(res => {
-      if (res && res.status === 'success') {
-        loadRiwayat(currentPage);
-        google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-      } else {
-        showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+  function formatDateForInput(dateStr) {
+    if (!dateStr) return new Date().toISOString().split('T')[0];
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
-    })
-    .withFailureHandler(err => {
-      showToast('error', 'Koneksi error: ' + (err.message || err));
-    })[serverFunc](formData);
-}
+    }
+    return dateStr;
+  }
+
+  function openEditMode(item) {
+    if (!item) return;
+
+    // Set nilai form
+    const editRowEl = document.getElementById('editRowIndex');
+    if (editRowEl) editRowEl.value = item.rowIndex;
+
+    const tglEl = document.getElementById('tanggal');
+    if (tglEl) tglEl.value = formatDateForInput(item.tanggal);
+
+    const jenisEl = document.getElementById('jenis');
+    if (jenisEl) jenisEl.value = item.jenis;
+
+    const katEl = document.getElementById('kategori');
+    if (katEl) katEl.value = item.kategori;
+
+    const sumEl = document.getElementById('sumber');
+    if (sumEl) sumEl.value = item.sumber || '';
+
+    const ketEl = document.getElementById('keterangan');
+    if (ketEl) ketEl.value = item.keterangan || '';
+
+    const nomEl = document.getElementById('nominal');
+    if (nomEl) nomEl.value = item.nominal;
+
+    // Aman: Pengecekan ketersediaan elemen sebelum menyetel innerText
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.innerText = 'Update Transaksi';
+
+    switchTab('tambah');
+  }
+
+  /* --- SUBMIT FORM TRANSAKSI --- */
+  function handleFormSubmit(e) {
+    e.preventDefault();
+
+    const editRowIndex = document.getElementById('editRowIndex')?.value;
+    const isEditMode = Boolean(editRowIndex);
+
+    const formData = {
+      tanggal: document.getElementById('tanggal')?.value,
+      jenis: document.getElementById('jenis')?.value,
+      kategori: document.getElementById('kategori')?.value,
+      sumber: document.getElementById('sumber')?.value,
+      keterangan: document.getElementById('keterangan')?.value,
+      nominal: document.getElementById('nominal')?.value
+    };
+
+    if (isEditMode) {
+      formData.rowIndex = Number(editRowIndex);
+    }
+
+    // Optimistic UI
+    resetFormState();
+    switchTab('riwayat');
+    showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+
+    const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.status === 'success') {
+          loadRiwayat(currentPage);
+          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+        } else {
+          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+        }
+      })
+      .withFailureHandler(err => {
+        showToast('error', 'Koneksi error: ' + (err.message || err));
+      })
+      [serverFunc](formData);
+  }
 
   let toastTimeout;
   function showToast(type, text) {
     const toast = document.getElementById('toast');
+    if (!toast) return;
     toast.className = `toast show ${type}`;
     toast.innerText = text;
-    
+
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 70);
+    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 700);
   }
 
-  // Variabel penyimpan baris yang akan dihapus
-let targetRowToDelete = null;
+  let targetRowToDelete = null;
 
-/**
- * Memunculkan/menyembunyikan ikon sampah di pojok kanan saat kartu ditekan
- */
-function toggleDeleteBtn(cardEl) {
-  const isAlreadyActive = cardEl.classList.contains('border-red-300');
-  
-  // Sembunyikan semua tombol hapus lain terlebih dahulu
-  document.querySelectorAll('.tx-card-item').forEach(el => {
-    el.classList.remove('border-red-300', 'bg-red-50/20');
-    const btn = el.querySelector('.delete-btn-action');
-    if (btn) btn.classList.add('hidden');
+  function toggleDeleteBtn(cardEl) {
+    const isAlreadyActive = cardEl.classList.contains('border-red-300');
+
+    document.querySelectorAll('.tx-card-item').forEach(el => {
+      el.classList.remove('border-red-300', 'bg-red-50/20');
+      const btn = el.querySelector('.delete-btn-action');
+      if (btn) btn.classList.add('hidden');
+    });
+
+    if (!isAlreadyActive) {
+      cardEl.classList.add('border-red-300', 'bg-red-50/20');
+      const deleteBtn = cardEl.querySelector('.delete-btn-action');
+      if (deleteBtn) deleteBtn.classList.remove('hidden');
+    }
+  }
+
+  function openDeleteModal(rowIndex, event) {
+    if (event) event.stopPropagation();
+    targetRowToDelete = rowIndex;
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeDeleteModal() {
+    targetRowToDelete = null;
+    const modal = document.getElementById('deleteModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function confirmDelete() {
+    if (!targetRowToDelete) return;
+
+    const btnConfirm = document.getElementById('btnConfirmDelete');
+    if (btnConfirm) {
+      btnConfirm.innerText = 'Deleting...';
+      btnConfirm.disabled = true;
+    }
+
+    const rowToDelete = targetRowToDelete;
+    closeDeleteModal();
+    showToast('success', 'Menghapus transaksi...');
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (btnConfirm) {
+          btnConfirm.innerText = 'Ya, Hapus';
+          btnConfirm.disabled = false;
+        }
+
+        if (res && res.status === 'success') {
+          showToast('success', 'Transaksi berhasil dihapus!');
+          loadRiwayat(currentPage);
+        } else {
+          showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error server'));
+        }
+      })
+      .withFailureHandler(err => {
+        if (btnConfirm) {
+          btnConfirm.innerText = 'Ya, Hapus';
+          btnConfirm.disabled = false;
+        }
+        showToast('error', 'Koneksi terputus: ' + (err.message || err));
+      })
+      .hapusTransaksiServer(rowToDelete);
+  }
+
+  /* --- FITUR FILTER BERDASAR BULAN & TAHUN --- */
+
+  document.addEventListener('DOMContentLoaded', () => {
+    resetTanggal();
+    initDefaultFilter(); // Deteksi Bulan/Tahun hari ini + Generasi Opsi Tahun
+    loadRiwayat(currentPage);
+    google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
   });
 
-  // Jika belum aktif, aktifkan pada kartu ini
-  if (!isAlreadyActive) {
-    cardEl.classList.add('border-red-300', 'bg-red-50/20');
-    const deleteBtn = cardEl.querySelector('.delete-btn-action');
-    if (deleteBtn) deleteBtn.classList.remove('hidden');
+  /**
+   * Generasi Opsi Tahun Dinamis & Deteksi Otomatis Bulan/Tahun Hari Ini
+   */
+  function initDefaultFilter() {
+    const today = new Date();
+    const currentMonth = today.getMonth();    // 0 = Januari, 11 = Desember
+    const currentYear = today.getFullYear();  // Tahun berjalan
+
+    const filterBulan = document.getElementById('filterBulan');
+    const filterTahun = document.getElementById('filterTahun');
+
+    // Set Default Bulan Hari Ini
+    if (filterBulan) {
+      filterBulan.value = currentMonth;
+    }
+
+    // Generate Opsi Tahun Dinamis (Rentang 2 Tahun Ke Belakang)
+    if (filterTahun) {
+      filterTahun.innerHTML = '';
+      for (let i = 0; i <= 2; i++) {
+        const yearVal = currentYear - i;
+        const opt = document.createElement('option');
+        opt.value = yearVal;
+        opt.textContent = yearVal;
+        if (i === 0) opt.selected = true; // Default pilih tahun ini
+        filterTahun.appendChild(opt);
+      }
+    }
+
+    toggleFilterInputs();
   }
-}
 
-/**
- * Buka Modal Konfirmasi Hapus
- */
-function openDeleteModal(rowIndex, event) {
-  if (event) event.stopPropagation(); // Mencegah event click kartu terulang
-  targetRowToDelete = rowIndex;
-  document.getElementById('deleteModal').classList.remove('hidden');
-}
+  /**
+   * Mengatur visibilitas filter dan otomatis mengeksekusi penyaringan
+   */
+  function toggleFilterInputs() {
+    const tipe = document.getElementById('filterTipe')?.value;
+    const filterBulan = document.getElementById('filterBulan');
+    const filterTahun = document.getElementById('filterTahun');
 
-/**
- * Tutup Modal Konfirmasi Hapus
- */
-function closeDeleteModal() {
-  targetRowToDelete = null;
-  document.getElementById('deleteModal').classList.add('hidden');
-}
-
-/**
- * Eksekusi Hapus Transaksi (Optimistic UI)
- */
-function confirmDelete() {
-  if (!targetRowToDelete) return;
-
-  const btnConfirm = document.getElementById('btnConfirmDelete');
-  btnConfirm.innerText = 'Deleting...';
-  btnConfirm.disabled = true;
-
-  const rowToDelete = targetRowToDelete;
-  closeDeleteModal();
-  showToast('success', 'Menghapus transaksi...');
-
-  // Eksekusi ke Server
-  google.script.run
-    .withSuccessHandler(res => {
-      btnConfirm.innerText = 'Ya, Hapus';
-      btnConfirm.disabled = false;
-
-      if (res && res.status === 'success') {
-        showToast('success', 'Transaksi berhasil dihapus!');
-        loadRiwayat(currentPage); // Refresh list
+    if (filterBulan && filterTahun) {
+      if (tipe === 'bulanan') {
+        filterBulan.classList.remove('hidden');
+        filterTahun.classList.remove('hidden');
       } else {
-        showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error server'));
+        filterBulan.classList.add('hidden');
+        filterTahun.classList.add('hidden');
       }
-    })
-    .withFailureHandler(err => {
-      btnConfirm.innerText = 'Ya, Hapus';
-      btnConfirm.disabled = false;
-      showToast('error', 'Koneksi terputus: ' + (err.message || err));
-    })
-    .hapusTransaksiServer(rowToDelete);
-}
-
-// Variable penanganan double tap di layar sentuh mobile
-let lastTapTime = 0;
-
-function handleMobileTouchTap(event, rowIndex, cardEl) {
-  const currentTime = new Date().getTime();
-  const tapLength = currentTime - lastTapTime;
-  
-  if (tapLength < 300 && tapLength > 0) {
-    event.preventDefault();
-    openEditMode(cardEl);
-  }
-  lastTapTime = currentTime;
-}
-
-function handleCardDoubleTap(rowIndex, cardEl) {
-  openEditMode(cardEl);
-}
-
-/**
- * Membuka mode Edit dan mengisi form secara otomatis
- */
-function openEditMode(cardEl) {
-  const rawData = cardEl.getAttribute('data-item');
-  if (!rawData) return;
-
-  const item = JSON.parse(rawData.replace(/&apos;/g, "'"));
-
-  // Convert tanggal 'dd:MM:yyyy' ke 'yyyy-MM-dd' untuk input HTML date
-  let formattedDate = '';
-  if (item.tanggal) {
-    const parts = item.tanggal.split(':');
-    if (parts.length === 3) {
-      formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-  }
-
-  // Isi data ke Form
-  document.getElementById('editRowIndex').value = item.rowIndex;
-  document.getElementById('tanggal').value = formattedDate || new Date().toISOString().split('T')[0];
-  document.getElementById('jenis').value = (item.jenis && item.jenis.toLowerCase() === 'pendapatan') ? 'Pemasukan' : item.jenis;
-  document.getElementById('kategori').value = item.kategori || '';
-  document.getElementById('sumber').value = item.sumber || '';
-  document.getElementById('keterangan').value = item.keterangan || '';
-  document.getElementById('nominal').value = item.nominal || 0;
-
-  // Ubah UI Form ke Mode Edit
-  document.getElementById('btnSubmit').innerText = 'Perbarui Transaksi';
-  document.getElementById('pageTitle').innerText = 'Edit Transaksi';
-
-  switchTab('tambah');
-  showToast('success', 'Mode Edit: Silakan perbarui data');
-}
-
-/**
- * Reset form ke state default "Tambah Transaksi"
- */
-function resetFormState() {
-  document.getElementById('transaksiForm').reset();
-  document.getElementById('editRowIndex').value = '';
-  document.getElementById('btnSubmit').innerText = 'Simpan Transaksi';
-  document.getElementById('pageTitle').innerText = 'Catat Transaksi';
-  resetTanggal();
-}
-
-// Helper untuk mengonversi string tanggal menjadi "Hari ini", "Kemarin", atau tanggal asli
-function formatTanggalRelatif(dateStr) {
-  if (!dateStr) return '';
-
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  // Parsing string tanggal (Mendukung dd:MM:yyyy, dd/MM/yyyy, maupun yyyy-MM-dd)
-  const parts = String(dateStr).trim().split(/[:/\-]/);
-  
-  if (parts.length === 3) {
-    let d, m, y;
-    if (parts[0].length === 4) {
-      // Format YYYY-MM-DD
-      y = parseInt(parts[0], 10);
-      m = parseInt(parts[1], 10) - 1;
-      d = parseInt(parts[2], 10);
-    } else {
-      // Format DD:MM:YYYY atau DD/MM/YYYY
-      d = parseInt(parts[0], 10);
-      m = parseInt(parts[1], 10) - 1;
-      y = parseInt(parts[2], 10);
     }
 
-    const targetDate = new Date(y, m, d);
-
-    // Bandingkan dengan Hari Ini & Kemarin
-    if (targetDate.getTime() === today.getTime()) {
-      return 'Hari ini';
-    } else if (targetDate.getTime() === yesterday.getTime()) {
-      return 'Kemarin';
-    }
+    // Eksekusi filter otomatis saat tipe filter diubah
+    applyDashboardFilter();
   }
 
-  return dateStr; // Jika bukan Hari ini / Kemarin, tampilkan tanggal biasa (dd:MM:yyyy)
-}
-
-/**
- * Mengeset nilai default filterBulan & meng-generate opsi filterTahun secara dinamis (H+0 s/d H-2 Tahun)
- */
-function initDefaultFilter() {
-  const today = new Date();
-  const currentMonth = today.getMonth();
-  const currentYear = today.getFullYear();
-
-  const filterBulan = document.getElementById('filterBulan');
-  const filterTahun = document.getElementById('filterTahun');
-
-  // 1. Set Default Bulan
-  if (filterBulan) {
-    filterBulan.value = currentMonth;
+  /**
+   * Pemicu Penyaringan Data Transaksi
+   */
+  function applyDashboardFilter() {
+    applyFilterAndSearch();
   }
-
-  // 2. Generate Opsi Tahun Dinamis (3 Tahun Terakhir: Tahun Ini, H-1, H-2)
-  if (filterTahun) {
-    filterTahun.innerHTML = ''; // Clear opsi lama
-    for (let i = 0; i <= 2; i++) {
-      const yearVal = currentYear - i;
-      const opt = document.createElement('option');
-      opt.value = yearVal;
-      opt.textContent = yearVal;
-      if (i === 0) opt.selected = true; // Default pilih tahun berjalan
-      filterTahun.appendChild(opt);
-    }
-  }
-
-  // 3. Tampilkan/Sembunyikan input sesuai tipe filter dan eksekusi filter pertama kali
-  toggleFilterInputs();
-}
-
-// Jalankan inisialisasi default filter saat DOM / halaman siap
-document.addEventListener('DOMContentLoaded', initDefaultFilter);
-
-/**
- * Mengatur visibilitas dropdown Bulan & Tahun berdasarkan pilihan Tipe Filter
- */
-
-function toggleFilterInputs() {
-  const tipe = document.getElementById('filterTipe').value;
-  const filterBulan = document.getElementById('filterBulan');
-  const filterTahun = document.getElementById('filterTahun');
-
-  if (tipe === 'bulanan') {
-    filterBulan.classList.remove('hidden');
-    filterTahun.classList.remove('hidden');
-  } else {
-    filterBulan.classList.add('hidden');
-    filterTahun.classList.add('hidden');
-  }
-
-  // Otomatis eksekusi filter saat pilihan tipe berubah tanpa perlu tekan tombol
-  applyDashboardFilter();
-}
-
-/**
- * Mengambil data transaksi hasil filter dari server dan memperbarui UI Riwayat Kas
- */
-function applyDashboardFilter() {
-  const params = {
-    tipe: document.getElementById('filterTipe').value,
-    bulan: parseInt(document.getElementById('filterBulan').value),
-    tahun: parseInt(document.getElementById('filterTahun').value)
-  };
-
-  const container = document.getElementById('riwayatContainer') || document.getElementById('tabelRiwayatBody');
-  if (container) {
-    container.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">Memuat data transaksi...</div>';
-  }
-
-  google.script.run
-    .withSuccessHandler(function(data) {
-      if (typeof renderRiwayatUI === 'function') {
-        renderRiwayatUI(data);
-      } else if (typeof renderTabelRiwayat === 'function') {
-        renderTabelRiwayat(data);
-      }
-    })
-    .withFailureHandler(function(err) {
-      if (typeof showToast === 'function') {
-        showToast('error', 'Gagal memfilter data: ' + (err.message || err));
-      } else {
-        alert('Gagal memfilter data: ' + (err.message || err));
-      }
-    })
-    .getFilteredTransactionsServer(params);
-}
 </script>

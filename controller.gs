@@ -197,89 +197,25 @@ function updateTransaksiServer(data) {
 }
 
 /**
- * Server Controller: Memfilter transaksi dari sheet 'in/out' berdasarkan kriteria dashboard
- * @param {Object} params - Object berisi tipe filter, bulan, dan tahun
- * @return {Array} Array objek transaksi terfilter
- */
-function getFilteredTransactionsServer(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("in/out");
-  if (!sheet) return [];
-
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 6) return [];
-
-  // Ambil data transaksi dari baris 6 (Kolom A-F)
-  const rawData = sheet.getRange(6, 1, lastRow - 5, 6).getValues();
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const filtered = rawData.filter(row => {
-    const rawDate = row[0];
-    if (!(rawDate instanceof Date) || isNaN(rawDate.getTime())) return false;
-
-    const cellDate = new Date(rawDate);
-    cellDate.setHours(0, 0, 0, 0);
-
-    switch (params.tipe) {
-      case "7hari": {
-        const diffDays = Math.floor((now.getTime() - cellDate.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 7;
-      }
-      case "30hari": {
-        const diffDays = Math.floor((now.getTime() - cellDate.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 30;
-      }
-      case "bulanan": {
-        return cellDate.getMonth() === params.bulan && cellDate.getFullYear() === params.tahun;
-      }
-      case "semua":
-      default:
-        return true;
-    }
-  });
-
-  // Urutkan transaksi dari tanggal terbaru ke terlama
-  filtered.sort((a, b) => new Date(b[0]) - new Date(a[0]));
-
-  return filtered.map(row => {
-    const dateObj = new Date(row[0]);
-    const formattedDate = Utilities.formatDate(dateObj, ss.getSpreadsheetTimeZone(), "dd/MM/yyyy");
-    const nominal = Number(row[5]) || 0;
-
-    return {
-      tanggal: formattedDate,
-      tanggalRaw: dateObj.toISOString(),
-      jenis: row[1],
-      kategori: row[2],
-      sumber: row[3],
-      keterangan: row[4],
-      nominal: nominal,
-      nominalFormat: "Rp " + nominal.toLocaleString("id-ID")
-    };
-  });
-}
-
-/**
- * Menghapus transaksi yang berusia lebih dari 2 tahun secara otomatis (Retention Policy 2 Tahun)
+ * Pembersihan Otomatis Transaksi > 2 Tahun di Backend Spreadsheet
  */
 function autoCleanupOldTransactions() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("in/out");
+  const sheet = ss.getSheetByName(CONFIG.SHEET_NAME || "in/out");
   if (!sheet) return;
 
   const lastRow = sheet.getLastRow();
-  if (lastRow < 6) return; // Tidak ada data transaksi
+  if (lastRow < CONFIG.START_ROW) return;
 
   const now = new Date();
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(now.getFullYear() - 2);
   twoYearsAgo.setHours(0, 0, 0, 0);
 
-  const rawData = sheet.getRange(6, 1, lastRow - 5, 6).getValues();
+  const totalRows = lastRow - CONFIG.START_ROW + 1;
+  const rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues();
   const validRows = [];
 
-  // Filter baris yang usianya masih <= 2 tahun
   rawData.forEach(row => {
     const rawDate = row[0];
     if (rawDate instanceof Date && !isNaN(rawDate.getTime())) {
@@ -289,80 +225,33 @@ function autoCleanupOldTransactions() {
         validRows.push(row);
       }
     } else if (row.some(cell => cell !== "")) {
-      // Pertahankan baris non-tanggal jika terisi
-      validRows.push(row);
+      validRows.push(row); // Pertahankan baris non-tanggal
     }
   });
 
-  // Jika ada baris kedaluwarsa yang terhapus, perbarui area data pada spreadsheet
+  // Jika terdapat data kedaluwarsa (> 2 tahun), lakukan pembersihan di sheet
   if (validRows.length < rawData.length) {
-    sheet.getRange(6, 1, lastRow - 5, 6).clearContent();
+    sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).clearContent();
     if (validRows.length > 0) {
-      sheet.getRange(6, 1, validRows.length, 6).setValues(validRows);
+      sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 6).setValues(validRows);
     }
     SpreadsheetApp.flush();
   }
 }
 
 /**
- * Panggil pembersihan otomatis sebelum mengambil data transaksi
+ * Controller Server untuk membaca Riwayat Kas
  */
-function getFilteredTransactionsServer(params) {
-  // Jalankan pembersihan otomatis data > 2 tahun
-  autoCleanupOldTransactions();
+function getRiwayatKasServer(page, limit) {
+  try {
+    // Jalankan pembersihan otomatis sebelum membaca data transaksi
+    autoCleanupOldTransactions();
 
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName("in/out");
-  if (!sheet) return [];
-
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 6) return [];
-
-  const rawData = sheet.getRange(6, 1, lastRow - 5, 6).getValues();
-  const now = new Date();
-  now.setHours(0, 0, 0, 0);
-
-  const filtered = rawData.filter(row => {
-    const rawDate = row[0];
-    if (!(rawDate instanceof Date) || isNaN(rawDate.getTime())) return false;
-
-    const cellDate = new Date(rawDate);
-    cellDate.setHours(0, 0, 0, 0);
-
-    switch (params.tipe) {
-      case "7hari": {
-        const diffDays = Math.floor((now.getTime() - cellDate.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 7;
-      }
-      case "30hari": {
-        const diffDays = Math.floor((now.getTime() - cellDate.getTime()) / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays <= 30;
-      }
-      case "bulanan": {
-        return cellDate.getMonth() === params.bulan && cellDate.getFullYear() === params.tahun;
-      }
-      case "semua":
-      default:
-        return true;
-    }
-  });
-
-  filtered.sort((a, b) => new Date(b[0]) - new Date(a[0]));
-
-  return filtered.map(row => {
-    const dateObj = new Date(row[0]);
-    const formattedDate = Utilities.formatDate(dateObj, ss.getSpreadsheetTimeZone(), "dd/MM/yyyy");
-    const nominal = Number(row[5]) || 0;
-
-    return {
-      tanggal: formattedDate,
-      tanggalRaw: dateObj.toISOString(),
-      jenis: row[1],
-      kategori: row[2],
-      sumber: row[3],
-      keterangan: row[4],
-      nominal: nominal,
-      nominalFormat: "Rp " + nominal.toLocaleString("id-ID")
-    };
-  });
+    const pageNum = page || 1;
+    const limitNum = limit || 10;
+    
+    // ...logika fetch data standar...
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
 }
