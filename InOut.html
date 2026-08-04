@@ -48,18 +48,19 @@
     </div>
 
     <div id="riwayatList" class="flex flex-col gap-3">
-      <div class="text-center text-textSecondary py-10 text-sm">Memuat riwayat kas...</div>
+      <div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>
     </div>
     
     <div class="flex justify-center gap-2 mt-8 mb-4" id="paginationControls"></div>
   </div>
 
   <div id="viewTambah" class="view-section">
-    <div class="bg-surfaceContainerLowest rounded-14 p-5 md:p-8 shadow-card mb-6">
-      <div class="flex items-center gap-2 mb-6 md:hidden text-textSecondary" onclick="switchTab('riwayat')">
-        <span class="material-symbols-outlined cursor-pointer hover:text-primary">arrow_back</span>
-        <span class="text-sm font-medium cursor-pointer hover:text-primary">Kembali</span>
-      </div>
+    <div class="bg-surfaceContainerLowest rounded-14 p-5 md:p-8 shadow-card mb-6 border border-gray-100">
+      
+      <button type="button" onclick="switchTab('riwayat')" class="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary hover:text-textPrimary text-sm font-medium transition-colors border border-gray-200 cursor-pointer">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        <span>Kembali ke Riwayat</span>
+      </button>
 
       <form id="transaksiForm" onsubmit="handleFormSubmit(event)">
         <div class="flex flex-col md:flex-row gap-4 mb-4">
