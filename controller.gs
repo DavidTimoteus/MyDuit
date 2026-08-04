@@ -42,14 +42,21 @@ function getRiwayatKasServer(page = 1, limit = 10) {
     const totalPages = Math.ceil(totalData / limit);
 
     const startIndex = (page - 1) * limit;
-    const paginatedData = reversedValues.slice(startIndex, startIndex + limit).map(row => ({
-      tanggal: formatDateSafe(row[0]),
-      jenis: row[1] ? String(row[1]).trim() : "",
-      kategori: row[2] ? String(row[2]).trim() : "",
-      sumber: row[3] ? String(row[3]).trim() : "",
-      keterangan: row[4] ? String(row[4]).trim() : "",
-      nominal: parseNominalSafe(row[5])
-    }));
+    const paginatedData = reversedValues.slice(startIndex, startIndex + limit)
+      .map((row, index) => {
+        // 1. Hitung baris asli di Google Sheets untuk setiap item
+        const originalRowIndex = CONFIG.START_ROW + (numRows - 1 - (startIndex + index));
+        // 2. Return objek data transaksi
+        return {
+          rowIndex: originalRowIndex,
+          tanggal: formatDateSafe(row[0]),
+          jenis: row[1] ? String(row[1]).trim() : "",
+          kategori: row[2] ? String(row[2]).trim() : "",
+          sumber: row[3] ? String(row[3]).trim() : "",
+          keterangan: row[4] ? String(row[4]).trim() : "",
+          nominal: parseNominalSafe(row[5])
+        };
+      });
 
     return {
       status: "success",
@@ -69,11 +76,11 @@ function formatDateSafe(val) {
   if (!val) return "";
   try {
     if (val instanceof Date) {
-      return Utilities.formatDate(val, Session.getScriptTimeZone(), "dd-MM-yyyy");
+      return Utilities.formatDate(val, Session.getScriptTimeZone(), "dd/MM/yyyy");
     }
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd-MM-yyyy");
+      return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd/MM/yyyy");
     }
     return String(val).split("T")[0];
   } catch (e) {
@@ -97,10 +104,10 @@ function fetchKategoriServer() {
 
   const maxRows = sheet.getMaxRows();
   if (maxRows < CONFIG.START_ROW) return ["MAKANAN"];
-  
+
   const values = sheet.getRange(CONFIG.START_ROW, 3, maxRows - CONFIG.START_ROW + 1, 1).getValues();
-  const listKategori = new Set(["MAKANAN"]); 
-  
+  const listKategori = new Set(["MAKANAN"]);
+
   values.forEach(row => {
     if (row[0] && typeof row[0] === 'string') listKategori.add(row[0].trim().toUpperCase());
   });
@@ -116,13 +123,13 @@ function simpanTransaksiServer(data) {
 
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
     const formatKategori = String(data.kategori).trim().toUpperCase();
-    
+
     const rowData = [
-      data.tanggal, 
-      data.jenis, 
-      formatKategori, 
-      data.sumber, 
-      data.keterangan, 
+      data.tanggal,
+      data.jenis,
+      formatKategori,
+      data.sumber,
+      data.keterangan,
       Number(data.nominal)
     ];
 
@@ -131,6 +138,23 @@ function simpanTransaksiServer(data) {
     sheet.getRange(lastRow, 3).setFontWeight("bold").setHorizontalAlignment("center");
 
     SpreadsheetApp.flush();
+
+    return { status: "success" };
+  } catch (error) {
+    return { status: "error", message: error.message };
+  }
+}
+
+/**
+ * Menghapus baris transaksi dari database Google Sheets
+ */
+function hapusTransaksiServer(rowIndex) {
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+    if (!sheet) throw new Error("Sheet tidak ditemukan!");
+
+    sheet.deleteRow(rowIndex);
+    SpreadsheetApp.flush(); // Flush wajib agar sinkronisasi instan
 
     return { status: "success" };
   } catch (error) {

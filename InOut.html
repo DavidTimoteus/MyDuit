@@ -143,3 +143,17 @@
 
 </div>
 <div id="toast" class="toast">Berhasil disimpan!</div>
+<div id="deleteModal"
+  class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
+  <div class="bg-surfaceContainerLowest rounded-14 p-6 max-w-sm w-full shadow-2xl text-center transform transition-all">
+    <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 mx-auto flex items-center justify-center mb-4">
+      <span class="material-symbols-outlined text-[28px]">delete_forever</span>
+    </div>
+    <h3 class="font-bold text-lg text-textPrimary mb-2">Hapus Transaksi?</h3>
+    <p class="text-xs text-textSecondary mb-6">Data yang dihapus tidak dapat dikembalikan ke database.</p>
+    <div class="flex gap-3">
+      <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+      <button onclick="confirmDelete()" id="btnConfirmDelete" class="flex-1 py-2.5 rounded-8 bg-expense hover:bg-red-700 text-white text-sm font-semibold transition-colors">Ya, Hapus</button>
+    </div>
+  </div>
+</div>

@@ -1,33 +1,80 @@
 <style data-purpose="custom-utilities">
   /* Konfigurasi Material Icon */
   .material-symbols-outlined {
-    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-variation-settings: 'FILL'0, 'wght'400, 'GRAD'0, 'opsz'24;
   }
-  
+
   /* Sembunyikan scrollbar untuk area chip filter */
-  .hide-scrollbar::-webkit-scrollbar { display: none; }
-  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
   /* Area aman layar iOS */
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 16px); }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
 
   /* Animasi Transisi View Section */
-  .view-section { display: none; animation: fadeIn 0.3s ease-in-out; }
-  .view-section.active { display: block; }
+  .view-section {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .view-section.active {
+    display: block;
+  }
+
   @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* Toast Optimistic UI */
+  /* Toast / Notifikasi Loading (Fixed Layout Mobile) */
   .toast {
-    position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%) translateY(50px);
-    background: #333; color: #fff; padding: 12px 24px; border-radius: 8px; 
-    font-size: 13px; font-weight: 600; opacity: 0; pointer-events: none;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(50px);
+    background: #333;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9999;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: max-content;
+    max-width: 90vw;
+    white-space: nowrap;
+    text-align: center;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-  .toast.success { background: #2D6A4F; }
-  .toast.error { background: #e53e3e; }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .toast.success {
+    background: #2D6A4F;
+  }
+
+  .toast.error {
+    background: #e53e3e;
+  }
 </style>
