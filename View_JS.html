@@ -12,6 +12,52 @@
     document.getElementById('tanggal').value = new Date().toISOString().split('T')[0];
   }
 
+/**
+ * Fungsi Navigasi Tab / Membuka Form Tambah Transaksi
+ * @param {string} tabName - 'beranda', 'tambah', 'laporan', dll.
+ */
+function switchTab(tabName) {
+  if (tabName === 'tambah') {
+    // 1. Tampilkan modal/section formulir tambah transaksi
+    const modalForm = document.getElementById('modalFormTransaksi') || document.getElementById('formTambahSection');
+    if (modalForm) {
+      modalForm.classList.remove('hidden');
+    }
+
+    // 2. Reset isi form jika ada
+    const formElement = document.getElementById('formTransaksi');
+    if (formElement) {
+      formElement.reset();
+    }
+
+    // 3. Set default tanggal ke hari ini (YYYY-MM-DD)
+    const inputTanggal = document.getElementById('inputTanggal');
+    if (inputTanggal) {
+      const todayISO = new Date().toISOString().split('T')[0];
+      inputTanggal.value = todayISO;
+    }
+    return;
+  }
+
+  // Logika perpindahan tab standar lainnya (Beranda, Laporan, dll.)
+  const tabs = document.querySelectorAll('.tab-content');
+  tabs.forEach(tab => tab.classList.add('hidden'));
+
+  const targetTab = document.getElementById('tab-' + tabName) || document.getElementById(tabName + 'Section');
+  if (targetTab) {
+    targetTab.classList.remove('hidden');
+  }
+
+  // Update indikator aktif pada navigasi bawah/bar
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(item => item.classList.remove('active', 'text-emerald-600'));
+  
+  const activeNav = document.getElementById('nav-' + tabName);
+  if (activeNav) {
+    activeNav.classList.add('active', 'text-emerald-600');
+  }
+}
+
   function switchTab(targetView) {
 
     if (targetView === 'tambah' && !document.getElementById('editRowIndex').value) {
@@ -407,5 +453,95 @@ function formatTanggalRelatif(dateStr) {
   }
 
   return dateStr; // Jika bukan Hari ini / Kemarin, tampilkan tanggal biasa (dd:MM:yyyy)
+}
+
+/**
+ * Mengeset nilai default filterBulan & meng-generate opsi filterTahun secara dinamis (H+0 s/d H-2 Tahun)
+ */
+function initDefaultFilter() {
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentYear = today.getFullYear();
+
+  const filterBulan = document.getElementById('filterBulan');
+  const filterTahun = document.getElementById('filterTahun');
+
+  // 1. Set Default Bulan
+  if (filterBulan) {
+    filterBulan.value = currentMonth;
+  }
+
+  // 2. Generate Opsi Tahun Dinamis (3 Tahun Terakhir: Tahun Ini, H-1, H-2)
+  if (filterTahun) {
+    filterTahun.innerHTML = ''; // Clear opsi lama
+    for (let i = 0; i <= 2; i++) {
+      const yearVal = currentYear - i;
+      const opt = document.createElement('option');
+      opt.value = yearVal;
+      opt.textContent = yearVal;
+      if (i === 0) opt.selected = true; // Default pilih tahun berjalan
+      filterTahun.appendChild(opt);
+    }
+  }
+
+  // 3. Tampilkan/Sembunyikan input sesuai tipe filter dan eksekusi filter pertama kali
+  toggleFilterInputs();
+}
+
+// Jalankan inisialisasi default filter saat DOM / halaman siap
+document.addEventListener('DOMContentLoaded', initDefaultFilter);
+
+/**
+ * Mengatur visibilitas dropdown Bulan & Tahun berdasarkan pilihan Tipe Filter
+ */
+
+function toggleFilterInputs() {
+  const tipe = document.getElementById('filterTipe').value;
+  const filterBulan = document.getElementById('filterBulan');
+  const filterTahun = document.getElementById('filterTahun');
+
+  if (tipe === 'bulanan') {
+    filterBulan.classList.remove('hidden');
+    filterTahun.classList.remove('hidden');
+  } else {
+    filterBulan.classList.add('hidden');
+    filterTahun.classList.add('hidden');
+  }
+
+  // Otomatis eksekusi filter saat pilihan tipe berubah tanpa perlu tekan tombol
+  applyDashboardFilter();
+}
+
+/**
+ * Mengambil data transaksi hasil filter dari server dan memperbarui UI Riwayat Kas
+ */
+function applyDashboardFilter() {
+  const params = {
+    tipe: document.getElementById('filterTipe').value,
+    bulan: parseInt(document.getElementById('filterBulan').value),
+    tahun: parseInt(document.getElementById('filterTahun').value)
+  };
+
+  const container = document.getElementById('riwayatContainer') || document.getElementById('tabelRiwayatBody');
+  if (container) {
+    container.innerHTML = '<div class="text-center py-6 text-slate-500 text-sm">Memuat data transaksi...</div>';
+  }
+
+  google.script.run
+    .withSuccessHandler(function(data) {
+      if (typeof renderRiwayatUI === 'function') {
+        renderRiwayatUI(data);
+      } else if (typeof renderTabelRiwayat === 'function') {
+        renderTabelRiwayat(data);
+      }
+    })
+    .withFailureHandler(function(err) {
+      if (typeof showToast === 'function') {
+        showToast('error', 'Gagal memfilter data: ' + (err.message || err));
+      } else {
+        alert('Gagal memfilter data: ' + (err.message || err));
+      }
+    })
+    .getFilteredTransactionsServer(params);
 }
 </script>
