@@ -13,6 +13,7 @@
   }
 
   function switchTab(targetView) {
+    if (targetView === 'tambah' && !document.getElementById('editRowIndex').value) {resetFormState();}
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
     
     // Ubah status aktif ikon Navigasi
@@ -126,7 +127,11 @@ function renderRiwayatUI(data) {
     const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
 
     return `
-      <div onclick="toggleDeleteBtn(this)" class="tx-card-item relative bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-gray-200 select-none">
+      <div onclick="toggleDeleteBtn(this)" 
+       ondblclick="handleCardDoubleTap(${item.rowIndex}, this)" 
+       ontouchend="handleMobileTouchTap(event, ${item.rowIndex}, this)"
+       data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
+       class="tx-card-item relative bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-gray-200 select-none">
         
         <div class="flex items-center gap-3 w-full min-w-0">
           <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
@@ -171,6 +176,33 @@ function renderRiwayatUI(data) {
   }
 
   function handleFormSubmit(e) {
+    const editRowIndex = document.getElementById('editRowIndex').value;
+    const isEditMode = Boolean(editRowIndex);
+    if (isEditMode) {
+      formData.rowIndex = Number(editRowIndex);
+    }
+    // Reset Form & Kembalikan State
+    resetFormState();
+    switchTab('riwayat');
+    showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+
+    // Kirim ke Backend
+    const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (res && res.status === 'success') {
+          loadRiwayat(currentPage);
+          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+        } else {
+          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+        }
+      })
+      .withFailureHandler(err => {
+        showToast('error', 'Koneksi error: ' + (err.message || err));
+      })
+      [serverFunc](formData);
+
     e.preventDefault();
     const formData = {
       tanggal: document.getElementById('tanggal').value,
@@ -287,4 +319,5 @@ function confirmDelete() {
     })
     .hapusTransaksiServer(rowToDelete);
 }
+
 </script>

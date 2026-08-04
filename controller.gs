@@ -161,3 +161,37 @@ function hapusTransaksiServer(rowIndex) {
     return { status: "error", message: error.message };
   }
 }
+
+/**
+ * Memperbarui data transaksi pada baris tertentu
+ */
+function updateTransaksiServer(data) {
+  try {
+    if (!data.rowIndex || !data.tanggal || !data.jenis || !data.kategori || !data.nominal) {
+      throw new Error("Data tidak lengkap untuk diperbarui!");
+    }
+
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(CONFIG.SHEET_NAME);
+    if (!sheet) throw new Error("Sheet tidak ditemukan!");
+
+    const formatKategori = String(data.kategori).trim().toUpperCase();
+    const rowData = [
+      data.tanggal, 
+      data.jenis, 
+      formatKategori, 
+      data.sumber, 
+      data.keterangan, 
+      Number(data.nominal)
+    ];
+
+    // Timpa data pada baris target
+    sheet.getRange(data.rowIndex, 1, 1, 6).setValues([rowData]);
+    sheet.getRange(data.rowIndex, 3).setFontWeight("bold").setHorizontalAlignment("center");
+
+    SpreadsheetApp.flush(); // Sinkronisasi instan database
+
+    return { status: "success" };
+  } catch (error) {
+    return { status: "error", message: error.message };
+  }
+}
