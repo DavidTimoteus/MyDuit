@@ -13,7 +13,11 @@
   }
 
   function switchTab(targetView) {
-    if (targetView === 'tambah' && !document.getElementById('editRowIndex').value) {resetFormState();}
+
+    if (targetView === 'tambah' && !document.getElementById('editRowIndex').value) {
+         resetFormState();
+       }
+
     document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
     
     // Ubah status aktif ikon Navigasi
@@ -176,63 +180,44 @@ function renderRiwayatUI(data) {
   }
 
   function handleFormSubmit(e) {
-    const editRowIndex = document.getElementById('editRowIndex').value;
-    const isEditMode = Boolean(editRowIndex);
-    if (isEditMode) {
-      formData.rowIndex = Number(editRowIndex);
-    }
-    // Reset Form & Kembalikan State
-    resetFormState();
-    switchTab('riwayat');
-    showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+  e.preventDefault();
 
-    // Kirim ke Backend
-    const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+  const editRowIndex = document.getElementById('editRowIndex').value;
+  const isEditMode = Boolean(editRowIndex);
+  const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.status === 'success') {
-          loadRiwayat(currentPage);
-          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-        } else {
-          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
-        }
-      })
-      .withFailureHandler(err => {
-        showToast('error', 'Koneksi error: ' + (err.message || err));
-      })
-      [serverFunc](formData);
+  const formData = {
+    tanggal: document.getElementById('tanggal').value,
+    jenis: document.getElementById('jenis').value,
+    kategori: document.getElementById('kategori').value,
+    sumber: document.getElementById('sumber').value,
+    keterangan: document.getElementById('keterangan').value,
+    nominal: document.getElementById('nominal').value
+  };
 
-    e.preventDefault();
-    const formData = {
-      tanggal: document.getElementById('tanggal').value,
-      jenis: document.getElementById('jenis').value,
-      kategori: document.getElementById('kategori').value,
-      sumber: document.getElementById('sumber').value,
-      keterangan: document.getElementById('keterangan').value,
-      nominal: document.getElementById('nominal').value
-    };
-
-    // Optimistic UI
-    document.getElementById('transaksiForm').reset();
-    resetTanggal();
-    switchTab('riwayat');
-    showToast('success', 'Transaksi berhasil dicatat!');
-
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.status === 'success') {
-          loadRiwayat(1);
-          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-        } else {
-          showToast('error', 'Gagal menyimpan: ' + (res ? res.message : 'Error server'));
-        }
-      })
-      .withFailureHandler(err => {
-        showToast('error', 'Koneksi error: ' + (err.message || err));
-      })
-      .simpanTransaksiServer(formData);
+  if (isEditMode) {
+    formData.rowIndex = Number(editRowIndex);
   }
+
+  // Reset form dan navigasi
+  resetFormState();
+  switchTab('riwayat');
+  showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+
+  // Eksekusi ke Server
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res && res.status === 'success') {
+        loadRiwayat(currentPage);
+        google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+      } else {
+        showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+      }
+    })
+    .withFailureHandler(err => {
+      showToast('error', 'Koneksi error: ' + (err.message || err));
+    })[serverFunc](formData);
+}
 
   let toastTimeout;
   function showToast(type, text) {
@@ -320,4 +305,67 @@ function confirmDelete() {
     .hapusTransaksiServer(rowToDelete);
 }
 
+// Variable penanganan double tap di layar sentuh mobile
+let lastTapTime = 0;
+
+function handleMobileTouchTap(event, rowIndex, cardEl) {
+  const currentTime = new Date().getTime();
+  const tapLength = currentTime - lastTapTime;
+  
+  if (tapLength < 300 && tapLength > 0) {
+    event.preventDefault();
+    openEditMode(cardEl);
+  }
+  lastTapTime = currentTime;
+}
+
+function handleCardDoubleTap(rowIndex, cardEl) {
+  openEditMode(cardEl);
+}
+
+/**
+ * Membuka mode Edit dan mengisi form secara otomatis
+ */
+function openEditMode(cardEl) {
+  const rawData = cardEl.getAttribute('data-item');
+  if (!rawData) return;
+
+  const item = JSON.parse(rawData.replace(/&apos;/g, "'"));
+
+  // Convert tanggal 'dd:MM:yyyy' ke 'yyyy-MM-dd' untuk input HTML date
+  let formattedDate = '';
+  if (item.tanggal) {
+    const parts = item.tanggal.split(':');
+    if (parts.length === 3) {
+      formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+    }
+  }
+
+  // Isi data ke Form
+  document.getElementById('editRowIndex').value = item.rowIndex;
+  document.getElementById('tanggal').value = formattedDate || new Date().toISOString().split('T')[0];
+  document.getElementById('jenis').value = (item.jenis && item.jenis.toLowerCase() === 'pendapatan') ? 'Pemasukan' : item.jenis;
+  document.getElementById('kategori').value = item.kategori || '';
+  document.getElementById('sumber').value = item.sumber || '';
+  document.getElementById('keterangan').value = item.keterangan || '';
+  document.getElementById('nominal').value = item.nominal || 0;
+
+  // Ubah UI Form ke Mode Edit
+  document.getElementById('btnSubmit').innerText = 'Perbarui Transaksi';
+  document.getElementById('pageTitle').innerText = 'Edit Transaksi';
+
+  switchTab('tambah');
+  showToast('success', 'Mode Edit: Silakan perbarui data');
+}
+
+/**
+ * Reset form ke state default "Tambah Transaksi"
+ */
+function resetFormState() {
+  document.getElementById('transaksiForm').reset();
+  document.getElementById('editRowIndex').value = '';
+  document.getElementById('btnSubmit').innerText = 'Simpan Transaksi';
+  document.getElementById('pageTitle').innerText = 'Catat Transaksi';
+  resetTanggal();
+}
 </script>
