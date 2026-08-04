@@ -38,76 +38,116 @@
     datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
   }
 
-  function loadRiwayat(page) {
-    currentPage = page;
-    const container = document.getElementById('riwayatList');
-    container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
+// 1. Tambahkan Variabel State di bagian atas script
+let globalData = [];
+let activeFilterJenis = 'Semua';
 
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.status === 'success') {
-          renderRiwayatUI(res.data);
-          renderPaginationUI(res.totalPages, res.currentPage);
-        } else {
-          container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error server'}</div>`;
-        }
-      })
-      .withFailureHandler(err => {
-        container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Koneksi terputus/error: ${err.message || err}</div>`;
-      })
-      .getRiwayatKasServer(page, limitPerPage);
+// 2. Perbarui Fungsi loadRiwayat
+function loadRiwayat(page) {
+  currentPage = page;
+  const container = document.getElementById('riwayatList');
+  container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
+
+  google.script.run
+    .withSuccessHandler(res => {
+      if (res && res.status === 'success') {
+        globalData = res.data || [];
+        applyFilterAndSearch(); // Terapkan filter & pencarian setelah data dimuat
+        renderPaginationUI(res.totalPages, res.currentPage);
+      } else {
+        container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error server'}</div>`;
+      }
+    })
+    .withFailureHandler(err => {
+      container.innerHTML = `<div class="text-center text-expense py-10 text-sm">Koneksi terputus/error: ${err.message || err}</div>`;
+    })
+    .getRiwayatKasServer(page, limitPerPage);
+}
+
+// 3. Tambahkan Fungsi Pengelola Pencarian & Filter Chip
+function setFilterJenis(jenis, el) {
+  activeFilterJenis = jenis;
+  document.querySelectorAll('#filterChips .chip-btn').forEach(btn => {
+    btn.className = "chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
+  });
+  el.className = "chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap";
+  applyFilterAndSearch();
+}
+
+function handleSearchFilter() {
+  applyFilterAndSearch();
+}
+
+function applyFilterAndSearch() {
+  const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+  
+  const filtered = globalData.filter(item => {
+    const jenis = String(item.jenis || '').toLowerCase();
+    const isIncome = (jenis === 'pemasukan' || jenis === 'pendapatan');
+    
+    // Filter Berdasarkan Chip Jenis
+    let matchesJenis = true;
+    if (activeFilterJenis === 'Pemasukan') matchesJenis = isIncome;
+    if (activeFilterJenis === 'Pengeluaran') matchesJenis = !isIncome && jenis !== '';
+
+    // Filter Berdasarkan Kata Kunci Pencarian
+    const matchesSearch = !query || 
+      String(item.kategori || '').toLowerCase().includes(query) ||
+      String(item.keterangan || '').toLowerCase().includes(query) ||
+      String(item.sumber || '').toLowerCase().includes(query) ||
+      String(item.tanggal || '').toLowerCase().includes(query) ||
+      String(item.nominal || '').toLowerCase().includes(query);
+
+    return matchesJenis && matchesSearch;
+  });
+
+  renderRiwayatUI(filtered);
+}
+
+// 4. Perbarui Pengecekan Jenis pada renderRiwayatUI
+function renderRiwayatUI(data) {
+  const container = document.getElementById('riwayatList');
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm">Data transaksi tidak ditemukan.</div>';
+    return;
   }
 
-  /**
-   * Render DOM menggunakan sintaks kelas Tailwind (Sesuai Snippet HTML Mobile)
-   */
-  function renderRiwayatUI(data) {
-    const container = document.getElementById('riwayatList');
-    if (!data || data.length === 0) {
-      container.innerHTML = '<div class="text-center text-textSecondary py-10 text-sm">Belum ada catatan transaksi.</div>';
-      return;
-    }
+  container.innerHTML = data.map(item => {
+    const jenisLower = String(item.jenis).toLowerCase();
+    const isPemasukan = (jenisLower === 'pemasukan' || jenisLower === 'pendapatan');
+    
+    const sign = isPemasukan ? '+' : '-';
+    const textAmountColor = isPemasukan ? 'text-income' : 'text-expense';
+    const iconBg = isPemasukan ? 'bg-green-100' : 'bg-red-50';
+    const iconColor = isPemasukan ? 'text-green-600' : 'text-red-500';
+    const iconSymbol = isPemasukan ? 'trending_up' : 'trending_down';
+    
+    const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
+    const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
 
-    container.innerHTML = data.map(item => {
-      const isPendapatan = String(item.jenis).toLowerCase() === 'pendapatan';
-      
-      // Styling Kondisional Berdasarkan Jenis Transaksi
-      const sign = isPendapatan ? '+' : '-';
-      const textAmountColor = isPendapatan ? 'text-income' : 'text-expense';
-      const iconBg = isPendapatan ? 'bg-green-100' : 'bg-red-50';
-      const iconColor = isPendapatan ? 'text-green-600' : 'text-red-500';
-      const iconSymbol = isPendapatan ? 'trending_up' : 'trending_down';
-      
-      const formattedNominal = Number(item.nominal || 0).toLocaleString('id-ID');
-      const teksKeterangan = item.keterangan || item.kategori || 'Tanpa Keterangan';
-
-      return `
-        <div class="bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-4 hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-gray-100">
-          
-          <div class="flex items-center gap-3 w-full">
-            <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
-              <span class="material-symbols-outlined ${iconColor} text-[20px]">${iconSymbol}</span>
-            </div>
-            
-            <div class="flex-1 min-w-0">
-              <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
-              <div class="flex items-center gap-2 text-xs text-textSecondary">
-                <span>${item.tanggal || '-'}</span>
-                <span class="w-1 h-1 rounded-full bg-gray-300"></span>
-                <span class="truncate">${item.kategori || '-'}</span>
-              </div>
+    return `
+      <div class="bg-surfaceContainerLowest rounded-8 p-4 shadow-card flex items-center justify-between gap-4 hover:shadow-md transition-shadow cursor-pointer border border-transparent hover:border-gray-100">
+        <div class="flex items-center gap-3 w-full">
+          <div class="w-10 h-10 rounded-full ${iconBg} flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined ${iconColor} text-[20px]">${iconSymbol}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-textPrimary text-[15px] truncate mb-0.5" title="${teksKeterangan}">${teksKeterangan}</h3>
+            <div class="flex items-center gap-2 text-xs text-textSecondary">
+              <span>${item.tanggal || '-'}</span>
+              <span class="w-1 h-1 rounded-full bg-gray-300"></span>
+              <span class="truncate">${item.kategori || '-'}</span>
             </div>
           </div>
-          
-          <div class="text-right shrink-0 flex flex-col items-end">
-            <p class="font-bold ${textAmountColor} text-[15px] mb-0.5">${sign}Rp ${formattedNominal}</p>
-            <p class="text-[10px] text-textSecondary">${item.sumber || 'Tunai'}</p>
-          </div>
-          
         </div>
-      `;
-    }).join('');
-  }
+        <div class="text-right shrink-0 flex flex-col items-end">
+          <p class="font-bold ${textAmountColor} text-[15px] mb-0.5">${sign}Rp ${formattedNominal}</p>
+          <p class="text-[10px] text-textSecondary">${item.sumber || 'Tunai'}</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
 
   function renderPaginationUI(totalPages, current) {
     const controls = document.getElementById('paginationControls');

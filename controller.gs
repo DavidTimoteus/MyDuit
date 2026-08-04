@@ -69,11 +69,11 @@ function formatDateSafe(val) {
   if (!val) return "";
   try {
     if (val instanceof Date) {
-      return Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd");
+      return Utilities.formatDate(val, Session.getScriptTimeZone(), "dd-MM-yyyy");
     }
     const d = new Date(val);
     if (!isNaN(d.getTime())) {
-      return Utilities.formatDate(d, Session.getScriptTimeZone(), "yyyy-MM-dd");
+      return Utilities.formatDate(d, Session.getScriptTimeZone(), "dd-MM-yyyy");
     }
     return String(val).split("T")[0];
   } catch (e) {

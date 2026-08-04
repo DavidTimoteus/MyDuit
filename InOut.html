@@ -1,10 +1,11 @@
 <div class="max-w-3xl mx-auto min-h-screen relative px-4 md:px-8">
-  
+
   <header class="pt-8 md:pt-12 pb-6">
     <div class="flex items-center justify-between mb-8">
-      
+
       <div class="flex items-center gap-3">
-        <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+        <div
+          class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
           DT
         </div>
         <div>
@@ -12,7 +13,7 @@
           <h1 class="font-semibold text-base text-textPrimary">David Timoteus</h1>
         </div>
       </div>
-      
+
       <div class="flex items-center gap-2">
         <button aria-label="Export PDF" class="w-10 h-10 rounded-full bg-surfaceContainerLowest shadow-sm flex items-center justify-center text-textSecondary hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
@@ -23,7 +24,7 @@
         </button>
       </div>
     </div>
-    
+
     <div class="flex items-center justify-between">
       <h2 class="text-2xl font-bold text-textPrimary" id="pageTitle">Riwayat Kas</h2>
       <button onclick="switchTab('tambah')" class="hidden md:flex bg-primary hover:bg-primaryHover text-white px-4 py-2.5 rounded-8 font-medium text-sm items-center gap-2 transition-colors">
@@ -34,29 +35,30 @@
   </header>
 
   <div id="viewRiwayat" class="view-section active">
-    
+
     <div class="bg-surfaceContainerLowest rounded-12 p-4 mb-6 shadow-card">
       <div class="relative mb-4">
         <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary text-[20px]">search</span>
-        <input class="w-full pl-10 pr-4 py-2.5 bg-surface rounded-8 border-none text-sm placeholder:text-textSecondary focus:ring-1 focus:ring-primary focus:bg-white outline-none transition-all" placeholder="Cari transaksi..." type="text"/>
+        <input id="searchInput" oninput="handleSearchFilter()" class="w-full pl-10 pr-4 py-2.5 bg-surface rounded-8 border-none text-sm placeholder:text-textSecondary focus:ring-1 focus:ring-primary focus:bg-white outline-none transition-all" placeholder="Cari transaksi..." type="text"/>
       </div>
-      <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-        <button class="px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap">Semua</button>
-        <button class="px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
-        <button class="px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
+
+      <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1" id="filterChips">
+        <button onclick="setFilterJenis('Semua', this)" class="chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap">Semua</button>
+        <button onclick="setFilterJenis('Pemasukan', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
+        <button onclick="setFilterJenis('Pengeluaran', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
       </div>
     </div>
 
     <div id="riwayatList" class="flex flex-col gap-3">
       <div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat riwayat kas...</div>
     </div>
-    
+
     <div class="flex justify-center gap-2 mt-8 mb-4" id="paginationControls"></div>
   </div>
 
   <div id="viewTambah" class="view-section">
     <div class="bg-surfaceContainerLowest rounded-14 p-5 md:p-8 shadow-card mb-6 border border-gray-100">
-      
+
       <button type="button" onclick="switchTab('riwayat')" class="inline-flex items-center gap-2 px-3 py-1.5 mb-6 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary hover:text-textPrimary text-sm font-medium transition-colors border border-gray-200 cursor-pointer">
         <span class="material-symbols-outlined text-[18px]">arrow_back</span>
         <span>Kembali ke Riwayat</span>
@@ -72,7 +74,7 @@
             <label class="block text-xs font-semibold text-textSecondary mb-1.5">Jenis</label>
             <select id="jenis" required class="w-full px-3 py-2.5 bg-surface border border-gray-200 rounded-8 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
               <option value="" disabled selected>Pilih Jenis</option>
-              <option value="Pendapatan">Pendapatan</option>
+              <option value="Pemasukan">Pemasukan</option>
               <option value="Pengeluaran">Pengeluaran</option>
             </select>
           </div>
@@ -104,34 +106,39 @@
     </div>
   </div>
 
-  <nav class="fixed bottom-0 left-0 w-full md:w-auto md:min-w-[400px] md:bottom-6 md:left-1/2 md:-translate-x-1/2 bg-surfaceContainerLowest shadow-nav rounded-t-3xl md:rounded-full pb-safe pt-2 md:pb-2 px-6 md:px-8 flex justify-between gap-4 md:gap-8 items-center z-50 h-[80px] md:h-[70px]">
-    
-    <a href="javascript:void(0)" onclick="switchTab('riwayat')" class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-primary transition-colors">
+  <nav
+    class="fixed bottom-0 left-0 w-full md:w-auto md:min-w-[400px] md:bottom-6 md:left-1/2 md:-translate-x-1/2 bg-surfaceContainerLowest shadow-nav rounded-t-3xl md:rounded-full pb-safe pt-2 md:pb-2 px-6 md:px-8 flex justify-between gap-4 md:gap-8 items-center z-50 h-[80px] md:h-[70px]">
+
+    <a href="javascript:void(0)" onclick="switchTab('riwayat')"
+      class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;" id="icon-riwayat">home</span>
       <span class="text-[10px] font-medium hidden md:block">Beranda</span>
     </a>
-    
-    <a href="javascript:void(0)" class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
+
+    <a href="javascript:void(0)"
+      class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]">monitoring</span>
       <span class="text-[10px] font-medium hidden md:block">Statistik</span>
     </a>
-    
+
     <div class="w-16 flex justify-center -mt-8 md:-mt-10">
       <button onclick="switchTab('tambah')" aria-label="Quick Add" class="w-14 h-14 md:w-[60px] md:h-[60px] rounded-full bg-primary shadow-lg flex items-center justify-center text-white hover:bg-primaryHover transition-colors border-4 border-surfaceContainerLowest z-10">
         <span class="material-symbols-outlined text-[28px]">add</span>
       </button>
     </div>
-    
-    <a href="javascript:void(0)" class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
+
+    <a href="javascript:void(0)"
+      class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]">savings</span>
       <span class="text-[10px] font-medium hidden md:block">Budget</span>
     </a>
-    
-    <a href="javascript:void(0)" class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
+
+    <a href="javascript:void(0)"
+      class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]">person</span>
       <span class="text-[10px] font-medium hidden md:block">Profil</span>
     </a>
-    
+
   </nav>
 
 </div>
