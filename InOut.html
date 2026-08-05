@@ -25,17 +25,21 @@
       </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
-      <h3 class="text-lg font-bold text-emerald-800">Riwayat Kas</h3>
-
-      <div class="flex flex-wrap items-center gap-2">
-        <select id="filterTipe" onchange="toggleFilterInputs()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+      <div class="flex flex-row flex-nowrap justify-between items-center gap-2 sm:contents">
+        <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-800 tracking-tight shrink-0 sm:order-1">Riwayat Kas
+        </h3>
+        <select id="filterTipe" onchange="toggleFilterInputs()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer shrink-0 sm:order-2">
       <option value="semua">Semua Transaksi</option>
       <option value="7hari">7 Hari Terakhir</option>
       <option value="30hari">30 Hari Terakhir</option>
       <option value="bulanan" selected>Bulan & Tahun</option>
     </select>
+      </div>
 
+      <!-- baris 2: bulan & tahun, rata kanan di mobile, tetap rata kanan di web juga -->
+      <div id="filterBulanTahunWrap"
+        class="flex flex-row flex-nowrap items-center justify-end gap-2 overflow-x-auto hide-scrollbar min-w-0 w-full sm:w-auto sm:order-3">
         <select id="filterBulan" onchange="applyDashboardFilter()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer">
       <option value="0">Januari</option>
       <option value="1">Februari</option>
@@ -50,9 +54,7 @@
       <option value="10">November</option>
       <option value="11">Desember</option>
     </select>
-
-        <select id="filterTahun" onchange="applyDashboardFilter()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer">
-      </select>
+        <select id="filterTahun" onchange="applyDashboardFilter()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer"></select>
       </div>
     </div>
 
@@ -66,10 +68,10 @@
         <input id="searchInput" oninput="handleSearchFilter()" class="w-full pl-10 pr-4 py-2.5 bg-surface rounded-8 border-none text-sm placeholder:text-textSecondary focus:ring-1 focus:ring-primary focus:bg-white outline-none transition-all" placeholder="Cari transaksi..." type="text"/>
       </div>
 
-      <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1" id="filterChips">
-        <button onclick="setFilterJenis('Semua', this)" class="chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap">Semua</button>
-        <button onclick="setFilterJenis('Pemasukan', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
-        <button onclick="setFilterJenis('Pengeluaran', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
+      <div class="flex gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar pb-1" id="filterChips">
+        <button onclick="setFilterJenis('Semua', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap">Semua</button>
+        <button onclick="setFilterJenis('Pemasukan', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
+        <button onclick="setFilterJenis('Pengeluaran', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
       </div>
     </div>
 
@@ -134,7 +136,7 @@
   <nav
     class="fixed bottom-0 left-0 w-full md:w-auto md:min-w-[400px] md:bottom-6 md:left-1/2 md:-translate-x-1/2 bg-surfaceContainerLowest shadow-nav rounded-t-3xl md:rounded-full pb-safe pt-2 md:pb-2 px-6 md:px-8 flex justify-between gap-4 md:gap-8 items-center z-50 h-[80px] md:h-[70px]">
 
-    <a href="javascript:void(0)" onclick="switchTab('riwayat')"
+    <a href="javascript:void(0)" onclick="goHome()"
       class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;" id="icon-riwayat">home</span>
       <span class="text-[10px] font-medium hidden md:block">Beranda</span>

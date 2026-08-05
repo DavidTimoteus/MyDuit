@@ -49,48 +49,48 @@ function parseSheetDate(val) {
   return null;
 }
 
-// Fitur: Pembersihan Data 2 Tahun (Retention)
-function autoCleanupOldTransactions() {
+function simpanTransaksiServer(formData) {
   try {
-    const sheet = getSheet();
-    const lastRow = sheet.getLastRow();
-    if (lastRow < CONFIG.START_ROW) return;
+    getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+    return { status: "success" };
+  } catch (err) { return { status: "error", message: err.message }; }
+}
 
-    const twoYearsAgo = new Date();
-    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
-    twoYearsAgo.setHours(0, 0, 0, 0);
+// Fitur: Pembersihan Data 2 Tahun (Retention)
+// Cleanup HANYA jalan 1x per hari (throttle), bukan tiap request
+function maybeRunCleanup(sheet, rawData) {
+  const props = PropertiesService.getScriptProperties();
+  const todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  if (props.getProperty('lastCleanupDate') === todayStr) return rawData; // sudah jalan hari ini, skip total
 
-    const totalRows = lastRow - CONFIG.START_ROW + 1;
-    const rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues();
-    const validRows = [];
+  const twoYearsAgo = new Date();
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  twoYearsAgo.setHours(0, 0, 0, 0);
 
-    rawData.forEach(row => {
-      const parsedDate = parseSheetDate(row[0]);
-      if (parsedDate) {
-        parsedDate.setHours(0, 0, 0, 0);
-        if (parsedDate >= twoYearsAgo) validRows.push(row);
-      } else if (row.some(cell => cell !== "")) {
-        validRows.push(row);
-      }
-    });
-
-    if (validRows.length < rawData.length) {
-      sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).clearContent();
-      if (validRows.length > 0) {
-        sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 6).setValues(validRows);
-      }
-      SpreadsheetApp.flush();
+  const validRows = [];
+  let changed = false;
+  rawData.forEach(row => {
+    const parsedDate = parseSheetDate(row[0]);
+    if (parsedDate) {
+      parsedDate.setHours(0, 0, 0, 0);
+      if (parsedDate >= twoYearsAgo) validRows.push(row); else changed = true;
+    } else if (row.some(cell => cell !== "")) {
+      validRows.push(row);
     }
-  } catch (err) {
-    console.error("Warning autoCleanup:", err.message);
+  });
+
+  if (changed) {
+    sheet.getRange(CONFIG.START_ROW, 1, rawData.length, 6).clearContent();
+    if (validRows.length > 0) sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 6).setValues(validRows);
+
   }
+  props.setProperty('lastCleanupDate', todayStr);
+  return validRows;
 }
 
 // Fitur: Ambil & Filter Data dari Frontend
 function getRiwayatKasServer(page, limit, filterParams) {
   try {
-    autoCleanupOldTransactions();
-
     const pageNum = page || 1;
     const limitNum = limit || 10;
     const sheet = getSheet();
@@ -99,10 +99,11 @@ function getRiwayatKasServer(page, limit, filterParams) {
     if (lastRow < CONFIG.START_ROW) return { status: "success", data: [], totalPages: 0, currentPage: 1 };
 
     const totalRows = lastRow - CONFIG.START_ROW + 1;
-    const rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues();
+    let rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues(); // satu-satunya full read
+    rawData = maybeRunCleanup(sheet, rawData); // pakai data yg sudah di-read, bukan read ulang
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const timeZone = ss.getSpreadsheetTimeZone();
-
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     let formattedList = [];
@@ -146,7 +147,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
       formattedList.push({
         rowIndex: CONFIG.START_ROW + idx,
         tanggal: Utilities.formatDate(parsedDate, timeZone, "dd/MM/yyyy"),
-        tanggalRaw: parsedDate.toISOString(),
+        tanggalRaw: Utilities.formatDate(parsedDate, timeZone, "yyyy-MM-dd"),
         jenis: row[1] || "",
         kategori: row[2] || "",
         sumber: row[3] || "",
@@ -155,12 +156,12 @@ function getRiwayatKasServer(page, limit, filterParams) {
       });
     });
 
-    formattedList.reverse(); // Urutkan terbaru di atas
+    formattedList.sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw));
     const totalItems = formattedList.length;
     const totalPages = Math.ceil(totalItems / limitNum) || 1;
     const startIndex = (pageNum - 1) * limitNum;
 
-    return { status: "success", data: formattedList.slice(startIndex, startIndex + limitNum), totalPages: totalPages, currentPage: pageNum };
+    return { status: "success", data: formattedList.slice(startIndex, startIndex + limitNum), totalPages, currentPage: pageNum };
   } catch (err) {
     return { status: "error", message: err.message || "Gagal memproses data server." };
   }
@@ -180,7 +181,7 @@ function fetchKategoriServer() {
 function simpanTransaksiServer(formData) {
   try {
     getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
-    SpreadsheetApp.flush();
+
     return { status: "success" };
   } catch (err) { return { status: "error", message: err.message }; }
 }
@@ -190,7 +191,7 @@ function updateTransaksiServer(formData) {
     const row = formData.rowIndex;
     if (row < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().getRange(row, 1, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
-    SpreadsheetApp.flush();
+
     return { status: "success" };
   } catch (err) { return { status: "error", message: err.message }; }
 }
@@ -199,7 +200,7 @@ function hapusTransaksiServer(rowIndex) {
   try {
     if (rowIndex < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().deleteRow(rowIndex);
-    SpreadsheetApp.flush();
+
     return { status: "success" };
   } catch (err) { return { status: "error", message: err.message }; }
 }

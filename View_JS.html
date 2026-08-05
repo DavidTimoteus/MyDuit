@@ -4,12 +4,41 @@
   let activeFilterJenis = 'Semua';
   let lastTapTime = 0;
 
+  let cachedKategori = [];
+
+  function populateKategori(list) {
+    cachedKategori = list || [];
+    const dl = document.getElementById('kategoriList');
+    if (dl) dl.innerHTML = cachedKategori.map(k => `<option value="${k}"></option>`).join('');
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     resetTanggal();
     initDefaultFilter(); // Secara otomatis memanggil loadRiwayat(1) di akhir eksekusi
     google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
   });
 
+
+  // Fungsi baru: reset filter & search ke default awal, lalu tampilkan riwayat
+  function goHome() {
+    switchTab('riwayat');
+
+    activeFilterJenis = 'Semua';
+    document.querySelectorAll('#filterChips .chip-btn').forEach((btn, i) => {
+      btn.className = i === 0
+        ? "chip-btn active shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap"
+        : "chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+
+    const filterTipe = document.getElementById('filterTipe');
+    if (filterTipe) filterTipe.value = 'bulanan'; // sesuai default awal (selected di HTML)
+
+    initDefaultFilter(); // reset bulan/tahun ke bulan+tahun sekarang, lalu loadRiwayat(1) otomatis
+  }
+  
   // ==========================================
   // FITUR: FILTER DINAMIS & SEARCH (FRONTEND)
   // ==========================================
@@ -35,18 +64,8 @@
 
   function toggleFilterInputs() {
     const tipe = document.getElementById('filterTipe')?.value;
-    const filterBulan = document.getElementById('filterBulan');
-    const filterTahun = document.getElementById('filterTahun');
-
-    if (filterBulan && filterTahun) {
-      if (tipe === 'bulanan') {
-        filterBulan.classList.remove('hidden');
-        filterTahun.classList.remove('hidden');
-      } else {
-        filterBulan.classList.add('hidden');
-        filterTahun.classList.add('hidden');
-      }
-    }
+    const wrap = document.getElementById('filterBulanTahunWrap');
+    if (wrap) wrap.classList.toggle('hidden', tipe !== 'bulanan');
     loadRiwayat(1);
   }
 
@@ -56,9 +75,9 @@
   function setFilterJenis(jenis, el) {
     activeFilterJenis = jenis;
     document.querySelectorAll('#filterChips .chip-btn').forEach(btn => {
-      btn.className = "chip-btn px-5 py-2 rounded-full bg-white border border-emerald-200 text-slate-600 hover:bg-emerald-50 text-sm font-medium whitespace-nowrap shadow-sm";
+      btn.className = "chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
     });
-    if (el) el.className = "chip-btn active px-5 py-2 rounded-full bg-emerald-600 text-white text-sm font-medium whitespace-nowrap shadow-sm";
+    if (el) el.className = "chip-btn active shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap";
     loadRiwayat(1);
   }
 
@@ -176,11 +195,17 @@
   // FITUR: FORM, EDIT DOUBLE-TAP, & NAVIGASI
   // ==========================================
   function switchTab(tabName) {
+    const viewRiwayat = document.getElementById('viewRiwayat');
+    const viewTambah = document.getElementById('viewTambah');
+
     if (tabName === 'tambah') {
-      const modalForm = document.getElementById('modalFormTransaksi') || document.getElementById('formTambahSection');
-      if (modalForm) modalForm.classList.remove('hidden');
-      if (!document.getElementById('editRowIndex')?.value) resetFormState(); // Hanya reset jika bukan mode edit
-      return;
+      if (viewRiwayat) viewRiwayat.classList.remove('active');
+      if (viewTambah) viewTambah.classList.add('active');
+      if (!document.getElementById('editRowIndex')?.value) resetFormState();
+    } else if (tabName === 'riwayat') {
+      if (viewTambah) viewTambah.classList.remove('active');
+      if (viewRiwayat) viewRiwayat.classList.add('active');
+      resetFormState();
     }
   }
 
@@ -198,7 +223,13 @@
 
   function resetTanggal() {
     const inputTanggal = document.getElementById('tanggal') || document.getElementById('inputTanggal');
-    if (inputTanggal) inputTanggal.value = new Date().toISOString().split('T')[0];
+    if (inputTanggal) {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      inputTanggal.value = `${yyyy}-${mm}-${dd}`;
+    }
   }
 
   function handleCardDoubleTap(rowIndex, cardEl) {
@@ -225,10 +256,10 @@
     const tglEl = document.getElementById('tanggal') || document.getElementById('inputTanggal');
     if (tglEl) {
       if (item.tanggalRaw) {
-        tglEl.value = item.tanggalRaw.split('T')[0];
+        tglEl.value = item.tanggalRaw;
       } else {
         const p = item.tanggal.split('/');
-        tglEl.value = p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : new Date().toISOString().split('T')[0];
+        tglEl.value = p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : getLocalToday();
       }
     }
 
@@ -244,39 +275,45 @@
     switchTab('tambah');
   }
 
-  function handleFormSubmit(e) {
-    e.preventDefault();
-    const isEditMode = Boolean(document.getElementById('editRowIndex')?.value);
-    const formData = {
-      rowIndex: Number(document.getElementById('editRowIndex')?.value),
-      tanggal: document.getElementById('tanggal')?.value || document.getElementById('inputTanggal')?.value,
-      jenis: document.getElementById('jenis')?.value,
-      kategori: document.getElementById('kategori')?.value,
-      sumber: document.getElementById('sumber')?.value,
-      keterangan: document.getElementById('keterangan')?.value,
-      nominal: document.getElementById('nominal')?.value
-    };
+  // SESUDAH — hapus loading toast, 1 toast final saja, cegah double-submit trigger
+function handleFormSubmit(e) {
+  e.preventDefault();
+  const btnSubmit = document.getElementById('btnSubmit');
+  if (btnSubmit?.disabled) return; // guard: cegah trigger ganda jika user klik cepat 2x
+  if (btnSubmit) btnSubmit.disabled = true;
 
-    const modalForm = document.getElementById('modalFormTransaksi') || document.getElementById('formTambahSection');
-    if (modalForm) modalForm.classList.add('hidden'); // Tutup modal saat loading
-    
-    showToast('success', isEditMode ? 'Menyimpan perubahan...' : 'Mencatat transaksi...');
+  const isEditMode = Boolean(document.getElementById('editRowIndex')?.value);
+  const formData = {
+    rowIndex: Number(document.getElementById('editRowIndex')?.value),
+    tanggal: document.getElementById('tanggal')?.value,
+    jenis: document.getElementById('jenis')?.value,
+    kategori: document.getElementById('kategori')?.value,
+    sumber: document.getElementById('sumber')?.value,
+    keterangan: document.getElementById('keterangan')?.value,
+    nominal: document.getElementById('nominal')?.value
+  };
 
-    const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
-    google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.status === 'success') {
-          showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
-          resetFormState();
-          loadRiwayat(1); // Auto reload ke halaman awal riwayat
-          google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-        } else {
-          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+  const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+  google.script.run
+    .withSuccessHandler(res => {
+      if (btnSubmit) btnSubmit.disabled = false;
+      if (res && res.status === 'success') {
+        const kat = (formData.kategori || '').trim();
+        if (kat && !cachedKategori.includes(kat)) {
+          cachedKategori.push(kat);
+          cachedKategori.sort();
+          populateKategori(cachedKategori); // instan, tanpa round-trip ke server
         }
-      })
-      .withFailureHandler(err => showToast('error', 'Koneksi error: ' + (err.message || err)))
-      [serverFunc](formData);
-  }
+        switchTab('riwayat');
+        showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+        loadRiwayat(1); // satu-satunya google.script.run sisa setelah CRUD
+      } else {
+        showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
+      }
+    })
+    .withFailureHandler(err => { if (btnSubmit) btnSubmit.disabled = false; showToast('error', 'Koneksi error: ' + (err.message || err)); })
+    [serverFunc](formData);
+}
 
   // ==========================================
   // FITUR: TOAST & HAPUS
@@ -285,11 +322,11 @@
   function showToast(type, text) {
     const toast = document.getElementById('toast');
     if (!toast) return;
-    toast.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-white text-sm font-medium shadow-lg z-[9999] flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'} show`;
-    toast.innerHTML = `<span class="material-symbols-outlined text-[18px]">${type === 'success' ? 'check_circle' : 'error'}</span> ${text}`;
+    toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 max-w-[90vw] px-5 py-3 rounded-full text-white text-sm font-medium shadow-lg z-[9999] inline-flex items-center gap-2 whitespace-nowrap ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'} show`;
+    toast.innerHTML = `<span class="material-symbols-outlined text-[18px] shrink-0">${type === 'success' ? 'check_circle' : 'error'}</span><span class="truncate">${text}</span>`;
     toast.style.display = 'flex';
     clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2000); // 2 detik loading toast
+    toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 700);
   }
 
   let targetRowToDelete = null;
