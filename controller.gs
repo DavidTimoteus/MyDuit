@@ -3,33 +3,25 @@ const CONFIG = {
   START_ROW: 6
 };
 
+const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('View_Index');
-  const cache = CacheService.getScriptCache();
-  const cached = cache.get('initialPayload');
 
-  if (cached) {
-    // Cache HIT -> tidak ada pembacaan Sheet sama sekali, dokumen langsung dikirim cepat
-    const payload = JSON.parse(cached);
-    template.initialKategori = payload.kategori;
-    template.initialRiwayat = payload.riwayat;
-  } else {
-    // Cache MISS (mis. request pertama / >60s) -> baca sekali, simpan utk request berikutnya
-    const initialFilter = { tipe: 'semua', startDate: '', endDate: '', jenis: 'Semua', search: '' };
-    const kategori = fetchKategoriServer();
-    const riwayat = getRiwayatKasServer(1, 10, initialFilter);
-    template.initialKategori = kategori;
-    template.initialRiwayat = riwayat;
-    cache.put('initialPayload', JSON.stringify({ kategori, riwayat }), 60); // TTL 60 detik
-  }
+  // OPTIMASI CRITICAL PATH: inline kategori & riwayat halaman-1 langsung ke HTML
+  // agar first render tidak menunggu 2x round-trip google.script.run berantai.
+  const initialFilter = { tipe: 'semua', startDate: '', endDate: '', jenis: 'Semua', search: '' };
+  template.initialKategori = fetchKategoriServer();
+  template.initialRiwayat = getRiwayatKasServer(1, 10, initialFilter);
 
   return template.evaluate()
     .setTitle('MyDuit Laporan Keuangan')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+
 function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+  return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
 }
 
 function getSheet() {
@@ -254,5 +246,183 @@ function hapusTransaksiServer(rowIndex, page, limit, filterParams) {
     return { status: "error", message: err.message };
   } finally {
     lock.releaseLock();
+  }
+}
+
+// ==========================================
+// FITUR: EXPORT LAPORAN PDF PER BULAN
+// ==========================================
+
+// Format angka ke Rupiah, mis. 1250000 -> "Rp1.250.000"
+function formatRupiah(num) {
+  const angka = Math.round(Math.abs(num || 0));
+  return (num < 0 ? '-Rp' : 'Rp') + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Ambil SELURUH transaksi 1 bulan (tanpa pagination) utk keperluan laporan, urut tanggal naik
+function getSemuaTransaksiBulanServer(bulan, tahun) {
+  const sheet = getSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.START_ROW) return [];
+
+  const totalRows = lastRow - CONFIG.START_ROW + 1;
+  const rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues();
+  const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+
+  const list = [];
+  rawData.forEach(row => {
+    if (row.every(cell => cell === "")) return;
+    const parsedDate = parseSheetDate(row[0]);
+    if (!parsedDate) return;
+    if (parsedDate.getMonth() !== bulan || parsedDate.getFullYear() !== tahun) return;
+
+    list.push({
+      tanggalRaw: parsedDate,
+      tanggal: Utilities.formatDate(parsedDate, timeZone, "dd/MM/yyyy"),
+      jenis: row[1] || "",
+      kategori: row[2] || "",
+      sumber: row[3] || "",
+      keterangan: row[4] || "",
+      nominal: Number(row[5]) || 0
+    });
+  });
+
+  list.sort((a, b) => a.tanggalRaw - b.tanggalRaw);
+  return list;
+}
+
+// Susun HTML laporan (dipakai sbg sumber konversi ke PDF)
+function buildLaporanHTML(items, bulan, tahun) {
+  const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const tanggalCetak = Utilities.formatDate(new Date(), timeZone, "dd MMMM yyyy, HH:mm");
+
+  let totalPemasukan = 0, totalPengeluaran = 0;
+  const rowsHtml = items.map(it => {
+    const isIncome = ['pemasukan', 'pendapatan'].includes(String(it.jenis).toLowerCase());
+    if (isIncome) totalPemasukan += it.nominal; else totalPengeluaran += it.nominal;
+    const warna = isIncome ? '#10b981' : '#e53e3e';
+    const tanda = isIncome ? '+' : '-';
+    return `
+      <tr>
+        <td>${it.tanggal}</td>
+        <td>${it.kategori}</td>
+        <td>${it.sumber || '-'}</td>
+        <td>${it.keterangan || '-'}</td>
+        <td class="nominal" style="color:${warna};">${tanda} ${formatRupiah(it.nominal)}</td>
+      </tr>`;
+  }).join('');
+
+  const saldoBersih = totalPemasukan - totalPengeluaran;
+  const emptyState = items.length === 0
+    ? `<tr><td colspan="5" style="text-align:center; color:#6c757d; padding:24px;">Tidak ada transaksi pada periode ini.</td></tr>`
+    : '';
+
+  return `
+  <html>
+  <head>
+    <style>
+      @page { margin: 28px 32px; }
+      body { font-family: 'Helvetica', Arial, sans-serif; color: #1a1b1e; font-size: 11px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #2D6A4F; padding-bottom: 12px; margin-bottom: 16px; }
+      .header h1 { font-size: 18px; color: #2D6A4F; margin: 0 0 4px 0; }
+      .header p { margin: 2px 0; color: #6c757d; }
+      .header .periode { text-align: right; }
+      .header .periode strong { font-size: 13px; color: #1a1b1e; }
+      table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+      th { background: #2D6A4F; color: #fff; text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+      td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
+      tr:nth-child(even) td { background: #f4f7f6; }
+      .nominal { text-align: right; font-weight: bold; white-space: nowrap; }
+      .summary { margin-top: 18px; width: 260px; margin-left: auto; }
+      .summary div { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 11px; }
+      .summary .pemasukan { color: #10b981; }
+      .summary .pengeluaran { color: #e53e3e; }
+      .summary .saldo { background: #2D6A4F; color: #fff; font-weight: bold; border-radius: 6px; margin-top: 4px; }
+      .footer { margin-top: 24px; font-size: 9px; color: #9ca3af; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div>
+        <h1>MyDuit</h1>
+        <p>Laporan Keuangan Bulanan</p>
+      </div>
+      <div class="periode">
+        <strong>${BULAN_NAMA[bulan]} ${tahun}</strong>
+        <p>Dicetak: ${tanggalCetak}</p>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Kategori</th>
+          <th>Sumber</th>
+          <th>Keterangan</th>
+          <th style="text-align:right;">Nominal</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rowsHtml || emptyState}
+      </tbody>
+    </table>
+
+    <div class="summary">
+      <div class="pemasukan"><span>Total Pemasukan</span><span>${formatRupiah(totalPemasukan)}</span></div>
+      <div class="pengeluaran"><span>Total Pengeluaran</span><span>${formatRupiah(totalPengeluaran)}</span></div>
+      <div class="saldo"><span>Saldo Bersih</span><span>${formatRupiah(saldoBersih)}</span></div>
+    </div>
+
+    <p class="footer">Laporan ini dibuat otomatis oleh aplikasi MyDuit.</p>
+  </body>
+  </html>`;
+}
+
+// Entry point dipanggil dari frontend: generate laporan bulan tertentu -> PDF (base64)
+function generateLaporanPDFServer(bulan, tahun) {
+  try {
+    const items = getSemuaTransaksiBulanServer(bulan, tahun);
+    const html = buildLaporanHTML(items, bulan, tahun);
+
+    const pdfBlob = Utilities.newBlob(html, 'text/html', 'laporan.html').getAs('application/pdf');
+    const fileName = `Laporan-MyDuit-${BULAN_NAMA[bulan]}-${tahun}.pdf`;
+    pdfBlob.setName(fileName);
+
+    return {
+      status: "success",
+      fileName: fileName,
+      base64: Utilities.base64Encode(pdfBlob.getBytes())
+    };
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+}
+
+function getDompetServer() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName("Dompet");
+    if (!sheet) return { status: "error", message: 'Sheet "Dompet" tidak ditemukan.' };
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 5) return { status: "success", totalSaldo: 0, rekening: [] };
+    const data = sheet.getRange(5, 1, lastRow - 4, 5).getValues(); // A:E
+    const timeZone = ss.getSpreadsheetTimeZone();
+    let totalSaldo = 0;
+    const rekening = [];
+    data.forEach(row => {
+      if (!row[0]) return;
+      const saldo = Number(row[1]) || 0;
+      totalSaldo += saldo;
+      rekening.push({
+        nama: row[0],
+        saldo,
+        kategori: row[3] || "Umum",
+        terakhirDiperbarui: row[4] ? Utilities.formatDate(new Date(row[4]), timeZone, "dd/MM/yyyy HH:mm") : "-"
+      });
+    });
+    return { status: "success", totalSaldo, rekening };
+  } catch (err) {
+    return { status: "error", message: err.message };
   }
 }

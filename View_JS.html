@@ -29,22 +29,24 @@
     if (dl) dl.innerHTML = cachedKategori.map(k => `<option value="${k}"></option>`).join('');
   }
 
-document.addEventListener('DOMContentLoaded', () => {
-  resetTanggal();
-  updateFilterActiveLabel();
+  document.addEventListener('DOMContentLoaded', () => {
+    resetTanggal();
+    updateFilterActiveLabel();
 
-  if (window.__INITIAL_RIWAYAT__) {
-    renderRiwayatResult(window.__INITIAL_RIWAYAT__);
-  } else {
-    loadRiwayat(1); // fallback jika inline data tidak tersedia
-  }
+    // OPTIMASI CRITICAL PATH: pakai data yg sudah di-inline server (doGet) via
+    // window.__INITIAL_RIWAYAT__ / __INITIAL_KATEGORI__, hindari chained google.script.run.
+    if (window.__INITIAL_RIWAYAT__) {
+      renderRiwayatResult(window.__INITIAL_RIWAYAT__);
+    } else {
+      loadRiwayat(1); // fallback jika inline data tidak tersedia
+    }
 
-  if (window.__INITIAL_KATEGORI__) {
-    populateKategori(window.__INITIAL_KATEGORI__);
-  } else {
-    google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-  }
-});
+    if (window.__INITIAL_KATEGORI__) {
+      populateKategori(window.__INITIAL_KATEGORI__);
+    } else {
+      google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+    }
+  });
 
 
   // Fungsi baru: reset filter & search ke default awal, lalu tampilkan riwayat
@@ -140,6 +142,86 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilterActiveLabel();
     closeFilterModal();
     loadRiwayat(1);
+  }
+
+  // ==========================================
+  // FITUR: EXPORT LAPORAN PDF PER BULAN
+  // ==========================================
+  function openExportModal() {
+    const now = new Date();
+    const selBulan = document.getElementById('exportBulan');
+    const selTahun = document.getElementById('exportTahun');
+
+    if (selBulan) selBulan.value = now.getMonth();
+    if (selTahun) {
+      selTahun.innerHTML = '';
+      for (let i = 0; i <= 3; i++) {
+        const y = now.getFullYear() - i;
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        selTahun.appendChild(opt);
+      }
+    }
+
+    const info = document.getElementById('exportInfoText');
+    if (info) info.textContent = '';
+
+    const modal = document.getElementById('exportModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeExportModal() {
+    const modal = document.getElementById('exportModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function prosesExportPDF() {
+    const bulan = parseInt(document.getElementById('exportBulan')?.value);
+    const tahun = parseInt(document.getElementById('exportTahun')?.value);
+    const btn = document.getElementById('btnProsesExport');
+    const info = document.getElementById('exportInfoText');
+
+    if (btn) btn.disabled = true;
+    if (info) info.textContent = 'Sedang membuat laporan PDF, mohon tunggu...';
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (btn) btn.disabled = false;
+        if (res && res.status === 'success') {
+          downloadBase64File(res.base64, res.fileName, 'application/pdf');
+          if (info) info.textContent = '';
+          closeExportModal();
+          showToast('success', 'Laporan PDF berhasil dibuat!');
+        } else {
+          if (info) info.textContent = '';
+          showToast('error', 'Gagal membuat PDF: ' + (res ? res.message : 'Error server'));
+        }
+      })
+      .withFailureHandler(err => {
+        if (btn) btn.disabled = false;
+        if (info) info.textContent = '';
+        showToast('error', 'Koneksi error: ' + (err.message || err));
+      })
+      .generateLaporanPDFServer(bulan, tahun);
+  }
+
+  // Konversi hasil base64 dari server menjadi file yg otomatis terdownload di browser
+  function downloadBase64File(base64, fileName, mimeType) {
+    const byteChars = atob(base64);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   function setFilterJenis(jenis, el) {
@@ -273,21 +355,124 @@ document.addEventListener('DOMContentLoaded', () => {
   // ==========================================
   // FITUR: FORM, EDIT DOUBLE-TAP, & NAVIGASI
   // ==========================================
-  function switchTab(tabName) {
-    const viewRiwayat = document.getElementById('viewRiwayat');
-    const viewTambah = document.getElementById('viewTambah');
 
+  function switchTab(tabName) {
+    const views = {
+      riwayat: 'viewRiwayat',
+      tambah:  'viewTambah',
+      budget:  'viewBudget'
+    };
+
+    // 1) Sembunyikan SEMUA view-section
+    Object.values(views).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('active');
+      el.classList.add('hidden');
+    });
+
+    // 2) Kelola visibilitas <header id="pageHeader">
+    //    (berisi greeting "David Timoteus", notifikasi, & judul "Riwayat Kas")
+    //    → Sembunyikan HANYA saat tab Budget aktif, tampilkan pada tab lain.
+    const pageHeader = document.getElementById('pageHeader');
+    if (pageHeader) {
+      if (tabName === 'budget') {
+        pageHeader.classList.add('hidden');
+      } else {
+        pageHeader.classList.remove('hidden');
+      }
+    }
+
+    // 3) Aktifkan view yang dipilih
+    const activeEl = document.getElementById(views[tabName]);
+    if (activeEl) {
+      activeEl.classList.remove('hidden');
+      activeEl.classList.add('active');
+      // Pastikan display tidak terkunci oleh style inline lama
+      activeEl.style.display = '';
+    }
+
+    // 4) Reset state form (kecuali sedang edit di tab Tambah)
     if (tabName === 'tambah') {
-      if (viewRiwayat) viewRiwayat.classList.remove('active');
-      if (viewTambah) viewTambah.classList.add('active');
-      if (!document.getElementById('editRowIndex')?.value) resetFormState();
-    } else if (tabName === 'riwayat') {
-      if (viewTambah) viewTambah.classList.remove('active');
-      if (viewRiwayat) viewRiwayat.classList.add('active');
-      resetFormState();
+      if (!document.getElementById('editRowIndex')?.value) {
+        if (typeof resetFormState === 'function') resetFormState();
+      }
+    } else {
+      if (typeof resetFormState === 'function') resetFormState();
+    }
+
+    // 5) Muat data dompet/budget saat tab Budget dibuka
+    if (tabName === 'budget' && typeof loadDompetServer === 'function') {
+      loadDompetServer();
+    }
+
+    // 6) Perbarui state aktif tombol bottom-navigation
+    updateNavActiveState(tabName);
+  }
+
+  function updateNavActiveState(tabName) {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.remove('text-primary');
+      btn.classList.add('text-textSecondary');
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+    });
+
+    const activeBtn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
+    if (activeBtn) {
+      activeBtn.classList.remove('text-textSecondary');
+      activeBtn.classList.add('text-primary');
+      const icon = activeBtn.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 1";
     }
   }
 
+  function loadDompetServer() {
+    const container = document.getElementById('rekeningList');
+    if (container) container.innerHTML = `<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat rekening...</div>`;
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.status !== 'success') {
+          if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">${res ? res.message : 'Gagal memuat data.'}</div>`;
+          return;
+        }
+        const totalEl = document.getElementById('totalSaldoBudget');
+        if (totalEl) totalEl.textContent = formatRupiah(res.totalSaldo);
+        if (container) {
+          container.innerHTML = res.rekening.length
+            ? res.rekening.map(renderRekeningCard).join('')
+            : `<div class="text-center text-textSecondary py-10 text-sm">Belum ada rekening.</div>`;
+        }
+      })
+      .withFailureHandler(err => {
+        if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">Koneksi error: ${err.message || err}</div>`;
+      })
+      .getDompetServer();
+  }
+
+  function renderRekeningCard(r) {
+    return `<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-3">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-[20px]">account_balance</span>
+          <span class="font-semibold text-sm text-slate-800">${r.nama}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium">${r.kategori}</span>
+        </div>
+        <button class="text-slate-400 hover:text-slate-600"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+      </div>
+      <div class="mb-2">
+        <p class="text-xs text-slate-400">Saldo Saat Ini</p>
+        <p class="text-lg font-bold text-slate-800">${formatRupiah(r.saldo)}</p>
+      </div>
+      <div class="border-t border-slate-100 pt-2 flex justify-between text-[11px] text-slate-400">
+        <span>Perubahan Terakhir</span><span>${r.terakhirDiperbarui}</span>
+      </div>
+    </div>`;
+  }
+
+  function formatRupiah(n) {
+    return 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+  }
   function resetFormState() {
     const form = document.getElementById('transaksiForm');
     if (form) form.reset();
