@@ -405,8 +405,8 @@ function getDompetServer() {
     const sheet = ss.getSheetByName("Dompet");
     if (!sheet) return { status: "error", message: 'Sheet "Dompet" tidak ditemukan.' };
     const lastRow = sheet.getLastRow();
-    if (lastRow < 5) return { status: "success", totalSaldo: 0, rekening: [] };
-    const data = sheet.getRange(5, 1, lastRow - 4, 5).getValues(); // A:E
+    if (lastRow < 5) return { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
+    const data = sheet.getRange(6, 1, lastRow - 4, 5).getValues(); // A:E
     const timeZone = ss.getSpreadsheetTimeZone();
     let totalSaldo = 0;
     const rekening = [];
@@ -421,8 +421,93 @@ function getDompetServer() {
         terakhirDiperbarui: row[4] ? Utilities.formatDate(new Date(row[4]), timeZone, "dd/MM/yyyy HH:mm") : "-"
       });
     });
-    return { status: "success", totalSaldo, rekening };
+    return {
+      status: 'success',
+      totalSaldo: totalSaldo,
+      rekening: rekening,                     // ⬅ fix: sebelumnya "rekeningList" (undefined/ReferenceError)
+      lastUpdated: readLastUpdatedDompet_()    // hanya BACA, tidak memanggil saveLastUpdatedDompet_()
+    };
   } catch (err) {
     return { status: "error", message: err.message };
+  }
+}
+
+// ============ HELPER: Last Updated Dompet (Sheet 'Dompet' cell C4) ============
+const SHEET_DOMPET = 'Dompet';
+const CELL_LAST_UPDATED = 'C4';
+
+/**
+ * Tulis timestamp saat ini ke Dompet!C4 (ISO string).
+ * Dipanggil setelah setiap perubahan data rekening/dompet.
+ */
+function saveLastUpdatedDompet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SHEET_DOMPET);
+  if (!sh) throw new Error('Sheet "Dompet" tidak ditemukan');
+  const now = new Date();
+  sh.getRange(CELL_LAST_UPDATED).setValue(now); // simpan sebagai Date, bukan string
+  return now.toISOString();
+}
+
+/**
+ * Baca timestamp terakhir dari Dompet!C4.
+ * Kembalikan ISO string atau null jika kosong.
+ */
+function readLastUpdatedDompet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(SHEET_DOMPET);
+  if (!sh) return null;
+  const val = sh.getRange(CELL_LAST_UPDATED).getValue();
+  if (!val) return null;
+  if (val instanceof Date) return val.toISOString();
+  // fallback: nilai string manual
+  const d = new Date(val);
+  return isNaN(d) ? null : d.toISOString();
+}
+
+/**
+ * Endpoint publik untuk memperbarui Dompet!C4 dan mengembalikan ISO string baru.
+ */
+function touchLastUpdatedDompet() {
+  try {
+    const iso = saveLastUpdatedDompet_();
+    return { status: 'success', lastUpdated: iso };
+  } catch (e) {
+    return { status: 'error', message: e.message };
+  }
+}
+
+function updateSaldoRekeningServer(namaRekening, saldoBaru) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_DOMPET);
+    if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 5) throw new Error('Rekening tidak ditemukan.');
+
+    const data = sheet.getRange(5, 1, lastRow - 4, 2).getValues(); // A:B (nama, saldo)
+    const rowOffset = data.findIndex(r => String(r[0]).trim() === String(namaRekening).trim());
+    if (rowOffset === -1) throw new Error(`Rekening "${namaRekening}" tidak ditemukan.`);
+
+    const rowIndex = 5 + rowOffset;
+    const saldoLama = Number(data[rowOffset][1]) || 0;
+    const saldoBaruNum = Number(saldoBaru) || 0;
+
+    // Guard: hanya tulis & update timestamp jika nilai BENAR-BENAR berubah
+    if (saldoLama !== saldoBaruNum) {
+      const now = new Date();
+      sheet.getRange(rowIndex, 2).setValue(saldoBaruNum);       // update saldo
+      sheet.getRange(rowIndex, 5).setValue(now);                // update terakhirDiperbarui per-baris
+      saveLastUpdatedDompet_();                                 // ⬅ HANYA di sini C4 ditulis ulang
+    }
+
+    return getDompetServer(); // refresh payload dlm 1 round-trip (pola sama dgn CRUD lain)
+  } catch (err) {
+    return { status: "error", message: err.message };
+  } finally {
+    lock.releaseLock();
   }
 }

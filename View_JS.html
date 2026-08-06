@@ -428,16 +428,30 @@
   }
 
   function loadDompetServer() {
-    const container = document.getElementById('rekeningList');
-    if (container) container.innerHTML = `<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat rekening...</div>`;
+    const container   = document.getElementById('rekeningList');
+    const totalEl     = document.getElementById('totalSaldoBudget');
+    const lastUpdEl   = document.getElementById('lastUpdatedBudget');   // ⬅ tambah
+
+    if (container) container.innerHTML =
+      `<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat rekening...</div>`;
+    if (lastUpdEl) lastUpdEl.textContent = 'Memuat...';                  // ⬅ tambah
+
     google.script.run
       .withSuccessHandler(res => {
         if (!res || res.status !== 'success') {
-          if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">${res ? res.message : 'Gagal memuat data.'}</div>`;
+          if (container) container.innerHTML =
+            `<div class="text-center text-red-500 py-6 text-sm">${res ? res.message : 'Gagal memuat data.'}</div>`;
+          if (lastUpdEl) lastUpdEl.textContent = 'Terakhir diperbarui: -';
           return;
         }
-        const totalEl = document.getElementById('totalSaldoBudget');
+
+        // Total saldo
         if (totalEl) totalEl.textContent = formatRupiah(res.totalSaldo);
+
+        // ⬇ Render Last Updated dinamis
+        if (lastUpdEl) lastUpdEl.textContent = formatLastUpdated(res.lastUpdated);
+
+        // Daftar rekening
         if (container) {
           container.innerHTML = res.rekening.length
             ? res.rekening.map(renderRekeningCard).join('')
@@ -445,9 +459,20 @@
         }
       })
       .withFailureHandler(err => {
-        if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">Koneksi error: ${err.message || err}</div>`;
+        if (container) container.innerHTML =
+          `<div class="text-center text-red-500 py-6 text-sm">Koneksi error: ${err.message || err}</div>`;
+        if (lastUpdEl) lastUpdEl.textContent = 'Terakhir diperbarui: -';
       })
       .getDompetServer();
+  }
+
+  function formatLastUpdated(isoString) {
+    if (!isoString) return 'Terakhir diperbarui: -';
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return 'Terakhir diperbarui: -';
+    const tgl = d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    return `Terakhir diperbarui: ${tgl}, ${jam}`;
   }
 
   function renderRekeningCard(r) {
