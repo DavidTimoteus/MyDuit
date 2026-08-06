@@ -29,12 +29,22 @@
     if (dl) dl.innerHTML = cachedKategori.map(k => `<option value="${k}"></option>`).join('');
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    resetTanggal();
-    updateFilterActiveLabel();
-    loadRiwayat(1);
+document.addEventListener('DOMContentLoaded', () => {
+  resetTanggal();
+  updateFilterActiveLabel();
+
+  if (window.__INITIAL_RIWAYAT__) {
+    renderRiwayatResult(window.__INITIAL_RIWAYAT__);
+  } else {
+    loadRiwayat(1); // fallback jika inline data tidak tersedia
+  }
+
+  if (window.__INITIAL_KATEGORI__) {
+    populateKategori(window.__INITIAL_KATEGORI__);
+  } else {
     google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
-  });
+  }
+});
 
 
   // Fungsi baru: reset filter & search ke default awal, lalu tampilkan riwayat

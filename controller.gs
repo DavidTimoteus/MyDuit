@@ -4,8 +4,26 @@ const CONFIG = {
 };
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('View_Index')
-    .evaluate()
+  const template = HtmlService.createTemplateFromFile('View_Index');
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('initialPayload');
+
+  if (cached) {
+    // Cache HIT -> tidak ada pembacaan Sheet sama sekali, dokumen langsung dikirim cepat
+    const payload = JSON.parse(cached);
+    template.initialKategori = payload.kategori;
+    template.initialRiwayat = payload.riwayat;
+  } else {
+    // Cache MISS (mis. request pertama / >60s) -> baca sekali, simpan utk request berikutnya
+    const initialFilter = { tipe: 'semua', startDate: '', endDate: '', jenis: 'Semua', search: '' };
+    const kategori = fetchKategoriServer();
+    const riwayat = getRiwayatKasServer(1, 10, initialFilter);
+    template.initialKategori = kategori;
+    template.initialRiwayat = riwayat;
+    cache.put('initialPayload', JSON.stringify({ kategori, riwayat }), 60); // TTL 60 detik
+  }
+
+  return template.evaluate()
     .setTitle('MyDuit Laporan Keuangan')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
@@ -197,6 +215,7 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
     lock.waitLock(10000);
     getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    CacheService.getScriptCache().remove('initialPayload');
     return { status: "success", riwayat: riwayat };
   } catch (err) {
     return { status: "error", message: err.message };
@@ -213,6 +232,7 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
     if (row < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().getRange(row, 1, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    CacheService.getScriptCache().remove('initialPayload');
     return { status: "success", riwayat: riwayat };
   } catch (err) {
     return { status: "error", message: err.message };
@@ -228,6 +248,7 @@ function hapusTransaksiServer(rowIndex, page, limit, filterParams) {
     if (rowIndex < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().deleteRow(rowIndex);
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    CacheService.getScriptCache().remove('initialPayload');
     return { status: "success", riwayat: riwayat };
   } catch (err) {
     return { status: "error", message: err.message };
