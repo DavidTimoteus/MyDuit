@@ -116,9 +116,18 @@ function getRiwayatKasServer(page, limit, filterParams) {
         } else if (filterParams.tipe === '30hari') {
           const diffDays = Math.floor((now.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
           if (diffDays < 0 || diffDays > 30) return;
-        } else if (filterParams.tipe === 'bulanan') {
-          if (parsedDate.getMonth() !== filterParams.bulan || parsedDate.getFullYear() !== filterParams.tahun) return;
+        } else if (filterParams.tipe === 'custom') {
+          // Filter periode kustom dari modal "Pilih periode" (Dari/Hingga)
+          if (filterParams.startDate) {
+            const start = parseSheetDate(filterParams.startDate);
+            if (start) { start.setHours(0, 0, 0, 0); if (parsedDate < start) return; }
+          }
+          if (filterParams.endDate) {
+            const end = parseSheetDate(filterParams.endDate);
+            if (end) { end.setHours(0, 0, 0, 0); if (parsedDate > end) return; }
+          }
         }
+        // tipe === 'semua' -> tidak ada filter tanggal, lanjut ke filter jenis/search
 
         // 2. Filter Jenis
         const jenisLower = String(row[1] || '').toLowerCase();

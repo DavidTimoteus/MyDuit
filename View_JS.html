@@ -6,6 +6,23 @@
 
   let cachedKategori = [];
 
+  // State filter tanggal aktif (menggantikan select filterTipe/filterBulan/filterTahun lama)
+  let filterTipe = 'semua';       // 'semua' | '7hari' | '30hari' | 'custom'
+  let filterStartDate = '';       // yyyy-MM-dd, hanya dipakai saat filterTipe === 'custom'
+  let filterEndDate = '';         // yyyy-MM-dd, hanya dipakai saat filterTipe === 'custom'
+
+  const BULAN_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  function formatTanggalIndo(date) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${dd} ${BULAN_ID[date.getMonth()]} ${date.getFullYear()}`;
+  }
+  function toISODate(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   function populateKategori(list) {
     cachedKategori = list || [];
     const dl = document.getElementById('kategoriList');
@@ -14,7 +31,8 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     resetTanggal();
-    initDefaultFilter(); // Secara otomatis memanggil loadRiwayat(1) di akhir eksekusi
+    updateFilterActiveLabel();
+    loadRiwayat(1);
     google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
   });
 
@@ -33,44 +51,86 @@
     const searchInput = document.getElementById('searchInput');
     if (searchInput) searchInput.value = '';
 
-    const filterTipe = document.getElementById('filterTipe');
-    if (filterTipe) filterTipe.value = 'bulanan'; // sesuai default awal (selected di HTML)
-
-    initDefaultFilter(); // reset bulan/tahun ke bulan+tahun sekarang, lalu loadRiwayat(1) otomatis
-  }
-  
-  // ==========================================
-  // FITUR: FILTER DINAMIS & SEARCH (FRONTEND)
-  // ==========================================
-  function initDefaultFilter() {
-    const today = new Date();
-    const filterBulan = document.getElementById('filterBulan');
-    const filterTahun = document.getElementById('filterTahun');
-
-    if (filterBulan) filterBulan.value = today.getMonth();
-    if (filterTahun) {
-      filterTahun.innerHTML = '';
-      for (let i = 0; i <= 2; i++) {
-        const yearVal = today.getFullYear() - i;
-        const opt = document.createElement('option');
-        opt.value = yearVal;
-        opt.textContent = yearVal;
-        if (i === 0) opt.selected = true;
-        filterTahun.appendChild(opt);
-      }
-    }
-    toggleFilterInputs(); // Menjalankan filter pertama kali
-  }
-
-  function toggleFilterInputs() {
-    const tipe = document.getElementById('filterTipe')?.value;
-    const wrap = document.getElementById('filterBulanTahunWrap');
-    if (wrap) wrap.classList.toggle('hidden', tipe !== 'bulanan');
+    filterTipe = 'semua';
+    filterStartDate = '';
+    filterEndDate = '';
+    updateFilterActiveLabel();
     loadRiwayat(1);
   }
 
-  function applyDashboardFilter() { loadRiwayat(1); }
   function handleSearchFilter() { loadRiwayat(1); }
+
+  // ==========================================
+  // FITUR: MODAL FILTER TRANSAKSI (Pop-up)
+  // ==========================================
+  function updateFilterSubtitles() {
+    const today = new Date();
+    const d7 = new Date(today); d7.setDate(d7.getDate() - 7);
+    const d30 = new Date(today); d30.setDate(d30.getDate() - 30);
+    const el7 = document.getElementById('subtitle7hari');
+    const el30 = document.getElementById('subtitle30hari');
+    if (el7) el7.textContent = `${formatTanggalIndo(d7)} - ${formatTanggalIndo(today)}`;
+    if (el30) el30.textContent = `${formatTanggalIndo(d30)} - ${formatTanggalIndo(today)}`;
+  }
+
+  function updateFilterActiveLabel() {
+    const label = document.getElementById('filterActiveLabel');
+    if (!label) return;
+    const map = { semua: 'Semua Transaksi', '7hari': '7 Hari Terakhir', '30hari': '30 Hari Terakhir' };
+    if (filterTipe === 'custom' && filterStartDate && filterEndDate) {
+      const [ys, ms, ds] = filterStartDate.split('-');
+      const [ye, me, de] = filterEndDate.split('-');
+      label.textContent = `${ds}/${ms} - ${de}/${me}`;
+    } else {
+      label.textContent = map[filterTipe] || 'Filter';
+    }
+  }
+
+  function openFilterModal() {
+    updateFilterSubtitles();
+    // Pre-fill state saat ini ke modal
+    document.querySelectorAll('input[name="filterTipeModal"]').forEach(r => { r.checked = (r.value === filterTipe); });
+    const startEl = document.getElementById('filterStartDate');
+    const endEl = document.getElementById('filterEndDate');
+    if (startEl) startEl.value = filterStartDate || '';
+    if (endEl) endEl.value = filterEndDate || '';
+    toggleCustomDateInputs();
+
+    const modal = document.getElementById('filterModal');
+    if (modal) modal.classList.remove('hidden');
+  }
+
+  function closeFilterModal() {
+    const modal = document.getElementById('filterModal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  function toggleCustomDateInputs() {
+    const selected = document.querySelector('input[name="filterTipeModal"]:checked')?.value;
+    const wrap = document.getElementById('customDateWrap');
+    if (wrap) wrap.classList.toggle('hidden', selected !== 'custom');
+  }
+
+  function terapkanFilter() {
+    const selected = document.querySelector('input[name="filterTipeModal"]:checked')?.value || 'semua';
+
+    if (selected === 'custom') {
+      const startVal = document.getElementById('filterStartDate')?.value || '';
+      const endVal = document.getElementById('filterEndDate')?.value || '';
+      if (!startVal || !endVal) { showToast('error', 'Pilih tanggal Dari dan Hingga.'); return; }
+      if (startVal > endVal) { showToast('error', 'Tanggal "Dari" tidak boleh setelah "Hingga".'); return; }
+      filterStartDate = startVal;
+      filterEndDate = endVal;
+    } else {
+      filterStartDate = '';
+      filterEndDate = '';
+    }
+
+    filterTipe = selected;
+    updateFilterActiveLabel();
+    closeFilterModal();
+    loadRiwayat(1);
+  }
 
   function setFilterJenis(jenis, el) {
     activeFilterJenis = jenis;
@@ -86,9 +146,9 @@
   // supaya hasil refresh setelah CRUD konsisten dengan filter yg sedang aktif.
   function getCurrentFilterParams() {
     return {
-      tipe: document.getElementById('filterTipe')?.value || 'semua',
-      bulan: parseInt(document.getElementById('filterBulan')?.value || 0),
-      tahun: parseInt(document.getElementById('filterTahun')?.value || new Date().getFullYear()),
+      tipe: filterTipe,               // 'semua' | '7hari' | '30hari' | 'custom'
+      startDate: filterStartDate,     // yyyy-MM-dd, dipakai backend saat tipe === 'custom'
+      endDate: filterEndDate,         // yyyy-MM-dd, dipakai backend saat tipe === 'custom'
       jenis: activeFilterJenis,
       search: (document.getElementById('searchInput')?.value || '').toLowerCase().trim()
     };

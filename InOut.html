@@ -25,40 +25,79 @@
       </div>
     </div>
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-      <div class="flex flex-row flex-nowrap justify-between items-center gap-2 sm:contents">
-        <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-800 tracking-tight shrink-0 sm:order-1">Riwayat Kas
-        </h3>
-        <select id="filterTipe" onchange="toggleFilterInputs()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer shrink-0 sm:order-2">
-      <option value="semua">Semua Transaksi</option>
-      <option value="7hari">7 Hari Terakhir</option>
-      <option value="30hari">30 Hari Terakhir</option>
-      <option value="bulanan" selected>Bulan & Tahun</option>
-    </select>
-      </div>
-
-      <!-- baris 2: bulan & tahun, rata kanan di mobile, tetap rata kanan di web juga -->
-      <div id="filterBulanTahunWrap"
-        class="flex flex-row flex-nowrap items-center justify-end gap-2 overflow-x-auto hide-scrollbar min-w-0 w-full sm:w-auto sm:order-3">
-        <select id="filterBulan" onchange="applyDashboardFilter()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer">
-      <option value="0">Januari</option>
-      <option value="1">Februari</option>
-      <option value="2">Maret</option>
-      <option value="3">April</option>
-      <option value="4">Mei</option>
-      <option value="5">Juni</option>
-      <option value="6">Juli</option>
-      <option value="7">Agustus</option>
-      <option value="8">September</option>
-      <option value="9">Oktober</option>
-      <option value="10">November</option>
-      <option value="11">Desember</option>
-    </select>
-        <select id="filterTahun" onchange="applyDashboardFilter()" class="text-xs border border-emerald-300 rounded-lg pl-2.5 pr-8 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm cursor-pointer"></select>
-      </div>
+    <div class="flex items-center justify-between mb-4 gap-2">
+      <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-800 tracking-tight">Riwayat Kas</h3>
+      <!-- Trigger pop-up modal filter -->
+      <button id="btnOpenFilter" onclick="openFilterModal()" aria-label="Filter Transaksi"
+        class="flex items-center gap-1.5 text-xs font-medium border border-emerald-300 rounded-lg pl-2.5 pr-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm hover:bg-emerald-50 transition-colors shrink-0">
+        <span class="material-symbols-outlined text-[18px]">tune</span>
+        <span id="filterActiveLabel">Semua Transaksi</span>
+      </button>
     </div>
 
   </header>
+
+  <!-- ================= MODAL: FILTER TRANSAKSI ================= -->
+  <div id="filterModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div
+      class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-14 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+        <h3 class="font-bold text-lg text-slate-800">Filter Transaksi</h3>
+        <button onclick="closeFilterModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="px-5 py-4 overflow-y-auto">
+        <p class="text-xs font-semibold text-slate-500 mb-1">Tanggal</p>
+
+        <div class="flex flex-col">
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <span class="text-sm font-medium text-slate-800">Semua Transaksi</span>
+            <input type="radio" name="filterTipeModal" value="semua" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">7 hari terakhir</span>
+              <span id="subtitle7hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="7hari" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">30 hari terakhir</span>
+              <span id="subtitle30hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="30hari" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer">
+            <span class="text-sm font-medium text-primary">Pilih periode</span>
+            <input type="radio" name="filterTipeModal" value="custom" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+        </div>
+
+        <div id="customDateWrap" class="hidden grid grid-cols-2 gap-3 mt-2">
+          <div class="border border-gray-200 rounded-8 px-3 py-2">
+            <label class="block text-[11px] text-slate-400 mb-0.5">Dari</label>
+            <input type="date" id="filterStartDate" class="w-full text-sm font-semibold text-primary outline-none bg-transparent">
+          </div>
+          <div class="border border-gray-200 rounded-8 px-3 py-2">
+            <label class="block text-[11px] text-slate-400 mb-0.5">Hingga</label>
+            <input type="date" id="filterEndDate" class="w-full text-sm font-semibold text-primary outline-none bg-transparent">
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+        <button onclick="closeFilterModal()" class="flex-1 py-2.5 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+        <button onclick="terapkanFilter()" class="flex-1 py-2.5 rounded-8 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors">Terapkan</button>
+      </div>
+    </div>
+  </div>
 
   <div id="viewRiwayat" class="view-section active">
 
