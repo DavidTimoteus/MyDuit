@@ -49,13 +49,6 @@ function parseSheetDate(val) {
   return null;
 }
 
-function simpanTransaksiServer(formData) {
-  try {
-    getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
-    return { status: "success" };
-  } catch (err) { return { status: "error", message: err.message }; }
-}
-
 // Fitur: Pembersihan Data 2 Tahun (Retention)
 // Cleanup HANYA jalan 1x per hari (throttle), bukan tiap request
 function maybeRunCleanup(sheet, rawData) {
@@ -178,29 +171,58 @@ function fetchKategoriServer() {
   } catch (e) { return []; }
 }
 
-function simpanTransaksiServer(formData) {
-  try {
-    getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+// CATATAN PERBAIKAN DELAY:
+// Sebelumnya, setiap simpan/update/hapus melakukan 1 round-trip google.script.run
+// untuk CRUD, lalu frontend memanggil loadRiwayat() yang memicu round-trip KEDUA
+// (baca ulang seluruh sheet + filter + sort) hanya untuk me-refresh daftar.
+// Di Apps Script, setiap round-trip client<->server punya overhead jaringan yang
+// nyata (umumnya 1-3 detik), jadi 2 round-trip berurutan = delay dobel yang terasa.
+// Fix: gabungkan CRUD + pengambilan ulang data riwayat menjadi SATU panggilan
+// server (fungsi ini langsung memanggil getRiwayatKasServer sebelum return),
+// sehingga frontend cukup 1x google.script.run per aksi CRUD.
+// LockService dipakai agar tidak ada race condition saat 2 request nulis nyaris bersamaan.
 
-    return { status: "success" };
-  } catch (err) { return { status: "error", message: err.message }; }
+function simpanTransaksiServer(formData, page, limit, filterParams) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+    const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    return { status: "success", riwayat: riwayat };
+  } catch (err) {
+    return { status: "error", message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-function updateTransaksiServer(formData) {
+function updateTransaksiServer(formData, page, limit, filterParams) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     const row = formData.rowIndex;
     if (row < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().getRange(row, 1, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
-
-    return { status: "success" };
-  } catch (err) { return { status: "error", message: err.message }; }
+    const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    return { status: "success", riwayat: riwayat };
+  } catch (err) {
+    return { status: "error", message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
-function hapusTransaksiServer(rowIndex) {
+function hapusTransaksiServer(rowIndex, page, limit, filterParams) {
+  const lock = LockService.getScriptLock();
   try {
+    lock.waitLock(10000);
     if (rowIndex < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
     getSheet().deleteRow(rowIndex);
-
-    return { status: "success" };
-  } catch (err) { return { status: "error", message: err.message }; }
+    const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    return { status: "success", riwayat: riwayat };
+  } catch (err) {
+    return { status: "error", message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
 }

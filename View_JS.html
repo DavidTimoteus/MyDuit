@@ -81,33 +81,42 @@
     loadRiwayat(1);
   }
 
-  function loadRiwayat(page) {
-    currentPage = page;
-    const container = document.getElementById('riwayatList');
-    if (container) container.innerHTML = '<div class="text-center text-slate-500 py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
-
-    // Membundel seluruh parameter filter untuk dikirim ke Backend
-    const filterParams = {
+  // Membundel seluruh parameter filter yg aktif saat ini untuk dikirim ke Backend.
+  // Dipakai bareng oleh loadRiwayat() DAN handleFormSubmit()/confirmDelete(),
+  // supaya hasil refresh setelah CRUD konsisten dengan filter yg sedang aktif.
+  function getCurrentFilterParams() {
+    return {
       tipe: document.getElementById('filterTipe')?.value || 'semua',
       bulan: parseInt(document.getElementById('filterBulan')?.value || 0),
       tahun: parseInt(document.getElementById('filterTahun')?.value || new Date().getFullYear()),
       jenis: activeFilterJenis,
       search: (document.getElementById('searchInput')?.value || '').toLowerCase().trim()
     };
+  }
+
+  // Menampilkan hasil { status, data, totalPages, currentPage } dari server ke UI.
+  function renderRiwayatResult(res) {
+    const container = document.getElementById('riwayatList');
+    if (res && res.status === 'success') {
+      currentPage = res.currentPage;
+      renderRiwayatUI(res.data);
+      renderPaginationUI(res.totalPages, res.currentPage);
+    } else {
+      if (container) container.innerHTML = `<div class="text-center text-red-500 py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error'}</div>`;
+    }
+  }
+
+  function loadRiwayat(page) {
+    currentPage = page;
+    const container = document.getElementById('riwayatList');
+    if (container) container.innerHTML = '<div class="text-center text-slate-500 py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
 
     google.script.run
-      .withSuccessHandler(res => {
-        if (res && res.status === 'success') {
-          renderRiwayatUI(res.data);
-          renderPaginationUI(res.totalPages, res.currentPage);
-        } else {
-          if (container) container.innerHTML = `<div class="text-center text-red-500 py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error'}</div>`;
-        }
-      })
+      .withSuccessHandler(renderRiwayatResult)
       .withFailureHandler(err => {
         if (container) container.innerHTML = `<div class="text-center text-red-500 py-10 text-sm">Koneksi error: ${err.message || err}</div>`;
       })
-      .getRiwayatKasServer(page, limitPerPage, filterParams);
+      .getRiwayatKasServer(page, limitPerPage, getCurrentFilterParams());
   }
 
   // ==========================================
@@ -294,6 +303,9 @@ function handleFormSubmit(e) {
   };
 
   const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+  // PERBAIKAN DELAY: dulu di sini ada 2 round-trip berurutan (simpan -> lalu loadRiwayat(1)
+  // yang baca ulang seluruh sheet). Sekarang server langsung mengembalikan data riwayat
+  // terbaru dalam 1 response (res.riwayat), jadi cukup 1x google.script.run per submit.
   google.script.run
     .withSuccessHandler(res => {
       if (btnSubmit) btnSubmit.disabled = false;
@@ -306,13 +318,13 @@ function handleFormSubmit(e) {
         }
         switchTab('riwayat');
         showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
-        loadRiwayat(1); // satu-satunya google.script.run sisa setelah CRUD
+        renderRiwayatResult(res.riwayat); // render langsung dari response, tanpa request tambahan
       } else {
         showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error server'));
       }
     })
     .withFailureHandler(err => { if (btnSubmit) btnSubmit.disabled = false; showToast('error', 'Koneksi error: ' + (err.message || err)); })
-    [serverFunc](formData);
+    [serverFunc](formData, 1, limitPerPage, getCurrentFilterParams());
 }
 
   // ==========================================
@@ -365,12 +377,13 @@ function handleFormSubmit(e) {
     closeDeleteModal();
     showToast('success', 'Menghapus transaksi...');
 
+    // PERBAIKAN DELAY: sama seperti simpan/update, hapus + reload sekarang jadi 1 round-trip.
     google.script.run
       .withSuccessHandler(res => {
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
         if (res && res.status === 'success') {
           showToast('success', 'Transaksi berhasil dihapus!');
-          loadRiwayat(currentPage); // Muat ulang halaman saat ini
+          renderRiwayatResult(res.riwayat); // render langsung dari response
         } else {
           showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error server'));
         }
@@ -379,11 +392,6 @@ function handleFormSubmit(e) {
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
         showToast('error', 'Koneksi terputus: ' + (err.message || err));
       })
-      .hapusTransaksiServer(rowToDelete);
-  }
-
-  function populateKategori(list) {
-    const datalist = document.getElementById('kategoriList');
-    if (datalist && list) datalist.innerHTML = list.map(item => `<option value="${item}">`).join('');
+      .hapusTransaksiServer(rowToDelete, currentPage, limitPerPage, getCurrentFilterParams());
   }
 </script>
