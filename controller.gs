@@ -1,16 +1,37 @@
+/*******************************************************
+ * MyDuit — controller.gs (FULL AUTO-HEALING PRIMARY KEY)
+ * Backend Apps Script - Ultra Fast CRUD & Sync
+ *******************************************************/
+
 const CONFIG = {
   SHEET_NAME: "in/out",
-  START_ROW: 6
+  START_ROW: 6 
 };
 
+const SHEET_DOMPET = 'Dompet';
+// PERBAIKAN: Timestamp "Total Semua Saldo" ternyata ada di D4 (bukan C4) di sheet asli
+// (lihat hasil debugDompetLayout: Baris 4 -> col4/D berisi ISO date, col5/E berisi angka total).
+const CELL_LAST_UPDATED = 'D4';
+
+// Konfigurasi Dompet (Baris 7, sesuai hasil debugDompetLayout: PK justru di Kolom A, bukan F)
+// Header asli sheet: A=Primary Key, B=Nama Akun, C=Saldo Saat ini, D=Perubahan Terakhir, E=Catatan
+// Kolom F tidak lagi punya header/fungsi (berisi data basi dari versi lama, lihat cleanupKolomFDompet()).
+// TIDAK ADA lagi kolom "Saldo Awal" -> Saldo Akhir = 0 + Total Pemasukan - Total Pengeluaran (keputusan user).
+const DOMPET_START_ROW = 7;
+const DOMPET_COL = {
+  ID: 1,          // Kolom A (Primary Key)
+  NAMA: 2,        // Kolom B (Nama Akun)
+  SALDO: 3,       // Kolom C (Saldo Saat ini / Saldo Akhir hasil kalkulasi)
+  UPDATED_AT: 4,  // Kolom D (Perubahan Terakhir)
+  CATATAN: 5      // Kolom E (Catatan bebas, BUKAN kategori/badge)
+};
 const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
+// ============ ENTRY POINT ============
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('View_Index');
-
-  // OPTIMASI CRITICAL PATH: inline kategori & riwayat halaman-1 langsung ke HTML
-  // agar first render tidak menunggu 2x round-trip google.script.run berantai.
   const initialFilter = { tipe: 'semua', startDate: '', endDate: '', jenis: 'Semua', search: '' };
+  
   template.initialKategori = fetchKategoriServer();
   template.initialRiwayat = getRiwayatKasServer(1, 10, initialFilter);
 
@@ -18,7 +39,6 @@ function doGet(e) {
     .setTitle('MyDuit Laporan Keuangan')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
-
 
 function include(filename) {
   return HtmlService.createTemplateFromFile(filename).evaluate().getContent();
@@ -31,49 +51,149 @@ function getSheet() {
   return sheet;
 }
 
-// Fitur: Safe Date Parser
+// PERBAIKAN BUG "Gagal mengambil data Dompet":
+// getSheetByName() Apps Script itu EXACT MATCH (case-sensitive & tidak trim spasi).
+// Kalau nama tab sebenarnya "Dompet " (ada spasi nyasar), "dompet", atau "DOMPET",
+// getSheetByName('Dompet') akan return null walau tab-nya kelihatan sama di mata manusia.
+// Helper ini fallback ke pencocokan case-insensitive + trim supaya tidak gagal diam-diam.
+function getDompetSheet_() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_DOMPET);
+  if (sheet) return sheet;
+
+  const target = SHEET_DOMPET.trim().toLowerCase();
+  const allSheets = ss.getSheets();
+  for (let i = 0; i < allSheets.length; i++) {
+    if (allSheets[i].getName().trim().toLowerCase() === target) return allSheets[i];
+  }
+  return null; // benar-benar tidak ada tab yang cocok
+}
+
+// DIAGNOSTIK: jalankan fungsi ini manual dari Apps Script Editor (pilih nama fungsi
+// di dropdown atas > tombol Run), lalu buka menu "Executions"/"Eksekusi" atau
+// View > Logs (Ctrl+Enter) untuk melihat hasilnya.
+// Tujuannya: menunjukkan PERSIS isi baris 1-15 Sheet 'Dompet' apa adanya, dibandingkan
+// dengan asumsi CONFIG saat ini (DOMPET_START_ROW & DOMPET_COL), supaya kalau ada
+// pergeseran baris/kolom (mis. header nambah baris, kolom PK disisipkan di posisi lain)
+// langsung ketahuan tanpa tebak-tebakan.
+function debugDompetLayout() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const allNames = ss.getSheets().map(s => s.getName());
+  Logger.log('Semua nama tab di spreadsheet ini: ' + JSON.stringify(allNames));
+
+  const sheet = getDompetSheet_();
+  if (!sheet) {
+    Logger.log('>>> Sheet "Dompet" TIDAK DITEMUKAN (exact maupun case-insensitive). Cek nama tab di atas.');
+    return;
+  }
+
+  Logger.log('Sheet Dompet ditemukan dengan nama tab: "' + sheet.getName() + '" | lastRow=' + sheet.getLastRow() + ' | lastColumn=' + sheet.getLastColumn());
+  Logger.log('CONFIG saat ini -> DOMPET_START_ROW=' + DOMPET_START_ROW + ', DOMPET_COL=' + JSON.stringify(DOMPET_COL));
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 1) { Logger.log('Sheet Dompet kosong total.'); return; }
+
+  const maxRow = Math.min(lastRow, 15);
+  const maxCol = Math.max(sheet.getLastColumn(), 6);
+  const data = sheet.getRange(1, 1, maxRow, maxCol).getValues();
+  data.forEach((row, i) => {
+    Logger.log('Baris ' + (i + 1) + ': ' + JSON.stringify(row));
+  });
+  Logger.log('>>> Bandingkan baris keberapa yang benar-benar berisi NAMA AKUN pertama dengan DOMPET_START_ROW=' + DOMPET_START_ROW + ' di atas.');
+}
+
+// OPSIONAL: Kolom F di Sheet 'Dompet' sudah tidak punya header/fungsi (peninggalan
+// versi script lama yang salah kolom, isinya timestamp basi). Jalankan manual dari
+// Apps Script Editor kalau mau membersihkannya. TIDAK dipanggil otomatis oleh sistem
+// manapun, supaya tidak menghapus data tanpa sepengetahuan Anda.
+function cleanupKolomFDompet() {
+  const sheet = getDompetSheet_();
+  if (!sheet) { Logger.log('Sheet Dompet tidak ditemukan.'); return; }
+  const lastRow = sheet.getLastRow();
+  if (lastRow < DOMPET_START_ROW) { Logger.log('Tidak ada baris data untuk dibersihkan.'); return; }
+  const numRows = lastRow - DOMPET_START_ROW + 1;
+  const kolomF = sheet.getRange(DOMPET_START_ROW, 6, numRows, 1);
+  const before = kolomF.getValues().flat();
+  kolomF.clearContent();
+  Logger.log('Kolom F dibersihkan untuk ' + numRows + ' baris. Isi sebelumnya: ' + JSON.stringify(before));
+}
+
+// ============ HELPER: PRIMARY KEY & GENERATOR ============
+function generatePrimaryKey_(prefix) {
+  const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const todayStr = Utilities.formatDate(new Date(), timeZone, 'yyyyMMdd');
+  const randomHex = Math.floor(Math.random() * 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+  return `${prefix}-${todayStr}-${randomHex}`;
+}
+
+// PENCARIAN CEPAT BERDASARKAN ID UNIK (O(N) 1 Kolom)
+function findRowIndexById_(sheet, id, startRow, idColIndex) {
+  if (!id) return -1;
+  const lastRow = sheet.getLastRow();
+  if (lastRow < startRow) return -1;
+
+  const idColumnValues = sheet.getRange(startRow, idColIndex, lastRow - startRow + 1, 1).getValues();
+  for (let i = 0; i < idColumnValues.length; i++) {
+    if (String(idColumnValues[i][0]).trim() === String(id).trim()) {
+      return startRow + i;
+    }
+  }
+  return -1;
+}
+
+// BACKFILL MANUAL (OPSIONAL - Sistem kini sudah Auto-Healing)
+function backfillAllPrimaryKeys() {
+  const sheetTx = getSheet();
+  const lastRowTx = sheetTx.getLastRow();
+  if (lastRowTx >= CONFIG.START_ROW) {
+    const rangeTx = sheetTx.getRange(CONFIG.START_ROW, 1, lastRowTx - CONFIG.START_ROW + 1, 1);
+    const valsTx = rangeTx.getValues();
+    let changedTx = false;
+    for(let i=0; i<valsTx.length; i++) {
+      if(!valsTx[i][0] || String(valsTx[i][0]).trim() === "") { valsTx[i][0] = generatePrimaryKey_('TX'); changedTx = true; }
+    }
+    if(changedTx) rangeTx.setValues(valsTx);
+  }
+
+  const sheetDompet = getDompetSheet_();
+  if (sheetDompet) {
+    const lastRowDompet = sheetDompet.getLastRow();
+    if (lastRowDompet >= DOMPET_START_ROW) {
+      const rangeD = sheetDompet.getRange(DOMPET_START_ROW, DOMPET_COL.ID, lastRowDompet - DOMPET_START_ROW + 1, 1);
+      const valsD = rangeD.getValues();
+      let changedD = false;
+      for(let i=0; i<valsD.length; i++) {
+        if(!valsD[i][0] || String(valsD[i][0]).trim() === "") { valsD[i][0] = generatePrimaryKey_('ACC'); changedD = true; }
+      }
+      if(changedD) rangeD.setValues(valsD);
+    }
+  }
+}
+
+// ============ DATE PARSER & CLEANUP ============
 function parseSheetDate(val) {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
   if (typeof val === 'string') {
-    const trimmed = val.trim();
-    if (!trimmed) return null;
-    let d = new Date(trimmed);
+    let d = new Date(val.trim());
     if (!isNaN(d.getTime())) return d;
-
-    const parts = trimmed.split(/[\/\-\s]+/);
-    if (parts.length >= 3) {
-      const months = {
-        jan: 0, januari: 0, feb: 1, februari: 1, mar: 2, maret: 2, apr: 3, april: 3,
-        mei: 4, jun: 5, juni: 5, jul: 6, juli: 6, agu: 7, agustus: 7,
-        sep: 8, september: 8, okt: 9, oktober: 9, nov: 10, november: 10, des: 11, desember: 11
-      };
-      let day = parseInt(parts[0], 10), monthStr = parts[1].toLowerCase(), year = parseInt(parts[2], 10);
-      let month = months[monthStr] !== undefined ? months[monthStr] : (parseInt(monthStr, 10) - 1);
-      if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-        if (year < 100) year += 2000;
-        return new Date(year, month, day);
-      }
-    }
   }
   return null;
 }
 
-// Fitur: Pembersihan Data 2 Tahun (Retention)
-// Cleanup HANYA jalan 1x per hari (throttle), bukan tiap request
 function maybeRunCleanup(sheet, rawData) {
   const props = PropertiesService.getScriptProperties();
   const todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  if (props.getProperty('lastCleanupDate') === todayStr) return rawData; // sudah jalan hari ini, skip total
+  if (props.getProperty('lastCleanupDate') === todayStr) return rawData; 
 
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
   twoYearsAgo.setHours(0, 0, 0, 0);
-
+  
   const validRows = [];
   let changed = false;
   rawData.forEach(row => {
-    const parsedDate = parseSheetDate(row[0]);
+    const parsedDate = parseSheetDate(row[1]); 
     if (parsedDate) {
       parsedDate.setHours(0, 0, 0, 0);
       if (parsedDate >= twoYearsAgo) validRows.push(row); else changed = true;
@@ -81,209 +201,380 @@ function maybeRunCleanup(sheet, rawData) {
       validRows.push(row);
     }
   });
-
+  
   if (changed) {
-    sheet.getRange(CONFIG.START_ROW, 1, rawData.length, 6).clearContent();
-    if (validRows.length > 0) sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 6).setValues(validRows);
-
+    sheet.getRange(CONFIG.START_ROW, 1, rawData.length, 7).clearContent();
+    if (validRows.length > 0) sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 7).setValues(validRows);
   }
   props.setProperty('lastCleanupDate', todayStr);
   return validRows;
 }
 
-// Fitur: Ambil & Filter Data dari Frontend
+// ============ READ DATA TRANSAKSI ============
 function getRiwayatKasServer(page, limit, filterParams) {
   try {
     const pageNum = page || 1;
     const limitNum = limit || 10;
     const sheet = getSheet();
     const lastRow = sheet.getLastRow();
-
+    
     if (lastRow < CONFIG.START_ROW) return { status: "success", data: [], totalPages: 0, currentPage: 1 };
+    
+    let rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues(); 
+    rawData = maybeRunCleanup(sheet, rawData);
 
-    const totalRows = lastRow - CONFIG.START_ROW + 1;
-    let rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues(); // satu-satunya full read
-    rawData = maybeRunCleanup(sheet, rawData); // pakai data yg sudah di-read, bukan read ulang
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const timeZone = ss.getSpreadsheetTimeZone();
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    
     let formattedList = [];
-
+    let needFlush = false;
+    
     rawData.forEach((row, idx) => {
-      if (row.every(cell => cell === "")) return;
-      const parsedDate = parseSheetDate(row[0]);
-      if (!parsedDate) return;
+      let id = row[0];
+      const parsedDate = parseSheetDate(row[1]);
+      
+      // AUTO-HEALING: Jika ID belum ada di Kolom A, langsung generate ID baru!
+      if (!id && (parsedDate || row[2] || row[6])) {
+        id = generatePrimaryKey_('TX');
+        row[0] = id;
+        sheet.getRange(CONFIG.START_ROW + idx, 1).setValue(id);
+        needFlush = true;
+      }
+      
+      if (!id || !parsedDate) return;
       parsedDate.setHours(0, 0, 0, 0);
 
-      // --- LOGIKA FILTER SERVER ---
+      // Filtering
       if (filterParams) {
-        // 1. Filter Tipe & Waktu
-        if (filterParams.tipe === '7hari') {
-          const diffDays = Math.floor((now.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays < 0 || diffDays > 7) return;
-        } else if (filterParams.tipe === '30hari') {
-          const diffDays = Math.floor((now.getTime() - parsedDate.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffDays < 0 || diffDays > 30) return;
-        } else if (filterParams.tipe === 'custom') {
-          // Filter periode kustom dari modal "Pilih periode" (Dari/Hingga)
-          if (filterParams.startDate) {
-            const start = parseSheetDate(filterParams.startDate);
-            if (start) { start.setHours(0, 0, 0, 0); if (parsedDate < start) return; }
-          }
-          if (filterParams.endDate) {
-            const end = parseSheetDate(filterParams.endDate);
-            if (end) { end.setHours(0, 0, 0, 0); if (parsedDate > end) return; }
-          }
+        if (filterParams.tipe === '7hari' && Math.floor((now - parsedDate) / 86400000) > 7) return;
+        if (filterParams.tipe === '30hari' && Math.floor((now - parsedDate) / 86400000) > 30) return;
+        if (filterParams.tipe === 'custom' && filterParams.startDate && filterParams.endDate) {
+          const start = parseSheetDate(filterParams.startDate);
+          const end = parseSheetDate(filterParams.endDate);
+          if (start && end) { start.setHours(0,0,0,0); end.setHours(0,0,0,0); if (parsedDate < start || parsedDate > end) return; }
         }
-        // tipe === 'semua' -> tidak ada filter tanggal, lanjut ke filter jenis/search
 
-        // 2. Filter Jenis
-        const jenisLower = String(row[1] || '').toLowerCase();
+        const jenisLower = String(row[2] || '').toLowerCase();
         const isIncome = (jenisLower === 'pemasukan' || jenisLower === 'pendapatan');
         if (filterParams.jenis === 'Pemasukan' && !isIncome) return;
         if (filterParams.jenis === 'Pengeluaran' && isIncome) return;
 
-        // 3. Filter Search (Text)
         if (filterParams.search) {
-          const q = filterParams.search;
-          const match = String(row[2] || '').toLowerCase().includes(q) ||
-            String(row[4] || '').toLowerCase().includes(q) ||
-            String(row[3] || '').toLowerCase().includes(q) ||
-            String(row[5] || '').toLowerCase().includes(q);
+          const q = filterParams.search.toLowerCase();
+          const match = String(row[3]).toLowerCase().includes(q) || String(row[5]).toLowerCase().includes(q) || String(row[4]).toLowerCase().includes(q);
           if (!match) return;
         }
       }
 
       formattedList.push({
-        rowIndex: CONFIG.START_ROW + idx,
+        id: id,
         tanggal: Utilities.formatDate(parsedDate, timeZone, "dd/MM/yyyy"),
         tanggalRaw: Utilities.formatDate(parsedDate, timeZone, "yyyy-MM-dd"),
-        jenis: row[1] || "",
-        kategori: row[2] || "",
-        sumber: row[3] || "",
-        keterangan: row[4] || "",
-        nominal: Number(row[5]) || 0
+        jenis: row[2] || "",
+        kategori: row[3] || "",
+        sumber: row[4] || "",
+        keterangan: row[5] || "",
+        nominal: Number(row[6]) || 0
       });
     });
 
-    formattedList.sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw));
-    const totalItems = formattedList.length;
-    const totalPages = Math.ceil(totalItems / limitNum) || 1;
-    const startIndex = (pageNum - 1) * limitNum;
+    if (needFlush) SpreadsheetApp.flush();
 
+    formattedList.sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw));
+    const totalPages = Math.ceil(formattedList.length / limitNum) || 1;
+    const startIndex = (pageNum - 1) * limitNum;
+    
     return { status: "success", data: formattedList.slice(startIndex, startIndex + limitNum), totalPages, currentPage: pageNum };
   } catch (err) {
-    return { status: "error", message: err.message || "Gagal memproses data server." };
+    return { status: "error", message: err.message };
   }
 }
 
-// Fitur: CRUD Database
 function fetchKategoriServer() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('kategoriList');
+  if (cached) return JSON.parse(cached);
   try {
     const sheet = getSheet();
     const lastRow = sheet.getLastRow();
     if (lastRow < CONFIG.START_ROW) return [];
-    const data = sheet.getRange(CONFIG.START_ROW, 3, lastRow - CONFIG.START_ROW + 1, 1).getValues();
-    return [...new Set(data.map(r => String(r[0]).trim()).filter(k => k !== ""))].sort();
+    const data = sheet.getRange(CONFIG.START_ROW, 4, lastRow - CONFIG.START_ROW + 1, 1).getValues(); 
+    const unique = [...new Set(data.map(r => String(r[0]).trim()).filter(k => k !== ""))].sort();
+    cache.put('kategoriList', JSON.stringify(unique), 300); // PERBAIKAN: 6 jam -> 5 menit, supaya perubahan tidak nyangkut lama di cache
+    return unique;
   } catch (e) { return []; }
 }
 
-// CATATAN PERBAIKAN DELAY:
-// Sebelumnya, setiap simpan/update/hapus melakukan 1 round-trip google.script.run
-// untuk CRUD, lalu frontend memanggil loadRiwayat() yang memicu round-trip KEDUA
-// (baca ulang seluruh sheet + filter + sort) hanya untuk me-refresh daftar.
-// Di Apps Script, setiap round-trip client<->server punya overhead jaringan yang
-// nyata (umumnya 1-3 detik), jadi 2 round-trip berurutan = delay dobel yang terasa.
-// Fix: gabungkan CRUD + pengambilan ulang data riwayat menjadi SATU panggilan
-// server (fungsi ini langsung memanggil getRiwayatKasServer sebelum return),
-// sehingga frontend cukup 1x google.script.run per aksi CRUD.
-// LockService dipakai agar tidak ada race condition saat 2 request nulis nyaris bersamaan.
+function fetchSumberAkunServer() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get('sumberAkunList');
+  if (cached) return JSON.parse(cached);
+  try {
+    const sheet = getDompetSheet_();
+    if (!sheet) return [];
+    const lastRow = sheet.getLastRow();
+    if (lastRow < DOMPET_START_ROW) return [];
+    const data = sheet.getRange(DOMPET_START_ROW, DOMPET_COL.NAMA, lastRow - DOMPET_START_ROW + 1, 1).getValues();
+    const list = data.map(r => String(r[0]).trim()).filter(v => v !== "");
+    cache.put('sumberAkunList', JSON.stringify(list), 300); // PERBAIKAN: 6 jam -> 5 menit
+    return list;
+  } catch (e) { return []; }
+}
 
+// PERBAIKAN BUG "Dropdown Sumber/Akun kosong": cache 'sumberAkunList'/'kategoriList' lama
+// (TTL 6 jam) sempat kesimpan KOSONG karena dibaca saat DOMPET_COL masih salah mapping.
+// Jalankan fungsi ini SEKALI dari Apps Script Editor (dropdown fungsi di atas > Run)
+// untuk langsung membuang cache basi tsb tanpa perlu menunggu kedaluwarsa.
+function clearAppCache() {
+  CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
+  Logger.log('Cache kategoriList & sumberAkunList sudah dibersihkan. Reload halaman aplikasi untuk ambil data terbaru dari Sheet.');
+}
+
+// ============ CRUD TRANSAKSI ============
 function simpanTransaksiServer(formData, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    getSheet().appendRow([new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+    const id = generatePrimaryKey_('TX');
+    
+    getSheet().appendRow([id, new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+    
+    recalculateSaldoDompet_();
+    SpreadsheetApp.flush();
+    
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    CacheService.getScriptCache().remove('initialPayload');
+    CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
-  } catch (err) {
-    return { status: "error", message: err.message };
-  } finally {
-    lock.releaseLock();
-  }
+  } catch (err) { return { status: "error", message: err.message };
+  } finally { lock.releaseLock(); }
 }
 
 function updateTransaksiServer(formData, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    const row = formData.rowIndex;
-    if (row < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
-    getSheet().getRange(row, 1, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
+    const sheet = getSheet();
+    const targetRow = findRowIndexById_(sheet, formData.id, CONFIG.START_ROW, 1);
+    if (targetRow === -1) throw new Error("Data tidak ditemukan di database.");
+
+    sheet.getRange(targetRow, 2, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
+    
+    recalculateSaldoDompet_();
+    SpreadsheetApp.flush();
+    
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    CacheService.getScriptCache().remove('initialPayload');
+    CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
-  } catch (err) {
-    return { status: "error", message: err.message };
-  } finally {
-    lock.releaseLock();
-  }
+  } catch (err) { return { status: "error", message: err.message };
+  } finally { lock.releaseLock(); }
 }
 
-function hapusTransaksiServer(rowIndex, page, limit, filterParams) {
+function hapusTransaksiServer(id, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
-    if (rowIndex < CONFIG.START_ROW) throw new Error("Baris tidak valid.");
-    getSheet().deleteRow(rowIndex);
+    const sheet = getSheet();
+    const targetRow = findRowIndexById_(sheet, id, CONFIG.START_ROW, 1);
+    if (targetRow === -1) throw new Error("Data transaksi sudah terhapus.");
+    
+    sheet.deleteRow(targetRow);
+    recalculateSaldoDompet_();
+    SpreadsheetApp.flush();
+    
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    CacheService.getScriptCache().remove('initialPayload');
+    CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
+  } catch (err) { return { status: "error", message: err.message };
+  } finally { lock.releaseLock(); }
+}
+
+// ============ SINKRONISASI DOMPET (AUTO-HEALING PK) ============
+function getDompetServer() {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheet = getDompetSheet_();
+    if (!sheet) {
+      const allNames = ss.getSheets().map(s => s.getName()).join(', ');
+      return { status: "error", message: `Sheet "Dompet" tidak ditemukan. Tab yang ada: ${allNames}` };
+    }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < DOMPET_START_ROW) return { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
+
+    const numRows = lastRow - DOMPET_START_ROW + 1;
+    const data = sheet.getRange(DOMPET_START_ROW, 1, numRows, 5).getValues(); // A:E (F sudah tidak dipakai)
+    const timeZone = ss.getSpreadsheetTimeZone();
+
+    let totalSaldo = 0;
+    const rekening = [];
+    let needFlush = false;
+
+    data.forEach((row, idx) => {
+      const nama = String(row[DOMPET_COL.NAMA - 1] || '').trim();
+      if (!nama) return; // Lewati jika nama akun kosong
+
+      let id = String(row[DOMPET_COL.ID - 1] || '').trim();
+      
+      // AUTO-HEALING: Jika Primary Key di Kolom A belum terisi, buatkan otomatis & simpan ke Google Sheet!
+      if (!id) {
+        id = generatePrimaryKey_('ACC');
+        data[idx][DOMPET_COL.ID - 1] = id;
+        sheet.getRange(DOMPET_START_ROW + idx, DOMPET_COL.ID).setValue(id);
+        needFlush = true;
+      }
+
+      const saldo = Number(row[DOMPET_COL.SALDO - 1]) || 0;
+      totalSaldo += saldo;
+
+      let lastUpd = "-";
+      if (row[DOMPET_COL.UPDATED_AT - 1]) {
+        const d = new Date(row[DOMPET_COL.UPDATED_AT - 1]);
+        if (!isNaN(d.getTime())) {
+          lastUpd = Utilities.formatDate(d, timeZone, "dd/MM/yyyy HH:mm");
+        }
+      }
+
+      rekening.push({
+        id: id,
+        nama: nama,
+        saldo: saldo,
+        catatan: row[DOMPET_COL.CATATAN - 1] || "", // teks bebas, bukan badge kategori
+        terakhirDiperbarui: lastUpd
+      });
+    });
+    
+    if (needFlush) SpreadsheetApp.flush();
+
+    return { status: 'success', totalSaldo: totalSaldo, rekening: rekening, lastUpdated: readLastUpdatedDompet_() };
   } catch (err) {
+    Logger.log('getDompetServer ERROR: ' + (err.stack || err.message)); // cek di Executions/Logs kalau error lagi
     return { status: "error", message: err.message };
-  } finally {
-    lock.releaseLock();
   }
 }
 
-// ==========================================
-// FITUR: EXPORT LAPORAN PDF PER BULAN
-// ==========================================
+function recalculateSaldoDompet_() {
+  const dompetSheet = getDompetSheet_();
+  if (!dompetSheet) {
+    Logger.log('recalculateSaldoDompet_: Sheet "Dompet" tidak ditemukan, saldo TIDAK disinkronkan.');
+    return;
+  }
 
-// Format angka ke Rupiah, mis. 1250000 -> "Rp1.250.000"
-function formatRupiah(num) {
-  const angka = Math.round(Math.abs(num || 0));
-  return (num < 0 ? '-Rp' : 'Rp') + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const lastDompetRow = dompetSheet.getLastRow();
+  if (lastDompetRow < DOMPET_START_ROW) return;
+
+  const numAkun = lastDompetRow - DOMPET_START_ROW + 1;
+  const dompetData = dompetSheet.getRange(DOMPET_START_ROW, 1, numAkun, 5).getValues(); // A:E
+
+  const totals = hitungTotalPerAkun_();
+  let adaPerubahan = false;
+  const now = new Date();
+  
+  const newSaldoValues = [];
+  const newUpdateValues = [];
+  const newIdValues = [];
+  
+  dompetData.forEach((row) => {
+    const nama = String(row[DOMPET_COL.NAMA - 1] || '').trim();
+    const saldoLama = Number(row[DOMPET_COL.SALDO - 1]) || 0;
+    const timestampLama = row[DOMPET_COL.UPDATED_AT - 1] || '';
+    let id = String(row[DOMPET_COL.ID - 1] || '').trim();
+
+    if (!nama) {
+      newSaldoValues.push([saldoLama]);
+      newUpdateValues.push([timestampLama]);
+      newIdValues.push([id]);
+      return;
+    }
+
+    if (!id) {
+      id = generatePrimaryKey_('ACC');
+    }
+
+    const t = totals[nama] || { masuk: 0, keluar: 0 }; 
+    // TIDAK ADA lagi "Saldo Awal" (kolom itu sudah dihapus dari sheet) -> mulai dari 0,
+    // sesuai keputusan: Saldo Akhir = 0 + Total Pemasukan - Total Pengeluaran.
+    const saldoAkhir = 0 + t.masuk - t.keluar;
+    
+    newSaldoValues.push([saldoAkhir]);
+    newIdValues.push([id]);
+    
+    if (saldoAkhir !== saldoLama) {
+      adaPerubahan = true;
+      newUpdateValues.push([now]);
+    } else {
+      newUpdateValues.push([timestampLama]);
+    }
+  });
+  
+  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.SALDO, numAkun, 1).setValues(newSaldoValues); 
+  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.UPDATED_AT, numAkun, 1).setValues(newUpdateValues); 
+  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.ID, numAkun, 1).setValues(newIdValues);
+  
+  if (adaPerubahan) saveLastUpdatedDompet_();
 }
 
-// Ambil SELURUH transaksi 1 bulan (tanpa pagination) utk keperluan laporan, urut tanggal naik
+function hitungTotalPerAkun_() {
+  const totals = {};
+  const sheet = getSheet();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.START_ROW) return totals;
+  
+  const data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues(); 
+  data.forEach(row => {
+    const sumber = String(row[4] || '').trim(); // Kolom E (Sumber)
+    if (!sumber) return;
+    const jenis = String(row[2] || '').toLowerCase(); // Kolom C (Jenis)
+    const nominal = Number(row[6]) || 0; // Kolom G (Nominal)
+    const isIncome = (jenis === 'pemasukan' || jenis === 'pendapatan');
+
+    if (!totals[sumber]) totals[sumber] = { masuk: 0, keluar: 0 };
+    if (isIncome) totals[sumber].masuk += nominal; else totals[sumber].keluar += nominal;
+  });
+  return totals;
+}
+
+function saveLastUpdatedDompet_() {
+  const sh = getDompetSheet_();
+  if (!sh) return null;
+  const now = new Date();
+  sh.getRange(CELL_LAST_UPDATED).setValue(now);
+  return now.toISOString();
+}
+
+function readLastUpdatedDompet_() {
+  const sh = getDompetSheet_();
+  if (!sh) return null;
+  const val = sh.getRange(CELL_LAST_UPDATED).getValue();
+  if (!val) return null;
+  if (val instanceof Date) return val.toISOString();
+  const d = new Date(val);
+  return isNaN(d) ? null : d.toISOString();
+}
+
+// ============ EXPORT LAPORAN PDF ============
 function getSemuaTransaksiBulanServer(bulan, tahun) {
   const sheet = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow < CONFIG.START_ROW) return [];
 
-  const totalRows = lastRow - CONFIG.START_ROW + 1;
-  const rawData = sheet.getRange(CONFIG.START_ROW, 1, totalRows, 6).getValues();
+  const rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues();
   const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
 
   const list = [];
   rawData.forEach(row => {
-    if (row.every(cell => cell === "")) return;
-    const parsedDate = parseSheetDate(row[0]);
+    if (!row[0]) return;
+    const parsedDate = parseSheetDate(row[1]);
     if (!parsedDate) return;
     if (parsedDate.getMonth() !== bulan || parsedDate.getFullYear() !== tahun) return;
 
     list.push({
       tanggalRaw: parsedDate,
       tanggal: Utilities.formatDate(parsedDate, timeZone, "dd/MM/yyyy"),
-      jenis: row[1] || "",
-      kategori: row[2] || "",
-      sumber: row[3] || "",
-      keterangan: row[4] || "",
-      nominal: Number(row[5]) || 0
+      jenis: row[2] || "",
+      kategori: row[3] || "",
+      sumber: row[4] || "",
+      keterangan: row[5] || "",
+      nominal: Number(row[6]) || 0
     });
   });
 
@@ -291,7 +582,10 @@ function getSemuaTransaksiBulanServer(bulan, tahun) {
   return list;
 }
 
-// Susun HTML laporan (dipakai sbg sumber konversi ke PDF)
+function formatRupiahServer(num) {
+  return (num < 0 ? '-Rp ' : 'Rp ') + Math.round(Math.abs(num || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
 function buildLaporanHTML(items, bulan, tahun) {
   const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
   const tanggalCetak = Utilities.formatDate(new Date(), timeZone, "dd MMMM yyyy, HH:mm");
@@ -302,21 +596,12 @@ function buildLaporanHTML(items, bulan, tahun) {
     if (isIncome) totalPemasukan += it.nominal; else totalPengeluaran += it.nominal;
     const warna = isIncome ? '#10b981' : '#e53e3e';
     const tanda = isIncome ? '+' : '-';
-    return `
-      <tr>
-        <td>${it.tanggal}</td>
-        <td>${it.kategori}</td>
-        <td>${it.sumber || '-'}</td>
-        <td>${it.keterangan || '-'}</td>
-        <td class="nominal" style="color:${warna};">${tanda} ${formatRupiah(it.nominal)}</td>
-      </tr>`;
+    return `<tr><td>${it.tanggal}</td><td>${it.kategori}</td><td>${it.sumber || '-'}</td><td>${it.keterangan || '-'}</td><td class="nominal" style="color:${warna};">${tanda} ${formatRupiahServer(it.nominal)}</td></tr>`;
   }).join('');
 
   const saldoBersih = totalPemasukan - totalPengeluaran;
-  const emptyState = items.length === 0
-    ? `<tr><td colspan="5" style="text-align:center; color:#6c757d; padding:24px;">Tidak ada transaksi pada periode ini.</td></tr>`
-    : '';
-
+  const emptyState = items.length === 0 ? `<tr><td colspan="5" style="text-align:center; color:#6c757d; padding:24px;">Tidak ada transaksi pada periode ini.</td></tr>` : '';
+  
   return `
   <html>
   <head>
@@ -329,185 +614,34 @@ function buildLaporanHTML(items, bulan, tahun) {
       .header .periode { text-align: right; }
       .header .periode strong { font-size: 13px; color: #1a1b1e; }
       table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-      th { background: #2D6A4F; color: #fff; text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .3px; }
+      th { background: #2D6A4F; color: #fff; text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; }
       td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
       tr:nth-child(even) td { background: #f4f7f6; }
       .nominal { text-align: right; font-weight: bold; white-space: nowrap; }
       .summary { margin-top: 18px; width: 260px; margin-left: auto; }
       .summary div { display: flex; justify-content: space-between; padding: 6px 10px; font-size: 11px; }
-      .summary .pemasukan { color: #10b981; }
-      .summary .pengeluaran { color: #e53e3e; }
       .summary .saldo { background: #2D6A4F; color: #fff; font-weight: bold; border-radius: 6px; margin-top: 4px; }
-      .footer { margin-top: 24px; font-size: 9px; color: #9ca3af; text-align: center; }
     </style>
   </head>
   <body>
-    <div class="header">
-      <div>
-        <h1>MyDuit</h1>
-        <p>Laporan Keuangan Bulanan</p>
-      </div>
-      <div class="periode">
-        <strong>${BULAN_NAMA[bulan]} ${tahun}</strong>
-        <p>Dicetak: ${tanggalCetak}</p>
-      </div>
-    </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Tanggal</th>
-          <th>Kategori</th>
-          <th>Sumber</th>
-          <th>Keterangan</th>
-          <th style="text-align:right;">Nominal</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rowsHtml || emptyState}
-      </tbody>
-    </table>
-
+    <div class="header"><div><h1>MyDuit</h1><p>Laporan Keuangan Bulanan</p></div><div class="periode"><strong>${BULAN_NAMA[bulan]} ${tahun}</strong><p>Dicetak: ${tanggalCetak}</p></div></div>
+    <table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Sumber</th><th>Keterangan</th><th style="text-align:right;">Nominal</th></tr></thead><tbody>${rowsHtml || emptyState}</tbody></table>
     <div class="summary">
-      <div class="pemasukan"><span>Total Pemasukan</span><span>${formatRupiah(totalPemasukan)}</span></div>
-      <div class="pengeluaran"><span>Total Pengeluaran</span><span>${formatRupiah(totalPengeluaran)}</span></div>
-      <div class="saldo"><span>Saldo Bersih</span><span>${formatRupiah(saldoBersih)}</span></div>
+      <div style="color: #10b981;"><span>Total Pemasukan</span><span>${formatRupiahServer(totalPemasukan)}</span></div>
+      <div style="color: #e53e3e;"><span>Total Pengeluaran</span><span>${formatRupiahServer(totalPengeluaran)}</span></div>
+      <div class="saldo"><span>Saldo Bersih</span><span>${formatRupiahServer(saldoBersih)}</span></div>
     </div>
-
-    <p class="footer">Laporan ini dibuat otomatis oleh aplikasi MyDuit.</p>
   </body>
   </html>`;
 }
 
-// Entry point dipanggil dari frontend: generate laporan bulan tertentu -> PDF (base64)
 function generateLaporanPDFServer(bulan, tahun) {
   try {
     const items = getSemuaTransaksiBulanServer(bulan, tahun);
     const html = buildLaporanHTML(items, bulan, tahun);
-
     const pdfBlob = Utilities.newBlob(html, 'text/html', 'laporan.html').getAs('application/pdf');
     const fileName = `Laporan-MyDuit-${BULAN_NAMA[bulan]}-${tahun}.pdf`;
     pdfBlob.setName(fileName);
-
-    return {
-      status: "success",
-      fileName: fileName,
-      base64: Utilities.base64Encode(pdfBlob.getBytes())
-    };
-  } catch (err) {
-    return { status: "error", message: err.message };
-  }
-}
-
-function getDompetServer() {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName("Dompet");
-    if (!sheet) return { status: "error", message: 'Sheet "Dompet" tidak ditemukan.' };
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 5) return { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
-    const data = sheet.getRange(6, 1, lastRow - 4, 5).getValues(); // A:E
-    const timeZone = ss.getSpreadsheetTimeZone();
-    let totalSaldo = 0;
-    const rekening = [];
-    data.forEach(row => {
-      if (!row[0]) return;
-      const saldo = Number(row[1]) || 0;
-      totalSaldo += saldo;
-      rekening.push({
-        nama: row[0],
-        saldo,
-        kategori: row[3] || "Umum",
-        terakhirDiperbarui: row[4] ? Utilities.formatDate(new Date(row[4]), timeZone, "dd/MM/yyyy HH:mm") : "-"
-      });
-    });
-    return {
-      status: 'success',
-      totalSaldo: totalSaldo,
-      rekening: rekening,                     // ⬅ fix: sebelumnya "rekeningList" (undefined/ReferenceError)
-      lastUpdated: readLastUpdatedDompet_()    // hanya BACA, tidak memanggil saveLastUpdatedDompet_()
-    };
-  } catch (err) {
-    return { status: "error", message: err.message };
-  }
-}
-
-// ============ HELPER: Last Updated Dompet (Sheet 'Dompet' cell C4) ============
-const SHEET_DOMPET = 'Dompet';
-const CELL_LAST_UPDATED = 'C4';
-
-/**
- * Tulis timestamp saat ini ke Dompet!C4 (ISO string).
- * Dipanggil setelah setiap perubahan data rekening/dompet.
- */
-function saveLastUpdatedDompet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_DOMPET);
-  if (!sh) throw new Error('Sheet "Dompet" tidak ditemukan');
-  const now = new Date();
-  sh.getRange(CELL_LAST_UPDATED).setValue(now); // simpan sebagai Date, bukan string
-  return now.toISOString();
-}
-
-/**
- * Baca timestamp terakhir dari Dompet!C4.
- * Kembalikan ISO string atau null jika kosong.
- */
-function readLastUpdatedDompet_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_DOMPET);
-  if (!sh) return null;
-  const val = sh.getRange(CELL_LAST_UPDATED).getValue();
-  if (!val) return null;
-  if (val instanceof Date) return val.toISOString();
-  // fallback: nilai string manual
-  const d = new Date(val);
-  return isNaN(d) ? null : d.toISOString();
-}
-
-/**
- * Endpoint publik untuk memperbarui Dompet!C4 dan mengembalikan ISO string baru.
- */
-function touchLastUpdatedDompet() {
-  try {
-    const iso = saveLastUpdatedDompet_();
-    return { status: 'success', lastUpdated: iso };
-  } catch (e) {
-    return { status: 'error', message: e.message };
-  }
-}
-
-function updateSaldoRekeningServer(namaRekening, saldoBaru) {
-  const lock = LockService.getScriptLock();
-  try {
-    lock.waitLock(10000);
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName(SHEET_DOMPET);
-    if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
-
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 5) throw new Error('Rekening tidak ditemukan.');
-
-    const data = sheet.getRange(5, 1, lastRow - 4, 2).getValues(); // A:B (nama, saldo)
-    const rowOffset = data.findIndex(r => String(r[0]).trim() === String(namaRekening).trim());
-    if (rowOffset === -1) throw new Error(`Rekening "${namaRekening}" tidak ditemukan.`);
-
-    const rowIndex = 5 + rowOffset;
-    const saldoLama = Number(data[rowOffset][1]) || 0;
-    const saldoBaruNum = Number(saldoBaru) || 0;
-
-    // Guard: hanya tulis & update timestamp jika nilai BENAR-BENAR berubah
-    if (saldoLama !== saldoBaruNum) {
-      const now = new Date();
-      sheet.getRange(rowIndex, 2).setValue(saldoBaruNum);       // update saldo
-      sheet.getRange(rowIndex, 5).setValue(now);                // update terakhirDiperbarui per-baris
-      saveLastUpdatedDompet_();                                 // ⬅ HANYA di sini C4 ditulis ulang
-    }
-
-    return getDompetServer(); // refresh payload dlm 1 round-trip (pola sama dgn CRUD lain)
-  } catch (err) {
-    return { status: "error", message: err.message };
-  } finally {
-    lock.releaseLock();
-  }
+    return { status: "success", fileName: fileName, base64: Utilities.base64Encode(pdfBlob.getBytes()) };
+  } catch (err) { return { status: "error", message: err.message }; }
 }

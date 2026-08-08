@@ -1,0 +1,610 @@
+<script>
+  // ==========================================
+  // STATE GLOBAL & VARIABEL
+  // ==========================================
+  let currentPage = 1;
+  const limitPerPage = 10;
+  let activeFilterJenis = 'Semua';
+  let lastTapTime = 0;
+  let cachedKategori = [];
+  let targetRowToDelete = null; 
+  let toastTimeout;
+  let searchTimeout;
+
+  let filterTipe = 'semua';
+  let filterStartDate = '';
+  let filterEndDate = '';
+
+  const BULAN_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+  // ==========================================
+  // INISIALISASI HALAMAN (ENTRY POINT)
+  // ==========================================
+  document.addEventListener('DOMContentLoaded', () => {
+    resetTanggal();
+    updateFilterActiveLabel();
+    
+    if (window.__INITIAL_RIWAYAT__) {
+      renderRiwayatResult(window.__INITIAL_RIWAYAT__);
+    } else {
+      loadRiwayat(1);
+    }
+    
+    if (window.__INITIAL_KATEGORI__) {
+      populateKategori(window.__INITIAL_KATEGORI__);
+    } else {
+      google.script.run.withSuccessHandler(populateKategori).fetchKategoriServer();
+    }
+    
+    google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+  });
+
+  // ==========================================
+  // HELPER: TANGGAL & FORMATTING
+  // ==========================================
+  function formatTanggalIndo(date) {
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${dd} ${BULAN_ID[date.getMonth()]} ${date.getFullYear()}`;
+  }
+
+  function formatRupiah(n) {
+    return 'Rp ' + Number(n || 0).toLocaleString('id-ID');
+  }
+
+  function formatTanggalRelatif(dateStr) {
+    if (!dateStr) return "-";
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((today - d) / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return "Hari ini";
+      if (diffDays === 1) return "Kemarin";
+    }
+    return dateStr;
+  }
+
+  // ==========================================
+  // DROPDOWN & INPUT FILLER
+  // ==========================================
+  function populateKategori(list) {
+    cachedKategori = list || [];
+    const dl = document.getElementById('kategoriList');
+    if (dl) dl.innerHTML = cachedKategori.map(k => `<option value="${k}"></option>`).join('');
+  }
+
+  function populateSumberAkun(list) {
+    const sel = document.getElementById('sumber');
+    if (!sel) return;
+    const current = sel.value;
+    sel.innerHTML = '<option value="" disabled>Pilih Sumber/Akun</option>' + (list || []).map(s => `<option value="${s}">${s}</option>`).join('');
+    if (current) sel.value = current;
+  }
+
+  function resetTanggal() {
+    const tgl = document.getElementById('tanggal') || document.getElementById('inputTanggal');
+    if(tgl) tgl.value = new Date().toLocaleDateString('en-CA');
+  }
+
+  // ==========================================
+  // NAVIGASI TAB UTAMA
+  // ==========================================
+  function switchTab(tabName) {
+    const views = { riwayat: 'viewRiwayat', tambah: 'viewTambah', budget: 'viewBudget' };
+
+    Object.values(views).forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('active'); el.classList.add('hidden'); }
+    });
+
+    const pageHeader = document.getElementById('pageHeader');
+    if (pageHeader) {
+      if (tabName === 'budget') pageHeader.classList.add('hidden');
+      else pageHeader.classList.remove('hidden');
+    }
+
+    const activeEl = document.getElementById(views[tabName]);
+    if (activeEl) {
+      activeEl.classList.remove('hidden');
+      activeEl.classList.add('active');
+      activeEl.style.display = ''; 
+    }
+
+    if (tabName === 'tambah' && !document.getElementById('editRowIndex')?.value) {
+      resetFormState();
+    } else if (tabName !== 'tambah') {
+      resetFormState();
+    }
+
+    if (tabName === 'budget') loadDompetServer();
+
+    updateNavActiveState(tabName);
+  }
+
+  function updateNavActiveState(tabName) {
+    document.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.classList.remove('text-primary'); btn.classList.add('text-textSecondary');
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 0";
+    });
+
+    const activeBtn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
+    if (activeBtn) {
+      activeBtn.classList.remove('text-textSecondary'); activeBtn.classList.add('text-primary');
+      const icon = activeBtn.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = "'FILL' 1";
+    }
+  }
+
+  function goHome() {
+    switchTab('riwayat');
+    activeFilterJenis = 'Semua';
+    document.querySelectorAll('#filterChips .chip-btn').forEach((btn, i) => {
+      btn.className = i === 0
+        ? "chip-btn active shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap"
+        : "chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) searchInput.value = '';
+
+    filterTipe = 'semua'; filterStartDate = ''; filterEndDate = '';
+    updateFilterActiveLabel();
+    loadRiwayat(1);
+  }
+
+  // ==========================================
+  // FITUR: PENCARIAN & FILTER
+  // ==========================================
+  function handleSearchFilter() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => { loadRiwayat(1); }, 450);
+  }
+
+  function setFilterJenis(jenis, el) {
+    activeFilterJenis = jenis;
+    document.querySelectorAll('#filterChips .chip-btn').forEach(btn => {
+      btn.className = "chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors";
+    });
+    if (el) el.className = "chip-btn active shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap";
+    loadRiwayat(1);
+  }
+
+  function getCurrentFilterParams() {
+    return {
+      tipe: filterTipe,
+      startDate: filterStartDate,
+      endDate: filterEndDate,
+      jenis: activeFilterJenis,
+      search: (document.getElementById('searchInput')?.value || '').toLowerCase().trim()
+    };
+  }
+
+  function updateFilterSubtitles() {
+    const today = new Date();
+    const d7 = new Date(today); d7.setDate(d7.getDate() - 7);
+    const d30 = new Date(today); d30.setDate(d30.getDate() - 30);
+    const el7 = document.getElementById('subtitle7hari');
+    const el30 = document.getElementById('subtitle30hari');
+    if (el7) el7.textContent = `${formatTanggalIndo(d7)} - ${formatTanggalIndo(today)}`;
+    if (el30) el30.textContent = `${formatTanggalIndo(d30)} - ${formatTanggalIndo(today)}`;
+  }
+
+  function updateFilterActiveLabel() {
+    const label = document.getElementById('filterActiveLabel');
+    if (!label) return;
+    const map = { semua: 'Semua Transaksi', '7hari': '7 Hari Terakhir', '30hari': '30 Hari Terakhir' };
+    if (filterTipe === 'custom' && filterStartDate && filterEndDate) {
+      const [ys, ms, ds] = filterStartDate.split('-');
+      const [ye, me, de] = filterEndDate.split('-');
+      label.textContent = `${ds}/${ms} - ${de}/${me}`;
+    } else {
+      label.textContent = map[filterTipe] || 'Filter';
+    }
+  }
+
+  function openFilterModal() {
+    updateFilterSubtitles();
+    document.querySelectorAll('input[name="filterTipeModal"]').forEach(r => { r.checked = (r.value === filterTipe); });
+    const startEl = document.getElementById('filterStartDate');
+    const endEl = document.getElementById('filterEndDate');
+    if (startEl) startEl.value = filterStartDate || '';
+    if (endEl) endEl.value = filterEndDate || '';
+    toggleCustomDateInputs();
+    document.getElementById('filterModal')?.classList.remove('hidden');
+  }
+
+  function closeFilterModal() { document.getElementById('filterModal')?.classList.add('hidden'); }
+
+  function toggleCustomDateInputs() {
+    const selected = document.querySelector('input[name="filterTipeModal"]:checked')?.value;
+    document.getElementById('customDateWrap')?.classList.toggle('hidden', selected !== 'custom');
+  }
+
+  function terapkanFilter() {
+    const selected = document.querySelector('input[name="filterTipeModal"]:checked')?.value || 'semua';
+    if (selected === 'custom') {
+      const startVal = document.getElementById('filterStartDate')?.value || '';
+      const endVal = document.getElementById('filterEndDate')?.value || '';
+      if (!startVal || !endVal) { showToast('error', 'Pilih tanggal Dari dan Hingga.'); return; }
+      if (startVal > endVal) { showToast('error', 'Tanggal "Dari" tidak boleh setelah "Hingga".'); return; }
+      filterStartDate = startVal; filterEndDate = endVal;
+    } else {
+      filterStartDate = ''; filterEndDate = '';
+    }
+    filterTipe = selected;
+    updateFilterActiveLabel();
+    closeFilterModal();
+    loadRiwayat(1);
+  }
+
+  // ==========================================
+  // LOAD & RENDER RIWAYAT KAS
+  // ==========================================
+  function loadRiwayat(page) {
+    currentPage = page;
+    const container = document.getElementById('riwayatList');
+    if (container) container.innerHTML = '<div class="text-center text-slate-500 py-10 text-sm animate-pulse">Memuat riwayat kas...</div>';
+    
+    google.script.run
+      .withSuccessHandler(renderRiwayatResult)
+      .withFailureHandler(err => {
+        if (container) container.innerHTML = `<div class="text-center text-red-500 py-10 text-sm">Koneksi error: ${err.message || err}</div>`;
+      })
+      .getRiwayatKasServer(page, limitPerPage, getCurrentFilterParams());
+  }
+
+  function renderRiwayatResult(res) {
+    const container = document.getElementById('riwayatList');
+    if (res && res.status === 'success') {
+      currentPage = res.currentPage;
+      renderRiwayatUI(res.data);
+      renderPaginationUI(res.totalPages, res.currentPage);
+    } else {
+      if (container) container.innerHTML = `<div class="text-center text-red-500 py-10 text-sm">Gagal memuat: ${res ? res.message : 'Error'}</div>`;
+    }
+  }
+
+  function renderRiwayatUI(data) {
+    const container = document.getElementById('riwayatList');
+    if (!container) return;
+    document.getElementById('optimistic-loading')?.remove();
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="text-center text-slate-500 py-10 text-sm">Data transaksi tidak ditemukan.</div>';
+      return;
+    }
+
+    container.innerHTML = data.map(item => {
+      const isPemasukan = (String(item.jenis).toLowerCase() === 'pemasukan' || String(item.jenis).toLowerCase() === 'pendapatan');
+      const sign = isPemasukan ? '+' : '-';
+      const color = isPemasukan ? 'text-emerald-600' : 'text-red-500';
+      const bg = isPemasukan ? 'bg-emerald-100' : 'bg-red-50';
+      const icon = isPemasukan ? 'trending_up' : 'trending_down';
+
+      return `
+        <div onclick="toggleDeleteBtn(this)"
+         ondblclick="handleCardDoubleTap('${item.id}', this)"
+         ontouchend="handleMobileTouchTap(event, '${item.id}', this)"
+         data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
+         class="tx-card-item relative bg-white rounded-xl p-4 shadow-sm flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-emerald-300 select-none mb-3">
+
+          <div class="flex items-center gap-3 w-full min-w-0">
+            <div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center shrink-0">
+              <span class="material-symbols-outlined ${color} text-[20px]">${icon}</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-semibold text-slate-800 text-[15px] truncate mb-0.5">${item.keterangan || item.kategori || 'Tanpa Keterangan'}</h3>
+              <div class="flex items-center gap-2 text-xs text-slate-500">
+                <span class="font-medium">${formatTanggalRelatif(item.tanggal)}</span>
+                <span class="w-1 h-1 rounded-full bg-slate-300"></span>
+                <span class="truncate">${item.kategori || '-'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0 flex flex-col items-end">
+            <p class="font-bold ${color} text-[15px] mb-0.5">${sign}Rp ${Number(item.nominal || 0).toLocaleString('id-ID')}</p>
+            <p class="text-[10px] text-slate-400">${item.sumber || 'Tunai'}</p>
+          </div>
+          <button onclick="openDeleteModal('${item.id}', event)" class="delete-btn-action hidden shrink-0 ml-2 w-9 h-9 rounded-full bg-red-50 hover:bg-red-100 text-red-500 flex items-center justify-center transition-all">
+            <span class="material-symbols-outlined text-[20px]">delete</span>
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderPaginationUI(totalPages, current) {
+    const controls = document.getElementById('paginationControls');
+    if (!controls) return;
+    if (!totalPages || totalPages <= 1) { controls.innerHTML = ''; return; }
+
+    let html = '';
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="w-8 h-8 mx-1 rounded text-sm font-medium transition-colors border ${i === current ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}" onclick="loadRiwayat(${i})">${i}</button>`;
+    }
+    controls.innerHTML = html;
+  }
+
+  // ==========================================
+  // LOAD & RENDER DOMPET (BUDGET)
+  // ==========================================
+  function loadDompetServer() {
+    const container = document.getElementById('rekeningList');
+    const totalEl = document.getElementById('totalSaldoBudget');
+    const lastUpdEl = document.getElementById('lastUpdatedBudget');
+
+    if (container) container.innerHTML = `<div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat rekening...</div>`;
+    
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res || res.status !== 'success') {
+          if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">Gagal memuat data: ${res ? res.message : 'Error'}</div>`;
+          return;
+        }
+        if (totalEl) totalEl.textContent = 'Rp ' + Number(res.totalSaldo).toLocaleString('id-ID');
+        if (lastUpdEl) {
+           const d = res.lastUpdated ? new Date(res.lastUpdated) : null;
+           lastUpdEl.textContent = d && !isNaN(d.getTime()) ? `Terakhir diperbarui: ${d.toLocaleDateString('id-ID')} ${d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}` : 'Terakhir diperbarui: -';
+        }
+        if (container) {
+          container.innerHTML = (res.rekening && res.rekening.length) 
+            ? res.rekening.map(renderRekeningCard).join('') 
+            : `<div class="text-center text-slate-500 py-10 text-sm">Belum ada rekening.</div>`;
+        }
+      })
+      .withFailureHandler(err => {
+        if (container) container.innerHTML = `<div class="text-center text-red-500 py-6 text-sm">Koneksi error: ${err.message || err}</div>`;
+      })
+      .getDompetServer();
+  }
+
+  function renderRekeningCard(r) {
+    return `<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-3" data-id="${r.id}">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-emerald-600 text-[20px]">account_balance</span>
+        <span class="font-semibold text-sm text-slate-800">${r.nama}</span>
+      </div>
+      <div class="mb-2">
+        <p class="text-xs text-slate-400">Saldo Akhir</p>
+        <p class="text-lg font-bold text-slate-800">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
+      </div>
+      ${r.catatan ? `<p class="text-xs text-slate-500 mb-2">${r.catatan}</p>` : ''}
+      <div class="border-t border-slate-100 pt-2 flex justify-between text-[11px] text-slate-400">
+        <span>Diperbarui</span><span>${r.terakhirDiperbarui}</span>
+      </div>
+    </div>`;
+  }
+
+  // ==========================================
+  // FORM EDIT & TAMBAH TRANSAKSI
+  // ==========================================
+  function resetFormState() {
+    const form = document.getElementById('transaksiForm');
+    if (form) form.reset();
+    const editInput = document.getElementById('editRowIndex');
+    if (editInput) editInput.value = '';
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.innerText = 'Simpan Transaksi';
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.innerText = 'Catat Transaksi';
+    resetTanggal();
+  }
+
+  function handleCardDoubleTap(id, cardEl) {
+    try { openEditMode(JSON.parse(cardEl.getAttribute('data-item'))); } catch (e) {}
+  }
+
+  function handleMobileTouchTap(event, id, cardEl) {
+    const time = new Date().getTime();
+    if (time - lastTapTime < 300 && time - lastTapTime > 0) { event.preventDefault(); handleCardDoubleTap(id, cardEl); }
+    lastTapTime = time;
+  }
+
+  function openEditMode(item) {
+    if (!item) return;
+    const editRowEl = document.getElementById('editRowIndex');
+    if (editRowEl) editRowEl.value = item.id; 
+
+    const tglEl = document.getElementById('tanggal') || document.getElementById('inputTanggal');
+    if (tglEl) tglEl.value = item.tanggalRaw ? item.tanggalRaw : new Date().toLocaleDateString('en-CA');
+
+    ['jenis', 'kategori', 'sumber', 'keterangan', 'nominal'].forEach(key => {
+      const el = document.getElementById(key);
+      if (el) el.value = item[key] || '';
+    });
+
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.innerText = 'Update Transaksi';
+    
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.innerText = 'Edit Transaksi';
+    
+    switchTab('tambah');
+  }
+
+  function handleFormSubmit(e) {
+    e.preventDefault();
+    const btnSubmit = document.getElementById('btnSubmit');
+    if (btnSubmit) btnSubmit.disabled = true;
+
+    const editId = document.getElementById('editRowIndex')?.value; 
+    const isEditMode = Boolean(editId);
+    
+    const formData = {
+      id: editId,
+      tanggal: document.getElementById('tanggal')?.value || document.getElementById('inputTanggal')?.value,
+      jenis: document.getElementById('jenis')?.value,
+      kategori: document.getElementById('kategori')?.value,
+      sumber: document.getElementById('sumber')?.value,
+      keterangan: document.getElementById('keterangan')?.value,
+      nominal: document.getElementById('nominal')?.value
+    };
+
+    switchTab('riwayat');
+    showToast('success', 'Mengirim data ke server...');
+    const container = document.getElementById('riwayatList');
+    if (container) container.insertAdjacentHTML('afterbegin', '<div id="optimistic-loading" class="text-center text-emerald-600 py-3 text-sm animate-pulse font-medium bg-emerald-50 rounded-lg mb-3 shadow-sm">Sinkronisasi transaksi...</div>');
+
+    const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+    
+    google.script.run
+      .withSuccessHandler(res => {
+        if (btnSubmit) btnSubmit.disabled = false;
+        document.getElementById('optimistic-loading')?.remove();
+        
+        if (res && res.status === 'success') {
+          showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
+          renderRiwayatResult(res.riwayat); 
+        } else {
+          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error')); 
+          switchTab('tambah'); 
+        }
+      })
+      .withFailureHandler(err => {
+        if (btnSubmit) btnSubmit.disabled = false;
+        document.getElementById('optimistic-loading')?.remove();
+        showToast('error', 'Koneksi error: ' + (err.message || err)); 
+        switchTab('tambah'); 
+      })
+      [serverFunc](formData, 1, limitPerPage, getCurrentFilterParams());
+  }
+
+  // ==========================================
+  // HAPUS TRANSAKSI & TOAST
+  // ==========================================
+  function toggleDeleteBtn(cardEl) {
+    const isAlreadyActive = cardEl.classList.contains('border-red-300');
+    document.querySelectorAll('.tx-card-item').forEach(el => { 
+      el.classList.remove('border-red-300', 'bg-red-50'); 
+      el.querySelector('.delete-btn-action')?.classList.add('hidden'); 
+    });
+    if (!isAlreadyActive) { 
+      cardEl.classList.add('border-red-300', 'bg-red-50'); 
+      cardEl.querySelector('.delete-btn-action')?.classList.remove('hidden'); 
+    }
+  }
+
+  function openDeleteModal(id, event) {
+    if (event) event.stopPropagation();
+    targetRowToDelete = id; 
+    document.getElementById('deleteModal')?.classList.remove('hidden');
+  }
+
+  function closeDeleteModal() { 
+    targetRowToDelete = null; 
+    document.getElementById('deleteModal')?.classList.add('hidden'); 
+  }
+
+  function confirmDelete() {
+    if (!targetRowToDelete) return;
+    const btnConfirm = document.getElementById('btnConfirmDelete');
+    if (btnConfirm) { btnConfirm.innerText = 'Deleting...'; btnConfirm.disabled = true; }
+    
+    const rowToDelete = targetRowToDelete;
+    closeDeleteModal();
+    showToast('success', 'Menghapus transaksi...');
+    
+    google.script.run
+      .withSuccessHandler(res => {
+        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
+        if (res && res.status === 'success') { 
+          showToast('success', 'Berhasil dihapus!'); 
+          renderRiwayatResult(res.riwayat); 
+        } else { 
+          showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error')); 
+        }
+      })
+      .withFailureHandler(err => {
+        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
+        showToast('error', 'Terputus: ' + (err.message || err));
+      })
+      .hapusTransaksiServer(rowToDelete, currentPage, limitPerPage, getCurrentFilterParams());
+  }
+
+  function showToast(type, text) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 max-w-[90vw] px-5 py-3 rounded-full text-white text-sm font-medium shadow-lg z-[9999] inline-flex items-center gap-2 whitespace-nowrap ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'} show`;
+    toast.innerHTML = `<span class="material-symbols-outlined text-[18px] shrink-0">${type === 'success' ? 'check_circle' : 'error'}</span><span class="truncate">${text}</span>`;
+    toast.style.display = 'flex';
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  // ==========================================
+  // FITUR EXPORT PDF
+  // ==========================================
+  function openExportModal() {
+    const now = new Date();
+    const selBulan = document.getElementById('exportBulan');
+    const selTahun = document.getElementById('exportTahun');
+    
+    if (selBulan) selBulan.value = now.getMonth();
+    if (selTahun) {
+      selTahun.innerHTML = '';
+      for (let i = 0; i <= 3; i++) {
+        const y = now.getFullYear() - i;
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        selTahun.appendChild(opt);
+      }
+    }
+    const info = document.getElementById('exportInfoText');
+    if (info) info.textContent = '';
+    
+    document.getElementById('exportModal')?.classList.remove('hidden');
+  }
+
+  function closeExportModal() { document.getElementById('exportModal')?.classList.add('hidden'); }
+
+  function prosesExportPDF() {
+    const bulan = parseInt(document.getElementById('exportBulan')?.value);
+    const tahun = parseInt(document.getElementById('exportTahun')?.value);
+    const btn = document.getElementById('btnProsesExport');
+    const info = document.getElementById('exportInfoText');
+
+    if (btn) btn.disabled = true;
+    if (info) info.textContent = 'Sedang membuat laporan PDF, mohon tunggu...';
+
+    if(google.script && google.script.run && google.script.run.generateLaporanPDFServer) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (btn) btn.disabled = false;
+            if (res && res.status === 'success') {
+              downloadBase64File(res.base64, res.fileName, 'application/pdf');
+              if (info) info.textContent = '';
+              closeExportModal();
+              showToast('success', 'Laporan PDF berhasil dibuat!');
+            } else {
+              if (info) info.textContent = '';
+              showToast('error', 'Gagal membuat PDF: ' + (res ? res.message : 'Error server'));
+            }
+          })
+          .withFailureHandler(err => {
+            if (btn) btn.disabled = false;
+            if (info) info.textContent = '';
+            showToast('error', 'Koneksi error: ' + (err.message || err));
+          })
+          .generateLaporanPDFServer(bulan, tahun);
+    } else {
+        if (btn) btn.disabled = false;
+        if (info) info.textContent = '';
+        showToast('error', 'Fungsi Export PDF belum tersedia di Backend.');
+    }
+  }
+
+  function downloadBase64File(base64, fileName, mimeType) {
+    const byteChars = atob(base64);
+    const byteNumbers = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNumbers[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNumbers);
+    const blob = new Blob([byteArray], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.getElementById('downloadLink') || document.createElement('a');
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+</script>
