@@ -808,7 +808,7 @@ function openTambahRekeningModal() {
   function showToast(type, text) {
     const toast = document.getElementById('toast');
     if (!toast) return;
-    toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 max-w-[90vw] px-5 py-3 rounded-full text-white text-sm font-medium shadow-lg z-[9999] inline-flex items-center gap-2 whitespace-nowrap ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'} show`;
+    toast.className = `toast show flex items-center gap-2 ${type === 'success' ? 'bg-emerald-600' : 'bg-red-500'}`;
     toast.innerHTML = `<span class="material-symbols-outlined text-[18px] shrink-0">${type === 'success' ? 'check_circle' : 'error'}</span><span class="truncate">${text}</span>`;
     toast.style.display = 'flex';
     clearTimeout(toastTimeout);
