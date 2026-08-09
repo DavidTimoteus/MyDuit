@@ -253,7 +253,7 @@
     </div>
 
     <!-- Budget: aktifkan navigasi + state aktif -->
-    <a href="javascript:void(0)" onclick="switchTab('budget')" data-tab="budget"
+    <a href="javascript:void(0)" onclick="switchTab('budget'); if (cachedDompet) renderDompetUI(cachedDompet);" data-tab="budget"
       class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]">savings</span>
       <span class="text-[10px] font-medium hidden md:block">Budget</span>

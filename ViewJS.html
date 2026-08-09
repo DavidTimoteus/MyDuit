@@ -53,8 +53,14 @@
     } else {
       loadDompetServer(true);
     }
-    
-    google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+
+    // OPTIMASI: derive dari __INITIAL_DOMPET__ (nama akun) drpd fetch server lagi -
+    // hemat 1 round-trip di SETIAP fresh page load.
+    if (window.__INITIAL_DOMPET__ && window.__INITIAL_DOMPET__.rekening) {
+      populateSumberAkun(window.__INITIAL_DOMPET__.rekening.map(r => r.nama));
+    } else {
+      google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+    }
   });
 
   // ==========================================
@@ -202,8 +208,14 @@
     filterTipe = 'semua'; filterStartDate = ''; filterEndDate = '';
     updateFilterActiveLabel();
 
-    loadRiwayat(1);
-    loadDompetServer(true); // forceRefresh = true -> bypass cachedDompet, fetch ulang ke server
+  google.script.run
+  .withSuccessHandler(res => {
+    cachedRiwayat = res.riwayat; cachedDompet = res.dompet;
+    refreshVisibleUI_();
+  })
+  .withFailureHandler(err => showToast('error', 'Koneksi error: ' + (err.message || err)))
+  .getFullSyncPayloadServer(1, limitPerPage, getCurrentFilterParams());
+
   }
 
   // ==========================================
@@ -380,6 +392,10 @@
     controls.innerHTML = html;
   }
 
+  function getFullSyncPayloadServer(page, limit, filterParams) {
+    return { status: 'success', riwayat: getRiwayatKasServer(page, limit, filterParams), dompet: getDompetServer() };
+  }
+
   // ==========================================
   // LOAD & RENDER DOMPET (BUDGET)
   // ==========================================
@@ -496,7 +512,7 @@ function openTambahRekeningModal() {
         showToast('success', 'Rekening berhasil ditambahkan!');
         cachedDompet = res.dompet;
         renderDompetUI(cachedDompet);
-        google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
         btn.disabled = false;
@@ -507,13 +523,13 @@ function openTambahRekeningModal() {
   }
 
   // ===== EDIT (TRIPLE-TAP) & HAPUS REKENING =====
-  function handleRekeningTap(id, cardEl) {
+function handleRekeningTap(id, cardEl) {
     if (rekLastTapId !== id) { rekTapCount = 0; rekLastTapId = id; }
     rekTapCount++;
     clearTimeout(rekTapTimer);
-    rekTapTimer = setTimeout(() => { rekTapCount = 0; }, 600);
+    rekTapTimer = setTimeout(() => { rekTapCount = 0; }, 500);
 
-    if (rekTapCorekTapCountunt >= 3) {
+    if (rekTapCount >= 3) {
       rekTapCount = 0;
       clearTimeout(rekTapTimer);
       try { openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item'))); } catch (e) {}
@@ -572,7 +588,7 @@ function openTambahRekeningModal() {
         showToast('success', 'Rekening berhasil diperbarui!');
         cachedDompet = res.dompet;
         renderDompetUI(cachedDompet);
-        google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
         btn.disabled = false; btn.textContent = teksAsli;
@@ -607,7 +623,7 @@ function openTambahRekeningModal() {
         showToast('success', 'Rekening berhasil dihapus!');
         cachedDompet = res.dompet;
         renderDompetUI(cachedDompet);
-        google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
+        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
@@ -685,29 +701,31 @@ function openTambahRekeningModal() {
     const nominalNum = Number(formData.nominal) || 0;
     let sumberLama = null, jenisLama = null, nominalLama = null;
 
-    // ===== UPDATE LOKAL INSTAN (0ms) =====
     if (cachedRiwayat && cachedRiwayat.data) {
       if (isEditMode) {
         const idx = cachedRiwayat.data.findIndex(it => it.id === editId);
         if (idx > -1) {
           const old = cachedRiwayat.data[idx];
           sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal;
-          cachedRiwayat.data[idx] = { ...old, tanggal: formatTanggalOptimistic_(formData.tanggal), tanggalRaw: formData.tanggal, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum };
+          cachedRiwayat.data[idx] = { ...old, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum };
         }
       } else {
-        cachedRiwayat.data.unshift({ id: 'temp-' + Date.now(), tanggal: formatTanggalOptimistic_(formData.tanggal), tanggalRaw: formData.tanggal, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum });
+        cachedRiwayat.data.unshift({ id: 'temp-' + Date.now(), jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum });
       }
     }
 
+    // EDIT: batalkan efek transaksi lama dari akun asal, lalu terapkan efek baru ke akun tujuan
     if (isEditMode && sumberLama !== null) {
-      applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama));
-      applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
+      applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama)); // revert lama
+      applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum)); // apply baru
     } else if (!isEditMode) {
       applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
     }
 
     switchTab('riwayat'); // INSTAN, form/modal langsung tertutup
     refreshVisibleUI_();
+    // FIX: toast muncul DI SINI (saat cache sudah dimutasi), bukan menunggu server balas
+    showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
     const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
@@ -715,22 +733,22 @@ function openTambahRekeningModal() {
     google.script.run
       .withSuccessHandler(res => {
         if (res && res.status === 'success') {
-          cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server
+          cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server, TANPA toast lagi
           cachedDompet = res.dompet;
           refreshVisibleUI_();
-          showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
         } else {
           cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
           refreshVisibleUI_();
-          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error'));
+          showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
-        showToast('error', 'Koneksi error: ' + (err.message || err));
+        showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
       [serverFunc](formData, currentPage, limitPerPage, getCurrentFilterParams());
+
   }
 
   // ==========================================
@@ -765,10 +783,9 @@ function openTambahRekeningModal() {
     closeDeleteModal(); // INSTAN
 
     // ===== SNAPSHOT (utk rollback) =====
-    const snapshotRiwayat = cloneCache_(cachedRiwayat);
+   const snapshotRiwayat = cloneCache_(cachedRiwayat);
     const snapshotDompet = cloneCache_(cachedDompet);
 
-    // ===== HAPUS LOKAL INSTAN =====
     let sumberLama = null, jenisLama = null, nominalLama = null;
     if (cachedRiwayat && cachedRiwayat.data) {
       const idx = cachedRiwayat.data.findIndex(it => it.id === idToDelete);
@@ -778,29 +795,29 @@ function openTambahRekeningModal() {
         cachedRiwayat.data.splice(idx, 1);
       }
     }
+    // Balikkan efek transaksi yg dihapus: Pemasukan -> saldo dikurangi, Pengeluaran -> saldo ditambah
     if (sumberLama !== null) applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama));
 
-    refreshVisibleUI_();
-    showToast('success', 'Menghapus transaksi...');
+    refreshVisibleUI_(); // ZERO-LATENCY
+    // FIX: toast final "berhasil dihapus" langsung di sini (cache sudah terhapus), bukan nunggu server
+    showToast('success', 'Transaksi berhasil dihapus!');
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
     google.script.run
       .withSuccessHandler(res => {
         if (res && res.status === 'success') {
-          cachedRiwayat = res.riwayat;
-          cachedDompet = res.dompet;
+          cachedRiwayat = res.riwayat; cachedDompet = res.dompet; // sinkron senyap, TANPA toast lagi
           refreshVisibleUI_();
-          showToast('success', 'Berhasil dihapus!');
         } else {
           cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
           refreshVisibleUI_();
-          showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error'));
+          showToast('error', 'Gagal dihapus di server, data dikembalikan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
-        showToast('error', 'Terputus: ' + (err.message || err));
+        showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
       })
       .hapusTransaksiServer(idToDelete, currentPage, limitPerPage, getCurrentFilterParams());
   }
@@ -813,6 +830,31 @@ function openTambahRekeningModal() {
     toast.style.display = 'flex';
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  function cloneCache_(obj) {
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
+  }
+
+  function hitungDeltaTransaksiClient_(jenis, nominal) {
+    const n = Number(nominal) || 0;
+    return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
+  }
+
+  // Pemasukan: delta positif -> akun.saldo += nominal, totalSaldo += nominal
+  // Pengeluaran: delta negatif -> akun.saldo -= nominal, totalSaldo -= nominal
+  function applyDeltaCachedDompet_(namaAkun, delta) {
+    if (!cachedDompet || !cachedDompet.rekening || !namaAkun || !delta) return;
+    const rek = cachedDompet.rekening.find(r => r.nama === namaAkun);
+    if (rek) {
+      rek.saldo += delta;
+      cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
+    }
+  }
+
+function refreshVisibleUI_() {
+    renderRiwayatResult(cachedRiwayat);
+    if (cachedDompet) renderDompetUI(cachedDompet);
   }
 
   // ==========================================
