@@ -52,10 +52,11 @@
 
   <?!= include('InOut'); ?>
   <script>
-    // Data awal disuntikkan dari doGet() (initialKategori/initialRiwayat) -
-    // hindari chained google.script.run saat first render.
+    // Data awal disuntikkan dari doGet() (initialKategori/initialRiwayat/initialDompet) -
+    // hindari chained google.script.run saat first render & saat switchTab('budget') pertama kali.
     window.__INITIAL_KATEGORI__ = <?!= JSON.stringify(initialKategori) ?>;
     window.__INITIAL_RIWAYAT__  = <?!= JSON.stringify(initialRiwayat) ?>;
+    window.__INITIAL_DOMPET__   = <?!= JSON.stringify(initialDompet) ?>;
   </script>
 
   <!-- <div id="viewBudget" class="view-section hidden max-w-3xl mx-auto px-4 md:px-8 pt-6">

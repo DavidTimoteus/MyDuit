@@ -14,11 +14,116 @@
 
 <div class="flex items-center justify-between mb-3">
   <h3 class="font-semibold text-sm text-slate-800">Daftar Rekening</h3>
-  <button aria-label="Tambah Rekening" class="text-primary hover:text-primaryHover">
+  <button aria-label="Tambah Rekening" onclick="openTambahRekeningModal()" class="text-primary hover:text-primaryHover">
     <span class="material-symbols-outlined text-[26px]">add_circle</span>
   </button>
 </div>
 
 <div id="rekeningList" class="flex flex-col">
   <div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat rekening...</div>
+</div>
+
+<div id="modalTambahRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-slate-100 transition-all">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-emerald-600">account_balance_wallet</span>
+        Tambah Rekening / Akun Baru
+      </h3>
+      <button onclick="closeTambahRekeningModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleTambahRekeningSubmit(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Rekening / Akun <span class="text-red-500">*</span></label>
+        <input type="text" id="inputNamaRekeningBaru" placeholder="misal: Bank Mandiri / BCA / Cash" required
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Saldo Awal</label>
+        <input type="number" id="inputSaldoAwalRekeningBaru" min="0" placeholder="0"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan / Keterangan (Opsional)</label>
+        <input type="text" id="inputCatatanRekeningBaru" placeholder="misal: Rekening Utama / Tabungan"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeTambahRekeningModal()"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+          Batal
+        </button>
+        <button type="submit" id="btnSimpanRekeningBaru"
+                class="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold shadow-sm hover:bg-emerald-700 transition-colors">
+          Simpan Rekening
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="modalEditRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-md rounded-2xl p-6 shadow-xl border border-slate-100 transition-all">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-emerald-600">edit</span>
+        Edit Rekening
+      </h3>
+      <button onclick="closeEditRekeningModal()" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleEditRekeningSubmit(event)" class="space-y-4">
+      <input type="hidden" id="editRekeningId">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Rekening / Akun <span class="text-red-500">*</span></label>
+        <input type="text" id="editRekeningNama" required
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Saldo</label>
+        <input type="number" id="editRekeningSaldo"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipe</label>
+        <input type="text" id="editRekeningTipe" placeholder="misal: Bank / E-Wallet / Cash"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
+        <input type="text" id="editRekeningCatatan"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeEditRekeningModal()"
+                class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+        <button type="submit" id="btnSimpanEditRekening"
+                class="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold shadow-sm hover:bg-emerald-700 transition-colors">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modalHapusRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-sm rounded-2xl p-6 shadow-xl border border-slate-100 text-center">
+    <span class="material-symbols-outlined text-red-500 text-[40px] mb-2">warning</span>
+    <h3 class="text-base font-bold text-slate-800 mb-1">Hapus Rekening?</h3>
+    <p class="text-xs text-slate-500 mb-5">Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="flex items-center justify-center gap-2">
+      <button onclick="closeDeleteRekeningModal()"
+              class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">Batal</button>
+      <button id="btnConfirmDeleteRekening" onclick="confirmDeleteRekening()"
+              class="px-4 py-2.5 rounded-xl bg-red-500 text-white text-xs font-semibold shadow-sm hover:bg-red-600 transition-colors">Ya, Hapus</button>
+    </div>
+  </div>
 </div>

@@ -5,7 +5,7 @@
 
 const CONFIG = {
   SHEET_NAME: "in/out",
-  START_ROW: 6 
+  START_ROW: 6
 };
 
 const SHEET_DOMPET = 'Dompet';
@@ -17,13 +17,15 @@ const CELL_LAST_UPDATED = 'D4';
 // Header asli sheet: A=Primary Key, B=Nama Akun, C=Saldo Saat ini, D=Perubahan Terakhir, E=Catatan
 // Kolom F tidak lagi punya header/fungsi (berisi data basi dari versi lama, lihat cleanupKolomFDompet()).
 // TIDAK ADA lagi kolom "Saldo Awal" -> Saldo Akhir = 0 + Total Pemasukan - Total Pengeluaran (keputusan user).
+// Header asli sheet: A=Primary Key, B=Nama Akun, C=Saldo Saat ini, D=Perubahan Terakhir, E=Tipe, F=Catatan
 const DOMPET_START_ROW = 7;
 const DOMPET_COL = {
   ID: 1,          // Kolom A (Primary Key)
   NAMA: 2,        // Kolom B (Nama Akun)
   SALDO: 3,       // Kolom C (Saldo Saat ini / Saldo Akhir hasil kalkulasi)
   UPDATED_AT: 4,  // Kolom D (Perubahan Terakhir)
-  CATATAN: 5      // Kolom E (Catatan bebas, BUKAN kategori/badge)
+  TIPE: 5,        // Kolom E (Tipe akun, mis. Bank/E-Wallet/Cash)
+  CATATAN: 6      // Kolom F (Catatan bebas + log histori perubahan)
 };
 const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
 
@@ -31,9 +33,10 @@ const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Jul
 function doGet(e) {
   const template = HtmlService.createTemplateFromFile('View_Index');
   const initialFilter = { tipe: 'semua', startDate: '', endDate: '', jenis: 'Semua', search: '' };
-  
+
   template.initialKategori = fetchKategoriServer();
   template.initialRiwayat = getRiwayatKasServer(1, 10, initialFilter);
+  template.initialDompet = getDompetServer(); // OPTIMASI: inline sekali di awal, switchTab('budget') 0 round-trip
 
   return template.evaluate()
     .setTitle('MyDuit Laporan Keuangan')
@@ -149,10 +152,10 @@ function backfillAllPrimaryKeys() {
     const rangeTx = sheetTx.getRange(CONFIG.START_ROW, 1, lastRowTx - CONFIG.START_ROW + 1, 1);
     const valsTx = rangeTx.getValues();
     let changedTx = false;
-    for(let i=0; i<valsTx.length; i++) {
-      if(!valsTx[i][0] || String(valsTx[i][0]).trim() === "") { valsTx[i][0] = generatePrimaryKey_('TX'); changedTx = true; }
+    for (let i = 0; i < valsTx.length; i++) {
+      if (!valsTx[i][0] || String(valsTx[i][0]).trim() === "") { valsTx[i][0] = generatePrimaryKey_('TX'); changedTx = true; }
     }
-    if(changedTx) rangeTx.setValues(valsTx);
+    if (changedTx) rangeTx.setValues(valsTx);
   }
 
   const sheetDompet = getDompetSheet_();
@@ -162,10 +165,10 @@ function backfillAllPrimaryKeys() {
       const rangeD = sheetDompet.getRange(DOMPET_START_ROW, DOMPET_COL.ID, lastRowDompet - DOMPET_START_ROW + 1, 1);
       const valsD = rangeD.getValues();
       let changedD = false;
-      for(let i=0; i<valsD.length; i++) {
-        if(!valsD[i][0] || String(valsD[i][0]).trim() === "") { valsD[i][0] = generatePrimaryKey_('ACC'); changedD = true; }
+      for (let i = 0; i < valsD.length; i++) {
+        if (!valsD[i][0] || String(valsD[i][0]).trim() === "") { valsD[i][0] = generatePrimaryKey_('ACC'); changedD = true; }
       }
-      if(changedD) rangeD.setValues(valsD);
+      if (changedD) rangeD.setValues(valsD);
     }
   }
 }
@@ -184,16 +187,16 @@ function parseSheetDate(val) {
 function maybeRunCleanup(sheet, rawData) {
   const props = PropertiesService.getScriptProperties();
   const todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
-  if (props.getProperty('lastCleanupDate') === todayStr) return rawData; 
+  if (props.getProperty('lastCleanupDate') === todayStr) return rawData;
 
   const twoYearsAgo = new Date();
   twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
   twoYearsAgo.setHours(0, 0, 0, 0);
-  
+
   const validRows = [];
   let changed = false;
   rawData.forEach(row => {
-    const parsedDate = parseSheetDate(row[1]); 
+    const parsedDate = parseSheetDate(row[1]);
     if (parsedDate) {
       parsedDate.setHours(0, 0, 0, 0);
       if (parsedDate >= twoYearsAgo) validRows.push(row); else changed = true;
@@ -201,7 +204,7 @@ function maybeRunCleanup(sheet, rawData) {
       validRows.push(row);
     }
   });
-  
+
   if (changed) {
     sheet.getRange(CONFIG.START_ROW, 1, rawData.length, 7).clearContent();
     if (validRows.length > 0) sheet.getRange(CONFIG.START_ROW, 1, validRows.length, 7).setValues(validRows);
@@ -217,22 +220,22 @@ function getRiwayatKasServer(page, limit, filterParams) {
     const limitNum = limit || 10;
     const sheet = getSheet();
     const lastRow = sheet.getLastRow();
-    
+
     if (lastRow < CONFIG.START_ROW) return { status: "success", data: [], totalPages: 0, currentPage: 1 };
-    
-    let rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues(); 
+
+    let rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues();
     rawData = maybeRunCleanup(sheet, rawData);
 
     const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
     const now = new Date(); now.setHours(0, 0, 0, 0);
-    
+
     let formattedList = [];
     let needFlush = false;
-    
+
     rawData.forEach((row, idx) => {
       let id = row[0];
       const parsedDate = parseSheetDate(row[1]);
-      
+
       // AUTO-HEALING: Jika ID belum ada di Kolom A, langsung generate ID baru!
       if (!id && (parsedDate || row[2] || row[6])) {
         id = generatePrimaryKey_('TX');
@@ -240,7 +243,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
         sheet.getRange(CONFIG.START_ROW + idx, 1).setValue(id);
         needFlush = true;
       }
-      
+
       if (!id || !parsedDate) return;
       parsedDate.setHours(0, 0, 0, 0);
 
@@ -251,7 +254,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
         if (filterParams.tipe === 'custom' && filterParams.startDate && filterParams.endDate) {
           const start = parseSheetDate(filterParams.startDate);
           const end = parseSheetDate(filterParams.endDate);
-          if (start && end) { start.setHours(0,0,0,0); end.setHours(0,0,0,0); if (parsedDate < start || parsedDate > end) return; }
+          if (start && end) { start.setHours(0, 0, 0, 0); end.setHours(0, 0, 0, 0); if (parsedDate < start || parsedDate > end) return; }
         }
 
         const jenisLower = String(row[2] || '').toLowerCase();
@@ -283,7 +286,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
     formattedList.sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw));
     const totalPages = Math.ceil(formattedList.length / limitNum) || 1;
     const startIndex = (pageNum - 1) * limitNum;
-    
+
     return { status: "success", data: formattedList.slice(startIndex, startIndex + limitNum), totalPages, currentPage: pageNum };
   } catch (err) {
     return { status: "error", message: err.message };
@@ -298,7 +301,7 @@ function fetchKategoriServer() {
     const sheet = getSheet();
     const lastRow = sheet.getLastRow();
     if (lastRow < CONFIG.START_ROW) return [];
-    const data = sheet.getRange(CONFIG.START_ROW, 4, lastRow - CONFIG.START_ROW + 1, 1).getValues(); 
+    const data = sheet.getRange(CONFIG.START_ROW, 4, lastRow - CONFIG.START_ROW + 1, 1).getValues();
     const unique = [...new Set(data.map(r => String(r[0]).trim()).filter(k => k !== ""))].sort();
     cache.put('kategoriList', JSON.stringify(unique), 300); // PERBAIKAN: 6 jam -> 5 menit, supaya perubahan tidak nyangkut lama di cache
     return unique;
@@ -336,16 +339,17 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
   try {
     lock.waitLock(10000);
     const id = generatePrimaryKey_('TX');
-    
+
     getSheet().appendRow([id, new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
-    
-    recalculateSaldoDompet_();
-    SpreadsheetApp.flush();
-    
+
+    // OPTIMASI: delta ke 1 akun saja (bukan scan ulang seluruh sheet 'in/out' + rewrite seluruh Dompet)
+    applyDeltaSaldoDompet_(formData.sumber, hitungDeltaTransaksi_(formData.jenis, formData.nominal));
+
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
-  } catch (err) { return { status: "error", message: err.message };
+  } catch (err) {
+    return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
 }
 
@@ -357,15 +361,28 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
     const targetRow = findRowIndexById_(sheet, formData.id, CONFIG.START_ROW, 1);
     if (targetRow === -1) throw new Error("Data tidak ditemukan di database.");
 
+    // Baca data LAMA dulu (perlu untuk balikkan delta saldo sebelum ditimpa nilai baru)
+    const dataLama = sheet.getRange(targetRow, 3, 1, 5).getValues()[0]; // C:G -> [jenis, kategori, sumber, keterangan, nominal]
+    const jenisLama = dataLama[0], sumberLama = dataLama[2], nominalLama = dataLama[4];
+
     sheet.getRange(targetRow, 2, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
-    
-    recalculateSaldoDompet_();
-    SpreadsheetApp.flush();
-    
+
+    // OPTIMASI I/O: kalau akun sumber TIDAK berubah (kasus paling umum saat edit), gabung jadi
+    // 1x panggilan delta bersih (net) -> 1x read+write ke Dompet, bukan 2x round-trip terpisah.
+    const deltaLama = hitungDeltaTransaksi_(jenisLama, nominalLama);
+    const deltaBaru = hitungDeltaTransaksi_(formData.jenis, formData.nominal);
+    if (String(sumberLama).trim() === String(formData.sumber).trim()) {
+      applyDeltaSaldoDompet_(formData.sumber, deltaBaru - deltaLama);
+    } else {
+      applyDeltaSaldoDompet_(sumberLama, -deltaLama);
+      applyDeltaSaldoDompet_(formData.sumber, deltaBaru);
+    }
+
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
-  } catch (err) { return { status: "error", message: err.message };
+  } catch (err) {
+    return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
 }
 
@@ -376,16 +393,61 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
     const sheet = getSheet();
     const targetRow = findRowIndexById_(sheet, id, CONFIG.START_ROW, 1);
     if (targetRow === -1) throw new Error("Data transaksi sudah terhapus.");
-    
+
+    // Baca dulu sebelum baris dihapus, untuk balikkan efek saldo-nya
+    const dataLama = sheet.getRange(targetRow, 3, 1, 5).getValues()[0];
+    const jenisLama = dataLama[0], sumberLama = dataLama[2], nominalLama = dataLama[4];
+
     sheet.deleteRow(targetRow);
-    recalculateSaldoDompet_();
-    SpreadsheetApp.flush();
-    
+
+    // OPTIMASI: balikkan delta ke 1 akun saja, tanpa scan ulang seluruh sheet
+    applyDeltaSaldoDompet_(sumberLama, -hitungDeltaTransaksi_(jenisLama, nominalLama));
+
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
     return { status: "success", riwayat: riwayat };
-  } catch (err) { return { status: "error", message: err.message };
+  } catch (err) {
+    return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
+}
+
+// ===== SINKRONISASI SALDO BERBASIS DELTA (ganti full-recalculation demi kecepatan CRUD) =====
+// +nominal untuk Pemasukan, -nominal untuk Pengeluaran.
+function hitungDeltaTransaksi_(jenis, nominal) {
+  const n = Number(nominal) || 0;
+  return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
+}
+
+// Update SATU baris akun saja (1x getValue + 1x setValue per kolom yang berubah) —
+// jauh lebih cepat dari recalculateSaldoDompet_() yang scan ULANG seluruh sheet 'in/out'
+// dan rewrite SEMUA baris Dompet di setiap aksi CRUD. recalculateSaldoDompet_() masih
+// disimpan di bawah untuk reconciliation manual saja (tidak dipanggil di alur CRUD normal).
+function applyDeltaSaldoDompet_(namaAkun, delta) {
+  namaAkun = String(namaAkun || '').trim();
+  if (!namaAkun || !delta) return;
+
+  const sheet = getDompetSheet_();
+  if (!sheet) { Logger.log('applyDeltaSaldoDompet_: Sheet Dompet tidak ditemukan.'); return; }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < DOMPET_START_ROW) return;
+
+  const numAkun = lastRow - DOMPET_START_ROW + 1;
+  // OPTIMASI I/O: 1x getValues() gabungan NAMA+SALDO+UPDATED_AT (kolom 2-4, berurutan),
+  // bukan getValues() cari nama lalu getValue() saldo terpisah (dulu 2 read call).
+  const data = sheet.getRange(DOMPET_START_ROW, DOMPET_COL.NAMA, numAkun, 3).getValues();
+
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0] || '').trim() === namaAkun) {
+      const rowIdx = DOMPET_START_ROW + i;
+      const saldoBaru = (Number(data[i][1]) || 0) + delta;
+      // OPTIMASI I/O: 1x setValues() gabungan SALDO+UPDATED_AT (kolom 3-4), bukan 2 setValue() terpisah.
+      sheet.getRange(rowIdx, DOMPET_COL.SALDO, 1, 2).setValues([[saldoBaru, new Date()]]);
+      saveLastUpdatedDompet_();
+      return;
+    }
+  }
+  Logger.log('applyDeltaSaldoDompet_: akun "' + namaAkun + '" tidak ditemukan di Sheet Dompet.');
 }
 
 // ============ SINKRONISASI DOMPET (AUTO-HEALING PK) ============
@@ -402,7 +464,7 @@ function getDompetServer() {
     if (lastRow < DOMPET_START_ROW) return { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
 
     const numRows = lastRow - DOMPET_START_ROW + 1;
-    const data = sheet.getRange(DOMPET_START_ROW, 1, numRows, 5).getValues(); // A:E (F sudah tidak dipakai)
+    const data = sheet.getRange(DOMPET_START_ROW, 1, numRows, 6).getValues(); // A:F (Tipe & Catatan ikut terbaca)
     const timeZone = ss.getSpreadsheetTimeZone();
 
     let totalSaldo = 0;
@@ -411,11 +473,9 @@ function getDompetServer() {
 
     data.forEach((row, idx) => {
       const nama = String(row[DOMPET_COL.NAMA - 1] || '').trim();
-      if (!nama) return; // Lewati jika nama akun kosong
+      if (!nama) return;
 
       let id = String(row[DOMPET_COL.ID - 1] || '').trim();
-      
-      // AUTO-HEALING: Jika Primary Key di Kolom A belum terisi, buatkan otomatis & simpan ke Google Sheet!
       if (!id) {
         id = generatePrimaryKey_('ACC');
         data[idx][DOMPET_COL.ID - 1] = id;
@@ -429,29 +489,134 @@ function getDompetServer() {
       let lastUpd = "-";
       if (row[DOMPET_COL.UPDATED_AT - 1]) {
         const d = new Date(row[DOMPET_COL.UPDATED_AT - 1]);
-        if (!isNaN(d.getTime())) {
-          lastUpd = Utilities.formatDate(d, timeZone, "dd/MM/yyyy HH:mm");
-        }
+        if (!isNaN(d.getTime())) lastUpd = Utilities.formatDate(d, timeZone, "dd/MM/yyyy HH:mm");
       }
 
       rekening.push({
         id: id,
         nama: nama,
         saldo: saldo,
-        catatan: row[DOMPET_COL.CATATAN - 1] || "", // teks bebas, bukan badge kategori
+        tipe: String(row[DOMPET_COL.TIPE - 1] || '').trim(),
+        catatan: row[DOMPET_COL.CATATAN - 1] || "",
         terakhirDiperbarui: lastUpd
       });
     });
-    
-    if (needFlush) SpreadsheetApp.flush();
 
+    if (needFlush) SpreadsheetApp.flush();
     return { status: 'success', totalSaldo: totalSaldo, rekening: rekening, lastUpdated: readLastUpdatedDompet_() };
   } catch (err) {
-    Logger.log('getDompetServer ERROR: ' + (err.stack || err.message)); // cek di Executions/Logs kalau error lagi
+    Logger.log('getDompetServer ERROR: ' + (err.stack || err.message));
     return { status: "error", message: err.message };
   }
 }
 
+// TAMBAH REKENING BARU LANGSUNG DARI SISTEM (tidak perlu lagi tulis manual di Sheet Dompet)
+function simpanRekeningServer(nama, saldoAwal, catatan) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    nama = String(nama || '').trim();
+    if (!nama) throw new Error('Nama akun tidak boleh kosong.');
+
+    const sheet = getDompetSheet_();
+    if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
+
+    const lastRow = sheet.getLastRow();
+    // Cegah nama akun duplikat (case-insensitive) -> nama akun dipakai sebagai referensi "Sumber" di transaksi
+    if (lastRow >= DOMPET_START_ROW) {
+      const namaSudahAda = sheet.getRange(DOMPET_START_ROW, DOMPET_COL.NAMA, lastRow - DOMPET_START_ROW + 1, 1)
+        .getValues()
+        .some(r => String(r[0] || '').trim().toLowerCase() === nama.toLowerCase());
+      if (namaSudahAda) throw new Error(`Akun "${nama}" sudah ada.`);
+    }
+
+    const id = generatePrimaryKey_('ACC');
+    // Urutan kolom HARUS sama dengan DOMPET_COL: A=ID, B=NAMA, C=SALDO, D=UPDATED_AT, E=TIPE, F=CATATAN
+    sheet.appendRow([id, nama, Number(saldoAwal) || 0, new Date(), '', String(catatan || '').trim()]);
+
+    CacheService.getScriptCache().removeAll(['sumberAkunList']); // biar dropdown "Sumber" di form transaksi langsung update
+
+    return { status: 'success', dompet: getDompetServer() };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function updateRekeningServer(formData) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sheet = getDompetSheet_();
+    if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
+
+    const targetRow = findRowIndexById_(sheet, formData.id, DOMPET_START_ROW, DOMPET_COL.ID);
+    if (targetRow === -1) throw new Error('Rekening tidak ditemukan (mungkin sudah dihapus).');
+
+    const dataLama = sheet.getRange(targetRow, 1, 1, 6).getValues()[0];
+    const namaLama = String(dataLama[DOMPET_COL.NAMA - 1] || '').trim();
+    const saldoLama = Number(dataLama[DOMPET_COL.SALDO - 1]) || 0;
+    const tipeLama = String(dataLama[DOMPET_COL.TIPE - 1] || '').trim();
+
+    const namaBaru = String(formData.nama || '').trim();
+    const saldoBaru = Number(formData.saldo) || 0;
+    const tipeBaru = String(formData.tipe || '').trim();
+    if (!namaBaru) throw new Error('Nama akun tidak boleh kosong.');
+
+    // Rincian perubahan utk log histori (hanya field yang benar-benar berubah)
+    const rincian = [];
+    if (namaLama !== namaBaru) rincian.push(`nama "${namaLama}" -> "${namaBaru}"`);
+    if (saldoLama !== saldoBaru) rincian.push(`saldo Rp${saldoLama.toLocaleString('id-ID')} -> Rp${saldoBaru.toLocaleString('id-ID')}`);
+    if (tipeLama !== tipeBaru) rincian.push(`tipe "${tipeLama || '-'}" -> "${tipeBaru || '-'}"`);
+
+    const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const now = new Date();
+    let catatanBaru = String(formData.catatan || '').trim();
+    if (rincian.length) {
+      const logLine = `[${Utilities.formatDate(now, timeZone, "dd/MM/yyyy HH:mm")}] Perubahan: ${rincian.join(', ')}`;
+      catatanBaru = catatanBaru ? `${catatanBaru}\n${logLine}` : logLine;
+    }
+
+    // B:F -> NAMA, SALDO, UPDATED_AT, TIPE, CATATAN (ID di kolom A tidak diubah)
+    sheet.getRange(targetRow, DOMPET_COL.NAMA, 1, 5).setValues([[namaBaru, saldoBaru, now, tipeBaru, catatanBaru]]);
+
+    if (namaLama !== namaBaru) CacheService.getScriptCache().removeAll(['sumberAkunList']); // nama akun dipakai sbg "Sumber" transaksi
+    saveLastUpdatedDompet_();
+
+    return { status: 'success', dompet: getDompetServer() };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function hapusRekeningServer(id) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+    const sheet = getDompetSheet_();
+    if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
+
+    const targetRow = findRowIndexById_(sheet, id, DOMPET_START_ROW, DOMPET_COL.ID);
+    if (targetRow === -1) throw new Error('Rekening sudah terhapus.');
+
+    sheet.deleteRow(targetRow);
+    CacheService.getScriptCache().removeAll(['sumberAkunList']);
+    saveLastUpdatedDompet_();
+
+    return { status: 'success', dompet: getDompetServer() };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// CATATAN: fungsi ini TIDAK lagi dipanggil otomatis di alur CRUD (diganti applyDeltaSaldoDompet_
+// di atas demi kecepatan). Simpan sebagai alat reconciliation manual kalau saldo pernah "drift"
+// (mis. edit langsung di Sheet) -> jalankan manual dari Apps Script Editor kalau perlu.
 function recalculateSaldoDompet_() {
   const dompetSheet = getDompetSheet_();
   if (!dompetSheet) {
@@ -468,11 +633,11 @@ function recalculateSaldoDompet_() {
   const totals = hitungTotalPerAkun_();
   let adaPerubahan = false;
   const now = new Date();
-  
+
   const newSaldoValues = [];
   const newUpdateValues = [];
   const newIdValues = [];
-  
+
   dompetData.forEach((row) => {
     const nama = String(row[DOMPET_COL.NAMA - 1] || '').trim();
     const saldoLama = Number(row[DOMPET_COL.SALDO - 1]) || 0;
@@ -490,14 +655,14 @@ function recalculateSaldoDompet_() {
       id = generatePrimaryKey_('ACC');
     }
 
-    const t = totals[nama] || { masuk: 0, keluar: 0 }; 
+    const t = totals[nama] || { masuk: 0, keluar: 0 };
     // TIDAK ADA lagi "Saldo Awal" (kolom itu sudah dihapus dari sheet) -> mulai dari 0,
     // sesuai keputusan: Saldo Akhir = 0 + Total Pemasukan - Total Pengeluaran.
     const saldoAkhir = 0 + t.masuk - t.keluar;
-    
+
     newSaldoValues.push([saldoAkhir]);
     newIdValues.push([id]);
-    
+
     if (saldoAkhir !== saldoLama) {
       adaPerubahan = true;
       newUpdateValues.push([now]);
@@ -505,11 +670,11 @@ function recalculateSaldoDompet_() {
       newUpdateValues.push([timestampLama]);
     }
   });
-  
-  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.SALDO, numAkun, 1).setValues(newSaldoValues); 
-  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.UPDATED_AT, numAkun, 1).setValues(newUpdateValues); 
+
+  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.SALDO, numAkun, 1).setValues(newSaldoValues);
+  dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.UPDATED_AT, numAkun, 1).setValues(newUpdateValues);
   dompetSheet.getRange(DOMPET_START_ROW, DOMPET_COL.ID, numAkun, 1).setValues(newIdValues);
-  
+
   if (adaPerubahan) saveLastUpdatedDompet_();
 }
 
@@ -518,8 +683,8 @@ function hitungTotalPerAkun_() {
   const sheet = getSheet();
   const lastRow = sheet.getLastRow();
   if (lastRow < CONFIG.START_ROW) return totals;
-  
-  const data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues(); 
+
+  const data = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues();
   data.forEach(row => {
     const sumber = String(row[4] || '').trim(); // Kolom E (Sumber)
     if (!sumber) return;
@@ -601,7 +766,7 @@ function buildLaporanHTML(items, bulan, tahun) {
 
   const saldoBersih = totalPemasukan - totalPengeluaran;
   const emptyState = items.length === 0 ? `<tr><td colspan="5" style="text-align:center; color:#6c757d; padding:24px;">Tidak ada transaksi pada periode ini.</td></tr>` : '';
-  
+
   return `
   <html>
   <head>
