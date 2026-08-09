@@ -1,6 +1,6 @@
 <div class="max-w-3xl mx-auto min-h-screen relative px-4 md:px-8">
 
-  <header class="pt-8 md:pt-12 pb-6">
+  <header id="pageHeader" class="pt-8 md:pt-12 pb-6">
     <div class="flex items-center justify-between mb-8">
 
       <div class="flex items-center gap-3">
@@ -9,13 +9,13 @@
           DT
         </div>
         <div>
-          <p class="text-xs text-textSecondary mb-0.5">Halo,</p>
+          <p class="text-xs text-textSecondary mb-0.5">Welcome to MyDuit,</p>
           <h1 class="font-semibold text-base text-textPrimary">David Timoteus</h1>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button aria-label="Export PDF" class="w-10 h-10 rounded-full bg-surfaceContainerLowest shadow-sm flex items-center justify-center text-textSecondary hover:text-primary transition-colors">
+        <button aria-label="Export PDF" onclick="openExportModal()" class="w-10 h-10 rounded-full bg-surfaceContainerLowest shadow-sm flex items-center justify-center text-textSecondary hover:text-primary transition-colors">
           <span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
         </button>
         <button aria-label="Notifications" class="w-10 h-10 rounded-full bg-surfaceContainerLowest shadow-sm flex items-center justify-center text-textSecondary relative hover:text-primary transition-colors">
@@ -25,14 +25,131 @@
       </div>
     </div>
 
-    <div class="flex items-center justify-between">
-      <h2 class="text-2xl font-bold text-textPrimary" id="pageTitle">Riwayat Kas</h2>
-      <button onclick="switchTab('tambah')" class="hidden md:flex bg-primary hover:bg-primaryHover text-white px-4 py-2.5 rounded-8 font-medium text-sm items-center gap-2 transition-colors">
-        <span class="material-symbols-outlined text-[18px]">add</span>
-        Catat Transaksi
+    <div class="flex items-center justify-between mb-4 gap-2">
+      <h3 class="text-xl sm:text-2xl font-extrabold text-emerald-800 tracking-tight">Riwayat Kas</h3>
+      <!-- Trigger pop-up modal filter -->
+      <button id="btnOpenFilter" onclick="openFilterModal()" aria-label="Filter Transaksi"
+        class="flex items-center gap-1.5 text-xs font-medium border border-emerald-300 rounded-lg pl-2.5 pr-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm hover:bg-emerald-50 transition-colors shrink-0">
+        <span class="material-symbols-outlined text-[18px]">tune</span>
+        <span id="filterActiveLabel">Semua Transaksi</span>
       </button>
     </div>
+
   </header>
+
+  <!-- ================= MODAL: FILTER TRANSAKSI ================= -->
+  <div id="filterModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div
+      class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-14 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+        <h3 class="font-bold text-lg text-slate-800">Filter Transaksi</h3>
+        <button onclick="closeFilterModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="px-5 py-4 overflow-y-auto">
+        <p class="text-xs font-semibold text-slate-500 mb-1">Tanggal</p>
+
+        <div class="flex flex-col">
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <span class="text-sm font-medium text-slate-800">Semua Transaksi</span>
+            <input type="radio" name="filterTipeModal" value="semua" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">7 hari terakhir</span>
+              <span id="subtitle7hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="7hari" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">30 hari terakhir</span>
+              <span id="subtitle30hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="30hari" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer">
+            <span class="text-sm font-medium text-primary">Pilih periode</span>
+            <input type="radio" name="filterTipeModal" value="custom" onchange="toggleCustomDateInputs()" class="accent-primary w-5 h-5">
+          </label>
+        </div>
+
+        <div id="customDateWrap" class="hidden grid grid-cols-2 gap-3 mt-2">
+          <div class="border border-gray-200 rounded-8 px-3 py-2">
+            <label class="block text-[11px] text-slate-400 mb-0.5">Dari</label>
+            <input type="date" id="filterStartDate" class="w-full text-sm font-semibold text-primary outline-none bg-transparent">
+          </div>
+          <div class="border border-gray-200 rounded-8 px-3 py-2">
+            <label class="block text-[11px] text-slate-400 mb-0.5">Hingga</label>
+            <input type="date" id="filterEndDate" class="w-full text-sm font-semibold text-primary outline-none bg-transparent">
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+        <button onclick="closeFilterModal()" class="flex-1 py-2.5 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+        <button onclick="terapkanFilter()" class="flex-1 py-2.5 rounded-8 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors">Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EXPORT LAPORAN PDF ================= -->
+  <div id="exportModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div
+      class="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-14 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+        <h3 class="font-bold text-lg text-slate-800">Export Laporan PDF</h3>
+        <button onclick="closeExportModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="px-5 py-4">
+        <p class="text-xs font-semibold text-slate-500 mb-3">Pilih periode laporan yang ingin diexport</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-textSecondary mb-1.5">Bulan</label>
+            <select id="exportBulan" class="w-full px-3 py-2.5 bg-surface border border-gray-200 rounded-8 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors cursor-pointer">
+              <option value="0">Januari</option>
+              <option value="1">Februari</option>
+              <option value="2">Maret</option>
+              <option value="3">April</option>
+              <option value="4">Mei</option>
+              <option value="5">Juni</option>
+              <option value="6">Juli</option>
+              <option value="7">Agustus</option>
+              <option value="8">September</option>
+              <option value="9">Oktober</option>
+              <option value="10">November</option>
+              <option value="11">Desember</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-textSecondary mb-1.5">Tahun</label>
+            <select id="exportTahun" class="w-full px-3 py-2.5 bg-surface border border-gray-200 rounded-8 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors cursor-pointer"></select>
+          </div>
+        </div>
+
+        <p id="exportInfoText" class="text-xs text-slate-400 mt-3"></p>
+      </div>
+
+      <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+        <button onclick="closeExportModal()" class="flex-1 py-2.5 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+        <button id="btnProsesExport" onclick="prosesExportPDF()" class="flex-1 py-2.5 rounded-8 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+          <span>Export PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <div id="viewRiwayat" class="view-section active">
 
@@ -42,10 +159,10 @@
         <input id="searchInput" oninput="handleSearchFilter()" class="w-full pl-10 pr-4 py-2.5 bg-surface rounded-8 border-none text-sm placeholder:text-textSecondary focus:ring-1 focus:ring-primary focus:bg-white outline-none transition-all" placeholder="Cari transaksi..." type="text"/>
       </div>
 
-      <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1" id="filterChips">
-        <button onclick="setFilterJenis('Semua', this)" class="chip-btn px-5 py-2 rounded-full bg-primary text-white text-sm font-medium whitespace-nowrap">Semua</button>
-        <button onclick="setFilterJenis('Pemasukan', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
-        <button onclick="setFilterJenis('Pengeluaran', this)" class="chip-btn px-5 py-2 rounded-full bg-transparent text-textSecondary text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
+      <div class="flex gap-1.5 sm:gap-2 overflow-x-auto hide-scrollbar pb-1" id="filterChips">
+        <button onclick="setFilterJenis('Semua', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-primary text-white text-xs sm:text-sm font-medium whitespace-nowrap">Semua</button>
+        <button onclick="setFilterJenis('Pemasukan', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pemasukan</button>
+        <button onclick="setFilterJenis('Pengeluaran', this)" class="chip-btn shrink-0 px-3 sm:px-5 py-1.5 sm:py-2 rounded-full bg-transparent text-textSecondary text-xs sm:text-sm font-medium whitespace-nowrap hover:bg-surface transition-colors">Pengeluaran</button>
       </div>
     </div>
 
@@ -89,7 +206,9 @@
 
         <div class="mb-4">
           <label class="block text-xs font-semibold text-textSecondary mb-1.5">Sumber / Akun</label>
-          <input type="text" id="sumber" placeholder="Contoh: Dompet, BCA" class="w-full px-3 py-2.5 bg-surface border border-gray-200 rounded-8 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+          <select id="sumber" required class="w-full px-3 py-2.5 bg-surface border border-gray-200 rounded-8 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+          <option value="" disabled selected>Pilih Sumber/Akun</option>
+          </select>
         </div>
 
         <div class="mb-4">
@@ -107,10 +226,15 @@
     </div>
   </div>
 
+  <div id="viewBudget" class="view-section hidden">
+    <?!= include('ViewBudget'); ?>
+  </div>
+
   <nav
     class="fixed bottom-0 left-0 w-full md:w-auto md:min-w-[400px] md:bottom-6 md:left-1/2 md:-translate-x-1/2 bg-surfaceContainerLowest shadow-nav rounded-t-3xl md:rounded-full pb-safe pt-2 md:pb-2 px-6 md:px-8 flex justify-between gap-4 md:gap-8 items-center z-50 h-[80px] md:h-[70px]">
 
-    <a href="javascript:void(0)" onclick="switchTab('riwayat')"
+    <!-- Beranda: tambah data-tab -->
+    <a href="javascript:void(0)" onclick="handleHomeButtonClick()" data-tab="riwayat"
       class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;" id="icon-riwayat">home</span>
       <span class="text-[10px] font-medium hidden md:block">Beranda</span>
@@ -128,7 +252,9 @@
       </button>
     </div>
 
-    <a href="javascript:void(0)"
+    <!-- Budget: aktifkan navigasi + state aktif -->
+    <a href="javascript:void(0)" onclick="switchTab('budget'); if (cachedDompet) renderDompetUI(cachedDompet);"
+      data-tab="budget"
       class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
       <span class="material-symbols-outlined text-[24px]">savings</span>
       <span class="text-[10px] font-medium hidden md:block">Budget</span>
@@ -147,11 +273,9 @@
 <div id="deleteModal"
   class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
   <div class="bg-surfaceContainerLowest rounded-14 p-6 max-w-sm w-full shadow-2xl text-center transform transition-all">
-    <div class="w-12 h-12 rounded-full bg-red-100 text-red-500 mx-auto flex items-center justify-center mb-4">
-      <span class="material-symbols-outlined text-[28px]">delete_forever</span>
-    </div>
+    <span class="material-symbols-outlined text-red-500 text-[40px] mb-2">warning</span>
     <h3 class="font-bold text-lg text-textPrimary mb-2">Hapus Transaksi?</h3>
-    <p class="text-xs text-textSecondary mb-6">Data yang dihapus tidak dapat dikembalikan ke database.</p>
+    <p class="text-xs text-slate-500 mb-5">Tindakan ini tidak bisa dibatalkan.</p>
     <div class="flex gap-3">
       <button onclick="closeDeleteModal()" class="flex-1 py-2.5 rounded-8 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
       <button onclick="confirmDelete()" id="btnConfirmDelete" class="flex-1 py-2.5 rounded-8 bg-expense hover:bg-red-700 text-white text-sm font-semibold transition-colors">Ya, Hapus</button>
