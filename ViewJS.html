@@ -489,35 +489,45 @@ function openTambahRekeningModal() {
     event.preventDefault();
 
     const nama = document.getElementById('inputNamaRekeningBaru').value.trim();
-    const saldoAwal = document.getElementById('inputSaldoAwalRekeningBaru').value;
+    const saldoAwal = Number(document.getElementById('inputSaldoAwalRekeningBaru').value) || 0;
     const tipe = document.getElementById('tipeRekening').value;
     const btn = document.getElementById('btnSimpanRekeningBaru');
 
     if (!nama) { showToast('error', 'Nama rekening wajib diisi.'); return; }
     if (!tipe) { showToast('error', 'Tipe rekening wajib dipilih.'); return; }
 
-    btn.disabled = true;
-    const teksAsli = btn.textContent;
-    btn.textContent = 'Menyimpan...';
+    const snapshotDompet = cloneCache_(cachedDompet);
+
+    const newRekening = {
+      id: 'temp-' + Date.now(),
+      nama: nama,
+      saldo: saldoAwal,
+      tipe: tipe,
+      catatan: '',
+      terakhirDiperbarui: '-'
+    };
+
+    if (!cachedDompet) cachedDompet = { totalSaldo: 0, rekening: [], lastUpdated: null };
+    cachedDompet.rekening.push(newRekening);
+    cachedDompet.totalSaldo += saldoAwal;
+
+    closeTambahRekeningModal();
+    renderDompetUI(cachedDompet);
+    showToast('success', 'Rekening berhasil ditambahkan!');
 
     google.script.run
       .withSuccessHandler(res => {
-        btn.disabled = false;
-        btn.textContent = teksAsli;
-        if (!res || res.status !== 'success') {
-          showToast('error', res ? res.message : 'Gagal menyimpan rekening.');
-          return;
+        if (res && res.status === 'success') {
+          cachedDompet = res.dompet;
+          populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
+        } else {
+          cachedDompet = snapshotDompet;
+          showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
         }
-        closeTambahRekeningModal();
-        showToast('success', 'Rekening berhasil ditambahkan!');
-        cachedDompet = res.dompet;
-        renderDompetUI(cachedDompet);
-        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
-        btn.disabled = false;
-        btn.textContent = teksAsli;
-        showToast('error', err.message || 'Koneksi error.');
+        cachedDompet = snapshotDompet;
+        showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
       .simpanRekeningServer(nama, saldoAwal, tipe);
   }
@@ -587,29 +597,40 @@ function handleRekeningTap(id, cardEl) {
     const formData = {
       id: document.getElementById('editRekeningId').value,
       nama: document.getElementById('editRekeningNama').value.trim(),
-      saldo: document.getElementById('editRekeningSaldo').value,
+      saldo: Number(document.getElementById('editRekeningSaldo').value) || 0,
       tipe: document.getElementById('editRekeningTipe').value.trim()
-      // catatan sengaja TIDAK dikirim -> selalu auto-generated di updateRekeningServer()
     };
     if (!formData.nama) { showToast('error', 'Nama rekening wajib diisi.'); return; }
 
-    btn.disabled = true;
-    const teksAsli = btn.textContent;
-    btn.textContent = 'Menyimpan...';
+    const snapshotDompet = cloneCache_(cachedDompet);
+
+    const idx = cachedDompet.rekening.findIndex(r => r.id === formData.id);
+    if (idx > -1) {
+      const saldoLama = cachedDompet.rekening[idx].saldo;
+      const delta = formData.saldo - saldoLama;
+      cachedDompet.rekening[idx].nama = formData.nama;
+      cachedDompet.rekening[idx].saldo = formData.saldo;
+      cachedDompet.rekening[idx].tipe = formData.tipe;
+      cachedDompet.totalSaldo += delta;
+    }
+
+    closeEditRekeningModal();
+    renderDompetUI(cachedDompet);
+    showToast('success', 'Rekening berhasil diperbarui!');
 
     google.script.run
       .withSuccessHandler(res => {
-        btn.disabled = false; btn.textContent = teksAsli;
-        if (!res || res.status !== 'success') { showToast('error', res ? res.message : 'Gagal menyimpan.'); return; }
-        closeEditRekeningModal();
-        showToast('success', 'Rekening berhasil diperbarui!');
-        cachedDompet = res.dompet;
-        renderDompetUI(cachedDompet);
-        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
+        if (res && res.status === 'success') {
+          cachedDompet = res.dompet;
+          populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
+        } else {
+          cachedDompet = snapshotDompet;
+          showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
+        }
       })
       .withFailureHandler(err => {
-        btn.disabled = false; btn.textContent = teksAsli;
-        showToast('error', err.message || 'Koneksi error.');
+        cachedDompet = snapshotDompet;
+        showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
       .updateRekeningServer(formData);
   }
@@ -633,6 +654,8 @@ function handleRekeningTap(id, cardEl) {
     const idToDelete = targetRekeningToDelete;
     closeDeleteRekeningModal();
 
+    const snapshotDompet = cloneCache_(cachedDompet);
+
     google.script.run
       .withSuccessHandler(res => {
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
@@ -643,6 +666,7 @@ function handleRekeningTap(id, cardEl) {
         populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
+        cachedDompet = snapshotDompet;
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
         showToast('error', 'Terputus: ' + (err.message || err));
       })

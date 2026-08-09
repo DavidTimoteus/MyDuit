@@ -493,7 +493,9 @@ function applyDeltaSaldoDompet_(namaAkun, delta) {
       const saldoBaru = (Number(data[i][1]) || 0) + delta;
       // OPTIMASI I/O: 1x setValues() gabungan SALDO+UPDATED_AT (kolom 3-4), bukan 2 setValue() terpisah.
       sheet.getRange(rowIdx, DOMPET_COL.SALDO, 1, 2).setValues([[saldoBaru, new Date()]]);
-      invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah saldo berubah
+      invalidateDompetCache_();
+      const dompet = getDompetServer();
+      CacheService.getScriptCache().put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(dompet), CACHE_TTL_SECONDS);
       saveLastUpdatedDompet_();
       return;
     }
@@ -609,10 +611,11 @@ function simpanRekeningServer(nama, saldoAwal, tipe) {
     // Tipe diisi dari input wajib user; Catatan default kosong -> hanya terisi otomatis via updateRekeningServer()
     sheet.appendRow([id, nama, Number(saldoAwal) || 0, new Date(), tipe, '']);
     invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah rekening baru dibuat
-
+    const dompet = getDompetServer();
+    CacheService.getScriptCache().put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(dompet), CACHE_TTL_SECONDS);
     CacheService.getScriptCache().removeAll(['sumberAkunList']); // biar dropdown "Sumber" di form transaksi langsung update
 
-    return { status: 'success', dompet: getDompetServer() };
+    return { status: 'success', dompet };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -662,12 +665,14 @@ function updateRekeningServer(formData) {
 
     // B:F -> NAMA, SALDO, UPDATED_AT, TIPE, CATATAN (ID di kolom A tidak diubah)
     sheet.getRange(targetRow, DOMPET_COL.NAMA, 1, 5).setValues([[namaBaru, saldoBaru, now, tipeBaru, catatanFinal]]);
-    invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah edit rekening
+    invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah update
+    const dompet = getDompetServer();
+    CacheService.getScriptCache().put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(dompet), CACHE_TTL_SECONDS);
 
     if (namaLama !== namaBaru) CacheService.getScriptCache().removeAll(['sumberAkunList']); // nama akun dipakai sbg "Sumber" transaksi
     saveLastUpdatedDompet_();
 
-    return { status: 'success', dompet: getDompetServer() };
+    return { status: 'success', dompet };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -688,10 +693,12 @@ function hapusRekeningServer(id) {
 
     sheet.deleteRow(targetRow);
     invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah rekening dihapus
+    const dompet = getDompetServer();
+    CacheService.getScriptCache().put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(dompet), CACHE_TTL_SECONDS);
     CacheService.getScriptCache().removeAll(['sumberAkunList']);
     saveLastUpdatedDompet_();
 
-    return { status: 'success', dompet: getDompetServer() };
+    return { status: 'success', dompet };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
