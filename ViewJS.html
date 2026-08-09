@@ -12,6 +12,8 @@
   let rekTapCount = 0;
   let rekTapTimer = null;
   let rekLastTapId = null;
+  let homeBtnTapTimer = null;
+  let homeBtnTapCount = 0;
   let toastTimeout;
   let searchTimeout;
 
@@ -155,7 +157,37 @@
     }
   }
 
-  function goHome() {
+  // ==========================================
+  // NAV BERANDA: single click = instan (cache), double click = force refresh
+  // ==========================================
+  function handleHomeButtonClick() {
+    homeBtnTapCount++;
+    if (homeBtnTapCount === 1) {
+      homeBtnTapTimer = setTimeout(() => {
+        goHomeInstant();
+        homeBtnTapCount = 0;
+      }, 280);
+    } else if (homeBtnTapCount >= 2) {
+      clearTimeout(homeBtnTapTimer);
+      homeBtnTapCount = 0;
+      goHomeForceRefresh();
+    }
+  }
+
+  // SINGLE CLICK: switch tab ke 'riwayat' pakai cachedRiwayat yg sudah ada, 0 request server.
+  function goHomeInstant() {
+    switchTab('riwayat');
+    if (cachedRiwayat && cachedRiwayat.status === 'success') {
+      currentPage = cachedRiwayat.currentPage || 1;
+      renderRiwayatUI(cachedRiwayat.data);
+      renderPaginationUI(cachedRiwayat.totalPages, cachedRiwayat.currentPage);
+    } else {
+      loadRiwayat(1); // fallback: belum ada apapun di cache (mis. baru pertama kali load)
+    }
+  }
+
+  // DOUBLE CLICK: reset filter ke default + force refresh total dari server (riwayat & dompet).
+  function goHomeForceRefresh() {
     switchTab('riwayat');
     activeFilterJenis = 'Semua';
     document.querySelectorAll('#filterChips .chip-btn').forEach((btn, i) => {
@@ -169,7 +201,9 @@
 
     filterTipe = 'semua'; filterStartDate = ''; filterEndDate = '';
     updateFilterActiveLabel();
+
     loadRiwayat(1);
+    loadDompetServer(true); // forceRefresh = true -> bypass cachedDompet, fetch ulang ke server
   }
 
   // ==========================================
@@ -414,19 +448,19 @@
         <p class="text-xs text-slate-400">Saldo Akhir</p>
         <p class="text-lg font-bold text-slate-800">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
       </div>
-      ${r.catatan ? `<p class="text-xs text-slate-500 mb-2 whitespace-pre-line">${r.catatan}</p>` : ''}
-      <div class="border-t border-slate-100 pt-2 flex justify-between text-[11px] text-slate-400">
-        <span>Diperbarui</span><span>${r.terakhirDiperbarui}</span>
-      </div>
+        ${r.catatan ? `<div class="mb-2 bg-slate-50 rounded-lg px-2.5 py-2">
+          <p class="text-[10px] font-semibold text-slate-400 mb-1">Log Perubahan</p>
+          <p class="text-[11px] text-slate-500 font-mono whitespace-pre-line">${r.catatan}</p>
+        </div>` : ''}
     </div>`;
   }
 
   // ===== TAMBAH REKENING BARU =====
   // Modal & form-nya sudah ada statis di ViewBudget.html (#modalTambahRekening, onsubmit="handleTambahRekeningSubmit(event)").
-  function openTambahRekeningModal() {
+function openTambahRekeningModal() {
     document.getElementById('inputNamaRekeningBaru').value = '';
     document.getElementById('inputSaldoAwalRekeningBaru').value = '';
-    document.getElementById('inputCatatanRekeningBaru').value = '';
+    document.getElementById('tipeRekening').value = '';
     document.getElementById('modalTambahRekening')?.classList.remove('hidden');
     document.getElementById('inputNamaRekeningBaru').focus();
   }
@@ -440,10 +474,11 @@
 
     const nama = document.getElementById('inputNamaRekeningBaru').value.trim();
     const saldoAwal = document.getElementById('inputSaldoAwalRekeningBaru').value;
-    const catatan = document.getElementById('inputCatatanRekeningBaru').value.trim();
+    const tipe = document.getElementById('tipeRekening').value;
     const btn = document.getElementById('btnSimpanRekeningBaru');
 
     if (!nama) { showToast('error', 'Nama rekening wajib diisi.'); return; }
+    if (!tipe) { showToast('error', 'Tipe rekening wajib dipilih.'); return; }
 
     btn.disabled = true;
     const teksAsli = btn.textContent;
@@ -459,7 +494,7 @@
         }
         closeTambahRekeningModal();
         showToast('success', 'Rekening berhasil ditambahkan!');
-        cachedDompet = res.dompet; // update cache JS memory langsung dari response (tanpa round-trip lagi)
+        cachedDompet = res.dompet;
         renderDompetUI(cachedDompet);
         google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
       })
@@ -468,7 +503,7 @@
         btn.textContent = teksAsli;
         showToast('error', err.message || 'Koneksi error.');
       })
-      .simpanRekeningServer(nama, saldoAwal, catatan);
+      .simpanRekeningServer(nama, saldoAwal, tipe);
   }
 
   // ===== EDIT (TRIPLE-TAP) & HAPUS REKENING =====
@@ -478,7 +513,7 @@
     clearTimeout(rekTapTimer);
     rekTapTimer = setTimeout(() => { rekTapCount = 0; }, 600);
 
-    if (rekTapCount >= 3) {
+    if (rekTapCorekTapCountunt >= 3) {
       rekTapCount = 0;
       clearTimeout(rekTapTimer);
       try { openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item'))); } catch (e) {}
@@ -505,7 +540,7 @@
     document.getElementById('editRekeningNama').value = item.nama || '';
     document.getElementById('editRekeningSaldo').value = item.saldo || 0;
     document.getElementById('editRekeningTipe').value = item.tipe || '';
-    document.getElementById('editRekeningCatatan').value = item.catatan || '';
+    document.getElementById('editRekeningCatatan').value = item.catatan || ''; // tampilkan log Last Updated, readonly
     document.getElementById('modalEditRekening')?.classList.remove('hidden');
   }
 
@@ -520,8 +555,8 @@
       id: document.getElementById('editRekeningId').value,
       nama: document.getElementById('editRekeningNama').value.trim(),
       saldo: document.getElementById('editRekeningSaldo').value,
-      tipe: document.getElementById('editRekeningTipe').value.trim(),
-      catatan: document.getElementById('editRekeningCatatan').value.trim()
+      tipe: document.getElementById('editRekeningTipe').value.trim()
+      // catatan sengaja TIDAK dikirim -> selalu auto-generated di updateRekeningServer()
     };
     if (!formData.nama) { showToast('error', 'Nama rekening wajib diisi.'); return; }
 
@@ -630,12 +665,9 @@
 
   function handleFormSubmit(e) {
     e.preventDefault();
-    const btnSubmit = document.getElementById('btnSubmit');
-    if (btnSubmit) btnSubmit.disabled = true;
-
-    const editId = document.getElementById('editRowIndex')?.value; 
+    const editId = document.getElementById('editRowIndex')?.value;
     const isEditMode = Boolean(editId);
-    
+
     const formData = {
       id: editId,
       tanggal: document.getElementById('tanggal')?.value || document.getElementById('inputTanggal')?.value,
@@ -646,34 +678,59 @@
       nominal: document.getElementById('nominal')?.value
     };
 
-    switchTab('riwayat');
-    showToast('success', 'Mengirim data ke server...');
-    const container = document.getElementById('riwayatList');
-    if (container) container.insertAdjacentHTML('afterbegin', '<div id="optimistic-loading" class="text-center text-emerald-600 py-3 text-sm animate-pulse font-medium bg-emerald-50 rounded-lg mb-3 shadow-sm">Sinkronisasi transaksi...</div>');
+    // ===== SNAPSHOT (utk rollback kalau server gagal) =====
+    const snapshotRiwayat = cloneCache_(cachedRiwayat);
+    const snapshotDompet = cloneCache_(cachedDompet);
 
+    const nominalNum = Number(formData.nominal) || 0;
+    let sumberLama = null, jenisLama = null, nominalLama = null;
+
+    // ===== UPDATE LOKAL INSTAN (0ms) =====
+    if (cachedRiwayat && cachedRiwayat.data) {
+      if (isEditMode) {
+        const idx = cachedRiwayat.data.findIndex(it => it.id === editId);
+        if (idx > -1) {
+          const old = cachedRiwayat.data[idx];
+          sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal;
+          cachedRiwayat.data[idx] = { ...old, tanggal: formatTanggalOptimistic_(formData.tanggal), tanggalRaw: formData.tanggal, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum };
+        }
+      } else {
+        cachedRiwayat.data.unshift({ id: 'temp-' + Date.now(), tanggal: formatTanggalOptimistic_(formData.tanggal), tanggalRaw: formData.tanggal, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum });
+      }
+    }
+
+    if (isEditMode && sumberLama !== null) {
+      applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama));
+      applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
+    } else if (!isEditMode) {
+      applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
+    }
+
+    switchTab('riwayat'); // INSTAN, form/modal langsung tertutup
+    refreshVisibleUI_();
+
+    // ===== KIRIM KE SERVER DI BACKGROUND =====
     const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
-    
+
     google.script.run
       .withSuccessHandler(res => {
-        if (btnSubmit) btnSubmit.disabled = false;
-        document.getElementById('optimistic-loading')?.remove();
-        
         if (res && res.status === 'success') {
+          cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server
+          cachedDompet = res.dompet;
+          refreshVisibleUI_();
           showToast('success', isEditMode ? 'Perubahan disimpan!' : 'Transaksi berhasil dicatat!');
-          cachedDompet = null; // invalidate cache Budget -> saldo akun berubah akibat transaksi ini
-          renderRiwayatResult(res.riwayat); 
         } else {
-          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error')); 
-          switchTab('tambah'); 
+          cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+          refreshVisibleUI_();
+          showToast('error', 'Gagal memproses: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
-        if (btnSubmit) btnSubmit.disabled = false;
-        document.getElementById('optimistic-loading')?.remove();
-        showToast('error', 'Koneksi error: ' + (err.message || err)); 
-        switchTab('tambah'); 
+        cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+        refreshVisibleUI_();
+        showToast('error', 'Koneksi error: ' + (err.message || err));
       })
-      [serverFunc](formData, 1, limitPerPage, getCurrentFilterParams());
+      [serverFunc](formData, currentPage, limitPerPage, getCurrentFilterParams());
   }
 
   // ==========================================
@@ -704,29 +761,48 @@
 
   function confirmDelete() {
     if (!targetRowToDelete) return;
-    const btnConfirm = document.getElementById('btnConfirmDelete');
-    if (btnConfirm) { btnConfirm.innerText = 'Deleting...'; btnConfirm.disabled = true; }
-    
-    const rowToDelete = targetRowToDelete;
-    closeDeleteModal();
+    const idToDelete = targetRowToDelete;
+    closeDeleteModal(); // INSTAN
+
+    // ===== SNAPSHOT (utk rollback) =====
+    const snapshotRiwayat = cloneCache_(cachedRiwayat);
+    const snapshotDompet = cloneCache_(cachedDompet);
+
+    // ===== HAPUS LOKAL INSTAN =====
+    let sumberLama = null, jenisLama = null, nominalLama = null;
+    if (cachedRiwayat && cachedRiwayat.data) {
+      const idx = cachedRiwayat.data.findIndex(it => it.id === idToDelete);
+      if (idx > -1) {
+        const old = cachedRiwayat.data[idx];
+        sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal;
+        cachedRiwayat.data.splice(idx, 1);
+      }
+    }
+    if (sumberLama !== null) applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama));
+
+    refreshVisibleUI_();
     showToast('success', 'Menghapus transaksi...');
-    
+
+    // ===== KIRIM KE SERVER DI BACKGROUND =====
     google.script.run
       .withSuccessHandler(res => {
-        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
-        if (res && res.status === 'success') { 
-          showToast('success', 'Berhasil dihapus!'); 
-          cachedDompet = null; // invalidate cache Budget -> saldo akun berubah akibat hapus transaksi ini
-          renderRiwayatResult(res.riwayat); 
-        } else { 
-          showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error')); 
+        if (res && res.status === 'success') {
+          cachedRiwayat = res.riwayat;
+          cachedDompet = res.dompet;
+          refreshVisibleUI_();
+          showToast('success', 'Berhasil dihapus!');
+        } else {
+          cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+          refreshVisibleUI_();
+          showToast('error', 'Gagal menghapus: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
-        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
+        cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+        refreshVisibleUI_();
         showToast('error', 'Terputus: ' + (err.message || err));
       })
-      .hapusTransaksiServer(rowToDelete, currentPage, limitPerPage, getCurrentFilterParams());
+      .hapusTransaksiServer(idToDelete, currentPage, limitPerPage, getCurrentFilterParams());
   }
 
   function showToast(type, text) {
@@ -737,6 +813,38 @@
     toast.style.display = 'flex';
     clearTimeout(toastTimeout);
     toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }
+
+  // ==========================================
+  // HELPER: OPTIMISTIC UI (snapshot, delta lokal, rollback)
+  // ==========================================
+  function cloneCache_(obj) {
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
+  }
+
+  function hitungDeltaTransaksiClient_(jenis, nominal) {
+    const n = Number(nominal) || 0;
+    return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
+  }
+
+  function applyDeltaCachedDompet_(namaAkun, delta) {
+    if (!cachedDompet || !cachedDompet.rekening || !namaAkun || !delta) return;
+    const rek = cachedDompet.rekening.find(r => r.nama === namaAkun);
+    if (rek) {
+      rek.saldo += delta;
+      cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
+    }
+  }
+
+  function formatTanggalOptimistic_(isoDate) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function refreshVisibleUI_() {
+    renderRiwayatResult(cachedRiwayat);
+    if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
   }
 
   // ==========================================

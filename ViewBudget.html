@@ -50,11 +50,11 @@
       </div>
 
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan / Keterangan (Opsional)</label>
-        <input type="text" id="inputCatatanRekeningBaru" placeholder="misal: Rekening Utama / Tabungan"
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Tipe Rekening<span class="text-red-500">*</span></label>
+        <input type="text" id="tipeRekening" placeholder="misal: Bank / E-Wallet / Tunai / Tabungan" required
                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
       </div>
-
+      
       <div class="flex items-center justify-end gap-2 pt-2">
         <button type="button" onclick="closeTambahRekeningModal()"
                 class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
@@ -99,9 +99,10 @@
                class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
-        <input type="text" id="editRekeningCatatan"
-               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Log Perubahan (Last Updated)</label>
+        <textarea id="editRekeningCatatan" readonly rows="4"
+               class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-xs font-mono whitespace-pre-line cursor-not-allowed resize-none"
+               placeholder="Belum ada perubahan."></textarea>
       </div>
       <div class="flex items-center justify-end gap-2 pt-2">
         <button type="button" onclick="closeEditRekeningModal()"

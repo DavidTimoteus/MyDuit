@@ -14,9 +14,6 @@ const SHEET_DOMPET = 'Dompet';
 const CELL_LAST_UPDATED = 'D4';
 
 // Konfigurasi Dompet (Baris 7, sesuai hasil debugDompetLayout: PK justru di Kolom A, bukan F)
-// Header asli sheet: A=Primary Key, B=Nama Akun, C=Saldo Saat ini, D=Perubahan Terakhir, E=Catatan
-// Kolom F tidak lagi punya header/fungsi (berisi data basi dari versi lama, lihat cleanupKolomFDompet()).
-// TIDAK ADA lagi kolom "Saldo Awal" -> Saldo Akhir = 0 + Total Pemasukan - Total Pengeluaran (keputusan user).
 // Header asli sheet: A=Primary Key, B=Nama Akun, C=Saldo Saat ini, D=Perubahan Terakhir, E=Tipe, F=Catatan
 const DOMPET_START_ROW = 7;
 const DOMPET_COL = {
@@ -24,10 +21,59 @@ const DOMPET_COL = {
   NAMA: 2,        // Kolom B (Nama Akun)
   SALDO: 3,       // Kolom C (Saldo Saat ini / Saldo Akhir hasil kalkulasi)
   UPDATED_AT: 4,  // Kolom D (Perubahan Terakhir)
-  TIPE: 5,        // Kolom E (Tipe akun, mis. Bank/E-Wallet/Cash)
-  CATATAN: 6      // Kolom F (Catatan bebas + log histori perubahan)
+  TIPE: 5,        // Kolom E (Tipe akun, mis. Rekening Utama/Tabungan/E-Wallet/Dana Darurat)
+  CATATAN: 6      // Kolom F (Audit log "Last Updated" otomatis, BUKAN input manual)
 };
 const BULAN_NAMA = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+// ============ CACHE (OPTIMASI BACA/TULIS SHEET) ============
+// Tujuan: dalam window singkat (60 detik), ganti halaman/filter riwayat berkali-kali
+// atau bolak-balik ke tab Budget TIDAK perlu baca fisik ke Sheet lagi -> pakai
+// CacheService.getScriptCache() (dibagi semua user Web App ini, sesuai kebutuhan kita
+// krn data keuangan sama utk semua pengakses). Cache di-invalidate LANGSUNG begitu ada
+// CRUD (bukan menunggu TTL habis), jadi data yg ditampilkan tetap selalu benar/terbaru.
+const CACHE_TTL_SECONDS = 60;
+const CACHE_KEY_RAW_TRANSAKSI = 'rawTransaksiInOut_v1';
+const CACHE_KEY_DOMPET_PAYLOAD = 'dompetPayload_v1';
+
+function invalidateTransaksiCache_() {
+  CacheService.getScriptCache().remove(CACHE_KEY_RAW_TRANSAKSI);
+}
+function invalidateDompetCache_() {
+  CacheService.getScriptCache().remove(CACHE_KEY_DOMPET_PAYLOAD);
+}
+
+// Baca seluruh baris Sheet 'in/out' (kolom A:G), pakai cache 60 detik. getRiwayatKasServer()
+// WAJIB lewat sini (bukan getRange() sendiri), supaya ganti halaman/filter yg sering terjadi
+// dalam waktu singkat cukup 1x baca fisik ke sheet, sisanya difilter dari cache di memory.
+function getRawTransaksiCached_(sheet) {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CACHE_KEY_RAW_TRANSAKSI);
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      // Revive kolom tanggal (index 1) balik jadi Date object (JSON menyimpannya sbg string ISO)
+      return parsed.map(row => {
+        row[1] = row[1] ? new Date(row[1]) : row[1];
+        return row;
+      });
+    } catch (e) {
+      // Cache korup/format tak terduga -> abaikan, lanjut baca sheet asli di bawah
+    }
+  }
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < CONFIG.START_ROW) return [];
+  let rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues(); // satu-satunya baca fisik
+  rawData = maybeRunCleanup(sheet, rawData);
+
+  try {
+    cache.put(CACHE_KEY_RAW_TRANSAKSI, JSON.stringify(rawData), CACHE_TTL_SECONDS);
+  } catch (e) {
+    // Data terlalu besar utk cache (limit 100KB/key) -> lewati caching, tetap lanjut tanpa cache
+  }
+  return rawData;
+}
 
 // ============ ENTRY POINT ============
 function doGet(e) {
@@ -223,8 +269,9 @@ function getRiwayatKasServer(page, limit, filterParams) {
 
     if (lastRow < CONFIG.START_ROW) return { status: "success", data: [], totalPages: 0, currentPage: 1 };
 
-    let rawData = sheet.getRange(CONFIG.START_ROW, 1, lastRow - CONFIG.START_ROW + 1, 7).getValues();
-    rawData = maybeRunCleanup(sheet, rawData);
+    // OPTIMASI: lewat cache 60 detik drpd getRange() langsung, supaya ganti halaman/filter
+    // berkali-kali dalam waktu singkat tidak baca fisik sheet berkali-kali.
+    let rawData = getRawTransaksiCached_(sheet);
 
     const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
     const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -281,7 +328,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
       });
     });
 
-    if (needFlush) SpreadsheetApp.flush();
+    if (needFlush) { SpreadsheetApp.flush(); invalidateTransaksiCache_(); } // ID auto-healed -> cache lama sudah stale
 
     formattedList.sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw));
     const totalPages = Math.ceil(formattedList.length / limitNum) || 1;
@@ -341,13 +388,14 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
     const id = generatePrimaryKey_('TX');
 
     getSheet().appendRow([id, new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]);
+    invalidateTransaksiCache_(); // OPTIMASI: cache raw lama pasti stale setelah insert
 
     // OPTIMASI: delta ke 1 akun saja (bukan scan ulang seluruh sheet 'in/out' + rewrite seluruh Dompet)
     applyDeltaSaldoDompet_(formData.sumber, hitungDeltaTransaksi_(formData.jenis, formData.nominal));
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
-    return { status: "success", riwayat: riwayat };
+    return { status: "success", riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
@@ -366,6 +414,7 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
     const jenisLama = dataLama[0], sumberLama = dataLama[2], nominalLama = dataLama[4];
 
     sheet.getRange(targetRow, 2, 1, 6).setValues([[new Date(formData.tanggal), formData.jenis, formData.kategori, formData.sumber, formData.keterangan, Number(formData.nominal)]]);
+    invalidateTransaksiCache_(); // OPTIMASI: cache raw lama pasti stale setelah update
 
     // OPTIMASI I/O: kalau akun sumber TIDAK berubah (kasus paling umum saat edit), gabung jadi
     // 1x panggilan delta bersih (net) -> 1x read+write ke Dompet, bukan 2x round-trip terpisah.
@@ -380,7 +429,7 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
-    return { status: "success", riwayat: riwayat };
+    return { status: "success", riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
@@ -399,13 +448,14 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
     const jenisLama = dataLama[0], sumberLama = dataLama[2], nominalLama = dataLama[4];
 
     sheet.deleteRow(targetRow);
+    invalidateTransaksiCache_(); // OPTIMASI: cache raw lama pasti stale setelah hapus
 
     // OPTIMASI: balikkan delta ke 1 akun saja, tanpa scan ulang seluruh sheet
     applyDeltaSaldoDompet_(sumberLama, -hitungDeltaTransaksi_(jenisLama, nominalLama));
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     CacheService.getScriptCache().removeAll(['kategoriList', 'sumberAkunList']);
-    return { status: "success", riwayat: riwayat };
+    return { status: "success", riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: "error", message: err.message };
   } finally { lock.releaseLock(); }
@@ -443,6 +493,7 @@ function applyDeltaSaldoDompet_(namaAkun, delta) {
       const saldoBaru = (Number(data[i][1]) || 0) + delta;
       // OPTIMASI I/O: 1x setValues() gabungan SALDO+UPDATED_AT (kolom 3-4), bukan 2 setValue() terpisah.
       sheet.getRange(rowIdx, DOMPET_COL.SALDO, 1, 2).setValues([[saldoBaru, new Date()]]);
+      invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah saldo berubah
       saveLastUpdatedDompet_();
       return;
     }
@@ -452,6 +503,14 @@ function applyDeltaSaldoDompet_(namaAkun, delta) {
 
 // ============ SINKRONISASI DOMPET (AUTO-HEALING PK) ============
 function getDompetServer() {
+  // OPTIMASI: cache 60 detik utk seluruh payload Dompet (total saldo + daftar rekening).
+  // switchTab('budget') berkali-kali / buka-tutup app dlm window singkat = 0 baca fisik sheet.
+  const cache = CacheService.getScriptCache();
+  const cachedPayload = cache.get(CACHE_KEY_DOMPET_PAYLOAD);
+  if (cachedPayload) {
+    try { return JSON.parse(cachedPayload); } catch (e) { /* cache korup, lanjut hitung ulang di bawah */ }
+  }
+
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = getDompetSheet_();
@@ -461,7 +520,11 @@ function getDompetServer() {
     }
 
     const lastRow = sheet.getLastRow();
-    if (lastRow < DOMPET_START_ROW) return { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
+    if (lastRow < DOMPET_START_ROW) {
+      const emptyResult = { status: "success", totalSaldo: 0, rekening: [], lastUpdated: readLastUpdatedDompet_() };
+      try { cache.put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(emptyResult), CACHE_TTL_SECONDS); } catch (e) { }
+      return emptyResult;
+    }
 
     const numRows = lastRow - DOMPET_START_ROW + 1;
     const data = sheet.getRange(DOMPET_START_ROW, 1, numRows, 6).getValues(); // A:F (Tipe & Catatan ikut terbaca)
@@ -473,9 +536,11 @@ function getDompetServer() {
 
     data.forEach((row, idx) => {
       const nama = String(row[DOMPET_COL.NAMA - 1] || '').trim();
-      if (!nama) return;
+      if (!nama) return; // Lewati jika nama akun kosong
 
       let id = String(row[DOMPET_COL.ID - 1] || '').trim();
+
+      // AUTO-HEALING: Jika Primary Key di Kolom A belum terisi, buatkan otomatis & simpan ke Google Sheet!
       if (!id) {
         id = generatePrimaryKey_('ACC');
         data[idx][DOMPET_COL.ID - 1] = id;
@@ -489,7 +554,9 @@ function getDompetServer() {
       let lastUpd = "-";
       if (row[DOMPET_COL.UPDATED_AT - 1]) {
         const d = new Date(row[DOMPET_COL.UPDATED_AT - 1]);
-        if (!isNaN(d.getTime())) lastUpd = Utilities.formatDate(d, timeZone, "dd/MM/yyyy HH:mm");
+        if (!isNaN(d.getTime())) {
+          lastUpd = Utilities.formatDate(d, timeZone, "dd/MM/yyyy HH:mm");
+        }
       }
 
       rekening.push({
@@ -497,26 +564,33 @@ function getDompetServer() {
         nama: nama,
         saldo: saldo,
         tipe: String(row[DOMPET_COL.TIPE - 1] || '').trim(),
-        catatan: row[DOMPET_COL.CATATAN - 1] || "",
+        catatan: row[DOMPET_COL.CATATAN - 1] || "", // audit log "Last Updated", bukan input manual
         terakhirDiperbarui: lastUpd
       });
     });
 
     if (needFlush) SpreadsheetApp.flush();
-    return { status: 'success', totalSaldo: totalSaldo, rekening: rekening, lastUpdated: readLastUpdatedDompet_() };
+
+    const result = { status: 'success', totalSaldo: totalSaldo, rekening: rekening, lastUpdated: readLastUpdatedDompet_() };
+    try { cache.put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(result), CACHE_TTL_SECONDS); } catch (e) {
+      // Jumlah rekening terlalu banyak utk 1 cache key (>100KB) -> lewati caching, tetap kembalikan hasil
+    }
+    return result;
   } catch (err) {
-    Logger.log('getDompetServer ERROR: ' + (err.stack || err.message));
+    Logger.log('getDompetServer ERROR: ' + (err.stack || err.message)); // cek di Executions/Logs kalau error lagi
     return { status: "error", message: err.message };
   }
 }
 
 // TAMBAH REKENING BARU LANGSUNG DARI SISTEM (tidak perlu lagi tulis manual di Sheet Dompet)
-function simpanRekeningServer(nama, saldoAwal, catatan) {
+function simpanRekeningServer(nama, saldoAwal, tipe) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(10000);
     nama = String(nama || '').trim();
+    tipe = String(tipe || '').trim();
     if (!nama) throw new Error('Nama akun tidak boleh kosong.');
+    if (!tipe) throw new Error('Tipe rekening wajib diisi.');
 
     const sheet = getDompetSheet_();
     if (!sheet) throw new Error('Sheet "Dompet" tidak ditemukan.');
@@ -531,8 +605,10 @@ function simpanRekeningServer(nama, saldoAwal, catatan) {
     }
 
     const id = generatePrimaryKey_('ACC');
-    // Urutan kolom HARUS sama dengan DOMPET_COL: A=ID, B=NAMA, C=SALDO, D=UPDATED_AT, E=TIPE, F=CATATAN
-    sheet.appendRow([id, nama, Number(saldoAwal) || 0, new Date(), '', String(catatan || '').trim()]);
+    // A=ID, B=NAMA, C=SALDO, D=UPDATED_AT, E=TIPE, F=CATATAN
+    // Tipe diisi dari input wajib user; Catatan default kosong -> hanya terisi otomatis via updateRekeningServer()
+    sheet.appendRow([id, nama, Number(saldoAwal) || 0, new Date(), tipe, '']);
+    invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah rekening baru dibuat
 
     CacheService.getScriptCache().removeAll(['sumberAkunList']); // biar dropdown "Sumber" di form transaksi langsung update
 
@@ -544,6 +620,7 @@ function simpanRekeningServer(nama, saldoAwal, catatan) {
   }
 }
 
+// EDIT REKENING (triple-tap dari UI) — Catatan TIDAK bisa diisi manual, hanya audit log otomatis.
 function updateRekeningServer(formData) {
   const lock = LockService.getScriptLock();
   try {
@@ -558,28 +635,34 @@ function updateRekeningServer(formData) {
     const namaLama = String(dataLama[DOMPET_COL.NAMA - 1] || '').trim();
     const saldoLama = Number(dataLama[DOMPET_COL.SALDO - 1]) || 0;
     const tipeLama = String(dataLama[DOMPET_COL.TIPE - 1] || '').trim();
+    const catatanLama = String(dataLama[DOMPET_COL.CATATAN - 1] || ''); // hasil log audit sebelumnya, dipertahankan
 
     const namaBaru = String(formData.nama || '').trim();
     const saldoBaru = Number(formData.saldo) || 0;
     const tipeBaru = String(formData.tipe || '').trim();
     if (!namaBaru) throw new Error('Nama akun tidak boleh kosong.');
 
-    // Rincian perubahan utk log histori (hanya field yang benar-benar berubah)
-    const rincian = [];
-    if (namaLama !== namaBaru) rincian.push(`nama "${namaLama}" -> "${namaBaru}"`);
-    if (saldoLama !== saldoBaru) rincian.push(`saldo Rp${saldoLama.toLocaleString('id-ID')} -> Rp${saldoBaru.toLocaleString('id-ID')}`);
-    if (tipeLama !== tipeBaru) rincian.push(`tipe "${tipeLama || '-'}" -> "${tipeBaru || '-'}"`);
-
+    // AUDIT LOG: bandingkan data lama vs baru, 1 baris log per field yang berubah.
+    // Catatan TIDAK lagi bisa diisi manual dari form (readonly di frontend) -> formData.catatan diabaikan.
     const timeZone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
     const now = new Date();
-    let catatanBaru = String(formData.catatan || '').trim();
-    if (rincian.length) {
-      const logLine = `[${Utilities.formatDate(now, timeZone, "dd/MM/yyyy HH:mm")}] Perubahan: ${rincian.join(', ')}`;
-      catatanBaru = catatanBaru ? `${catatanBaru}\n${logLine}` : logLine;
-    }
+    const ts = Utilities.formatDate(now, timeZone, "dd/MM/yyyy HH:mm");
+
+    const perubahan = [];
+    if (namaLama !== namaBaru) perubahan.push({ field: 'nama', lama: namaLama || '-', baru: namaBaru || '-' });
+    if (saldoLama !== saldoBaru) perubahan.push({ field: 'saldo', lama: saldoLama.toLocaleString('id-ID'), baru: saldoBaru.toLocaleString('id-ID') });
+    if (tipeLama !== tipeBaru) perubahan.push({ field: 'tipe', lama: tipeLama || '-', baru: tipeBaru || '-' });
+
+    const logBaru = perubahan
+      .map(p => `Last Updated - [${ts}] Perubahan: ${p.field} "${p.lama}" -> "${p.baru}"`)
+      .join('\n');
+
+    // Audit log bersifat kumulatif (riwayat), log baru ditambahkan di bawah log lama.
+    const catatanFinal = logBaru ? (catatanLama ? `${catatanLama}\n${logBaru}` : logBaru) : catatanLama;
 
     // B:F -> NAMA, SALDO, UPDATED_AT, TIPE, CATATAN (ID di kolom A tidak diubah)
-    sheet.getRange(targetRow, DOMPET_COL.NAMA, 1, 5).setValues([[namaBaru, saldoBaru, now, tipeBaru, catatanBaru]]);
+    sheet.getRange(targetRow, DOMPET_COL.NAMA, 1, 5).setValues([[namaBaru, saldoBaru, now, tipeBaru, catatanFinal]]);
+    invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah edit rekening
 
     if (namaLama !== namaBaru) CacheService.getScriptCache().removeAll(['sumberAkunList']); // nama akun dipakai sbg "Sumber" transaksi
     saveLastUpdatedDompet_();
@@ -592,6 +675,7 @@ function updateRekeningServer(formData) {
   }
 }
 
+// HAPUS REKENING (dari UI: tap card -> tombol hapus merah -> modal konfirmasi)
 function hapusRekeningServer(id) {
   const lock = LockService.getScriptLock();
   try {
@@ -603,6 +687,7 @@ function hapusRekeningServer(id) {
     if (targetRow === -1) throw new Error('Rekening sudah terhapus.');
 
     sheet.deleteRow(targetRow);
+    invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah rekening dihapus
     CacheService.getScriptCache().removeAll(['sumberAkunList']);
     saveLastUpdatedDompet_();
 
