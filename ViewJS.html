@@ -14,6 +14,7 @@
   let rekLastTapId = null;
   let homeBtnTapTimer = null;
   let homeBtnTapCount = 0;
+  let isHomeForceRefreshing = false;
   let toastTimeout;
   let searchTimeout;
 
@@ -168,16 +169,16 @@
   // ==========================================
   function handleHomeButtonClick() {
     homeBtnTapCount++;
-    if (homeBtnTapCount === 1) {
-      homeBtnTapTimer = setTimeout(() => {
-        goHomeInstant();
-        homeBtnTapCount = 0;
-      }, 280);
-    } else if (homeBtnTapCount >= 2) {
-      clearTimeout(homeBtnTapTimer);
+    clearTimeout(homeBtnTapTimer);
+    if (homeBtnTapCount >= 2) {
       homeBtnTapCount = 0;
       goHomeForceRefresh();
+      return;
     }
+    homeBtnTapTimer = setTimeout(() => {
+      homeBtnTapCount = 0;
+      goHomeInstant();
+    }, 350);
   }
 
   // SINGLE CLICK: switch tab ke 'riwayat' pakai cachedRiwayat yg sudah ada, 0 request server.
@@ -192,8 +193,11 @@
     }
   }
 
-  // DOUBLE CLICK: reset filter ke default + force refresh total dari server (riwayat & dompet).
+  // 2x TAP CEPAT: reset filter ke default + force refresh total dari server (riwayat & dompet).
   function goHomeForceRefresh() {
+    if (isHomeForceRefreshing) return; // FIX: kalau masih ada request yg jalan, abaikan pemicu baru (cegah tabrakan)
+    isHomeForceRefreshing = true;
+
     switchTab('riwayat');
     activeFilterJenis = 'Semua';
     document.querySelectorAll('#filterChips .chip-btn').forEach((btn, i) => {
@@ -208,14 +212,10 @@
     filterTipe = 'semua'; filterStartDate = ''; filterEndDate = '';
     updateFilterActiveLabel();
 
-  google.script.run
-  .withSuccessHandler(res => {
-    cachedRiwayat = res.riwayat; cachedDompet = res.dompet;
-    refreshVisibleUI_();
-  })
-  .withFailureHandler(err => showToast('error', 'Koneksi error: ' + (err.message || err)))
-  .getFullSyncPayloadServer(1, limitPerPage, getCurrentFilterParams());
+    loadRiwayat(1);
+    loadDompetServer(true);
 
+    setTimeout(() => { isHomeForceRefreshing = false; }, 2000); // lepas guard setelah window wajar utk round-trip selesai
   }
 
   // ==========================================
@@ -522,21 +522,38 @@ function openTambahRekeningModal() {
       .simpanRekeningServer(nama, saldoAwal, tipe);
   }
 
-  // ===== EDIT (TRIPLE-TAP) & HAPUS REKENING =====
+  // ===== EDIT (TRIPLE-TAP) & HAPUS REKENING (TAP) =====
 function handleRekeningTap(id, cardEl) {
-    if (rekLastTapId !== id) { rekTapCount = 0; rekLastTapId = id; }
-    rekTapCount++;
-    clearTimeout(rekTapTimer);
-    rekTapTimer = setTimeout(() => { rekTapCount = 0; }, 500);
-
-    if (rekTapCount >= 3) {
-      rekTapCount = 0;
-      clearTimeout(rekTapTimer);
-      try { openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item'))); } catch (e) {}
-      return;
+    // Reset hitungan jika pengguna mengetuk kartu rekening yang berbeda
+    if (rekLastTapId !== id) { 
+        rekTapCount = 0; 
+        rekLastId = id;
     }
-    toggleDeleteBtnRekening(cardEl);
-  }
+    
+    rekLastTapId = id;
+    rekTapCount++;
+    
+    clearTimeout(rekTapTimer);
+    rekTapTimer = setTimeout(() => { 
+        rekTapCount = 0; 
+    }, 1000);
+
+    if (rekTapCount === 1) {
+        // PILIHAN A: Jika tombol hapus ingin muncul saat 1 kali ketuk (Single Tap)
+        // toggleDeleteBtnRekening(cardEl);
+    } else if (rekTapCount === 2) {
+        // PILIHAN B: Jika tombol hapus ingin muncul saat 2 kali ketuk (Double Tap)
+       toggleDeleteBtnRekening(cardEl); 
+    } else if (rekTapCount >= 3) {
+        // PILIHAN C: Ketukan ke-3 atau lebih untuk membuka modal Edit
+        rekTapCount = 0;
+        clearTimeout(rekTapTimer);
+        try { 
+            openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item'))); 
+        } catch (e) {}
+        return;
+    }
+}
 
   function toggleDeleteBtnRekening(cardEl) {
     const isActive = cardEl.classList.contains('border-red-300');
