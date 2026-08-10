@@ -5,7 +5,6 @@
   let currentPage = 1;
   const limitPerPage = 10;
   let activeFilterJenis = 'Semua';
-  let lastTapTime = 0;
   let cachedKategori = [];
   let targetRowToDelete = null;
   let targetRekeningToDelete = null;
@@ -17,6 +16,8 @@
   let isHomeForceRefreshing = false;
   let toastTimeout;
   let searchTimeout;
+  let touchStartX;
+  let touchStartY;
 
   let filterTipe = 'semua';
   let filterStartDate = '';
@@ -145,6 +146,8 @@
     // OPTIMASI: switchTab MURNI toggle visibilitas CSS, 0 google.script.run.
     // Data Dompet/Riwayat sudah di JS memory (cachedDompet/cachedRiwayat), diisi saat
     // load awal & di-update ulang HANYA oleh aksi CRUD (lihat handler simpan/edit/hapus).
+
+    if (tabName === 'budget') loadDompetServer(true);
 
     updateNavActiveState(tabName);
   }
@@ -348,12 +351,13 @@
       const bg = isPemasukan ? 'bg-emerald-100' : 'bg-red-50';
       const icon = isPemasukan ? 'trending_up' : 'trending_down';
 
-      return `
-        <div onclick="toggleDeleteBtn(this)"
-         ondblclick="handleCardDoubleTap('${item.id}', this)"
-         ontouchend="handleMobileTouchTap(event, '${item.id}', this)"
-         data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
-         class="tx-card-item relative bg-white rounded-xl p-4 shadow-sm flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-emerald-300 select-none mb-3">
+      return `<div onclick="toggleDeleteBtn(this)"
+           ondblclick="handleCardDoubleTap('${item.id}', this)"
+           ontouchstart="handleLongPressStart(event, '${item.id}', this)"
+           ontouchmove="handleLongPressMove(event)"
+           ontouchend="handleLongPressEnd(event, this)"
+           data-item='${JSON.stringify(item).replace(/'/g, "&apos;")}'
+           class="tx-card-item relative bg-white rounded-xl p-4 shadow-sm flex items-center justify-between gap-3 hover:shadow-md transition-all cursor-pointer border border-transparent hover:border-emerald-300 select-none mb-3">
 
           <div class="flex items-center gap-3 w-full min-w-0">
             <div class="w-10 h-10 rounded-full ${bg} flex items-center justify-center shrink-0">
@@ -444,12 +448,15 @@
     }
   }
 
-  function renderRekeningCard(r) {
-    return `<div onclick="handleRekeningTap('${r.id}', this)"
-         ontouchend="handleRekeningTap('${r.id}', this)"
-         data-item='${JSON.stringify(r).replace(/'/g, "&apos;")}'
-         data-id="${r.id}"
-         class="rek-card-item relative bg-white rounded-xl border border-transparent shadow-sm p-4 mb-3 transition-all select-none cursor-pointer">
+function renderRekeningCard(r) {
+    return `<div onclick="toggleDeleteBtnRekening(this)"
+          ondblclick="openEditRekeningModal(JSON.parse(this.getAttribute('data-item')))"
+          ontouchstart="handleRekeningLongPress(event, '${r.id}', this)"
+          ontouchmove="handleRekeningLongPressMove(event)"
+          ontouchend="handleRekeningLongPressEnd(event, this)"
+          data-item='${JSON.stringify(r).replace(/'/g, "&apos;")}'
+          data-id="${r.id}"
+          class="rek-card-item relative bg-white rounded-xl border border-transparent shadow-sm p-4 mb-3 transition-all select-none cursor-pointer">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
           <span class="material-symbols-outlined text-emerald-600 text-[20px]">account_balance</span>
@@ -519,53 +526,54 @@ function openTambahRekeningModal() {
       .withSuccessHandler(res => {
         if (res && res.status === 'success') {
           cachedDompet = res.dompet;
+          const serverRekening = res.dompet.rekening.find(r => r.nama === nama && r.saldo === saldoAwal && r.tipe === tipe);
+          if (serverRekening) {
+            const tempRekening = cachedDompet.rekening.find(r => r.id.startsWith('temp-') && r.nama === nama && r.saldo === saldoAwal && r.tipe === tipe);
+            if (tempRekening) {
+              tempRekening.id = serverRekening.id;
+            }
+          }
+          renderDompetUI(cachedDompet);
           populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
         } else {
           cachedDompet = snapshotDompet;
+          renderDompetUI(cachedDompet);
           showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
         cachedDompet = snapshotDompet;
+        renderDompetUI(cachedDompet);
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
       .simpanRekeningServer(nama, saldoAwal, tipe);
   }
 
-  // ===== EDIT (TRIPLE-TAP) & HAPUS REKENING (TAP) =====
-function handleRekeningTap(id, cardEl) {
-    // Reset hitungan jika pengguna mengetuk kartu rekening yang berbeda
-    if (rekLastTapId !== id) { 
-        rekTapCount = 0; 
-        rekLastId = id;
-    }
-    
-    rekLastTapId = id;
-    rekTapCount++;
-    
-    clearTimeout(rekTapTimer);
-    rekTapTimer = setTimeout(() => { 
-        rekTapCount = 0; 
-    }, 1000);
+  // ===== LONG‑PRESS HANDLERS (mobile, 1.2 detik) =====
+function handleRekeningLongPress(event, id, cardEl) {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
 
-    if (rekTapCount === 1) {
-        // PILIHAN A: Jika tombol hapus ingin muncul saat 1 kali ketuk (Single Tap)
-        // toggleDeleteBtnRekening(cardEl);
-    } else if (rekTapCount === 2) {
-        // PILIHAN B: Jika tombol hapus ingin muncul saat 2 kali ketuk (Double Tap)
-       toggleDeleteBtnRekening(cardEl); 
-    } else if (rekTapCount >= 3) {
-        // PILIHAN C: Ketukan ke-3 atau lebih untuk membuka modal Edit
-        rekTapCount = 0;
-        clearTimeout(rekTapTimer);
-        try { 
-            openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item'))); 
-        } catch (e) {}
-        return;
+    const timer = setTimeout(() => {
+        openEditRekeningModal(JSON.parse(cardEl.getAttribute('data-item')));
+    }, 1200);
+    window._lpTimer = timer;
+}
+
+function handleRekeningLongPressEnd(event, cardEl) {
+    clearTimeout(window._lpTimer);
+}
+
+function handleRekeningLongPressMove(event) {
+    if (!event.touches || event.touches.length === 0) return;
+    const diffX = Math.abs(event.touches[0].clientX - touchStartX);
+    const diffY = Math.abs(event.touches[0].clientY - touchStartY);
+    if (diffX > 10 || diffY > 10) {
+        clearTimeout(window._lpTimer);
     }
 }
 
-  function toggleDeleteBtnRekening(cardEl) {
+function toggleDeleteBtnRekening(cardEl) {
     const isActive = cardEl.classList.contains('border-red-300');
     document.querySelectorAll('.rek-card-item').forEach(el => {
       el.classList.remove('border-red-300', 'bg-red-50');
@@ -575,7 +583,7 @@ function handleRekeningTap(id, cardEl) {
       cardEl.classList.add('border-red-300', 'bg-red-50');
       cardEl.querySelector('.delete-btn-action')?.classList.remove('hidden');
     }
-  }
+}
 
   function openEditRekeningModal(item) {
     if (!item) return;
@@ -622,14 +630,17 @@ function handleRekeningTap(id, cardEl) {
       .withSuccessHandler(res => {
         if (res && res.status === 'success') {
           cachedDompet = res.dompet;
+          renderDompetUI(cachedDompet);
           populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
         } else {
           cachedDompet = snapshotDompet;
+          renderDompetUI(cachedDompet);
           showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
         cachedDompet = snapshotDompet;
+        renderDompetUI(cachedDompet);
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
       .updateRekeningServer(formData);
@@ -648,27 +659,42 @@ function handleRekeningTap(id, cardEl) {
 
   function confirmDeleteRekening() {
     if (!targetRekeningToDelete) return;
+    if (!cachedDompet || !cachedDompet.rekening) return;
+
     const btnConfirm = document.getElementById('btnConfirmDeleteRekening');
     if (btnConfirm) { btnConfirm.innerText = 'Menghapus...'; btnConfirm.disabled = true; }
 
     const idToDelete = targetRekeningToDelete;
+    const rekToDelete = cachedDompet.rekening.find(r => r.id === idToDelete);
+    const snapshotDompet = cloneCache_(cachedDompet);
+
     closeDeleteRekeningModal();
 
-    const snapshotDompet = cloneCache_(cachedDompet);
+    // OPTIMISTIC: hapus rekening dari cache & render langsung
+    cachedDompet.rekening = cachedDompet.rekening.filter(r => r.id !== idToDelete);
+    if (rekToDelete) cachedDompet.totalSaldo -= Number(rekToDelete.saldo) || 0;
+
+    renderDompetUI(cachedDompet);
+    populateSumberAkun(cachedDompet.rekening ? cachedDompet.rekening.map(r => r.nama) : []);
+    showToast('success', 'Rekening berhasil dihapus!');
 
     google.script.run
       .withSuccessHandler(res => {
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
-        if (!res || res.status !== 'success') { showToast('error', res ? res.message : 'Gagal menghapus.'); return; }
-        showToast('success', 'Rekening berhasil dihapus!');
+        if (!res || res.status !== 'success') {
+            cachedDompet = snapshotDompet;
+            renderDompetUI(cachedDompet);
+            showToast('error', res ? res.message : 'Gagal menghapus.');
+            return;
+        }
         cachedDompet = res.dompet;
         renderDompetUI(cachedDompet);
-        populateSumberAkun(cachedDompet.rekening.map(r => r.nama));
       })
       .withFailureHandler(err => {
-        cachedDompet = snapshotDompet;
         if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
-        showToast('error', 'Terputus: ' + (err.message || err));
+        cachedDompet = snapshotDompet;
+        renderDompetUI(cachedDompet);
+        showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
       })
       .hapusRekeningServer(idToDelete);
   }
@@ -692,11 +718,28 @@ function handleRekeningTap(id, cardEl) {
     try { openEditMode(JSON.parse(cardEl.getAttribute('data-item'))); } catch (e) {}
   }
 
-  function handleMobileTouchTap(event, id, cardEl) {
-    const time = new Date().getTime();
-    if (time - lastTapTime < 300 && time - lastTapTime > 0) { event.preventDefault(); handleCardDoubleTap(id, cardEl); }
-    lastTapTime = time;
-  }
+function handleLongPressStart(event, id, cardEl) {
+    touchStartX = event.touches[0].clientX;
+    touchStartY = event.touches[0].clientY;
+
+    const timer = setTimeout(() => {
+        openEditMode(JSON.parse(cardEl.getAttribute('data-item')));
+    }, 1200);
+    window._lpTimer = timer;
+}
+
+function handleLongPressMove(event) {
+    if (!event.touches || event.touches.length === 0) return;
+    const diffX = Math.abs(event.touches[0].clientX - touchStartX);
+    const diffY = Math.abs(event.touches[0].clientY - touchStartY);
+    if (diffX > 10 || diffY > 10) {
+        clearTimeout(window._lpTimer);
+    }
+}
+
+function handleLongPressEnd(event, cardEl) {
+    clearTimeout(window._lpTimer);
+}
 
   function openEditMode(item) {
     if (!item) return;
@@ -873,66 +916,29 @@ function handleRekeningTap(id, cardEl) {
     toastTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2000);
   }
 
-  function cloneCache_(obj) {
-    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
-  }
-
-  function hitungDeltaTransaksiClient_(jenis, nominal) {
-    const n = Number(nominal) || 0;
-    return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
-  }
-
-  // Pemasukan: delta positif -> akun.saldo += nominal, totalSaldo += nominal
-  // Pengeluaran: delta negatif -> akun.saldo -= nominal, totalSaldo -= nominal
-  function applyDeltaCachedDompet_(namaAkun, delta) {
-    if (!cachedDompet || !cachedDompet.rekening || !namaAkun || !delta) return;
-    const rek = cachedDompet.rekening.find(r => r.nama === namaAkun);
-    if (rek) {
-      rek.saldo += delta;
-      cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
-    }
-  }
-
-function refreshVisibleUI_() {
-    renderRiwayatResult(cachedRiwayat);
-    if (cachedDompet) renderDompetUI(cachedDompet);
-  }
-
-  // ==========================================
-  // HELPER: OPTIMISTIC UI (snapshot, delta lokal, rollback)
-  // ==========================================
-  function cloneCache_(obj) {
-    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
-  }
-
-  function hitungDeltaTransaksiClient_(jenis, nominal) {
-    const n = Number(nominal) || 0;
-    return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
-  }
-
-  function applyDeltaCachedDompet_(namaAkun, delta) {
-    if (!cachedDompet || !cachedDompet.rekening || !namaAkun || !delta) return;
-    const rek = cachedDompet.rekening.find(r => r.nama === namaAkun);
-    if (rek) {
-      rek.saldo += delta;
-      cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
-    }
-  }
-
-  function formatTanggalOptimistic_(isoDate) {
-    if (!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
-    return `${d}/${m}/${y}`;
-  }
-
   function refreshVisibleUI_() {
-    renderRiwayatResult(cachedRiwayat);
-    if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
+       renderRiwayatResult(cachedRiwayat);
+       if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
+   }
+
+  function cloneCache_(obj) {
+    return obj ? JSON.parse(JSON.stringify(obj)) : obj;
   }
 
-  // ==========================================
-  // FITUR EXPORT PDF
-  // ==========================================
+  function hitungDeltaTransaksiClient_(jenis, nominal) {
+    const n = Number(nominal) || 0;
+    return String(jenis).trim().toLowerCase() === 'pengeluaran' ? -n : n;
+  }
+
+  function applyDeltaCachedDompet_(namaAkun, delta) {
+    if (!cachedDompet || !cachedDompet.rekening || !namaAkun || !delta) return;
+    const rek = cachedDompet.rekening.find(r => r.nama === namaAkun);
+    if (rek) {
+      rek.saldo += delta;
+      cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
+    }
+  }
+
   function openExportModal() {
     const now = new Date();
     const selBulan = document.getElementById('exportBulan');

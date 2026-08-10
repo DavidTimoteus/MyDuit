@@ -694,7 +694,6 @@ function hapusRekeningServer(id) {
     sheet.deleteRow(targetRow);
     invalidateDompetCache_(); // OPTIMASI: cache payload Dompet lama pasti stale setelah rekening dihapus
     const dompet = getDompetServer();
-    CacheService.getScriptCache().put(CACHE_KEY_DOMPET_PAYLOAD, JSON.stringify(dompet), CACHE_TTL_SECONDS);
     CacheService.getScriptCache().removeAll(['sumberAkunList']);
     saveLastUpdatedDompet_();
 

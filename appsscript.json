@@ -1,13 +1,7 @@
 {
   "timeZone": "Asia/Jakarta",
   "dependencies": {
-    "enabledAdvancedServices": [
-      {
-        "userSymbol": "MyDuitDatabase",
-        "version": "v4",
-        "serviceId": "sheets"
-      }
-    ]
+    "enabledAdvancedServices": []
   },
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
