@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Laporan Keuangan</title>
+
+  <link href="https://fonts.googleapis.com" rel="preconnect" />
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+    rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Manrope', 'sans-serif'],
+          },
+          colors: {
+            primary: '#2D6A4F',       /* Emerald Green Sesuai Catatan */
+            primaryHover: '#1B4332',
+            surface: '#f4f7f6',
+            surfaceContainerLowest: '#ffffff',
+            expense: '#e53e3e',
+            income: '#10b981',
+            textPrimary: '#1a1b1e',
+            textSecondary: '#6c757d',
+          },
+          borderRadius: {
+            '8': '8px',
+            '12': '12px',
+            '14': '14px'
+          },
+          boxShadow: {
+            'card': '0 2px 8px rgba(0,0,0,0.04)',
+            'nav': '0 -4px 20px rgba(0,0,0,0.06)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <?!= include('ViewCSS'); ?>
+</head>
+
+<body class="bg-surface text-textPrimary antialiased pb-24 font-sans selection:bg-primary selection:text-white">
+
+  <?!= include('ViewTransaksi'); ?>
+  <script>
+    // Data awal disuntikkan dari doGet() (initialKategori/initialRiwayat/initialDompet) -
+    // hindari chained google.script.run saat first render & saat switchTab('budget') pertama kali.
+    window.__INITIAL_KATEGORI__ = <?!= JSON.stringify(initialKategori) ?>;
+    window.__INITIAL_RIWAYAT__  = <?!= JSON.stringify(initialRiwayat) ?>;
+    window.__INITIAL_DOMPET__   = <?!= JSON.stringify(initialDompet) ?>;
+  </script>
+
+  <!-- viewStatistik, viewUtang, dan viewBudget sekarang di-include langsung di dalam ViewTransaksi.html,
+       supaya tetap berada di dalam div container utama (max-w-3xl mx-auto ... px-4 md:px-8). -->
+
+  <?!= include('ViewJS'); ?>
+
+</body>
+
+</html>

@@ -1,0 +1,208 @@
+<header class="flex items-center justify-between pt-4 md:pt-6 pb-4">
+  <div class="flex items-center gap-2.5 min-w-0">
+    <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) — icon "monitoring"
+         (sama dgn ikon nav Statistik), kunci warna hijau (clay-key-primary). -->
+    <div
+      class="clay-icon-tile clay-key-primary w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shrink-0">
+      <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">monitoring</span>
+    </div>
+    <!-- Heading disamakan gaya-nya dgn tab Transaksi (riwayat-heading-neumorphism, tiap huruf
+         dibungkus <span class="neu-letter"> sendiri², lihat ViewCSS.html) — paragraf subtitle
+         di bawah heading DIHAPUS sesuai instruksi. -->
+    <h2 class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight riwayat-heading-neumorphism truncate">
+      <span class="neu-letter">S</span><span class="neu-letter">t</span><span class="neu-letter">a</span><span class="neu-letter">t</span><span class="neu-letter">i</span><span class="neu-letter">s</span><span class="neu-letter">t</span><span class="neu-letter">i</span><span class="neu-letter">k</span>
+    </h2>
+  </div>
+  <div class="flex items-center gap-2 shrink-0" style="position:relative;">
+    <button id="btnPeriodeFilter" onclick="togglePeriodeDropdown()" class="clay-chip clay-key-neutral flex items-center gap-2 px-4 py-2 bg-white text-sm font-medium text-slate-700 transition-all h-auto" style="height:auto;">
+      <span class="material-symbols-outlined text-[17px] text-slate-500" style="font-size:17px;">filter_list</span>
+      <span id="periodeLabelText">Bulanan</span>
+    </button>
+    <div id="periodeDropdown"
+      class="clay-select-list hidden absolute right-4 mt-1 z-50"
+      style="top:auto;margin-top:8px;width:160px;">
+      <button onclick="setPeriodeMode('bulanan')" class="clay-select-option w-full text-left">Per Bulan</button>
+      <button onclick="setPeriodeMode('tahunan')" class="clay-select-option w-full text-left">Per Tahun</button>
+    </div>
+  </div>
+</header>
+
+<!-- Period Navigator -->
+<div class="flex items-center justify-center gap-3 mb-4">
+  <button onclick="navigatePeriode(-1)" class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all h-auto" style="height:32px;width:32px;padding:0;border-radius:999px;">
+    <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_left</span>
+  </button>
+  <span id="periodeCurrentLabel" class="text-sm font-bold text-slate-800 min-w-[140px] text-center">—</span>
+  <button onclick="navigatePeriode(1)" class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all h-auto" style="height:32px;width:32px;padding:0;border-radius:999px;">
+    <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_right</span>
+  </button>
+</div>
+
+<div id="statistikContainer" class="space-y-5 pb-20">
+  <!-- Hero Numbers Trio — konsisten dgn resep kartu Transaksi (tx-card-item): kombinasi
+       ".clay .clay-card" (shadow 3-lapis + radius L1) & kunci hue via clay-key-* per jenis
+       (hijau/primary utk Pemasukan & Saldo, merah/danger utk Pengeluaran), ikon dibungkus
+       ".clay-icon-tile" bulat spt avatar kategori di kartu riwayat. -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="clay clay-card clay-key-primary bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemasukan</p>
+          <p id="totalPemasukan" class="stat-number text-2xl font-bold text-income mt-1"
+            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
+          <p id="trendPemasukan" class="text-xs text-slate-500 mt-2">—</p>
+        </div>
+        <div class="clay-icon-tile clay-key-primary w-10 h-10 rounded-full bg-success-light flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-success text-[22px]">trending_up</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="clay clay-card clay-key-danger bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pengeluaran</p>
+          <p id="totalPengeluaran" class="stat-number text-2xl font-bold text-expense mt-1"
+            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
+          <p id="trendPengeluaran" class="text-xs text-slate-500 mt-2">—</p>
+        </div>
+        <div class="clay-icon-tile clay-key-danger w-10 h-10 rounded-full bg-danger-light flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-danger text-[22px]">trending_down</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="clay clay-card clay-key-primary bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
+      <div class="flex items-center justify-between">
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Bersih</p>
+          <p id="totalSaldo" class="stat-number text-2xl font-bold text-blue-600 mt-1"
+            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
+          <p id="trendSaldo" class="text-xs text-slate-500 mt-2">—</p>
+        </div>
+        <div class="clay-icon-tile clay-key-primary w-10 h-10 rounded-full bg-primary-light flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-primary text-[22px]">account_balance_wallet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trend Chart — panel netral (clay-key-neutral) krn isinya dua warna sekaligus
+       (garis Masuk hijau & Keluar merah), sama resep .clay .clay-card spt kartu Transaksi. -->
+  <div class="clay clay-card clay-key-neutral bg-white p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="trendChartTitle" class="font-bold text-sm text-slate-700">Tren Bulan Ini</h3>
+      <div class="flex items-center gap-3">
+        <span class="flex items-center gap-1.5 text-xs text-slate-500">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#10b981;"></span>Masuk
+        </span>
+        <span class="flex items-center gap-1.5 text-xs text-slate-500">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#e53e3e;"></span>Keluar
+        </span>
+      </div>
+    </div>
+    <div class="h-72 relative">
+      <canvas id="statistikChart"></canvas>
+      <div id="emptyTrend"
+        class="hidden absolute inset-0 flex flex-col items-center justify-center text-center gap-2 text-slate-400">
+        <span class="material-symbols-outlined text-[32px] text-slate-300">query_stats</span>
+        <p class="text-sm text-slate-500">Belum ada data transaksi untuk periode ini.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Category Breakdown — panel netral senada Trend Chart, tiap baris kategori pakai
+       warna palette sendiri (lihat renderCategoryBars_() di ViewJS.html). -->
+  <div class="clay clay-card clay-key-neutral bg-white p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 id="categoryTitle" class="font-bold text-sm text-slate-700">Kategori Pengeluaran Teratas (Bulan Ini)</h3>
+      <span class="text-[10px] text-slate-400 hidden sm:inline">Klik 2x kategori utk detail</span>
+    </div>
+    <div id="categoryBars" class="space-y-3"></div>
+    <div id="emptyCategory" class="text-center py-8 text-slate-500 text-sm hidden">
+      Belum ada data pengeluaran untuk periode ini.
+    </div>
+  </div>
+
+  <!-- MODAL DETAIL TRANSAKSI PER KATEGORI ("card-modal") — dibuka via double click/double
+       tap salah satu baris kategori di "Kategori Pengeluaran Teratas" (renderCategoryBars_()
+       di ViewJS.html memasang ondblclick per baris). Menampilkan SEMUA transaksi pengeluaran
+       untuk kategori tsb pada periode (bulan/tahun) yang sedang aktif dipilih di filter
+       Statistik. Data diambil dari cachedStatistik.items (sudah dikirim sekalian oleh
+       getStatistikPeriodeServer()), TANPA round-trip server baru — lihat
+       openKategoriDetailModal() di ViewJS.html. -->
+  <div id="modalKategoriDetail"
+    class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
+    <div class="clay-sheet clay-key-primary bg-white w-full max-w-md flex flex-col max-h-[85vh]">
+      <div class="px-5 pt-5 pb-3 flex items-start justify-between gap-3 shrink-0 border-b border-slate-100">
+        <div class="min-w-0">
+          <h3 id="modalKategoriDetailTitle" class="text-base font-bold text-slate-800 truncate">Kategori</h3>
+          <p id="modalKategoriDetailSub" class="text-xs text-slate-500 mt-0.5">Periode</p>
+        </div>
+        <button onclick="closeKategoriDetailModal()" class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+      <div id="modalKategoriDetailList" class="overflow-y-auto px-5 py-3 space-y-1 flex-1"></div>
+      <div
+        class="px-5 py-3 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50 rounded-b-2xl">
+        <span class="text-xs font-semibold text-slate-500">Total Pengeluaran</span>
+        <span id="modalKategoriDetailTotal" class="text-sm font-bold text-expense">Rp 0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Recommendation Card -->
+  <!-- Rekomendasi TIDAK auto-muncul: ketuk/klik DUA KALI (double click/double tap, web maupun
+       mobile) pada kartu ini untuk memuat, lihat handleAiRekomendasiTap() di ViewJS.html. -->
+  <div id="aiRecommendation" ondblclick="handleAiRekomendasiTap()"
+    class="clay clay-card clay-key-primary overflow-hidden transition-all hover:-translate-y-0.5" style="cursor:pointer;"
+    title="Ketuk/klik dua kali untuk memuat rekomendasi AI">
+    <!-- Header gradient -->
+    <div class="flex items-center gap-3 px-5 py-4" style="background:linear-gradient(135deg,#2D6A4F 0%,#1B4332 100%);">
+      <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+        style="background:rgba(255,255,255,0.15);">
+        <span class="material-symbols-outlined text-white text-[20px]">psychology</span>
+      </div>
+      <div class="min-w-0">
+        <h4 class="font-bold text-white text-sm">Rekomendasi AI</h4>
+        <p class="text-xs mt-0.5" style="color:rgba(255,255,255,0.7);">Analisis otomatis dari data keuangan periode ini
+        </p>
+      </div>
+    </div>
+    <!-- Body -->
+    <div class="bg-white px-5 py-4">
+      <div id="aiRecommendationText">
+        <div class="flex items-center gap-2 text-sm text-slate-500 py-2">
+          <span class="material-symbols-outlined text-[18px]">touch_app</span>
+          Ketuk/klik dua kali pada kartu ini untuk memuat rekomendasi AI.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  function togglePeriodeDropdown() {
+    const dd = document.getElementById('periodeDropdown');
+    const btn = document.getElementById('btnPeriodeFilter');
+    if (!dd || !btn) return;
+    dd.classList.toggle('hidden');
+    if (!dd.classList.contains('hidden')) {
+      const rect = btn.getBoundingClientRect();
+      dd.style.position = 'fixed';
+      dd.style.top = (rect.bottom + 6) + 'px';
+      dd.style.right = (window.innerWidth - rect.right) + 'px';
+      dd.style.left = 'auto';
+      setTimeout(() => {
+        document.addEventListener('click', function handler(e) {
+          if (!dd.contains(e.target) && e.target !== btn) {
+            dd.classList.add('hidden');
+            document.removeEventListener('click', handler);
+          }
+        });
+      }, 10);
+    }
+  }
+</script>

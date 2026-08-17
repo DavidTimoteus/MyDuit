@@ -1,0 +1,328 @@
+<div id="budgetViewport" class="budget-viewport">
+  <div class="budget-viewport-fixed">
+    <header class="pt-3 md:pt-6 pb-4">
+      <div class="flex items-center gap-1.5">
+        <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) — icon "savings"
+         tema BIRU (clay-key-blue) krn warna utama tab Budget diganti biru, bukan hijau lagi. -->
+        <div
+          class="clay-icon-tile clay-key-blue w-9 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white shrink-0"
+        >
+          <span
+            class="material-symbols-outlined text-[23px]"
+            style="font-variation-settings: &quot;FILL&quot; 2"
+            >savings</span
+          >
+        </div>
+        <!-- Heading disamakan gaya-nya dgn tab Transaksi (riwayat-heading-neumorphism, tiap huruf
+         dibungkus <span class="neu-letter"> sendiri², lihat ViewCSS.html) — paragraf subtitle
+         di bawahnya DIHAPUS sesuai instruksi (header cukup ikon + judul saja). Class
+         "heading-accent-blue" ditambah supaya warnanya ikut biru, TANPA mengubah heading
+         "Transaksi" yg masih hijau (lihat modifier di ViewCSS.html). -->
+        <h3
+          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight tracking-tight riwayat-heading-neumorphism heading-accent-blue truncate"
+        >
+          <span class="neu-letter">R</span><span class="neu-letter">e</span
+          ><span class="neu-letter">k</span><span class="neu-letter">e</span
+          ><span class="neu-letter">n</span><span class="neu-letter">i</span
+          ><span class="neu-letter">n</span><span class="neu-letter">g</span>
+        </h3>
+      </div>
+    </header>
+
+    <!-- Hero card diclaykan: .clay + .clay-key-blue (shadow ganda ber-hue biru, sesuai warna
+     utama tab Budget yg baru) menggantikan shadow-md polos & gradient hijau lama. -->
+    <div
+      class="clay clay-key-blue bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl text-white p-5 mb-6"
+    >
+      <p class="text-xs sm:text-sm opacity-90 mb-1">Total Semua Saldo</p>
+      <p
+        id="totalSaldoBudget"
+        class="font-mono text-2xl sm:text-3xl font-bold mb-3"
+      >
+        Rp 0
+      </p>
+      <div class="flex items-center gap-1.5 text-[11px] opacity-80">
+        <span class="material-symbols-outlined text-[14px]">schedule</span>
+        <span id="lastUpdatedBudget">Terakhir diperbarui: Hari ini, 10:45</span>
+      </div>
+    </div>
+
+    <!-- Heading "Daftar Rekening" & tombol "+" lokal DIHAPUS sesuai instruksi — menambah rekening
+     baru sekarang HANYA lewat FAB "+" di nav bawah (updateFabAddButton() di ViewJS.html sudah
+     mengarahkan FAB ke openTambahRekeningModal() saat tab Budget aktif, jadi fungsinya tetap
+     ada, cuma pemicunya dipindah ke FAB). -->
+
+    <!-- Pagination lama (dot/panah kiri-kanan) DIGANTI indikator card-stack (panah kiri/kanan +
+     "x/y") — tetap dipertahankan di ATAS #rekeningList (sama alasan dgn #paginationControls
+     tab Transaksi: ikut terhitung sbg "header statis" oleh fitRekeningListViewport_() lewat
+     list.getBoundingClientRect().top). Lihat renderRekeningStackIndicator_() di ViewJS.html. -->
+    <div
+      class="flex justify-center gap-2 mb-3"
+      id="rekeningPaginationControls"
+    ></div>
+  </div>
+
+  <!-- CARD STACK SLIDER (HORIZONTAL): kartu rekening ditumpuk (bukan list yg discroll/pagination
+     halaman lagi) — tiap kartu diposisikan absolute nyaris-penuh (inset-[6px], ruang napas
+     shadow) di dalam wrapper ini (lihat .rekening-stack-card & #rekeningList di ViewCSS.html),
+     kartu paling depan bisa digeser kiri (lanjut ke rekening berikutnya)/kanan (kembali ke
+     rekening sebelumnya) via swipe, kartu di belakangnya "mengintip" sedikit ke kanan sbg
+     efek tumpukan (tepinya memudar halus lewat mask-image, bukan terpotong tegas). Tinggi
+     wrapper diatur JS (fitRekeningListViewport_()) supaya tetap pas 1 layar, konsisten dgn
+     tab Transaksi. -->
+  <div id="rekeningList" class="relative">
+    <div
+      class="text-center text-blue-700/70 py-10 text-sm font-medium animate-pulse"
+    >
+      Memuat rekening...
+    </div>
+  </div>
+</div>
+<!-- ================= MODAL: DETAIL LOG PERUBAHAN REKENING =================
+     Dibuka via TEKAN-TAHAN (long-press, 1.2 detik) kartu rekening di stack di atas — lihat
+     handleRekeningTouchStart_() & openDetailLogRekeningModal() di ViewJS.html. Beda dgn kotak
+     "Perubahan Terakhir" di kartu (yg cuma nampilkan 1 baris log paling baru), modal ini
+     nampilkan SELURUH riwayat perubahan (semua baris "catatan", dipisah per-entri), entri
+     terbaru di paling atas & ditandai badge "TERBARU". -->
+<div
+  id="modalDetailLogRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden"
+>
+  <div
+    class="clay-sheet clay-key-blue bg-white w-full max-w-md p-6 max-h-[80vh] flex flex-col"
+  >
+    <div class="flex items-center justify-between mb-4 shrink-0">
+      <h3
+        class="text-base font-bold text-slate-800 flex items-center gap-2 min-w-0"
+      >
+        <span class="material-symbols-outlined text-blue-700 shrink-0"
+          >history</span
+        >
+        <span id="detailLogRekeningNama" class="truncate"
+          >Riwayat Perubahan</span
+        >
+      </h3>
+      <button
+        onclick="closeDetailLogRekeningModal()"
+        class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+    <div
+      id="detailLogRekeningList"
+      class="overflow-y-auto space-y-2 pr-1"
+    ></div>
+  </div>
+</div>
+
+<div
+  id="modalTambahRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden"
+>
+  <!-- Wrapper modal: bg-white+rounded-2xl+shadow-xl+border polos -> .clay-sheet
+       (shadow mengambang ber-hue hijau, §4.3 DESIGN-MEMORY), sesuai pola yg sudah
+       diterapkan di modal tab Transaksi. -->
+  <div
+    class="clay-sheet clay-key-blue bg-white w-full max-w-md p-6 transition-all"
+  >
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-700"
+          >account_balance_wallet</span
+        >
+        Tambah Rekening / Akun Baru
+      </h3>
+      <!-- Tombol close "X" -> pola wajib w-8 h-8 rounded-full clay-chip clay-key-neutral
+           (§7 checklist, biar bentuknya selalu lingkaran sempurna). -->
+      <button
+        onclick="closeTambahRekeningModal()"
+        class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleTambahRekeningSubmit(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Nama Rekening / Akun <span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          id="inputNamaRekeningBaru"
+          placeholder="misal: Bank Mandiri / BCA / Cash"
+          required
+          class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Saldo Awal</label
+        >
+        <input
+          type="text"
+          id="inputSaldoAwalRekeningBaru"
+          inputmode="numeric"
+          placeholder="0"
+          class="clay-input w-full px-3.5 py-2.5 text-sm font-mono focus:outline-none transition-colors"
+        />
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Tipe Rekening<span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          id="tipeRekening"
+          placeholder="misal: Bank / E-Wallet / Tunai / Tabungan"
+          required
+          class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+        />
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onclick="closeTambahRekeningModal()"
+          class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          id="btnSimpanRekeningBaru"
+          class="clay-btn clay-key-blue bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
+        >
+          Simpan Rekening
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<div
+  id="modalEditRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden"
+>
+  <div
+    class="clay-sheet clay-key-blue bg-white w-full max-w-md p-6 transition-all"
+  >
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-700">edit</span>
+        Edit Rekening
+      </h3>
+      <button
+        onclick="closeEditRekeningModal()"
+        class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+      >
+        <span class="material-symbols-outlined text-[18px]">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleEditRekeningSubmit(event)" class="space-y-4">
+      <input type="hidden" id="editRekeningId" />
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Nama Rekening / Akun <span class="text-red-500">*</span></label
+        >
+        <input
+          type="text"
+          id="editRekeningNama"
+          required
+          class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Saldo</label
+        >
+        <!-- FIX (format ribuan otomatis, ATURAN UTAMA — lihat ViewJS.html): type
+             number->text + inputmode="numeric" utk 6 field nominal lain jg diubah
+             dgn alasan yg sama (native <input type=number> menolak "."). -->
+        <input
+          type="text"
+          id="editRekeningSaldo"
+          inputmode="numeric"
+          class="clay-input w-full px-3.5 py-2.5 text-sm font-mono focus:outline-none transition-colors"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Tipe</label
+        >
+        <input
+          type="text"
+          id="editRekeningTipe"
+          placeholder="misal: Bank / E-Wallet / Cash"
+          class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors"
+        />
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1"
+          >Log Perubahan (Last Updated)</label
+        >
+        <!-- Sumur .clay-input tetap dipakai walau readonly -> background var(--surface)
+             bawaannya sudah senada "muted", cukup ditambah cursor-not-allowed. -->
+        <textarea
+          id="editRekeningCatatan"
+          readonly
+          rows="4"
+          class="clay-input w-full px-3.5 py-2.5 text-slate-500 text-xs font-mono whitespace-pre-line cursor-not-allowed resize-none"
+          placeholder="Belum ada perubahan."
+        ></textarea>
+      </div>
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          type="button"
+          onclick="closeEditRekeningModal()"
+          class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+        >
+          Batal
+        </button>
+        <button
+          type="submit"
+          id="btnSimpanEditRekening"
+          class="clay-btn clay-key-blue bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors"
+        >
+          Simpan Perubahan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div
+  id="modalHapusRekening"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden"
+>
+  <!-- Hue danger (merah) krn ini modal konfirmasi hapus -> clay-key-danger, bukan primary. -->
+  <div
+    class="clay-sheet clay-key-danger bg-white w-full max-w-sm p-6 text-center"
+  >
+    <span class="material-symbols-outlined text-red-500 text-[40px] mb-2"
+      >warning</span
+    >
+    <h3 class="text-base font-bold text-slate-800 mb-1">Hapus Rekening?</h3>
+    <p class="text-xs text-slate-500 mb-5">
+      Tindakan ini tidak bisa dibatalkan.
+    </p>
+    <div class="flex items-center justify-center gap-2">
+      <button
+        onclick="closeDeleteRekeningModal()"
+        class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+      >
+        Batal
+      </button>
+      <button
+        id="btnConfirmDeleteRekening"
+        onclick="confirmDeleteRekening()"
+        class="clay-btn clay-key-danger bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors"
+      >
+        Ya, Hapus
+      </button>
+    </div>
+  </div>
+</div>

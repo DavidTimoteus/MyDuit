@@ -1,0 +1,1815 @@
+<style data-purpose="custom-utilities">
+  /* Tipografi — Manrope sebagai satu-satunya font di seluruh aplikasi (tanpa terkecuali).
+     Semua referensi ke Inter / Plus Jakarta Sans / JetBrains Mono / Roboto Mono / Segoe UI
+     sudah dihapus. Variasi visual header/body/mono sekarang dicapai murni lewat kombinasi
+     font-weight & letter-spacing dari keluarga Manrope (400/500/600/700/800), bukan lewat
+     font berbeda. */
+  body {
+    font-family: 'Manrope', sans-serif;
+    font-display: swap;
+  }
+
+  /* Teks tabular/angka (mis. nominal, kode) — tetap pakai Manrope, keselarasan digit dijaga
+     lewat font-variant-numeric alih-alih font monospace terpisah. Pakai !important krn class
+     "font-mono" ini nabrak nama utility bawaan Tailwind (CDN) yg defaultnya font monospace asli
+     -> tanpa !important, urutan load stylesheet bisa bikin Tailwind menang & nominal tetap
+     tampil monospace, bukan Manrope. */
+  .font-mono {
+    font-family: 'Manrope', sans-serif !important;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* Font display — dipakai utk judul header section (mis. "Utang & Cicilan") supaya lebih
+     besar & tegas keterbacaannya drpd body text biasa. Menggunakan Manrope weight 800 (ExtraBold)
+     dgn letter-spacing sedikit dirapatkan supaya tetap tegas & khas di ukuran besar. */
+  .font-display {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  /* Font tab Transaksi (In/Out) — Manrope (Google Fonts, gratis). Pakai !important krn
+     men-override elemen turunan yg sudah punya class Tailwind font-family lain (mis.
+     .font-display / .font-mono) yg ada DI DALAM #viewRiwayat & #pageHeader, supaya seluruh
+     tampilan In/Out (heading, search, filter, kartu transaksi, pagination, modal) konsisten
+     satu font. Sekarang scope-nya sama dgn body krn seluruh app sudah pakai Manrope. */
+  .viewriwayat-font-circular,
+  .viewriwayat-font-circular * {
+    font-family: 'Manrope', sans-serif !important;
+  }
+
+  /* Pengecualian WAJIB: ikon Material Symbols pakai font ikon sendiri (bukan teks biasa) ->
+     kalau ikut ke-override font-family di atas, semua ikon di tampilan Transaksi (search,
+     filter, trending_up/down, delete, dsb) bakal tampil sbg TEKS LIGATURE MENTAH ("trending_up"
+     tertulis apa adanya) alih-alih jadi simbol. Dikembalikan lagi khusus utk elemen ini. */
+  .viewriwayat-font-circular .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined' !important;
+  }
+
+  /* Shimmer text — dipakai khusus utk heading "Utang & Cicilan" (ViewUtang.html). Gradient
+     oranye digeser terus-menerus lewat background-position, di-"potong" mengikuti bentuk
+     teks via background-clip:text -> efeknya seperti kilau/cahaya yang menyapu teks. */
+  .utang-heading-shimmer {
+    background: linear-gradient(100deg, #B45309 0%, #F59E0B 22%, #FDE68A 45%, #F59E0B 68%, #B45309 100%);
+    background-size: 250% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    animation: utangHeadingShimmer 3s linear infinite;
+  }
+
+  @keyframes utangHeadingShimmer {
+    0% {
+      background-position: 200% center;
+    }
+
+    100% {
+      background-position: -50% center;
+    }
+  }
+
+  /* Neumorphism text — heading "Transaksi" (InOut.html/#pageHeader), versi hijau brand
+     (#2D6A4F, sama dgn var(--primary)). Karena warna teks TIDAK disamakan dgn background
+     (beda dari versi netral sebelumnya), trik shadow classic neumorphism (2 shadow di
+     container) jadi kurang kelihatan sebab shadow-nya nge-blur/nyambung antar huruf
+     (apalagi dgn tracking-tight). Diakali dengan pasang text-shadow PER HURUF (lihat
+     .neu-letter, dibungkus manual di markup InOut.html) -> tiap huruf dapat bevel-nya
+     sendiri² (highlight terang kiri-atas + bayangan gelap kanan-bawah), jadi efek timbulnya
+     tetap kebaca jelas huruf-per-huruf. */
+  .riwayat-heading-neumorphism {
+    color: #2D6A4F;
+  }
+
+  .riwayat-heading-neumorphism .neu-letter {
+    display: inline-block;
+    letter-spacing: 0.03em;
+    text-shadow:
+      -1.5px -1.5px 1.5px rgba(255, 255, 255, 0.65),
+      2px 2px 3px rgba(27, 67, 50, 0.55);
+  }
+
+  /* Modifier khusus tab Budget — warna utama tab ini diganti biru (bg-blue-700), heading
+     "Catatan Rekening" ikut disesuaikan TANPA menyentuh rule dasar di atas (yg masih dipakai
+     heading "Transaksi" versi hijau). Ditempel BARENGAN class asli di markup
+     (ViewBudget.html): `riwayat-heading-neumorphism heading-accent-blue`, menang lewat
+     spesifisitas 2-class. */
+  .riwayat-heading-neumorphism.heading-accent-blue {
+    color: #1d4ed8;
+  }
+
+  .riwayat-heading-neumorphism.heading-accent-blue .neu-letter {
+    text-shadow:
+      -1.5px -1.5px 1.5px rgba(255, 255, 255, 0.65),
+      2px 2px 3px rgba(29, 60, 158, 0.55);
+  }
+
+  /* Jaring pengaman "maks 2 baris" utk subtitle tab Utang (ViewUtang.html) — font-size sudah
+     diperkecil di mobile (text-[11px]), tapi tetap di-clamp keras di sini supaya PASTI tidak
+     pernah lebih dari 2 baris di layar manapun/teks sepanjang apapun (mis. HP sangat sempit). */
+  .subtitle-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Kartu "3D" — dipakai di hero "Total Sisa Utang Aktif" (ViewUtang.html). Efek kedalaman
+     dibentuk dari 3 lapis: (1) bevel tipis putih transparan di tepi atas & gelap di tepi
+     bawah lewat box-shadow inset -> kartu terasa "cembung"/timbul, bukan flat; (2) drop
+     shadow luar yang warnanya dicelup ke warna kartu sendiri (bukan abu-abu generik) supaya
+     terasa menyatu & "melayang" di atas background; (3) sapuan highlight glossy di atas
+     (::before) + glow lembut pojok kanan-bawah (::after) buat kesan permukaan mengkilap.
+     Konten asli kartu WAJIB dibungkus <div class="relative z-10"> di HTML supaya tetap di
+     atas kedua pseudo-element dekoratif ini (posisinya absolute, tanpa z-index eksplisit
+     bisa ketumpuk di atas konten non-positioned kalau tidak diberi z-index lebih tinggi). */
+  .card-3d-coral {
+    position: relative;
+    border-radius: 18px;
+    background: linear-gradient(150deg, #F0805D 0%, #E86C4A 45%, #C24C31 100%);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, .45),
+      inset 0 -5px 10px -2px rgba(90, 20, 10, .35),
+      0 14px 24px -10px rgba(180, 40, 20, .55),
+      0 4px 10px rgba(120, 30, 15, .28);
+    overflow: hidden;
+  }
+
+  .card-3d-coral::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+  }
+
+  .card-3d-coral::after {
+    content: '';
+    position: absolute;
+    right: -36px;
+    bottom: -36px;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 72%);
+    pointer-events: none;
+  }
+
+  .text-bold {
+    font-weight: 600;
+  }
+
+  .text-normal {
+    font-weight: 400;
+  }
+
+  /* Variabel warna — Design Tokens */
+  :root {
+    /* Primary Brand */
+    --primary: #2D6A4F;
+    --primary-hover: #1B4332;
+    --primary-light: #D1F5E3;
+    --primary-text: #0F172A;
+
+    /* Coral — Signature Accent untuk Urgency/Utang */
+    --coral: #E86C4A;
+    --coral-hover: #D45A3D;
+    --coral-light: #FDE8E0;
+    --coral-text: #7C2D12;
+
+    /* Amber — Warning */
+    --amber: #F59E0B;
+    --amber-light: #FEF3C7;
+
+    /* Status */
+    --success: #10b981;
+    --success-light: #D1FAE5;
+    --danger: #e53e3e;
+    --danger-light: #FEE2E2;
+
+    /* Neutral */
+    --slate-900: #0F172A;
+    --slate-700: #334155;
+    --slate-600: #475569;
+    --slate-500: #64748B;
+    --slate-400: #94A3B8;
+    --slate-300: #CBD5E1;
+    --slate-200: #E2E8F0;
+    --slate-100: #F1F5F9;
+    --slate-50: #F8FAFC;
+    --white: #FFFFFF;
+
+    /* Surface */
+    --surface: #F8FAF9;
+    --surface-1: #FFFFFF;
+    --surface-2: #F1F5F9;
+    --border: #E2E8F0;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .05);
+    --shadow: 0 2px 8px rgba(0, 0, 0, .08);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, .1);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, .12);
+
+    /* Legacy mapping */
+    --primary-legacy: #2D6A4F;
+    --secondary-legacy: #10b981;
+    --danger-legacy: #e53e3e;
+    --surface-legacy: #f7f7f7;
+    --surface-1-legacy: #ffffff;
+    --text-primary-legacy: #1a1a1a;
+    --text-secondary-legacy: #6b7280;
+    --text-muted-legacy: #9ca3af;
+    --bg-legacy: #fafafa;
+    --shadow-legacy: 0 2px 6px rgba(0, 0, 0, .1);
+
+    /* FIX: --text-secondary dipakai di banyak tempat (.text-secondary, .btn-ghost,
+       .field-group label, .toast.loading) tapi belum pernah dideklarasikan -> nilainya
+       invalid sehingga fallback ke transparent. Ini akar penyebab toast (terutama
+       toast loading) tampil transparan/tidak berwarna. */
+    --text-secondary: #6c757d;
+  }
+
+  /* Reset Tailwind color overrides untuk konsistensi CSS variables */
+  .text-primary,
+  .text-primary-hover {
+    color: var(--primary);
+  }
+
+  .bg-primary,
+  .bg-primary-hover {
+    background: var(--primary);
+  }
+
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+
+  .bg-surface {
+    background: var(--surface);
+  }
+
+  .text-danger {
+    color: var(--danger);
+  }
+
+  .bg-danger,
+  .bg-expense {
+    background: var(--danger);
+  }
+
+  .bg-danger-light {
+    background: var(--danger-light);
+  }
+
+  .bg-primary-light {
+    background: var(--primary-light);
+  }
+
+  .text-success {
+    color: var(--success);
+  }
+
+  .bg-success {
+    background: var(--success);
+  }
+
+  .bg-success-light {
+    background: var(--success-light);
+  }
+
+  .text-coral {
+    color: var(--coral);
+  }
+
+  .bg-coral {
+    background: var(--coral);
+  }
+
+  .bg-coral-light {
+    background: var(--coral-light);
+  }
+
+  .text-coral-text {
+    color: var(--coral-text);
+  }
+
+  .bg-amber-light {
+    background: var(--amber-light);
+  }
+
+  /* Input */
+  input,
+  select,
+  textarea {
+    height: 48px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, .15);
+  }
+
+  < !-- FIX (format ribuan otomatis, lihat ViewJS.html): SEMUA input[type=number] di app ini sudah dikonversi ke type=text (browser menolak "."sbg pemisah ribuan di type=number). Rule di bawah jadi tidak lagi match elemen manapun saat ini — DIBIARKAN (bukan dihapus) sbg guard utk masa depan kalau ada field number baru ditambahkan lagi. -->input[type=number] {
+    -moz-appearance: textfield;
+    -webkit-appearance: none;
+  }
+
+  /* Tombol — BASE/FALLBACK standar claymorphism seluruh app. Sebelumnya cuma translateY
+     tipis tanpa shadow sama sekali (efek Transaksi hanya berlaku di InOut.html via class
+     clay-* khusus) -> SEKARANG dijadikan standar resmi: SEMUA <button>/.btn (termasuk yg
+     TIDAK ditempeli class clay-* apapun, mis. tombol close "×" di header modal, tombol
+     periode/panah di Statistik) otomatis dapat resep RAISED (shadow ganda ber-hue netral
+     + inset sheen tipis) saat resting, DIBALIK TOTAL jadi CEKUNG/inset polos + mengecil saat
+     :active/ditekan — identik resep .delete-btn-action & .nav-icon-wrap. Class clay-btn/
+     clay-chip/clay-fab/dll di bawah TETAP override base ini (selector class lebih spesifik
+     dari elemen), base ini murni fallback biar tidak ada satupun tombol yg "flat" lagi. */
+  button,
+  .btn {
+    --clay-h: var(--clay-h-neutral);
+    height: 48px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    box-shadow:
+      3px 3px 9px rgba(var(--clay-h), .16),
+      -3px -3px 9px rgba(255, 255, 255, .6),
+      inset 1px 1px 3px rgba(255, 255, 255, .5),
+      inset -2px -2px 4px rgba(var(--clay-h), .1);
+    transition: transform .12s cubic-bezier(.22, 1, .36, 1), box-shadow .12s ease, background-color 0.2s ease;
+  }
+
+  button:hover,
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  button:active,
+  .btn:active {
+    transform: scale(.96) translateY(0);
+    box-shadow:
+      inset 2px 2px 6px rgba(0, 0, 0, .18),
+      inset -2px -2px 6px rgba(255, 255, 255, .35);
+  }
+
+  button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none;
+    pointer-events: none;
+  }
+
+  /* Pengecualian SADAR dari standar raised/pressed di atas: baris menu dropdown (mis.
+     "Per Bulan"/"Per Tahun" di Statistik) BUKAN tombol berdiri sendiri, tapi baris yg
+     menempel dlm satu daftar -> kalau ikut dikasih shadow timbul per baris, malah jadi
+     terlihat "berjenjang aneh" bukannya rapi. Sengaja dikembalikan flat (shadow:none),
+     cukup highlight bg saat hover/tap. */
+  .dropdown-item-flat {
+    box-shadow: none !important;
+  }
+
+  .dropdown-item-flat:active {
+    transform: none !important;
+    background: var(--surface-2, #F1F5F9) !important;
+  }
+
+  /* FIX: warna tombol #btnSubmit (form Tambah/Edit Transaksi, teksnya toggle
+     "Simpan Transaksi" <-> "Update Transaksi" via innerText, TAPI class-nya SAMA PERSIS
+     di kedua mode -> jadi cukup 1 kali ganti di sini utk berlaku ke keduanya) disamakan
+     dgn tombol "Simpan Transaksi" di modal Salin Transaksi (InOut.html, sudah pakai Tailwind
+     bg-emerald-600/hover:bg-emerald-700 langsung), yg sebelumnya beda sendiri karena
+     .btn-primary di sini masih pakai var(--primary) (hijau tema utama, BUKAN emerald).
+     Aman diubah di sini krn cuma dipakai 2 elemen (#btnSubmit & #btnConfirmDelete) - yg
+     kedua warnanya tetap merah krn class .btn-danger dideklarasikan SETELAH .btn-primary di
+     file ini & spesifisitasnya sama (satu class) -> cascade CSS tetap menangkan .btn-danger,
+     TIDAK terpengaruh perubahan warna di sini. */
+  .btn-primary {
+    background: #059669;
+    /* Tailwind emerald-600 */
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: #047857;
+    /* Tailwind emerald-700 */
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .btn-ghost:hover {
+    background: var(--surface);
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background: #d32f2f;
+  }
+
+  /* Section */
+  .view-section {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .view-section.active {
+    display: block;
+    opacity: 1;
+  }
+
+  /* FIX (tab Budget overflow horizontal), DIPERSEMPIT ke #viewBudget saja (BUKAN lagi
+     global di .view-section): jaga2 supaya kartu stack rekening yg mengintip ke kanan
+     (lihat #rekeningList & .rekening-stack-card di bawah) atau elemen lain yg sedikit
+     melebar tidak pernah memicu scrollbar horizontal di level section/halaman.
+     ROOT CAUSE bug shadow kartu Riwayat Transaksi terpotong rata di bawah: sebelumnya rule
+     ini nempel di ".view-section" generik (dipakai SEMUA tab: Riwayat/Tambah/Statistik/
+     Budget/Utang) tanpa "overflow-y" eksplisit -> per spesifikasi CSS, overflow-x selain
+     "visible" tanpa overflow-y eksplisit membuat browser otomatis resolve overflow-y jadi
+     "auto" (bukan tetap "visible"), sehingga glow/shadow clay kartu Riwayat Transaksi yg
+     meluber ke bawah ikut ke-clip. Sekarang di-scope ke "#viewBudget.view-section" saja
+     supaya tab lain (termasuk Riwayat Transaksi) tetap overflow default (visible), shadow
+     tidak terpotong lagi — sama pola akar masalah dgn fix "filter chip terpotong di atas"
+     sebelumnya (overflow-x tanpa overflow-y eksplisit). */
+  #viewBudget.view-section {
+    /* overflow-x: hidden; */
+    /* FIX (dipaksa user): #viewBudget duduk di dalam parent flex/grid (area konten utama,
+       lihat <main>/wrapper di InOut.html) yg tanpa override ini membiarkan default
+       min-height:auto bawaan flex item -> section ini bisa "menolak mengecil" & ikut
+       mendorong tinggi total melebihi 1 layar (konten anaknya, termasuk stack kartu
+       rekening, dihitung pada tinggi natural bukan tinggi yg tersedia). !important dipakai
+       supaya menang mutlak dari kemungkinan aturan flex/grid bawaan Tailwind lain di
+       parent-nya. */
+    min-height: 0 !important;
+  }
+
+  /* FIX: #viewTambah (modal Tambah/Edit Transaksi) tetap pakai class "view-section" supaya
+     kompatibel dgn switchTab() di ViewJS.html (yg toggle .active), tapi markup-nya sekarang
+     wrapper overlay "fixed inset-0 ... flex items-center justify-center" (lihat InOut.html).
+     Tanpa override ini, ".view-section.active{display:block}" di atas menang (spesifisitas
+     2 class > 1 class Tailwind "flex") -> flex items-center justify-center jadi tidak
+     berfungsi & modal tidak ter-center. */
+  #viewTambah.active {
+    display: flex;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Input grouping */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 2px;
+  }
+
+  .field-group input,
+  .field-group select {
+    width: 100%;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50px);
+    background: var(--slate-600, #475569);
+    /* fallback supaya toast tidak pernah transparan */
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .15);
+  }
+
+  .toast.show {
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .toast.success {
+    background: var(--primary);
+  }
+
+  .toast.error {
+    background: var(--danger);
+  }
+
+  .toast.loading {
+    background: var(--text-secondary);
+  }
+
+  /* Spinner icon (dipakai toast loading & tombol scan struk saat proses) */
+  .spin {
+    animation: spin 0.9s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Animasi TRANSISI DROPDOWN untuk teks hasil Rekomendasi AI saat pertama kali muncul
+     (dipicu setelah double click/double tap kartu #aiRecommendation). Dua-tahap: mulai dari
+     max-height:0 (tersembunyi), lalu class .open ditambahkan via JS 1 frame kemudian supaya
+     transisinya benar-benar teranimasi (bukan langsung snap ke ukuran penuh). */
+  #aiRecommendationText .ai-rec-dropdown {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height .45s cubic-bezier(.4, 0, .2, 1), opacity .35s ease;
+  }
+
+  #aiRecommendationText .ai-rec-dropdown.open {
+    max-height: 1600px;
+    opacity: 1;
+  }
+
+  /* Skeleton shimmer loading (dipakai saat render Statistik: kartu ringkasan, chart, kategori) */
+  .stat-loading {
+    pointer-events: none;
+  }
+
+  .stat-loading .stat-card,
+  .stat-loading #statistikChart,
+  .stat-loading #categoryBars,
+  .stat-loading #aiRecommendationText {
+    position: relative;
+    overflow: hidden;
+    color: transparent !important;
+    background: linear-gradient(90deg, var(--slate-100) 25%, var(--slate-200) 37%, var(--slate-100) 63%);
+    background-size: 400% 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 10px;
+    min-height: 24px;
+  }
+
+  .stat-loading .stat-card * {
+    visibility: hidden;
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Scrollbar */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Safe area */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* Material icon */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL'0, 'wght'400, 'GRAD'0, 'opsz'24;
+  }
+
+  /* Nav bar */
+  .nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    width: 100%;
+    padding: 4px 0;
+  }
+
+  /* Chip buttons */
+  .chip-btn {
+    white-space: nowrap;
+  }
+
+  /* ===== UTANG & CICILAN — VIEWPORT "PAS LAYAR" + PAGINATION KARTU =====
+     #utangViewport tingginya diset via JS (fitUtangViewport() di ViewJS.html) supaya persis
+     muat di ruang kosong viewport (browser height dikurangi header situs & nav bawah), lalu
+     dibagi flex column: bagian atas (.utang-viewport-fixed = header/hero/notif/judul) TIDAK
+     ikut menyusut, sisanya diberikan ke #utangListViewport (area kartu, overflow disembunyikan
+     supaya TIDAK PERNAH memicu scroll) -> kalau kartu lebih banyak dari ruang yang ada, sisanya
+     dipecah ke halaman berikutnya (client-side pagination) & digeser via transform, bukan
+     scroll panjang. */
+  .utang-viewport {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .utang-viewport-fixed {
+    flex: 0 0 auto;
+  }
+
+  .utang-list-viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+    /* pan-y: biarkan browser tangani scroll vertikal (jaring pengaman .utang-list-page),
+       tapi jangan tangani gesture horizontal sendiri -> supaya swipe kiri/kanan sepenuhnya
+       dikendalikan JS (initUtangSwipe_() di ViewJS.html) tanpa "rebutan" dgn browser. */
+    touch-action: pan-y;
+  }
+
+  .utang-list-track {
+    display: flex;
+    align-items: flex-start;
+    height: 100%;
+    width: 100%;
+    transition: transform .38s cubic-bezier(.22, 1, .36, 1);
+    will-change: transform;
+  }
+
+  .utang-list-page {
+    flex: 0 0 100%;
+    max-width: 100%;
+    min-height: 0;
+    /* auto (bukan hidden) sebagai JARING PENGAMAN saja kalau perhitungan tinggi kartu di JS
+       meleset beberapa pixel (mis. font belum sempat load) -> scrollbar-nya disembunyikan
+       (lihat aturan ::-webkit-scrollbar di bawah) supaya tetap terasa "pas layar", bukan
+       scroll panjang yang terlihat. Kalau perhitungan akurat (kasus normal), ini tidak pernah
+       kepakai karena isi 1 halaman memang selalu <= tinggi area ini. */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    padding-right: 2px;
+    /* jaga shadow kartu paling kanan tidak terpotong garis tepi */
+  }
+
+  .utang-list-page::-webkit-scrollbar {
+    display: none;
+  }
+
+  .utang-pagination-controls {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-top: 12px;
+  }
+
+  .utang-pagination-controls:empty {
+    padding-top: 0;
+  }
+
+  /* ===== BUDGET — VIEWPORT "PAS LAYAR" (mirip .utang-viewport) =====
+     #budgetViewport dibungkus dengan flex column, tempatnya dikontrol oleh
+     fitRekeningListViewport_() di ViewJS.html supaya PERSIS sebesar sisa
+     ruang kosong di viewport (dikurangi header situs & nav bawah).
+     Bagian atas (header/hero/indikator) dikelompokkan di .budget-viewport-fixed
+     agar TIDAK ikut berubah tinggi, sisanya diberikan ke #rekeningList via flex:1. */
+  .budget-viewport {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .budget-viewport-fixed {
+    flex: 0 0 auto;
+  }
+
+  .utang-pagination-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .utang-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    border: none;
+    padding: 0;
+    background: var(--slate-300);
+    transition: width .3s ease, background-color .3s ease;
+    cursor: pointer;
+  }
+
+  .utang-pagination-dot.active {
+    width: 22px;
+    background: var(--coral);
+  }
+
+  .utang-pagination-arrow {
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-500);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+
+  .utang-pagination-arrow:hover:not(:disabled) {
+    color: var(--coral);
+    border-color: var(--coral);
+  }
+
+  .utang-pagination-arrow:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+
+  /* ===== RIWAYAT TRANSAKSI — PAGINATION "gaya Utang" (panah + titik) =====
+     Struktur & ukuran identik dgn .utang-pagination-*, hanya warna aktif dot dipakai
+     --primary (hijau, tema transaksi kas) bukan --coral (dipakai khusus tab Utang). Dot/panah
+     ini menggantikan tombol nomor halaman lama di #paginationControls -> lihat
+     renderPaginationUI() di ViewJS.html. #riwayatList sendiri jadi target swipe (lihat
+     initRiwayatSwipe_() di ViewJS.html) & tinggi max-nya diatur JS (fitRiwayatListViewport_())
+     supaya HANYA area list ini yg scroll kalau 10 transaksi tidak muat di layar. */
+  #paginationControls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .riwayat-pagination-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .riwayat-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    border: none;
+    padding: 0;
+    background: var(--slate-300);
+    transition: width .3s ease, background-color .3s ease;
+    cursor: pointer;
+  }
+
+  .riwayat-pagination-dot.active {
+    width: 22px;
+    background: var(--primary);
+  }
+
+  .riwayat-pagination-arrow {
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-500);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+
+  .riwayat-pagination-arrow:hover:not(:disabled) {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .riwayat-pagination-arrow:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+
+  /* ===== BUDGET/CATATAN REKENING — PAGINATION (bentuk DISAMAKAN dgn tab Riwayat/Transaksi) =====
+     FIX: indikator lama (renderRekeningStackIndicator_() di ViewJS.html) sempat nulis ke id
+     yg tidak pernah ada di ViewBudget.html (#rekeningDotsContainer/#btnPrevRekening/
+     #btnNextRekening) & baca variabel yg tidak pernah dideklarasikan (rekeningTotalPages/
+     rekeningCurrentPage) -> #rekeningPaginationControls selalu kosong (silent no-op).
+     Diperbaiki supaya render ke #rekeningPaginationControls (id yg BENAR2 ada di
+     ViewBudget.html) dgn struktur & ukuran IDENTIK dgn .riwayat-pagination-*/
+  .utang-pagination-* (panah bulat clay + titik dot, ≤7 rekening=dots, >7=teks "x/y") — hanya warna aktif dot & hover panah yg beda (biru solid #1d4ed8 / Tailwind blue-700, sesuai tema tab Budget),
+  sama seperti .utang-pagination-* pakai --coral & .riwayat-pagination-* pakai --primary. Beda dgn Riwayat/Utang: kartu rekening bersifat MELINGKAR/loop (lihat nextRekeningStack_()/prevRekeningStack_() di ViewJS.html) jadi panah kiri/kanan TIDAK PERNAH disabled kecuali cuma 1 rekening. */ .rekening-pagination-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .rekening-pagination-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    border: none;
+    padding: 0;
+    background: var(--slate-300);
+    transition: width .3s ease, background-color .3s ease;
+    cursor: pointer;
+  }
+
+  .rekening-pagination-dot.active {
+    width: 22px;
+    background: #1d4ed8;
+  }
+
+  .rekening-pagination-arrow {
+    width: 30px;
+    height: 30px;
+    min-height: 0;
+    padding: 0;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white);
+    border: 1px solid var(--slate-200);
+    color: var(--slate-500);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all .2s ease;
+  }
+
+  .rekening-pagination-arrow:hover:not(:disabled) {
+    color: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+
+  .rekening-pagination-arrow:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+  }
+
+  /* ===== BUDGET/CATATAN REKENING — CARD STACK SLIDER (HORIZONTAL) =====
+     Pengganti list+pagination lama: #rekeningList (ViewBudget.html) jadi "meja" tumpukan
+     kartu — overflow:hidden supaya kartu yg digeser keluar (delta<0, lihat
+     applyRekeningStackTransform_() di ViewJS.html) tidak nongol menembus komponen lain di
+     sampingnya. Tiap kartu (.rekening-stack-card) diposisikan absolute nyaris-penuh di dalam
+     #rekeningList supaya bisa saling bertumpuk persis di titik yg sama sebelum
+     transform/translateX menggeser & mengecilkannya (ke KANAN, arah "mengintip") sesuai
+     jaraknya (delta) dari kartu aktif (rekeningStackIndex). position:relative WAJIB ada di
+     #rekeningList sbg containing block utk anak-anaknya yg absolute.
+     FIX (shadow clay kartu depan kelihatan "terpotong" rata di tepi wadah): kartu
+     (.rekening-stack-card, lihat renderRekeningCard() di ViewJS.html) sekarang pakai
+     "inset-[6px]" (BUKAN "inset-0" lagi) supaya shadow clay-nya (yg menyebar ~6px ke segala
+     arah) punya ruang napas di dalam wadah SEBELUM kena garis overflow:hidden.
+     FIX (kartu yg "mengintip"/keluar-masuk stack kelihatan terpotong rata garis lurus):
+     ditambah mask-image gradient **horizontal (kiri-kanan) + vertikal (atas-bawah)** di #rekeningList (menggunakan mask-composite:intersect) supaya kartu yg
+     digeser keluar batas memudar (fade) halus, bukan terpotong tegas — pengganti "pembatas"
+     tegas dgn transisi visual yg lebih halus. */
+  #rekeningList {
+    position: relative;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%),
+      linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  .rekening-stack-card {
+    will-change: transform, opacity;
+    /* pan-y: biarkan browser tangani scroll vertikal halaman, gesture horizontal (swipe
+       ganti kartu) sepenuhnya ditangani JS (handleRekeningTouchMove_/-End_) tanpa "rebutan"
+       dgn scroll native — sama pola dgn .utang-list-viewport di atas. */
+    touch-action: pan-y;
+  }
+
+
+  /* Select dropdown custom styling */
+  select {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+  }
+
+  /* ===== Flatpickr - override tema default =====
+     Bawaan flatpickr pakai warna biru (#569ff7 dkk) utk outline/ring tanggal terpilih &
+     rentang (hover, selected, startRange/endRange, inRange) -> kontras & tidak nyambung dgn
+     tema hijau app. Paling kentara di kalender "Pilih periode" (filter transaksi, mode
+     "range", lihat #filterRangeDate di InOut.html) krn area inRange-nya lebar & mencolok.
+     Override di bawah mengganti semua warna itu ke var(--primary)/var(--primary-light),
+     JUGA menghapus outline/box-shadow biru bawaan pada tanggal fokus via keyboard. */
+  .flatpickr-day.selected,
+  .flatpickr-day.selected:hover,
+  .flatpickr-day.startRange,
+  .flatpickr-day.startRange:hover,
+  .flatpickr-day.endRange,
+  .flatpickr-day.endRange:hover,
+  .flatpickr-day.selected.startRange,
+  .flatpickr-day.startRange.startRange,
+  .flatpickr-day.endRange.endRange {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  .flatpickr-day.inRange,
+  .flatpickr-day.prevMonthDay.inRange,
+  .flatpickr-day.nextMonthDay.inRange {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+    box-shadow: -5px 0 0 var(--primary-light), 5px 0 0 var(--primary-light);
+  }
+
+  .flatpickr-day.today {
+    border-color: var(--primary);
+  }
+
+  .flatpickr-day.today:hover,
+  .flatpickr-day.today:focus {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+
+  .flatpickr-day:hover,
+  .flatpickr-day:focus {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+  }
+
+  .flatpickr-day:focus {
+    outline: none;
+    box-shadow: none;
+  }
+
+  .flatpickr-months .flatpickr-prev-month:hover svg,
+  .flatpickr-months .flatpickr-next-month:hover svg {
+    fill: var(--primary);
+  }
+
+  .numInputWrapper span.arrowUp:after {
+    border-bottom-color: var(--primary);
+  }
+
+  .numInputWrapper span.arrowDown:after {
+    border-top-color: var(--primary);
+  }
+
+  /* ============================================================
+     CLAYMORPHISM — tampilan Transaksi (InOut.html) SAJA
+     ============================================================
+     Mengikuti resep di Claymorphism.md (radius chunky, 3D soft-shadow
+     ber-hue, inset sheen, squish on-press) TAPI palet warna lama TIDAK
+     diganti — tidak ada lavender/mint/sky baru. "H" pada resep shadow
+     tetap diambil dari token lama (var(--primary), var(--coral),
+     var(--danger), var(--amber)), masing2 di-darken ~15% jadi channel
+     RGB (--clay-h-*) supaya shadow tetap "berwarna sesuai hue kartu",
+     bukan abu-abu generik, persis semangat §4 & §7 Claymorphism.md.
+     Semua class di sini prefix "clay-" & HANYA dipakai di InOut.html
+     + template kartu riwayat (renderRiwayatUI di ViewJS.html) supaya
+     tab lain (Budget/Statistik/Utang) tidak ikut berubah dulu. */
+  :root {
+    /* --- Radius tokens (Claymorphism.md §2) --- */
+    --clay-r-card: 28px;
+    --clay-r-card-sm: 22px;
+    --clay-r-button: 18px;
+    --clay-r-chip: 999px;
+    --clay-r-input: 16px;
+    --clay-r-icon: 20px;
+
+    /* --- H = warna brand LAMA, didarken ~15%, sbg channel RGB shadow --- */
+    --clay-h-primary: 38, 90, 67;
+    /* dari var(--primary)   #2D6A4F */
+    --clay-h-coral: 197, 92, 63;
+    /* dari var(--coral)     #E86C4A */
+    --clay-h-danger: 195, 53, 53;
+    /* dari var(--danger)    #e53e3e */
+    --clay-h-amber: 208, 134, 9;
+    /* dari var(--amber)     #F59E0B */
+    --clay-h-neutral: 100, 116, 139;
+    /* dari var(--slate-500) — utk kartu netral/putih */
+    --clay-h-blue: 31, 84, 200;
+    /* dari blue-600 #2563EB, didarken ~15% — dipakai FAB speed-dial "Pindah Saldo" */
+  }
+
+  /* Resep dasar 3-lapis shadow (drop berwarna SE + light-lift putih NW),
+     kunci warnanya ikut var(--clay-h) yg di-override per elemen/varian. */
+  .clay {
+    --clay-h: var(--clay-h-primary);
+    border-radius: var(--clay-r-card);
+    box-shadow:
+      6px 6px 16px rgba(var(--clay-h), .20),
+      -6px -6px 16px rgba(255, 255, 255, .75),
+      inset 2px 2px 5px rgba(255, 255, 255, .55),
+      inset -3px -3px 7px rgba(var(--clay-h), .10);
+    transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s ease;
+  }
+
+  /* Kartu Rekening (tab Budget, .rek-card-item) — level ".clay" dasar dirasa "kelihatan
+     putih"/kurang cembung (laporan visual user): kartu-kartu ini berjejer rapat & bg-nya
+     putih polos tanpa ikon warna-warni besar spt kartu Transaksi, jadi sisi terang (white
+     NW .75) mendominasi sementara sisi gelap ber-hue (.20) kurang kebaca -> kesan flat.
+     FIX: dinaikkan manual (opacity sisi gelap + blur diperkuat) KHUSUS selector
+     .rek-card-item, TIDAK mengubah ".clay" global (masih dipakai kartu Transaksi & lain2
+     yg sudah oke). */
+  .rek-card-item.clay {
+    box-shadow:
+      6px 6px 18px rgba(var(--clay-h), .32),
+      -6px -6px 18px rgba(255, 255, 255, .85),
+      inset 2px 2px 5px rgba(255, 255, 255, .6),
+      inset -3px -3px 8px rgba(var(--clay-h), .18);
+  }
+
+  /* Varian kunci hue — tinggal tempel di elemen ber-.clay utk ganti "H"
+     tanpa ubah warna asli elemen (bg tetap dari class Tailwind lama). */
+  .clay-key-primary {
+    --clay-h: var(--clay-h-primary);
+  }
+
+  .clay-key-coral {
+    --clay-h: var(--clay-h-coral);
+  }
+
+  .clay-key-danger {
+    --clay-h: var(--clay-h-danger);
+  }
+
+  .clay-key-amber {
+    --clay-h: var(--clay-h-amber);
+  }
+
+  .clay-key-neutral {
+    --clay-h: var(--clay-h-neutral);
+  }
+
+  .clay-key-blue {
+    --clay-h: var(--clay-h-blue);
+  }
+
+  /* Kartu resting (L1) — dipakai utk kotak search+filter & tiap kartu
+     transaksi (.tx-card-item) di riwayat. */
+  .clay-card {
+    border-radius: var(--clay-r-card-sm);
+  }
+
+  /* Lembar/modal mengambang (L2) — offset & blur lebih besar dari L1,
+     dipakai utk semua card-modal (Filter, Export, Tambah/Edit, Salin,
+     Detail, Hapus). */
+  .clay-sheet {
+    --clay-h: var(--clay-h-primary);
+    border-radius: var(--clay-r-card);
+    box-shadow:
+      0 14px 34px rgba(var(--clay-h), .22),
+      0 2px 8px rgba(var(--clay-h), .12),
+      inset 2px 2px 6px rgba(255, 255, 255, .55),
+      inset -3px -3px 10px rgba(var(--clay-h), .08);
+  }
+
+  /* Tombol clay — geometri sesuai §5 (radius 18, tinggi 54), efek
+     "squish": tenggelam ke halaman saat ditekan (scale + shadow menyusut). */
+  .clay-btn {
+    --clay-h: var(--clay-h-primary);
+    border-radius: var(--clay-r-button) !important;
+    box-shadow:
+      5px 5px 14px rgba(var(--clay-h), .32),
+      -5px -5px 14px rgba(255, 255, 255, .5),
+      inset 2px 2px 4px rgba(255, 255, 255, .35),
+      inset -3px -3px 7px rgba(var(--clay-h), .22);
+    transition: transform .12s ease, box-shadow .12s ease, background-color .2s ease;
+  }
+
+  .clay-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .clay-btn:active {
+    transform: scale(.96) translateY(0);
+    box-shadow:
+      inset 3px 3px 8px rgba(0, 0, 0, .22),
+      inset -3px -3px 8px rgba(255, 255, 255, .3);
+  }
+
+  /* Tombol sekunder (Batal/Tutup) — shadow lebih halus (§5 secondary .25) */
+  .clay-btn-secondary {
+    --clay-h: var(--clay-h-neutral);
+    box-shadow:
+      4px 4px 12px rgba(var(--clay-h), .18),
+      -4px -4px 12px rgba(255, 255, 255, .6),
+      inset 2px 2px 4px rgba(255, 255, 255, .5),
+      inset -2px -2px 5px rgba(var(--clay-h), .10);
+  }
+
+  .clay-btn-secondary:active {
+    box-shadow:
+      inset 2px 2px 6px rgba(var(--clay-h), .25),
+      inset -2px -2px 6px rgba(255, 255, 255, .5);
+  }
+
+  /* Chip / pill (filter jenis, status) — shadow setengah kekuatan (§5) */
+  .clay-chip {
+    --clay-h: var(--clay-h-primary);
+    border-radius: var(--clay-r-chip) !important;
+    box-shadow:
+      3px 3px 9px rgba(var(--clay-h), .18),
+      -3px -3px 9px rgba(255, 255, 255, .6),
+      inset 1px 1px 3px rgba(255, 255, 255, .5),
+      inset -2px -2px 4px rgba(var(--clay-h), .12);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+
+  .clay-chip:active {
+    transform: scale(.92);
+    box-shadow:
+      inset 2px 2px 6px rgba(0, 0, 0, .2),
+      inset -2px -2px 6px rgba(255, 255, 255, .3);
+  }
+
+  /* Radio button custom — dipakai di modal Filter Transaksi & modal lain yg butuh pilihan
+     tunggal (radio). Native <input type="radio"> browser (lingkaran biru bawaan OS, lihat
+     screenshot referensi) SAMA SEKALI tidak claymorphism -> di-reset total via appearance:none
+     lalu dibentuk ulang manual: state kosong = lingkaran RAISED/puffy (neumorphic, dua shadow
+     berlawanan arah, TANPA inset), state terpilih = INSET (dibalik, seolah "ditekan") —
+     TANPA ikon/checkmark/dot apapun di tengah, cukup perbedaan raised vs inset utk
+     menandakan status terpilih. Prefix .clay- konsisten dgn class lain di sistem ini.
+     BUG YANG PERNAH KEJADIAN: lingkaran biru oval + ikon aneh muncul di state :checked ->
+     penyebabnya Tailwind Forms plugin (@tailwindcss/forms) otomatis nempelin
+     background-image (SVG dot/check) + background-color: currentColor (biru) khusus utk
+     input[type=radio]:checked, dan rule itu MENANG karena kita cuma override box-shadow,
+     bukan background/border. Makanya di bawah background & border DIPAKSA !important di
+     kedua state (resting & checked) supaya style bawaan si plugin kalah telak.
+     BUG SUSULAN: setelah background dibenerin, bentuknya masih OVAL/PIL bukan bulat
+     sempurna -> width/height 22px kita sebelumnya TANPA !important, jadi masih bisa
+     ditimpa width/height bawaan Tailwind Forms plugin (biasanya dalam satuan em, beda
+     rasio dari 22px kita) -> width & height sekarang dipaksa !important + box-sizing:
+     border-box + flex-shrink:0 (krn parent label pakai class flex, tanpa ini elemen bisa
+     "diperas" tidak proporsional oleh flexbox) supaya selalu 22x22 persegi -> border-radius
+     999px baru menghasilkan lingkaran sempurna. */
+  .clay-radio {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    box-sizing: border-box;
+    display: inline-block;
+    flex-shrink: 0;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px;
+    min-height: 22px;
+    padding: 0 !important;
+    border-radius: 999px;
+    background: var(--surface) !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow:
+      3px 3px 5px rgba(var(--clay-h, var(--clay-h-primary)), .18),
+      -3px -3px 5px rgba(255, 255, 255, .85);
+    position: relative;
+    cursor: pointer;
+    margin: 0;
+    transition: box-shadow .3s ease;
+  }
+
+  .clay-radio:checked {
+    background: var(--surface) !important;
+    background-image: none !important;
+    border: none !important;
+    box-shadow:
+      inset 3px 3px 5px rgba(var(--clay-h, var(--clay-h-primary)), .3),
+      inset -3px -3px 5px rgba(255, 255, 255, .9);
+  }
+
+  .clay-radio:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  /* Button filter jenis (Semua/Pemasukan/Pengeluaran) SENGAJA tidak ikut radius
+     penuh (pill) dari .clay-chip -> radius kecil TETAP/statis (8px, angka
+     mutlak, BUKAN var(--clay-r-chip) yg 999px) supaya sudutnya cuma "ditumpulkan
+     dikit", tidak lancip tapi juga tidak jadi bulat/pill. Override spesifik ke
+     .chip-btn (bukan .clay-chip global) supaya chip lain (export PDF,
+     notifikasi, salin transaksi, date-range) tetap pill seperti semula.
+     (Tombol close/X modal JUGA dipakaikan class clay-chip clay-key-neutral
+     langsung di markup — raised saat resting, inset saat :active, resepnya
+     sudah otomatis ikut dari .clay-chip di atas, tidak perlu rule baru.) */
+  .chip-btn.clay-chip {
+    border-radius: 8px !important;
+  }
+
+  /* Field tanggal (flatpickr) bergaya TOMBOL, bukan form — sebelumnya semua field tanggal
+     (#tanggal, #salinTanggal, #pindahSaldoTanggal, #formUtangTglJatuh, #filterRangeDate)
+     masih terlihat kayak input teks biasa (class .clay-input, "sumur" inset) PADAHAL
+     opsi flatpickr-nya allowInput:true -> user BISA ketik manual, gampang salah format &
+     visualnya beda dari tombol "Upload Struk"/"Foto Struk" di sebelahnya (persegi clay-btn
+     raised/puffy). FIX: dibungkus div ber-class sama persis dgn tombol asli (`btn clay-btn
+     clay-btn-secondary`, lihat markup InOut.html/ViewUtang.html) + ikon calendar_month di
+     kiri -> visual IDENTIK tombol. <input> aslinya (altInput hasil flatpickr, DIBERI class
+     ini via JS setelah init, lihat armDatePicker_() di InOut.html) dibikin transparan total
+     & caret disembunyikan supaya tidak kelihatan seperti "kotak isian" — user CUMA bisa pilih
+     via kalender popup (readOnly=true dipasang barengan di JS, allowInput:false di config). */
+  .clay-date-picker-field {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer !important;
+    caret-color: transparent;
+    padding: 0 !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  .clay-date-picker-field::placeholder {
+    color: inherit;
+    opacity: .55;
+  }
+
+  /* Chip "Pilih periode" (filterRangeDate) — hue primary tetap ditonjolkan (teks hijau bold,
+     beda dari field tanggal biasa yg netral) krn ini pemicu kalender RANGE, bukan tanggal
+     tunggal, jadi sengaja dibuat sedikit lebih mencolok. Class modifier ditempel manual via
+     armDatePicker_() (InOut.html) — BUKAN selector by-ID, krn altInput hasil flatpickr TIDAK
+     mewarisi id dari input aslinya (cuma className, itupun riwayatnya sempat tidak konsisten
+     antar versi, lihat catatan di bawah), jadi selector by-ID pasti tidak pernah kena. */
+  .clay-date-picker-field--accent {
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  /* Input clay — SUMUR tertekan-ke-dalam: hanya inset shadow, tanpa
+     drop shadow luar (persis §5 "Input"), radius --r-input. */
+  .clay-input,
+  .clay-input.field-group input,
+  .clay-input.field-group select {
+    border-radius: var(--clay-r-input) !important;
+    border-color: transparent !important;
+    box-shadow:
+      inset 3px 3px 8px rgba(var(--clay-h-primary), .14),
+      inset -3px -3px 8px rgba(255, 255, 255, .8);
+    background: var(--surface) !important;
+  }
+
+  .clay-input:focus,
+  .clay-input.field-group input:focus,
+  .clay-input.field-group select:focus {
+    box-shadow:
+      inset 3px 3px 8px rgba(var(--clay-h-primary), .2),
+      inset -3px -3px 8px rgba(255, 255, 255, .85),
+      0 0 0 3px rgba(45, 106, 79, .15);
+  }
+
+  /* #filterRangeDate (input "Pilih periode" di modal Filter Transaksi) — DULU dibungkus div
+     ".clay-input" (sumur inset, gaya form) dgn hack CSS universal-selector krn flatpickr
+     bikin altInput baru & nyulitkan targeting persis. SEKARANG diganti total: dibungkus
+     ".btn .clay-btn .clay-btn-secondary" (persis gaya tombol "Upload Struk"/"Foto Struk"),
+     altInput-nya diberi class ".clay-date-picker-field" langsung via JS (armDatePicker_()
+     di InOut.html, 100% presisi krn imperatif — bukan tebak-tebak selector CSS lagi), jadi
+     blok hack lama di atas sudah tidak diperlukan & dihapus. */
+
+  /* Custom dropdown claymorphism — pengganti popup native <select> (mis. #jenis, #sumber
+     di form Tambah/Edit Transaksi). Popup <select> bawaan dirender OS/browser sendiri,
+     TIDAK BISA di-style CSS -> select asli disembunyikan (.clay-select-native-hidden,
+     visually-hidden TAPI tetap ada di DOM & tetap satu-satunya sumber data, lihat
+     enhanceClaySelect_() di ViewJS.html), diganti tombol trigger + list custom di bawah
+     ini yg sepenuhnya claymorphism. */
+  .clay-select-native-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .clay-select-trigger {
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+  }
+
+  .clay-select-trigger .material-symbols-outlined {
+    transition: transform .2s ease;
+  }
+
+  .clay-select-trigger.is-open .material-symbols-outlined {
+    transform: rotate(180deg);
+  }
+
+  /* List popup — posisi FIXED (di-append ke document.body & dihitung manual via
+     getBoundingClientRect() trigger, lihat enhanceClaySelect_()) supaya TIDAK ke-clip
+     oleh overflow-y-auto pada form modal (bug umum kalau dropdown custom nested biasa
+     di dalam scroll container). Shadow-nya versi "puffy keluar" (bukan inset), krn ini
+     elemen yg "melayang" di atas UI lain, bukan sumur seperti clay-input.
+     FIX (list panjang tidak bisa di-scroll/swipe): overflow-y:auto di sini SEBENARNYA
+     sudah cukup utk scroll mouse-wheel/trackpad sejak awal — akar masalahnya ada di JS
+     (listener 'scroll' capture di document yg menutup list begitu discroll SEDIKIT PUN,
+     termasuk scroll dari dalam list sendiri; sudah digded via guard `list.contains()` di
+     enhanceClaySelect_()/enhanceClayCombobox_(), ViewJS.html). `-webkit-overflow-scrolling`
+     & `touch-action` di bawah ditambahkan supaya SWIPE jari di iOS/Android terasa mulus
+     (momentum scroll native) & tidak "dicegat" gesture lain di halaman belakangnya. */
+  .clay-select-list {
+    position: fixed;
+    z-index: 10050;
+    max-height: 240px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    border-radius: var(--clay-r-input);
+    background: var(--surface-1);
+    padding: 6px;
+    box-shadow:
+      3px 3px 8px rgba(var(--clay-h-primary), .18),
+      -3px -3px 8px rgba(255, 255, 255, .7),
+      0 10px 24px rgba(var(--clay-h-primary), .16);
+  }
+
+  .clay-select-option {
+    padding: 8px 10px;
+    border-radius: calc(var(--clay-r-input) - 6px);
+    font-size: .875rem;
+    font-weight: 500;
+    color: #334155;
+    cursor: pointer;
+    transition: background-color .12s ease, color .12s ease;
+  }
+
+  .clay-select-option:hover {
+    background: rgba(var(--clay-h-primary), .08);
+  }
+
+  .clay-select-option.is-selected {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+  }
+
+  /* State non-klik khusus combobox Kategori (#kategori) — muncul saat hasil pencarian
+     kosong (baik krn belum ada kategori sama sekali, maupun user sedang mengetik nama
+     kategori baru yg belum ada di list) -> tidak boleh kelihatan "bisa diklik" spt opsi
+     normal, krn memang tidak ada listener klik yg dipasang di elemen ini. */
+  .clay-select-option.is-empty {
+    color: #94a3b8;
+    cursor: default;
+    font-style: italic;
+  }
+
+  .clay-select-option.is-empty:hover {
+    background: transparent;
+  }
+
+  /* Ikon "squircle" bulat — avatar kategori/jenis transaksi, notif, dsb */
+  .clay-icon-tile {
+    --clay-h: var(--clay-h-primary);
+    border-radius: var(--clay-r-icon);
+    box-shadow:
+      3px 3px 8px rgba(var(--clay-h), .22),
+      -3px -3px 8px rgba(255, 255, 255, .6),
+      inset 1px 1px 3px rgba(255, 255, 255, .5),
+      inset -2px -2px 4px rgba(var(--clay-h), .14);
+  }
+
+  /* Tombol hapus (kartu transaksi/rekening/utang, class .delete-btn-action) — sebelumnya
+     cuma bg-red polos TANPA shadow apapun, "nempel flat" dibanding elemen lain yg sudah
+     full clay. FIX: shadow versi awal (level .clay-chip) ternyata KETUTUPAN warna solid
+     bg-red-nya sendiri -> nyaris tak kelihatan. Sekarang pakai kekuatan shadow setara
+     .clay-btn (offset & blur lebih besar, opacity lebih tinggi) supaya "timbul"-nya
+     kebaca jelas persis gaya tombol lain yg sudah clay. State "TIDAK aktif/belum ditekan"
+     (resting) = raised (shadow ganda ber-hue merah var(--clay-h-danger) + inset sheen tipis,
+     resep sama dgn .nav-icon-wrap.nav-icon-inactive). State "AKTIF/ditekan" (:active) =
+     dibalik total jadi CEKUNG/inset (persis .nav-icon-wrap.nav-icon-active, sumur tertekan
+     ke dalam) + scale mengecil, jadi transisi timbul->tertekan terasa senyata tombol nav
+     bawah saat diketuk. */
+  .delete-btn-action {
+    --clay-h: var(--clay-h-danger);
+    box-shadow:
+      5px 5px 14px rgba(var(--clay-h), .4),
+      -5px -5px 14px rgba(255, 255, 255, .55),
+      inset 2px 2px 4px rgba(255, 255, 255, .4),
+      inset -3px -3px 7px rgba(var(--clay-h), .3);
+    transition: transform .12s cubic-bezier(.22, 1, .36, 1), box-shadow .12s ease, background-color .2s ease;
+  }
+
+  .delete-btn-action:active {
+    transform: scale(.88);
+    box-shadow:
+      inset 3px 3px 8px rgba(0, 0, 0, .45),
+      inset -3px -3px 8px rgba(255, 255, 255, .3);
+  }
+
+  /* FIX "efek hover kartu transaksi salah/nyangkut di mobile": sebelumnya
+     .tx-card-item cuma pakai utility Tailwind "hover:-translate-y-0.5" (di
+     renderRiwayatUI(), ViewJS.html) TANPA ada perubahan warna sama sekali.
+     Di browser mobile, pseudo-class :hover itu sendiri "nyangkut" (stays
+     stuck) setelah disentuh karena tidak ada mouse yg benar2 leave elemen
+     -> efeknya baru hilang saat user tap elemen lain. Solusi:
+     1) Matikan highlight biru/abu bawaan WebKit saat tap (-webkit-tap-
+        highlight-color), diganti efek kita sendiri yg lebih senada.
+     2) Bungkus utility ":hover" lama dgn "@media (hover: hover)" supaya
+        HANYA aktif di device yg beneran punya mouse/pointer halus ->
+        di touchscreen efek angkat itu otomatis tidak dipakai lagi.
+     3) Ganti dgn ":active" (state SAAT disentuh/ditekan, otomatis lepas
+        begitu jari diangkat, tidak pernah nyangkut) yg mewarnai kartu
+        SESUAI JENIS transaksinya: hijau utk kartu Pemasukan
+        (.clay-key-primary, ikon trending_up) & merah utk Pengeluaran
+        (.clay-key-danger, ikon trending_down) — pakai var(--clay-h) yg
+        sudah otomatis ikut kunci hue tsb per kartu (lihat renderRiwayatUI
+        di ViewJS.html), jadi tidak perlu selector terpisah per warna. */
+  .tx-card-item {
+    -webkit-tap-highlight-color: transparent;
+    transition: transform .15s cubic-bezier(.22, 1, .36, 1), box-shadow .15s ease, background-color .15s ease;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .tx-card-item:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .tx-card-item:active {
+    transform: translateY(0) scale(.98);
+    background-color: rgba(var(--clay-h), .08) !important;
+  }
+
+  /* FAB tambah transaksi — clay level lebih tinggi, tetap gradient hijau lama */
+  .clay-fab {
+    --clay-h: var(--clay-h-primary);
+    box-shadow:
+      6px 10px 22px rgba(var(--clay-h), .45),
+      -4px -6px 16px rgba(255, 255, 255, .35),
+      inset 2px 2px 5px rgba(255, 255, 255, .35),
+      inset -3px -3px 8px rgba(var(--clay-h), .3) !important;
+    transition: transform .15s cubic-bezier(.22, 1, .36, 1), box-shadow .15s ease;
+  }
+
+  .clay-fab:active {
+    transform: scale(.94) !important;
+    box-shadow:
+      inset 3px 3px 9px rgba(0, 0, 0, .3),
+      inset -3px -3px 9px rgba(255, 255, 255, .2) !important;
+  }
+
+  /* ============ FAB SPEED-DIAL (Pengeluaran / Pindah Saldo / Pemasukan) ============
+     Muncul melengkung di atas #btnFabAdd saat ditekan (lihat toggleFabSpeedDial() di
+     ViewJS.html) — HANYA dipakai di tab default/Transaksi (bukan Utang/Budget, yg FAB-nya
+     tetap punya fungsi langsung sendiri). #fabSpeedDial jadi "titik jangkar" tanpa ukuran
+     (width/height:0) persis di posisi FAB, tiap tombol .fab-dial-btn diposisikan absolute
+     dari titik itu & di-translate ke posisi akhir lewat custom property --tx/--ty (inline
+     style per tombol) -> hasilnya animasi "pop" melengkung dari titik pusat FAB, bukan
+     geser lurus/fade biasa. */
+  .fab-speed-dial {
+    position: absolute;
+    left: 50%;
+    bottom: 6px;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  .fab-dial-btn {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 46px;
+    height: 46px;
+    transform: translate(-50%, 0) scale(.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .32s cubic-bezier(.34, 1.56, .64, 1), opacity .2s ease;
+  }
+
+  .fab-speed-dial.open .fab-dial-btn {
+    transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Backdrop transparan penuh layar — hanya utk menangkap tap "di luar" speed-dial supaya
+     tertutup lagi (lihat closeFabSpeedDial() di ViewJS.html), TIDAK menggelapkan layar
+     (beda dari backdrop modal) krn ini cuma menu, bukan dialog blocking. */
+  #fabDialBackdrop {
+    background: transparent;
+  }
+
+  /* Ikon "+" FAB berputar 45deg jadi terlihat seperti "x" saat speed-dial terbuka —
+     ditoggle via class .fab-icon-open (toggleFabSpeedDial()/closeFabSpeedDial() di
+     ViewJS.html), transisinya numpang di "transition-transform duration-200" yg sudah
+     ada dari Tailwind di markup ikon (InOut.html). */
+  .fab-icon-open {
+    transform: rotate(45deg);
+  }
+
+  /* Nav bar bawah — jadi "clay bar" mengambang, radius chunky + shadow angkat */
+  .clay-nav {
+    --clay-h: var(--clay-h-neutral);
+    box-shadow:
+      0 10px 28px rgba(var(--clay-h), .18),
+      0 2px 6px rgba(var(--clay-h), .10),
+      inset 1px 1px 3px rgba(255, 255, 255, .7) !important;
+  }
+
+  /* FIX (referensi lengkungan navbar-vs-FAB): sebelumnya tepi ATAS navbar mobile cuma rata
+     lurus (rounded-t-3xl, Tailwind) & tombol FAB "+" cuma numpang mengambang DI ATASNYA
+     (overlap biasa, lihat -mt-8 di markup) -> tidak ada lekukan/notch yg "memeluk" bentuk
+     bulat FAB spt referensi gambar (navbar dgn cekungan setengah-lingkaran pas di tempat FAB
+     duduk). Dibuat pakai CSS mask: radial-gradient LINGKARAN transparan diposisikan tepat di
+     tengah-atas tepi navbar (50% 0px) -> area di DALAM lingkaran itu "dilubangi" (transparan),
+     sisanya tetap solid -> hasilnya tepi atas navbar melengkung cekung ke dalam pas di posisi
+     FAB, menyatu mulus dgn kurva bulat tombolnya (efek "kolam" tempat FAB duduk).
+     PENTING: class .clay-nav ini SEKARANG nempel di <div id="navShell"> > div background
+     KOSONG (tanpa anak DOM sama sekali), BUKAN lagi di elemen <nav> yg isinya ikon tab & FAB
+     (lihat InOut.html) — krn CSS mask memotong SELURUH konten elemen yg dipasangi, termasuk
+     semua anaknya. Kalau mask ini masih nempel langsung di <nav> yg ada tombol FAB di
+     dalamnya, FAB-nya bakal ikut "berlubang" tepat di area notch (posisinya numpang persis di
+     tengah-atas, lokasi yg sama dgn cekungan). Makanya background & shadow dipisah ke div
+     tersendiri (murni visual, di belakang), sedangkan <nav> aslinya transparan & tidak ikut
+     mask sama sekali -> FAB & ikon selalu utuh.
+     --notch-r disesuaikan dgn ukuran FAB per breakpoint (mobile w-14/56px, desktop
+     w-[60px]/60px) supaya cekungannya pas, bukan kekecilan/kebesaran. Notch ini AKTIF
+     di mobile MAUPUN desktop (lihat FIX #2 di bawah — sebelumnya dimatikan total di
+     desktop, sekarang tetap dipakai krn user eksplisit minta diterapkan di web & mobile
+     keduanya, cuma radiusnya beda krn FAB desktop lebih besar). */
+  /* FIX #2 (curved notch kurang tepat + FAB kurang keatas, laporan visual user dgn
+     referensi gambar navbar bulat hijau "+"): 2 masalah dibetulkan sekaligus di sini —
+     1) Radius notch 46px terlalu ketat/rapat ke tepi FAB & transisi mask-nya tajam
+        (feather cuma 99%->100%, ~1% dari radius = jarak blur sangat sempit) -> secara
+        visual nyaris tak kelihatan melengkung, cuma kayak FAB numpang di tepi lurus.
+        Radius dinaikkan (46->52px mobile, 54->58px desktop) SUPAYA cekungannya lebih
+        lebar & terasa "memeluk" FAB (bukan cuma pas-pasan), feather diperlebar jadi
+        88%->100% (~12% dari radius) supaya transisi lengkung ke rata terasa halus,
+        bukan sambungan patah/tajam.
+     2) SEBELUMNYA notch ini DIMATIKAN TOTAL di desktop (>=768px, lihat komentar lama:
+        "di desktop navbar sudah jadi pill mengambang terpisah... mask notch
+        dinonaktifkan"), padahal user eksplisit minta diterapkan utk WEB & MOBILE. Jadi
+        alih² di-null-kan, --notch-r di-override ke angka desktop (FAB desktop lebih
+        besar, w-[60px] vs w-14/56px mobile) via media query, mask-nya TETAP aktif. */
+  .clay-nav {
+    --notch-r: 52px;
+    -webkit-mask-image: radial-gradient(circle var(--notch-r) at 50% 0px, transparent 88%, #000 100%);
+    mask-image: radial-gradient(circle var(--notch-r) at 50% 0px, transparent 88%, #000 100%);
+  }
+
+  @media (min-width: 768px) {
+    .clay-nav {
+      --notch-r: 58px;
+    }
+  }
+
+  /* Pagination arrow (riwayat) versi clay — pengganti shadow-sm datar lama */
+  .clay-pagination-arrow {
+    --clay-h: var(--clay-h-neutral);
+    box-shadow:
+      3px 3px 8px rgba(var(--clay-h), .18),
+      -3px -3px 8px rgba(255, 255, 255, .6),
+      inset 1px 1px 3px rgba(255, 255, 255, .5),
+      inset -2px -2px 4px rgba(var(--clay-h), .10) !important;
+    border: none !important;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+
+  .clay-pagination-arrow:active {
+    transform: scale(.9);
+    box-shadow:
+      inset 2px 2px 6px rgba(0, 0, 0, .2),
+      inset -2px -2px 6px rgba(255, 255, 255, .3) !important;
+  }
+
+  /* ===== NAV BAWAH — pill neumorphic di belakang tiap ikon (aktif/nonaktif) =====
+     Wrapper bulat kecil di belakang ikon nav (BUKAN seluruh .nav-btn — label
+     teks di bawahnya tetap polos). DISAMAKAN dgn resep .clay-chip (clay-h
+     system, BUKAN lagi warna abu hardcode) supaya konsisten dgn chip filter:
+     - INACTIVE = persis resep .clay-chip (raised/timbul, shadow ganda + inset
+       sheen tipis), pakai --clay-h-neutral (senada chip "Pemasukan/Pengeluaran"
+       yg nonaktif).
+     - ACTIVE   = versi "ditekan" (inset) dari resep yg sama, meniru .clay-input
+       (sumur tertekan-ke-dalam) TAPI tetap pakai warna hue chip, bukan primary,
+       supaya transisi timbul->tertekan terasa sebagai 1 elemen yg sama dipencet.
+     Statenya di-toggle via updateNavActiveState() di ViewJS.html:
+     .nav-icon-active saat tab sedang dibuka, .nav-icon-inactive utk sisanya. */
+  .nav-icon-wrap {
+    --clay-h: var(--clay-h-neutral);
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--clay-r-chip);
+    transition: box-shadow .25s ease, background-color .25s ease;
+  }
+
+  /* Ikon tab TIDAK aktif — sama persis resep .clay-chip (timbul/raised) */
+  .nav-icon-wrap.nav-icon-inactive {
+    background: var(--surface, #fff);
+    box-shadow:
+      3px 3px 9px rgba(var(--clay-h), .18),
+      -3px -3px 9px rgba(255, 255, 255, .6),
+      inset 1px 1px 3px rgba(255, 255, 255, .5),
+      inset -2px -2px 4px rgba(var(--clay-h), .12);
+  }
+
+  /* Ikon tab AKTIF — versi "ditekan" (inset) dari resep yg sama, spirit .clay-input */
+  .nav-icon-wrap.nav-icon-active {
+    background: var(--surface, #fff);
+    box-shadow:
+      inset 3px 3px 9px rgba(var(--clay-h), .22),
+      inset -3px -3px 9px rgba(255, 255, 255, .7);
+  }
+
+  /* Loading spinner "Memuat riwayat kas" (InOut.html + renderLoadingState di ViewJS.html)
+     — adaptasi dari Uiverse.io by javierBarroso (dot-spinner), disesuaikan ke sistem app:
+     1. FIX typo resep asli: "background-color: trasparent" -> "transparent".
+     2. Warna glow diganti dari navy hardcode (#183153/rgba(18,31,53,...)) ke hue brand
+        hijau var(--clay-h-primary) (§4.2) supaya senada claymorphism, bukan warna asing
+        yang tidak ada di token manapun.
+     3. Ukuran (--uib-size) diperkecil dari 5.8rem (~93px, didesain utk spinner full-page)
+        jadi 2.5rem (~40px) supaya proporsional sbg loading state INLINE di dalam list
+        riwayat, bukan mendominasi layar.
+     4. Class di-prefix "riwayat-" (.riwayat-dot-spinner / .riwayat-dot-spinner__dot)
+        supaya scope-nya jelas cuma dipakai di loading riwayat — kalau butuh spinner
+        serupa di tab lain, JANGAN reuse langsung, duplikasikan dgn prefix baru & sesuaikan
+        hue-nya (pola sama kayak --clay-h-* per konteks warna, §4.2).
+     Dipakai identik di 2 tempat (WAJIB disamakan kalau salah satu diubah): markup statis
+     awal (InOut.html, sblm JS jalan) & string yg di-inject renderLoadingState() saat fetch
+     batch riwayat (ViewJS.html, container.innerHTML = '...'). */
+  .riwayat-dot-spinner {
+    --uib-size: 2.5rem;
+    --uib-speed: 0.9s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: var(--uib-size);
+    width: var(--uib-size);
+  }
+
+  .riwayat-dot-spinner__dot {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100%;
+    width: 100%;
+  }
+
+  .riwayat-dot-spinner__dot::before {
+    content: "";
+    height: 20%;
+    width: 20%;
+    border-radius: 50%;
+    background-color: transparent;
+    transform: scale(0);
+    opacity: 0.5;
+    animation: riwayatDotSpinnerPulse calc(var(--uib-speed) * 1.111) ease-in-out infinite;
+    box-shadow:
+      0 0 14px rgba(var(--clay-h-primary), .35),
+      inset 2px 2px 2px #fff,
+      inset -2px -2px 2px rgba(var(--clay-h-primary), .25);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(2) {
+    transform: rotate(45deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(2)::before {
+    animation-delay: calc(var(--uib-speed) * -0.875);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(3) {
+    transform: rotate(90deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(3)::before {
+    animation-delay: calc(var(--uib-speed) * -0.75);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(4) {
+    transform: rotate(135deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(4)::before {
+    animation-delay: calc(var(--uib-speed) * -0.625);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(5) {
+    transform: rotate(180deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(5)::before {
+    animation-delay: calc(var(--uib-speed) * -0.5);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(6) {
+    transform: rotate(225deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(6)::before {
+    animation-delay: calc(var(--uib-speed) * -0.375);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(7) {
+    transform: rotate(270deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(7)::before {
+    animation-delay: calc(var(--uib-speed) * -0.25);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(8) {
+    transform: rotate(315deg);
+  }
+
+  .riwayat-dot-spinner__dot:nth-child(8)::before {
+    animation-delay: calc(var(--uib-speed) * -0.125);
+  }
+
+  @keyframes riwayatDotSpinnerPulse {
+
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 0.5;
+      box-shadow:
+        0 0 0px rgba(var(--clay-h-primary), .35),
+        inset 0px 0px 0px #fff,
+        inset -0px -0px 0px rgba(var(--clay-h-primary), .25);
+    }
+
+    50% {
+      transform: scale(1);
+      opacity: 1;
+      box-shadow:
+        0 0 14px rgba(var(--clay-h-primary), .35),
+        inset 2px 2px 2px #fff,
+        inset -2px -2px 2px rgba(var(--clay-h-primary), .25);
+    }
+  }
+</style>

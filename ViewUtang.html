@@ -1,0 +1,223 @@
+<!-- ================= UTANG & CICILAN — VIEWPORT "PAS LAYAR" (TANPA SCROLL) =================
+     Seluruh tab ini (header, hero, notif, judul daftar, daftar kartu, kontrol pagination)
+     dibungkus #utangViewport yang tingginya diset via JS (fitUtangViewport() di ViewJS.html)
+     supaya PERSIS sebesar ruang kosong yang tersisa di viewport (viewport browser dikurangi
+     header situs & nav bawah), berapapun jumlah datanya. Bagian atas (header, hero, notif,
+     judul) TIDAK ikut berubah tinggi/discroll — hanya #utangListViewport (area kartu) yang
+     tingginya fleksibel & dibatasi (overflow:hidden), sehingga kalau kartu utang lebih
+     banyak dari yang muat, kelebihannya otomatis dipecah jadi HALAMAN berikutnya (client-side
+     pagination, lihat layoutAndRenderUtangPages_() di ViewJS.html) alih-alih memaksa scroll
+     panjang. Pindah halaman digeser via CSS transform pada #utangListTrack -> transisi mulus,
+     bukan reflow/snap kasar. -->
+<div id="utangViewport" class="utang-viewport">
+
+  <div class="utang-viewport-fixed">
+    <header class="pt-4 md:pt-6 pb-4">
+      <div class="flex items-center gap-2.5">
+        <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) — icon "handshake"
+             (sama dgn ikon nav Utang), kunci warna coral (clay-key-coral) sesuai tema tab ini. -->
+        <div
+          class="clay-icon-tile clay-key-coral w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
+          style="background: linear-gradient(135deg, #F0805D 0%, #C24C31 100%);">
+          <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">handshake</span>
+        </div>
+        <!-- Heading disamakan gaya-nya dgn tab Transaksi (riwayat-heading-neumorphism, tiap
+             huruf dibungkus <span class="neu-letter"> sendiri², lihat ViewCSS.html) — dulu
+             pakai "utang-heading-shimmer", sekarang diseragamkan. Paragraf subtitle di bawah
+             heading DIHAPUS sesuai instruksi. -->
+        <h2
+          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight riwayat-heading-neumorphism truncate text-[#F0805D]">
+          <span class="neu-letter">U</span><span class="neu-letter">t</span><span class="neu-letter">a</span><span class="neu-letter">n</span><span class="neu-letter">g</span>
+          <span class="neu-letter">&amp;</span>
+          <span class="neu-letter">C</span><span class="neu-letter">i</span><span class="neu-letter">c</span><span class="neu-letter">i</span><span class="neu-letter">l</span><span class="neu-letter">a</span><span class="neu-letter">n</span>
+        </h2>
+      </div>
+    </header>
+
+    <!-- Hero Summary — pakai warna coral (signature accent utk urgency/utang, lihat ViewCSS.html),
+         style kartu "3D" (gloss atas + bevel bawah + drop shadow tercelup warna) via .card-3d-coral
+         di ViewCSS.html. Konten dibungkus div relative z-10 supaya tetap di atas lapisan
+         dekorasi ::before/::after kartu (highlight & glow) yang dipakai buat efek kedalamannya. -->
+    <div class="card-3d-coral text-white p-5 mb-4">
+      <div class="relative z-10">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-xs sm:text-sm opacity-90">Total Sisa Utang Aktif</p>
+          <span id="utangHeroCount" class="text-[11px] font-semibold px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,.18);">0 aktif</span>
+        </div>
+        <p id="totalUtangAktif" class="text-2xl sm:text-3xl font-bold mb-3">Rp 0</p>
+        <div class="flex items-center gap-1.5 text-[11px] opacity-90">
+          <span class="material-symbols-outlined text-[14px]">event</span>
+          <span id="utangHeroSub">Memuat data...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFIKASI JATUH TEMPO (H-5) — muncul otomatis kalau ada utang/cicilan AKTIF (bukan
+         Lunas) yang jatuh tempo dalam 5 hari ke depan (termasuk yang sudah terlambat), diisi
+         via renderUtangDueSoonNotif_() di ViewJS.html tiap kali data utang dirender. Hidden
+         by default & disembunyikan lagi otomatis kalau tidak ada yang mendekati jatuh tempo. -->
+    <div id="utangJatuhTempoNotif" class="hidden mb-3 rounded-14 border p-3"
+      style="background:var(--coral-light); border-color:rgba(232,108,74,.35);">
+      <div class="flex items-start gap-2.5">
+        <span class="material-symbols-outlined text-coral text-[20px] shrink-0 mt-0.5">notifications_active</span>
+        <div class="min-w-0 flex-1">
+          <p class="text-xs font-bold text-coral-text mb-1.5">Jatuh Tempo Mendekat (≤5 hari)</p>
+          <div id="utangJatuhTempoNotifList" class="space-y-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="font-semibold text-sm text-slate-800">Daftar Utang & Cicilan</h3>
+      <span id="utangPageIndicator" class="text-[11px] font-medium text-slate-400"></span>
+    </div>
+  </div>
+
+  <!-- Area kartu yang dibatasi tingginya (flex:1 dari sisa ruang #utangViewport) -->
+  <div id="utangListViewport" class="utang-list-viewport">
+    <div id="utangListTrack" class="utang-list-track">
+      <div class="utang-list-page">
+        <div class="text-center text-textSecondary py-10 text-sm animate-pulse">Memuat data utang...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kontrol pagination (panah + titik halaman), disusun otomatis oleh
+       renderUtangPaginationControls_() -> kosong/tersembunyi kalau cuma 1 halaman. -->
+  <div id="utangPaginationControls" class="utang-pagination-controls"></div>
+
+</div>
+
+<!-- MODAL TAMBAH/EDIT UTANG -->
+<div id="modalUtang"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
+  <div class="clay-sheet clay-key-coral bg-white w-full max-w-md flex flex-col max-h-[90vh] transition-all">
+    <div class="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
+      <h3 id="modalUtangTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-coral">account_balance_wallet</span>
+        Form Utang / Cicilan
+      </h3>
+      <button onclick="document.getElementById('modalUtang').classList.add('hidden')" class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <form onsubmit="handleUtangSubmit(event)" class="px-6 pb-6 overflow-y-auto space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Pihak / Pemberi Utang <span class="text-red-500">*</span></label>
+        <input type="text" id="formUtangNama" required
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Deskripsi / Keperluan</label>
+        <input type="text" id="formUtangDeskripsi" placeholder="Contoh: Belanja Elektronik"
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors">
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Total Utang (Rp) <span class="text-red-500">*</span></label>
+          <input type="text" id="formUtangTotal" inputmode="numeric" required
+                 class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors font-mono">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Tgl Jatuh Tempo <span class="text-red-500">*</span></label>
+          <div
+            class="btn clay-btn clay-btn-secondary w-full py-2.5 px-3.5 flex items-center gap-2 text-sm font-semibold text-slate-700 bg-surface hover:bg-gray-100 transition-colors cursor-pointer date-picker-btn">
+            <span class="material-symbols-outlined text-[18px] shrink-0">calendar_month</span>
+            <input type="text" id="formUtangTglJatuh" required>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+        <select id="formUtangStatus" class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors cursor-pointer">
+          <option value="Belum Lunas">Belum Lunas</option>
+          <option value="Lunas">Lunas</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Cicilan per Bulan (Rp)</label>
+        <input type="text" id="formUtangCicilan" inputmode="numeric" placeholder="0"
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors font-mono">
+        <p class="text-[11px] text-slate-400 mt-1">Kosongkan jika ini utang biasa (bukan cicilan). Tipe akan otomatis
+          terisi: <b>Utang</b> jika kosong, <b>Cicilan</b> jika diisi.</p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
+        <textarea id="formUtangCatatan" rows="2"
+                  class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors resize-none"></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="document.getElementById('modalUtang').classList.add('hidden')"
+                class="clay-btn clay-btn-secondary px-4 py-2.5 bg-surface hover:bg-gray-200 text-xs font-semibold text-slate-600 transition-colors">
+          Batal
+        </button>
+        <button type="submit"
+                class="clay-btn clay-key-primary px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-xs font-semibold transition-colors">
+          Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI BAYAR CICILAN / LUNASIN UTANG -->
+<div id="modalBayarUtang"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden">
+  <div class="clay-sheet clay-key-primary bg-white w-full max-w-sm p-6 text-center">
+    <span id="bayarUtangIcon" class="material-symbols-outlined text-primary text-[40px] mb-2">payments</span>
+    <h3 id="bayarUtangTitle" class="text-base font-bold text-slate-800 mb-1">Bayar Cicilan?</h3>
+    <p id="bayarUtangDesc" class="text-xs text-slate-500 mb-1">Nama Pihak</p>
+    <p id="bayarUtangAmount" class="text-lg font-bold text-slate-800 mb-4">Rp 0</p>
+
+    <!-- Sumber Dana pembayaran — WAJIB dipilih. Dipakai server utk memotong saldo akun
+         terkait di sheet Dompet & mencatat transaksi Pengeluaran/Pembayaran otomatis
+         (lihat catatPembayaranUtangSebagaiTransaksi_() di controller.gs). Opsi diisi
+         dari daftar akun Dompet yang sudah ada via populateBayarUtangSumber() di ViewJS.html. -->
+    <div class="text-left mb-5">
+      <label class="block text-xs font-semibold text-slate-600 mb-1">Sumber Dana <span class="text-red-500">*</span></label>
+      <select id="formBayarUtangSumber" required onchange="checkBayarUtangSaldo_()"
+              class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors cursor-pointer">
+        <option value="" disabled selected>Pilih Sumber/Akun</option>
+      </select>
+      <!-- Notifikasi saldo tidak cukup — diisi/ditampilkan oleh checkBayarUtangSaldo_() di
+           ViewJS.html tiap kali pilihan akun berubah, dibandingkan dgn nominal yang akan
+           dibayar (utangBayarJumlahAktif). Tersembunyi default, hanya muncul kalau saldo
+           akun terpilih < nominal yang harus dibayar. -->
+      <p id="bayarUtangSaldoWarning"
+        class="hidden mt-2 flex items-start gap-1.5 text-[11.5px] leading-snug font-medium text-danger bg-danger-light rounded-lg px-2.5 py-2">
+        <span class="material-symbols-outlined text-[15px] shrink-0" style="margin-top:1px;">error</span>
+        <span id="bayarUtangSaldoWarningText">Saldo tidak mencukupi.</span>
+      </p>
+    </div>
+
+    <div class="flex items-center justify-center gap-2">
+      <button onclick="closeBayarUtangModal()"
+              class="clay-btn clay-btn-secondary px-4 py-2.5 bg-surface hover:bg-gray-200 text-xs font-semibold text-slate-600 transition-colors">Batal</button>
+      <button id="btnConfirmBayarUtang" onclick="confirmBayarUtang()"
+              class="clay-btn clay-key-primary px-4 py-2.5 bg-primary hover:bg-primaryHover text-white text-xs font-semibold transition-colors">Ya, Bayar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KONFIRMASI HAPUS UTANG -->
+<div id="modalHapusUtang"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] flex items-center justify-center p-4 hidden">
+  <div class="clay-sheet clay-key-danger bg-white w-full max-w-sm p-6 text-center">
+    <span class="material-symbols-outlined text-red-500 text-[40px] mb-2">warning</span>
+    <h3 class="text-base font-bold text-slate-800 mb-1">Hapus Utang?</h3>
+    <p class="text-xs text-slate-500 mb-5">Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="flex items-center justify-center gap-2">
+      <button onclick="closeDeleteUtangModal()"
+              class="clay-btn clay-btn-secondary px-4 py-2.5 bg-surface hover:bg-gray-200 text-xs font-semibold text-slate-600 transition-colors">Batal</button>
+      <button id="btnConfirmDeleteUtang" onclick="confirmDeleteUtang()"
+              class="clay-btn clay-key-danger px-4 py-2.5 btn-primary btn-danger text-xs font-semibold transition-colors">Ya, Hapus</button>
+    </div>
+  </div>
+</div>

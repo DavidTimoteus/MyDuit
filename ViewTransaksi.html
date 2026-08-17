@@ -1,0 +1,931 @@
+<!-- ================= FONT: Manrope (khusus tab Transaksi/In-Out) =================
+     Diganti dari percobaan sebelumnya (Circular Std, font berbayar tanpa CDN gratis) ->
+     Manrope tersedia gratis & resmi di Google Fonts, jadi bisa di-embed langsung. Scope-nya
+     SENGAJA cuma #viewRiwayat + #pageHeader (via .viewriwayat-font-circular di ViewCSS.html)
+     -> tab lain (Budget/Statistik/Utang/Tambah) TIDAK ikut berubah, tetap pakai Inter/Plus
+     Jakarta Sans. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- ================= DATEPICKER (flatpickr) =================
+     Dipakai untuk semua input tanggal (Tanggal Transaksi, Filter Dari/Hingga, dan Tgl
+     Jatuh Tempo Utang di ViewUtang.html). Di-load di atas sini (blocking script, bukan
+     defer/async) supaya variabel global `flatpickr` sudah pasti tersedia saat script
+     inisialisasi di bagian bawah file ini dijalankan. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<!-- ================= SITE HEADER (WEB/DESKTOP ONLY) =================
+     Header brand "MyDuit" bertema keuangan, ditampilkan HANYA di layar md ke atas.
+     Ini terpisah dari <header id="pageHeader"> di bawah (yang tetap dipakai untuk
+     sapaan pengguna & tombol export, tampil di mobile maupun desktop). -->
+<header
+  class="hidden md:block sticky top-0 z-30 bg-surfaceContainerLowest/95 backdrop-blur-sm border-b border-slate-100">
+  <div class="max-w-5xl mx-auto px-8 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div
+        class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shadow-sm">
+        <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">savings</span>
+      </div>
+      <div class="leading-tight">
+        <p class="font-extrabold text-textPrimary text-[15px] tracking-tight">MyDuit</p>
+        <p class="text-[10px] text-textSecondary -mt-0.5">Catatan Keuangan Pribadi</p>
+      </div>
+    </div>
+    <p class="text-xs text-textSecondary">Kelola Uangmu, Kendalikan Masa Depanmu</p>
+  </div>
+</header>
+
+<div class="max-w-3xl mx-auto min-h-screen relative px-4 md:px-8">
+
+  <header id="pageHeader" class="pt-4 md:pt-6 pb-4 viewriwayat-font-circular">
+
+    <!-- FIX: avatar "DT" + teks sapaan "Welcome to MyDuit, David Timoteus" + tombol
+         notifikasi DIHAPUS (tidak dipakai lagi). Heading "Riwayat Transaksi" jadi "Transaksi"
+         saja krn sudah jelas dari konteks tab. Baris sapaan terpisah (mb-5) yg lama pun ikut
+         hilang -> jadi cuma 1 baris header, bukan 2. Tombol Export PDF DIPINDAH ke kanan,
+         SEBELAH KIRI tombol filter "Hari Ini" (sebelumnya di kiri, sejajar heading) — style-nya
+         ikut dibalik: outline/ikon MERAH dgn background PUTIH (bg-surfaceContainerLowest),
+         kebalikan dari tombol hapus di kartu transaksi (background merah, ikon putih) supaya
+         aksi "ekspor" (netral/aman) & "hapus" (destruktif) tetap kebeda jelas secara visual. -->
+    <div class="flex items-center justify-between mb-3 gap-2">
+      <!-- Font disamakan dgn heading tab Utang & Cicilan (font-display) + gaya
+           Neumorphism embossed hijau brand (riwayat-heading-neumorphism, lihat
+           ViewCSS.html) — SEBELUMNYA dipakaikan class "riwayat-heading-shimmer"
+           yg tidak pernah didefinisikan di CSS manapun (bug: heading tampil
+           polos tanpa efek). Tiap huruf WAJIB dibungkus <span class="neu-letter">
+           sendiri² supaya bevel timbulnya kebaca jelas huruf-per-huruf (lihat
+           alasan lengkap di komentar .riwayat-heading-neumorphism, ViewCSS.html). -->
+      <div class="flex items-center gap-2.5">
+        <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) & header brand
+         desktop — icon "savings" tema hijau (clay-key-primary, Catatan Rekening = kas). -->
+        <div
+          class="clay-icon-tile clay-key-primary w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shrink-0">
+          <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">home</span>
+        </div>
+        <h3
+          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight tracking-tight riwayat-heading-neumorphism truncate">
+          <span class="neu-letter">T</span><span class="neu-letter">r</span><span class="neu-letter">a</span><span class="neu-letter">n</span><span class="neu-letter">s</span><span class="neu-letter">a</span><span class="neu-letter">k</span><span class="neu-letter">s</span><span class="neu-letter">i</span>
+        </h3>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button aria-label="Export PDF" onclick="openExportModal()" class="clay-chip clay-key-danger w-10 h-10 bg-surfaceContainerLowest border-2 border-red-500 flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors shrink-0">
+          <span class="material-symbols-outlined text-[20px]">picture_as_pdf</span>
+        </button>
+        <!-- Trigger pop-up modal filter -->
+        <button id="btnOpenFilter" onclick="openFilterModal()" aria-label="Filter Transaksi"
+          class="clay-chip clay-key-primary flex items-center gap-1.5 text-xs font-medium pl-2.5 pr-3 py-1.5 bg-white text-slate-700 focus:outline-none hover:bg-emerald-50 transition-colors shrink-0">
+          <span class="material-symbols-outlined text-[18px]">tune</span>
+          <span id="filterActiveLabel">Hari Ini</span>
+        </button>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- ================= MODAL: FILTER TRANSAKSI ================= -->
+  <div id="filterModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="clay-sheet clay-key-primary bg-white w-full sm:max-w-sm overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+        <h3 class="font-bold text-lg text-slate-800">Filter Transaksi</h3>
+        <button onclick="closeFilterModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="px-5 py-4 overflow-y-auto">
+        <p class="text-xs font-semibold text-slate-500 mb-1">Tanggal</p>
+
+        <div class="flex flex-col">
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">Hari ini</span>
+              <span id="subtitleHariIni" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="hari_ini" onchange="toggleCustomDateInputs()" class="clay-radio">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <span class="text-sm font-medium text-slate-800">Semua Transaksi</span>
+            <input type="radio" name="filterTipeModal" value="semua" onchange="toggleCustomDateInputs()" class="clay-radio">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">7 hari terakhir</span>
+              <span id="subtitle7hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="7hari" onchange="toggleCustomDateInputs()" class="clay-radio">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer border-b border-gray-100">
+            <div>
+              <span class="text-sm font-medium text-slate-800 block">30 hari terakhir</span>
+              <span id="subtitle30hari" class="text-xs text-slate-400"></span>
+            </div>
+            <input type="radio" name="filterTipeModal" value="30hari" onchange="toggleCustomDateInputs()" class="clay-radio">
+          </label>
+
+          <label class="flex items-center justify-between py-3 cursor-pointer">
+            <span class="text-sm font-medium text-primary">Pilih periode</span>
+            <input type="radio" name="filterTipeModal" value="custom" onchange="toggleCustomDateInputs()" class="clay-radio">
+          </label>
+        </div>
+
+        <!-- FIX: sebelumnya 2 field terpisah (Dari & Hingga, grid-cols-2) -> sekarang DIGABUNG
+             jadi 1 field pakai flatpickr mode: "range" (klik tanggal awal lalu tanggal akhir
+             langsung di satu kalender yang sama) + maxDate: "today" (tidak bisa pilih tanggal
+             masa depan). Lihat initFlatpickrAll_() di bawah utk konfigurasinya. -->
+        <div id="customDateWrap" class="hidden mt-2">
+          <div
+            class="btn clay-btn clay-btn-secondary w-full py-2 px-3 flex items-center gap-2 text-sm bg-surface hover:bg-gray-100 transition-colors cursor-pointer date-picker-btn">
+            <span class="material-symbols-outlined text-[18px] shrink-0 text-primary">calendar_month</span>
+            <input type="text" id="filterRangeDate" autocomplete="off" placeholder="Pilih periode">
+          </div>
+        </div>
+      </div>
+
+      <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+        <button onclick="closeFilterModal()" class="clay-btn clay-btn-secondary flex-1 py-2.5 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+        <button onclick="terapkanFilter()" class="clay-btn clay-key-primary flex-1 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors">Terapkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: EXPORT LAPORAN PDF ================= -->
+  <div id="exportModal"
+    class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="clay-sheet clay-key-primary bg-white w-full sm:max-w-sm overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-5 pt-5 pb-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+        <h3 class="font-bold text-lg text-slate-800">Export Laporan PDF</h3>
+        <button onclick="closeExportModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="px-5 py-4">
+        <p class="text-xs font-semibold text-slate-500 mb-3">Pilih periode laporan yang ingin diexport</p>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-textSecondary mb-1.5">Bulan</label>
+            <select id="exportBulan" class="clay-input w-full px-3 py-2.5 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors cursor-pointer">
+              <option value="0">Januari</option>
+              <option value="1">Februari</option>
+              <option value="2">Maret</option>
+              <option value="3">April</option>
+              <option value="4">Mei</option>
+              <option value="5">Juni</option>
+              <option value="6">Juli</option>
+              <option value="7">Agustus</option>
+              <option value="8">September</option>
+              <option value="9">Oktober</option>
+              <option value="10">November</option>
+              <option value="11">Desember</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-textSecondary mb-1.5">Tahun</label>
+            <select id="exportTahun" class="clay-input w-full px-3 py-2.5 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors cursor-pointer"></select>
+          </div>
+        </div>
+
+        <p id="exportInfoText" class="text-xs text-slate-400 mt-3"></p>
+      </div>
+
+      <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+        <button onclick="closeExportModal()" class="clay-btn clay-btn-secondary flex-1 py-2.5 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Batal</button>
+        <button id="btnProsesExport" onclick="prosesExportPDF()" class="clay-btn clay-key-primary flex-1 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors flex items-center justify-center gap-1.5">
+          <span class="material-symbols-outlined text-[18px]">picture_as_pdf</span>
+          <span>Export PDF</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="viewRiwayat" class="view-section active viewriwayat-font-circular">
+
+    <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-3 mb-4">
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1 min-w-0">
+          <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary text-[20px]">search</span>
+          <input id="searchInput" oninput="handleSearchFilter()" class="clay-input w-full pl-10 pr-4 py-2.5 bg-surface border-none text-sm placeholder:text-textSecondary focus:ring-1 focus:ring-primary focus:bg-white outline-none transition-all" placeholder="Cari transaksi..." type="text"/>
+        </div>
+
+        <!-- Filter jenis (Semua/Pemasukan/Pengeluaran) — versi ikon saja, sejajar dgn kotak
+             cari (bukan lagi baris pill terpisah di bawahnya). Ikon dipilih senada dgn ikon
+             yg dipakai per kartu transaksi di renderRiwayatUI() (trending_up/trending_down)
+             supaya konsisten secara visual dgn makna Pemasukan/Pengeluaran. -->
+        <div class="flex items-center gap-1.5 shrink-0" id="filterChips">
+          <button onclick="setFilterJenis('Semua', this)" aria-label="Semua Transaksi" title="Semua Transaksi" class="chip-btn active clay-chip clay-key-blue w-10 h-10 shrink-0 bg-blue-700 text-white flex items-center justify-center transition-colors">
+            <span class="material-symbols-outlined text-[20px]">apps</span>
+          </button>
+          <button onclick="setFilterJenis('Pemasukan', this)" aria-label="Pemasukan" title="Pemasukan" class="chip-btn clay-chip clay-key-neutral w-10 h-10 shrink-0 bg-surface text-textSecondary flex items-center justify-center hover:bg-gray-100 hover:text-textPrimary transition-colors">
+            <span class="material-symbols-outlined text-[20px]">trending_up</span>
+          </button>
+          <button onclick="setFilterJenis('Pengeluaran', this)" aria-label="Pengeluaran" title="Pengeluaran" class="chip-btn clay-chip clay-key-neutral w-10 h-10 shrink-0 bg-surface text-textSecondary flex items-center justify-center hover:bg-gray-100 hover:text-textPrimary transition-colors">
+            <span class="material-symbols-outlined text-[20px]">trending_down</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- FIX (posisi pagination): sebelumnya #paginationControls ada DI BAWAH #riwayatList,
+         di LUAR area yg tingginya "dipas-kan" fitRiwayatListViewport_() (list itu sendiri
+         yg overflow-y:auto, bukan halamannya) -> pagination jadi elemen normal-flow EKSTRA
+         SETELAH area yg sudah pas-layar, mendorong tinggi total halaman lewat 1 layar &
+         memicu SCROLL DI LEVEL HALAMAN (bukan cuma di dalam list) di banyak ukuran layar
+         mobile. Dipindah ke SINI (atas, sejajar tepat di bawah kotak cari+filter) supaya
+         jadi bagian dari "header statis" tab ini -> ikut terhitung otomatis di
+         fitRiwayatListViewport_() lewat list.getBoundingClientRect().top (posisi atas list
+         jadi lebih rendah krn pagination ada di atasnya), sehingga sisa ruang utk list tetap
+         pas 1 layar & TIDAK ADA scroll halaman lagi, persis seperti referensi desain. -->
+    <div class="flex justify-center gap-2 mb-3" id="paginationControls"></div>
+
+    <!-- FIX "sisi kanan kartu terpotong": fitRiwayatListViewport_() di ViewJS.html cuma
+         set overflowY='auto' (bukan overflow-x) -> tapi per spesifikasi CSS, kalau
+         overflow-y != visible sedangkan overflow-x TIDAK diset (default visible), browser
+         WAJIB memaksa overflow-x jadi 'auto' juga (lihat MDN overflow-x/-y & W3C
+         css-overflow-3 #overflow-properties). Akibatnya #riwayatList jadi scroll-container
+         2 arah & box-shadow clay kartu (butuh ruang ±20px utk bleed keluar) kepotong rata
+         persis di tepi kontainer. Solusi: kasih padding horizontal di sini supaya shadow
+         "bernapas" dulu sebelum kena garis potong overflow -> BUKAN hapus overflow-y:auto
+         (itu wajib ada, dipakai fitRiwayatListViewport_() utk batasi tinggi list "pas
+         layar"). px-4 (16px) dipilih senada dgn px-4 milik wrapper utama di atas. -->
+    <!-- FIX "shadow kartu terakhir kepotong": px-4 -mx-4 (di atas) sudah kasih ruang utk
+         shadow SAMPING, tapi shadow BAWAH kartu terakhir tetap kepotong krn #riwayatList
+         adalah scroll-container (overflow-y:auto, max-height diset JS di
+         fitRiwayatListViewport_()) yg pas dengan tinggi kontennya sendiri (gap-3 dari
+         flex tidak menambah ruang SETELAH item terakhir). Tambah pt-1 pb-4 di sini supaya
+         ada "napas" scroll ekstra sebelum tepi clip atas & bawah kontainer, sama seperti
+         px-4 menyelesaikan clip kiri/kanan -> shadow clay (butuh ±16px bleed, lihat resep
+         .clay di ViewCSS.html) selalu penuh terlihat baik saat listnya scroll maupun tidak. -->
+    <div id="riwayatList" class="flex flex-col gap-3 hide-scrollbar px-4 -mx-4 pt-1 pb-4">
+      <!-- Loading state riwayat — dot-spinner (adaptasi dari Uiverse.io by javierBarroso,
+           lihat resep CSS .riwayat-dot-spinner di ViewCSS.html untuk detail penyesuaian
+           warna/ukuran). Markup sama persis dgn versi JS-injected di renderLoadingState()
+           (ViewJS.html) supaya loading state awal (sblm JS jalan) & loading state refresh
+           (saat ganti filter/halaman) terlihat identik. -->
+      <div class="flex flex-col items-center justify-center gap-3 py-10 text-textSecondary text-sm">
+        <div class="riwayat-dot-spinner" aria-hidden="true">
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+          <div class="riwayat-dot-spinner__dot"></div>
+        </div>
+        <span>Memuat riwayat kas...</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="viewBudget" class="view-section hidden">
+    <?!= include('ViewBudget'); ?>
+  </div>
+
+  <div id="viewStatistik" class="view-section hidden">
+    <?!= include('ViewStatistik'); ?>
+  </div>
+
+  <div id="viewUtang" class="view-section hidden">
+    <?!= include('ViewUtang'); ?>
+  </div>
+
+  <!-- ================= MODAL: TAMBAH / EDIT TRANSAKSI =================
+       Sebelumnya section ini tampil inline penuh layar (bikin overflow tak terkontrol di
+       mobile karena field Scan Struk + 5 field lain langsung dorong tinggi halaman). Sekarang
+       distrukturkan sbg card-modal, ukuran & pola sama dgn #modalSalinTransaksi (max-w-md,
+       max-h-[90vh], header+body scroll terpisah) — hanya lebih tinggi potensinya krn ada
+       tombol Upload/Foto Struk. #viewTambah TETAP pakai class "view-section" (kompatibel dgn
+       switchTab() di ViewJS.html yg toggle .active/.hidden), override
+       "#viewTambah.active{display:flex}" ada di ViewCSS.html supaya wrapper fixed overlay ini
+       bisa center dgn flexbox saat aktif (bkn display:block bawaan .view-section.active).
+       #pageTitle (span, BUKAN elemen h3 itu sendiri) SENGAJA dipertahankan persis krn sudah
+       dikelola ViewJS.html (resetFormState() -> "Catat Transaksi", openEditMode() ->
+       "Edit Transaksi") via .innerText -> taruh di elemen terpisah dari ikon supaya innerText
+       tidak ikut menghapus ikon di sebelahnya. -->
+  <div id="viewTambah"
+    class="view-section fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[10000] items-center justify-center p-4">
+    <!-- FIX: tambahkan "overflow-hidden" di container ini (sebelumnya tidak ada, beda dari
+         modal lain spt #modalSalinTransaksi/#modalDetailTransaksi yg sudah pakai ini) ->
+         tanpa overflow-hidden, <form> di dalamnya (flex child dgn overflow-y-auto) bisa
+         tumbuh melebihi max-h-[90vh] alih2 di-scroll (bug umum flexbox: flex item defaultnya
+         tidak mengecil ke min-height:0), sehingga modal terlihat overflow/terpotong ganjil
+         terutama saat mode Edit (field lebih banyak/tombol Salin ikut tampil). -->
+    <div class="clay-sheet clay-key-primary bg-white w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden">
+      <div class="px-5 pt-5 pb-3 flex items-center justify-between gap-2 shrink-0 border-b border-gray-100">
+        <h3 class="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2 min-w-0">
+          <span class="material-symbols-outlined text-primary shrink-0 text-[20px]">receipt_long</span>
+          <span id="pageTitle" class="truncate">Catat Transaksi</span>
+        </h3>
+
+        <div class="flex items-center gap-1.5 shrink-0">
+          <!-- Salin Transaksi — HANYA tampil saat form sedang dalam mode EDIT (dibuka via
+               openEditMode()/editFromDetailModal()), lihat toggleSalinTransaksiButton_() di
+               ViewJS.html. Tujuannya mempercepat pencatatan transaksi baru yang datanya mirip
+               dengan transaksi yang sedang diedit (biasanya cuma beda tanggal) tanpa perlu
+               mengisi ulang semua field dari nol -> membuka #modalSalinTransaksi lewat
+               openSalinTransaksiModal(). -->
+          <button type="button" id="btnSalinTransaksi" onclick="openSalinTransaksiModal()" class="hidden shrink-0 inline-flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 clay-chip clay-key-primary bg-primary-light hover:bg-emerald-100 text-primary text-xs font-medium transition-colors cursor-pointer">
+            <span class="material-symbols-outlined text-[16px]">content_copy</span>
+          </button>
+          <button type="button" onclick="switchTab('riwayat')" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- "min-h-0" WAJIB ada di sini berpasangan dgn "overflow-hidden" di container luar:
+           tanpa ini, flex item (form ini) defaultnya tidak mau mengecil di bawah tinggi
+           konten aslinya (min-height:auto bawaan flexbox) -> overflow-y-auto di bawah jadi
+           tidak pernah aktif & modal overflow. Dengan min-h-0, form dipaksa mengikuti sisa
+           ruang yg tersedia dari container (max-h-[90vh] dikurangi tinggi header) & baru
+           scroll internal berfungsi. -->
+      <form id="transaksiForm" onsubmit="handleFormSubmit(event)" class="px-5 py-3 overflow-y-auto min-h-0 space-y-3">
+        <input type="hidden" id="editRowIndex" value="">
+
+        <!-- Scan Struk/Foto HANYA relevan saat mode TAMBAH (transaksi baru dari struk fisik).
+             Saat mode EDIT, disembunyikan via JS (openEditMode()/resetFormState() di
+             ViewJS.html toggle .hidden pada #scanStrukGroup ini), krn tidak masuk akal
+             scan struk baru untuk transaksi yang sudah tercatat/mau diedit. -->
+        <div id="scanStrukGroup" class="field-group">
+          <label class="block text-xs font-semibold text-textSecondary mb-1">Scan Struk / Foto Transaksi</label>
+          <div class="flex gap-2">
+            <button type="button" id="btnUploadFoto" onclick="triggerReceiptUpload()" class="clay-btn clay-btn-secondary flex-1 py-2 flex items-center justify-center gap-2 text-sm font-medium bg-surface hover:bg-gray-100 text-textSecondary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">upload_file</span>
+                <span>Upload Struk</span>
+              </button>
+            <button type="button" id="btnKamera" onclick="triggerCameraCapture()" class="clay-btn clay-btn-secondary flex-1 py-2 flex items-center justify-center gap-2 text-sm font-medium bg-surface hover:bg-gray-100 text-textSecondary transition-colors">
+                <span class="material-symbols-outlined text-[18px]">photo_camera</span>
+                <span>Foto Struk</span>
+              </button>
+          </div>
+          <input type="file" id="receiptUpload" accept="image/*" style="display: none;" onchange="handleReceiptImageUpload(event)">
+          <input type="file" id="receiptCamera" accept="image/*" capture="environment" style="display: none;" onchange="handleReceiptImageUpload(event)">
+        </div>
+
+        <!-- id="tanggalJenisRow"/"jenisFieldGroup": dipakai openTransaksiPreset() di
+             ViewJS.html untuk menyembunyikan field Jenis (grid-cols-2 -> grid-cols-1, Tanggal
+             jadi full-width) saat form dibuka dari FAB speed-dial (preset Pengeluaran/
+             Pemasukan) — value #jenis TETAP diisi otomatis via JS, cuma tidak perlu dipilih
+             ulang manual. Dikembalikan seperti semula oleh resetJenisPresetUI_() (dipanggil
+             dari resetFormState()) tiap kali form dibuka ulang dari jalur normal. -->
+        <div id="tanggalJenisRow" class="grid grid-cols-2 gap-3">
+          <div class="field-group">
+            <label class="block text-xs font-semibold text-textSecondary mb-1">Tanggal</label>
+            <div
+              class="btn clay-btn clay-btn-secondary w-full py-2 px-3 flex items-center gap-2 text-sm font-semibold text-textSecondary bg-surface hover:bg-gray-100 transition-colors cursor-pointer date-picker-btn">
+              <span class="material-symbols-outlined text-[18px] shrink-0">calendar_month</span>
+              <input type="text" id="tanggal" autocomplete="off" required>
+            </div>
+          </div>
+          <div id="jenisFieldGroup" class="field-group">
+            <label class="block text-xs font-semibold text-textSecondary mb-1">Jenis</label>
+            <select id="jenis" required class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+                <option value="" disabled selected>Pilih Jenis</option>
+                <option value="Pemasukan">Pemasukan</option>
+                <option value="Pengeluaran">Pengeluaran</option>
+              </select>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-textSecondary mb-1">Kategori</label>
+          <input type="text" id="kategori" autocomplete="off" placeholder="Pilih atau ketik kategori..." required class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+          <datalist id="kategoriList"></datalist>
+        </div>
+
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-textSecondary mb-1">Sumber / Akun</label>
+          <select id="sumber" required class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+            <option value="" disabled selected>Pilih Sumber/Akun</option>
+          </select>
+        </div>
+
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-textSecondary mb-1">Keterangan</label>
+          <input type="text" id="keterangan" placeholder="Keterangan opsional" class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+        </div>
+
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-textSecondary mb-1">Nominal (Rp)</label>
+          <!-- FIX (format ribuan otomatis, ATURAN UTAMA seluruh app — lihat blok
+               "FORMAT RIBUAN OTOMATIS" di ViewJS.html): type diubah number->text +
+               inputmode="numeric" (native <input type=number> menolak karakter "."
+               sbg pemisah ribuan). min="0"/onwheel dihapus krn sudah tidak relevan
+               utk type=text — pemformatan JS otomatis membuang karakter non-digit
+               (termasuk "-"), jadi nilai negatif scr praktis mustahil diketik. -->
+          <input type="text" id="nominal" inputmode="numeric" placeholder="0" required class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors font-mono">
+        </div>
+
+        <button type="submit" id="btnSubmit" class="w-full btn-primary clay-btn clay-key-primary">Simpan Transaksi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- FIX (referensi lengkungan navbar-vs-FAB): background & shadow navbar DIPISAH ke div
+       tersendiri (.clay-nav di bawah) dari <nav> asli yg isinya ikon tab & tombol FAB.
+       Alasannya: CSS mask (dipakai utk bikin cekungan/notch tempat FAB "duduk", lihat
+       .clay-nav di ViewCSS.html) memotong SELURUH isi elemen yg dipasangi mask, TERMASUK
+       semua anak DOM di dalamnya -> kalau mask dipasang langsung di <nav> yg di dalamnya ada
+       tombol FAB, FAB-nya ikut "berlubang" tepat di area cekungan (krn posisinya numpang di
+       tengah-atas, persis di lokasi notch). Solusinya: div background terpisah (absolute, DI
+       BAWAH <nav>, tanpa anak sama sekali) yg dipotong notch-nya, sedangkan <nav> asli (isi
+       ikon tab & FAB) tetap transparan tanpa mask sama sekali -> FAB & ikon selalu utuh,
+       cuma "kolam" background putihnya saja yg melengkung mengikuti bentuk FAB. -->
+  <!-- Backdrop transparan (bukan modal) — hanya menangkap tap "di luar" FAB speed-dial
+       supaya menu tertutup lagi otomatis (lihat closeFabSpeedDial() di ViewJS.html).
+       z-40, sedikit di bawah #navShell (z-50) supaya nav bar & FAB/speed-dial-nya sendiri
+       tetap di atas & tetap bisa diklik selagi backdrop ini aktif. -->
+  <div id="fabDialBackdrop" onclick="closeFabSpeedDial()" class="fixed inset-0 z-40 hidden"></div>
+
+  <div id="navShell"
+    class="fixed bottom-0 left-0 w-full md:w-auto md:min-w-[400px] md:bottom-6 md:left-1/2 md:-translate-x-1/2 z-50 h-[80px] md:h-[70px]">
+
+    <div class="clay-nav absolute inset-0 bg-surfaceContainerLowest rounded-t-3xl md:rounded-full" aria-hidden="true">
+    </div>
+
+    <nav
+      class="relative z-10 h-full pb-safe pt-2 md:pb-2 px-6 md:px-8 flex justify-between gap-4 md:gap-8 items-center">
+
+      <!-- Transaksi (Beranda): tambah data-tab -->
+      <a href="javascript:void(0)" onclick="handleHomeButtonClick()" data-tab="riwayat"
+        class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-primary transition-colors">
+        <span class="nav-icon-wrap nav-icon-active">
+          <span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;" id="icon-riwayat">home</span>
+        </span>
+        <span class="text-[10px] font-medium hidden md:block">Transaksi</span>
+      </a>
+
+      <a href="javascript:void(0)" onclick="switchTab('statistik')" data-tab="statistik"
+        class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
+        <span class="nav-icon-wrap nav-icon-inactive">
+          <span class="material-symbols-outlined text-[24px]">monitoring</span>
+        </span>
+        <span class="text-[10px] font-medium hidden md:block">Statistik</span>
+      </a>
+
+      <div class="w-16 flex justify-center -mt-10 md:-mt-12 relative">
+        <!-- FIX (FAB posisi kurang keatas, laporan visual user): -mt-8/-mt-10 lama bikin
+             FAB cuma numpang dikit di atas tepi navbar, ketutupan notch-nya sendiri jadi
+             kurang "mengambang". Dinaikkan ke -mt-10/-mt-12 (naik 8px lagi di tiap
+             breakpoint) SUPAYA lebih banyak bagian FAB nongol di atas kurva notch (lihat
+             --notch-r di ViewCSS.html, dinaikkan bareng di FIX yg sama supaya cekungannya
+             tetap "memeluk" pas, bukan malah FAB jadi ketinggian sendirian dari cekungan). -->
+        <!-- FIX: id + style/gradient di-manage lewat JS (updateFabAddButton() di ViewJS.html)
+             supaya warna & fungsi tombol ini otomatis berubah hijau/Transaksi <-> merah/Utang
+             mengikuti tab aktif, tanpa perlu duplikat markup. Di tab default/Transaksi,
+             onclick-nya diarahkan ke toggleFabSpeedDial() (bukan langsung switchTab('tambah')
+             lagi) supaya membuka speed-dial 3 pilihan (Pengeluaran/Pindah Saldo/Pemasukan)
+             dulu — lihat updateFabAddButton() & toggleFabSpeedDial() di ViewJS.html. -->
+        <button id="btnFabAdd" onclick="toggleFabSpeedDial()" aria-label="Quick Add" class="clay-fab clay-key-primary group w-14 h-14 md:w-[60px] md:h-[60px] rounded-full bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white hover:-translate-y-0.5 transition-all duration-200 border-4 border-surfaceContainerLowest z-10">
+          <span id="btnFabAddIcon" class="material-symbols-outlined text-[28px] transition-transform duration-200 group-hover:scale-110" style="font-variation-settings: 'FILL' 1, 'wght' 500;">add</span>
+        </button>
+
+        <!-- FAB SPEED-DIAL: 3 tombol lingkaran melengkung di atas FAB (Claymorphism), lihat
+             resep animasi & posisi (--tx/--ty per tombol) di .fab-speed-dial/.fab-dial-btn,
+             ViewCSS.html. Diklik dari toggleFabSpeedDial()/openTransaksiPreset()/
+             openPindahSaldoModal() (ViewJS.html). -->
+        <div id="fabSpeedDial" class="fab-speed-dial" aria-hidden="true">
+          <button type="button" onclick="openTransaksiPreset('Pengeluaran')" aria-label="Catat Pengeluaran"
+            class="fab-dial-btn clay-fab clay-key-danger rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white border-4 border-surfaceContainerLowest"
+            style="--tx:-72px; --ty:-38px; transition-delay:.02s;">
+            <span class="material-symbols-outlined text-[20px]">trending_down</span>
+          </button>
+          <button type="button" onclick="openPindahSaldoModal()" aria-label="Pindah Saldo"
+            class="fab-dial-btn clay-fab clay-key-blue rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white border-4 border-surfaceContainerLowest"
+            style="--tx:0px; --ty:-86px; transition-delay:.07s;">
+            <span class="material-symbols-outlined text-[20px]">sync_alt</span>
+          </button>
+          <button type="button" onclick="openTransaksiPreset('Pemasukan')" aria-label="Catat Pemasukan"
+            class="fab-dial-btn clay-fab clay-key-primary rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white border-4 border-surfaceContainerLowest"
+            style="--tx:72px; --ty:-38px; transition-delay:.12s;">
+            <span class="material-symbols-outlined text-[20px]">trending_up</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Budget: aktifkan navigasi + state aktif — hover & active diganti BIRU
+           (hover:text-blue-700, active-nya diatur di updateNavActiveState() ViewJS.html)
+           krn warna utama tab Budget sekarang biru (bg-blue-700), bukan hijau lagi. -->
+      <a href="javascript:void(0)" onclick="switchTab('budget'); if (cachedDompet) renderDompetUI(cachedDompet);"
+        data-tab="budget"
+        class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-blue-700 transition-colors">
+        <span class="nav-icon-wrap nav-icon-inactive">
+          <span class="material-symbols-outlined text-[24px]">savings</span>
+        </span>
+        <span class="text-[10px] font-medium hidden md:block">Budget</span>
+      </a>
+      <a href="javascript:void(0)" onclick="switchTab('utang')" data-tab="utang"
+        class="nav-btn flex flex-col items-center gap-1 w-12 md:w-16 text-textSecondary hover:text-primary transition-colors">
+        <span class="nav-icon-wrap nav-icon-inactive">
+        <span class="material-symbols-outlined text-[24px]">handshake</span>
+        </span>
+        <span class="text-[10px] font-medium hidden md:block">Utang</span>
+      </a>
+    </nav>
+  </div>
+
+</div>
+
+<!-- ================= SITE FOOTER (WEB/DESKTOP ONLY) ================= -->
+<footer class="hidden md:block border-t border-slate-100 mt-10 pb-28">
+  <div class="max-w-5xl mx-auto px-8 py-6 flex flex-col items-center gap-1 text-center">
+    <div class="flex items-center gap-2 text-textSecondary">
+      <span class="material-symbols-outlined text-[16px] text-primary">savings</span>
+      <span class="text-xs font-semibold text-textPrimary">MyDuit</span>
+    </div>
+    <p class="text-[11px] text-textSecondary">© <span id="footerTahun"></span> MyDuit — Aplikasi Pencatatan Keuangan
+      Pribadi</p>
+  </div>
+</footer>
+<script>
+  (function () {
+    var el = document.getElementById('footerTahun');
+    if (el) el.textContent = new Date().getFullYear();
+  })();
+</script>
+
+<!-- ================= INIT DATEPICKER (flatpickr) =================
+     dateFormat "Y-m-d" dipertahankan (bukan altInput) supaya nilai .value pada input tetap
+     format yyyy-mm-dd persis seperti sebelumnya (native <input type="date">) — kode existing
+     di ViewJS.html masih banyak yang baca/tulis .value langsung dg format ini (mis.
+     tanggal, dan formUtangTglJatuh di ViewUtang.html), jadi tidak perlu ubah logic lain,
+     cukup ganti UI date-picker-nya saja. Khusus filter periode (#filterRangeDate), field-nya
+     pakai mode: "range" -> disinkronkan via fp.setDate()/fp.selectedDates, bukan .value
+     langsung (lihat initFlatpickrAll_() & terapkanFilter()/openFilterModal() di ViewJS.html). -->
+<script>
+  // FIX: sebelumnya IIFE ini dipanggil LANGSUNG saat parser sampai di baris ini — tapi
+  // #salinTanggal (di dalam #modalSalinTransaksi) baru didefinisikan LEBIH BAWAH di file
+  // ini, jadi document.querySelector('#salinTanggal') selalu null & flatpickr tidak pernah
+  // terpasang di field tsb (input tetap jadi text biasa tanpa datepicker). Dibungkus
+  // DOMContentLoaded supaya baru jalan setelah SELURUH dokumen (termasuk modal2 yg
+  // markup-nya ada di bawah script ini) selesai di-parse -> semua selector di bawah pasti
+  // sudah ada di DOM.
+  document.addEventListener('DOMContentLoaded', initFlatpickrAll_);
+
+  // Ditempel ke SETIAP instance flatpickr (dipanggil sesudah flatpickr(el, opts)) supaya
+  // altInput-nya (elemen <input> yg BENAR² dilihat/disentuh user, altInput:true bikin
+  // flatpickr membuat elemen baru terpisah dari input aslinya) otomatis:
+  // 1) readOnly=true -> keyboard virtual TIDAK muncul sama sekali di HP saat disentuh
+  //    (allowInput:false di config sudah cukup blokir KETIKAN, tapi TANPA readOnly=true
+  //    keyboard tetap sempat nongol sekilas di mobile sebelum diblokir -> pengalaman
+  //    kurang mulus). Dikombinasikan keduanya = user BENAR² cuma bisa pilih via kalender.
+  // 2) class "clay-date-picker-field" -> gaya visual field jadi transparan/menyatu dgn
+  //    div pembungkus ber-gaya tombol (.btn.clay-btn.clay-btn-secondary di markup), BUKAN
+  //    diberikan lewat className bawaan flatpickr (yg antar versi bisa beda perilakunya,
+  //    lihat riwayat bug #customDateWrap) -> ditempel manual di sini, 100% presisi.
+  // 3) wrapper (div terdekat ber-class "date-picker-btn", lihat markup) diberi click
+  //    listener yg manggil fp.open() LANGSUNG lewat instance API -> klik di mana saja di
+  //    dalam tombol (termasuk ikon kalender/padding, bukan cuma persis di atas teks
+  //    tanggalnya) tetap membuka kalender. TIDAK pakai trik ".focus()"/selector atribut
+  //    (mis. "[data-input]") krn itu cuma berlaku di mode "wrap" flatpickr yg TIDAK
+  //    dipakai di sini -> fp.open() adalah API resmi paling langsung & pasti berhasil
+  //    apapun versi/konfigurasi flatpickr-nya.
+  function armDatePicker_(fp, extraClass) {
+    if (!fp || !fp.altInput) return;
+    fp.altInput.readOnly = true;
+    fp.altInput.classList.add('clay-date-picker-field');
+    if (extraClass) fp.altInput.classList.add(extraClass);
+    var wrap = fp.altInput.closest('.date-picker-btn');
+    if (wrap) wrap.addEventListener('click', function () { fp.open(); });
+  }
+
+  function initFlatpickrAll_() {
+    if (typeof flatpickr === 'undefined') return; // CDN gagal load -> input tetap jadi text biasa, tidak error
+    // allowInput SENGAJA dihapus/false (default) — sebelumnya true, artinya user MASIH BISA
+    // ketik manual tanggal bebas (rawan format salah, bisa juga ketik tanggal ngasal yg tidak
+    // valid). Sekarang satu²nya cara isi tanggal WAJIB lewat kalender popup.
+    var opts = { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd/m/Y', allowInput: false, disableMobile: true };
+    // #pindahSaldoTanggal (modal Pindah Saldo): altFormat khusus "d-m-Y" (dd-MM-yyyy) sesuai
+    // spesifikasi form transfer -> dipisah dari opts umum di atas (field lain tetap d/m/Y).
+    var optsPindahSaldo = { dateFormat: 'Y-m-d', altInput: true, altFormat: 'd-m-Y', allowInput: false, disableMobile: true };
+    var pindahSaldoTglEl = document.querySelector('#pindahSaldoTanggal');
+    if (pindahSaldoTglEl && !pindahSaldoTglEl._flatpickr) armDatePicker_(flatpickr(pindahSaldoTglEl, optsPindahSaldo));
+
+    ['#tanggal', '#salinTanggal', '#formUtangTglJatuh'].forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (!el || el._flatpickr) return;
+      armDatePicker_(flatpickr(el, opts));
+
+      // FIX: data tanggal dari database (mis. saat openEditMode()/editFromDetailModal() di
+      // ViewJS.html) masih di-set dgn cara lama `elemen.value = "2024-01-01"` (gaya <input
+      // type="date"> native). Setelah flatpickr aktif dgn altInput:true, input asli ini
+      // disembunyikan & yg tampil ke user adalah altInput terpisah — assignment .value
+      // langsung TIDAK mengupdate altInput/kalender internal, sehingga tanggal dari data
+      // terlihat kosong di picker walau value sebenarnya sudah kesimpan. Override property
+      // "value" supaya assignment dari kode manapun (ViewJS.html tidak perlu diubah) otomatis
+      // diteruskan ke fp.setDate() -> altInput & kalender ikut ter-sync.
+      //
+      // PENTING (fix RangeError "Maximum call stack size exceeded"): fp.setDate() SENDIRI
+      // juga menulis balik ke elemen.value sbg bagian dari kerjanya -> tanpa guard, itu akan
+      // memicu setter ini lagi -> panggil setDate() lagi -> menulis .value lagi -> rekursi
+      // tak berhenti. `syncing` flag di bawah memutus rekursi itu: saat kita SEDANG di dalam
+      // proses forward ke setDate(), assignment .value yg datang DARI DALAM flatpickr sendiri
+      // cukup ditulis apa adanya (tanpa manggil setDate() lagi).
+      var proto = Object.getPrototypeOf(el);
+      var nativeDesc = Object.getOwnPropertyDescriptor(proto, 'value')
+        || Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+      var syncing = false;
+      Object.defineProperty(el, 'value', {
+        configurable: true,
+        get: function () { return nativeDesc.get.call(el); },
+        set: function (v) {
+          nativeDesc.set.call(el, v);
+          if (syncing || !el._flatpickr || !v) return;
+          syncing = true;
+          try { el._flatpickr.setDate(v, false, 'Y-m-d'); }
+          finally { syncing = false; }
+        }
+      });
+    });
+
+    // ===== Filter Periode Transaksi: 1 field, mode "range" =====
+    // Beda dari field2 tanggal single di atas: TIDAK pakai value-override hack (assignment
+    // .value = "yyyy-mm-dd" langsung) karena utk mode "range" sinkronisasi tanggal dari kode
+    // dilakukan lewat fp.setDate([start, end]) di openFilterModal() (ViewJS.html), bukan lewat
+    // .value biasa. maxDate: "today" -> user tidak bisa memilih tanggal di masa depan.
+    var rangeEl = document.querySelector('#filterRangeDate');
+    if (rangeEl && !rangeEl._flatpickr) {
+      armDatePicker_(flatpickr(rangeEl, {
+        mode: 'range',
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        allowInput: false,
+        disableMobile: true,
+        maxDate: 'today'
+      }), 'clay-date-picker-field--accent');
+    }
+  }
+</script>
+
+<div id="toast" class="toast">Berhasil disimpan!</div>
+<div id="deleteModal"
+  class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
+  <div class="clay-sheet clay-key-danger bg-white p-6 max-w-sm w-full text-center transform transition-all">
+    <span class="material-symbols-outlined text-red-500 text-[40px] mb-2">warning</span>
+    <h3 class="font-bold text-lg text-text-primary mb-2">Hapus Transaksi?</h3>
+    <p class="text-xs text-text-secondary mb-5">Tindakan ini tidak bisa dibatalkan.</p>
+    <div class="flex gap-3">
+      <button onclick="closeDeleteModal()" class="clay-btn clay-btn-secondary flex-1 py-2.5 btn-ghost">Batal</button>
+      <button onclick="confirmDelete()" id="btnConfirmDelete" class="clay-btn clay-key-danger flex-1 py-2.5 btn-primary btn-danger">Ya, Hapus</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CARD-MODAL: DETAIL TRANSAKSI (tap-hold 800ms di mobile) =================
+     Dipicu dari handleLongPressStart() di ViewJS.html (ontouchstart pada kartu transaksi
+     #riwayatList). Isinya deskripsi/keterangan lengkap + rincian transaksi yang dipilih,
+     tidak terpotong seperti di kartu list (yg pakai class truncate). -->
+<div id="modalDetailTransaksi"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[10000] hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+  <div
+    class="clay-sheet clay-key-primary bg-white w-full sm:max-w-sm overflow-hidden max-h-[85vh] flex flex-col transform transition-all">
+    <div class="px-5 pt-5 pb-4 flex items-start justify-between gap-3 border-b border-gray-100 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <div id="detailTxIconWrap"
+          class="clay-icon-tile clay-key-primary w-11 h-11 rounded-full flex items-center justify-center shrink-0">
+          <span id="detailTxIcon" class="material-symbols-outlined text-[22px]">receipt_long</span>
+        </div>
+        <div class="min-w-0">
+          <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Detail Transaksi</p>
+          <h3 id="detailTxKategori" class="font-bold text-base text-slate-800 truncate">—</h3>
+        </div>
+      </div>
+      <button onclick="closeDetailTransaksiModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+
+    <div class="px-5 py-4 overflow-y-auto space-y-4">
+      <div class="text-center py-2">
+        <p id="detailTxNominal" class="text-2xl font-bold mb-1">Rp 0</p>
+        <p id="detailTxTanggal" class="text-xs text-slate-400">—</p>
+      </div>
+
+      <div id="detailTxRenameNotice"
+        class="hidden items-center gap-1.5 text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <span class="material-symbols-outlined text-[14px] shrink-0">sync_alt</span>
+        <span id="detailTxRenameText"></span>
+      </div>
+
+      <div class="clay-input bg-surface divide-y divide-gray-100">
+        <div class="flex items-center justify-between px-3.5 py-2.5">
+          <span class="text-xs text-textSecondary">Sumber / Akun</span>
+          <span id="detailTxSumber" class="text-xs font-semibold text-slate-800">—</span>
+        </div>
+        <div class="flex items-center justify-between px-3.5 py-2.5">
+          <span class="text-xs text-textSecondary">Kategori</span>
+          <span id="detailTxKategoriRow" class="text-xs font-semibold text-slate-800">—</span>
+        </div>
+      </div>
+
+      <div>
+        <p class="text-xs font-semibold text-slate-500 mb-1.5">Deskripsi / Keterangan</p>
+        <p id="detailTxKeterangan" class="clay-input text-sm text-slate-700 whitespace-pre-line bg-surface px-3.5 py-3">
+          —
+        </p>
+      </div>
+    </div>
+
+    <div class="px-5 py-4 flex gap-3 border-t border-gray-100 shrink-0">
+      <button onclick="closeDetailTransaksiModal()" class="clay-btn clay-btn-secondary flex-1 py-2.5 bg-surface hover:bg-gray-200 text-textSecondary text-sm font-semibold transition-colors">Tutup</button>
+      <button id="btnDetailTxEdit" onclick="editFromDetailModal()" class="clay-btn clay-key-primary flex-1 py-2.5 bg-primary hover:bg-primaryHover text-white text-sm font-semibold transition-colors flex items-center justify-center gap-1.5">
+        <span class="material-symbols-outlined text-[18px]">edit</span>
+        <span>Edit</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CARD-MODAL: SALIN TRANSAKSI =================
+     Dibuka dari tombol "Salin Transaksi" (#btnSalinTransaksi, hanya tampil saat form Edit
+     aktif) via openSalinTransaksiModal() di ViewJS.html. Field-nya PRE-FILLED dari data
+     transaksi yang sedang diedit di #transaksiForm (jenis, kategori, sumber, keterangan,
+     nominal disalin apa adanya; tanggal di-default ke HARI INI supaya tinggal diganti kalau
+     perlu) -> mempercepat pencatatan transaksi berulang yang datanya mirip, mis. cuma beda
+     tanggal. SENGAJA TIDAK ADA tombol Scan Struk/Upload/Foto di sini (beda dari form Tambah/
+     Edit utama) karena tujuannya justru mempercepat input manual dari data yang sudah ada,
+     bukan OCR struk baru. Submit-nya (handleSalinTransaksiSubmit() di ViewJS.html) SELALU
+     membuat transaksi BARU (id dikosongkan paksa) -> transaksi asal yang sedang diedit di
+     #transaksiForm TIDAK PERNAH ikut berubah/tertimpa. -->
+<div id="modalSalinTransaksi"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
+  <div class="clay-sheet clay-key-primary bg-white w-full max-w-md flex flex-col max-h-[90vh]">
+    <div class="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">content_copy</span>
+        Salin Transaksi
+      </h3>
+      <button type="button" onclick="closeSalinTransaksiModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <form id="salinTransaksiForm" onsubmit="handleSalinTransaksiSubmit(event)"
+      class="px-6 pb-6 overflow-y-auto space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+          <div
+            class="btn clay-btn clay-btn-secondary w-full py-2.5 px-3.5 flex items-center gap-2 text-sm font-semibold text-slate-700 bg-surface hover:bg-gray-100 transition-colors cursor-pointer date-picker-btn">
+            <span class="material-symbols-outlined text-[18px] shrink-0">calendar_month</span>
+            <input type="text" id="salinTanggal" autocomplete="off" required>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Jenis</label>
+          <select id="salinJenis" required
+                  class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600 transition-colors cursor-pointer">
+            <option value="" disabled>Pilih Jenis</option>
+            <option value="Pemasukan">Pemasukan</option>
+            <option value="Pengeluaran">Pengeluaran</option>
+          </select>
+        </div>
+      </div>
+
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Kategori</label>
+        <input type="text" id="salinKategori" autocomplete="off" placeholder="Pilih atau ketik kategori..." required class="clay-input w-full px-3 py-2 bg-surface text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+        <!-- FIX: sebelumnya ada <datalist id="kategoriList"> di sini yang bentrok (duplicate id)
+             dgn datalist #kategori di form Tambah/Edit (ViewTransaksi.html ~line 401), dan lagipula
+             TIDAK PERNAH terhubung (tidak ada atribut list="..." di input ini) -> dead code
+             sekaligus invalid HTML. Combobox kategori sekarang 100% ditenagai popup custom
+             claymorphism (enhanceClayCombobox_('salinKategori', ...) di ViewJS.html), datalist
+             native sudah tidak diperlukan sama sekali. -->
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Sumber / Akun</label>
+        <select id="salinSumber" required
+                class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600 transition-colors cursor-pointer">
+          <option value="" disabled>Pilih Sumber/Akun</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
+        <input type="text" id="salinKeterangan" placeholder="Keterangan opsional"
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600 transition-colors">
+      </div>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp)</label>
+        <input type="text" id="salinNominal" inputmode="numeric" placeholder="0" required
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-600 transition-colors font-mono">
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closeSalinTransaksiModal()"
+                class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+          Batal
+        </button>
+        <button type="submit"
+                class="clay-btn clay-key-primary px-4 py-2.5 bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">save</span>
+          Simpan Transaksi
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ================= CARD-MODAL: PINDAH SALDO (Transfer Antar Rekening) =================
+     Dibuka dari ikon "Pindah Saldo" di FAB speed-dial (openPindahSaldoModal() di ViewJS.html).
+     Dropdown Sumber/Tujuan diisi dari cachedDompet.rekening (populatePindahSaldoSelects_()).
+     Submit (handlePindahSaldoSubmit()) memutasi cachedDompet secara instan (optimistic
+     update, 0ms delay) lalu sinkron ke server via pindahSaldoServer() (controller.gs). -->
+<div id="modalPindahSaldo"
+  class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[10000] hidden flex items-center justify-center p-4">
+  <div class="clay-sheet clay-key-blue bg-white w-full max-w-md flex flex-col max-h-[90vh]">
+    <div class="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-600">sync_alt</span>
+        Pindah Saldo
+      </h3>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- Salin — HANYA tampil saat modal ini sedang mode EDIT (dibuka via
+             openEditPindahSaldoModal() dari kartu Pindah Saldo di Riwayat Transaksi). Klik
+             ini mengubah modal balik ke mode "buat baru" TANPA menutup/mengosongkan field,
+             jadi field yang sudah terisi (hasil edit) bisa langsung disimpan sebagai
+             transaksi Pindah Saldo baru -- pola sama dgn #btnSalinTransaksi. -->
+        <button type="button" id="btnSalinPindahSaldo" onclick="salinDariPindahSaldoEdit_()" class="hidden shrink-0 inline-flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:px-3 sm:py-1.5 clay-chip clay-key-blue bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-medium transition-colors cursor-pointer">
+          <span class="material-symbols-outlined text-[16px]">content_copy</span>
+        </button>
+        <button type="button" onclick="closePindahSaldoModal()" aria-label="Tutup" class="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+    </div>
+
+    <form id="pindahSaldoForm" onsubmit="handlePindahSaldoSubmit(event)" class="px-6 pb-6 overflow-y-auto space-y-4">
+      <div class="field-group">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal</label>
+        <div
+          class="btn clay-btn clay-btn-secondary w-full py-2.5 px-3.5 flex items-center gap-2 text-sm font-semibold text-slate-700 bg-surface hover:bg-gray-100 transition-colors cursor-pointer date-picker-btn">
+          <span class="material-symbols-outlined text-[18px] shrink-0">calendar_month</span>
+          <input type="text" id="pindahSaldoTanggal" autocomplete="off" required>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Dari Rekening (Sumber) <span class="text-red-500">*</span></label>
+        <select id="pindahSaldoSumber" required onchange="checkPindahSaldoRekeningSama_()"
+                class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors cursor-pointer">
+          <option value="" disabled selected>Pilih Rekening Sumber</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Ke Rekening (Tujuan) <span class="text-red-500">*</span></label>
+        <select id="pindahSaldoTujuan" required onchange="checkPindahSaldoRekeningSama_()"
+                class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors cursor-pointer">
+          <option value="" disabled selected>Pilih Rekening Tujuan</option>
+        </select>
+        <!-- FIX (peringatan sumber & tujuan sama, mis. "Ovo ke Ovo"): live-check tiap kali
+             salah satu dropdown berubah (checkPindahSaldoRekeningSama_() di ViewJS.html),
+             pola SAMA PERSIS dgn #bayarUtangSaldoWarning (modal Bayar Cicilan/Lunasin,
+             ViewUtang.html) — tombol submit ikut di-disable selama kondisi ini aktif,
+             validasi submit-time yang sudah ada di handlePindahSaldoSubmit() TETAP
+             dipertahankan sbg pertahanan terakhir (mis. kalau elemen ini gagal ke-load). -->
+        <p id="pindahSaldoRekeningSamaWarning"
+          class="hidden mt-2 flex items-start gap-1.5 text-[11.5px] leading-snug font-medium text-danger bg-danger-light rounded-lg px-2.5 py-2">
+          <span class="material-symbols-outlined text-[15px] shrink-0" style="margin-top:1px;">error</span>
+          <span>Rekening sumber & tujuan tidak boleh sama.</span>
+        </p>
+      </div>
+
+      <div class="field-group">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Nominal (Rp) <span class="text-red-500">*</span></label>
+        <input type="text" id="pindahSaldoNominal" inputmode="numeric" placeholder="0" required
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors font-mono">
+      </div>
+
+      <div class="field-group">
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
+        <input type="text" id="pindahSaldoCatatan" placeholder="Catatan opsional"
+               class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors">
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" onclick="closePindahSaldoModal()"
+                class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors">
+          Batal
+        </button>
+        <button type="submit" id="btnConfirmPindahSaldo"
+                class="clay-btn clay-key-blue px-4 py-2.5 bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">sync_alt</span>
+          Pindahkan Saldo
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
