@@ -47,8 +47,6 @@ let utangSortedList = []; // list utang & cicilan hasil sort terbaru (sumber utk
 let utangPages = [[]]; // hasil pembagian utangSortedList jadi halaman² sesuai tinggi layar yg tersedia
 let utangCurrentPageIdx = 0; // index halaman yang sedang tampil (0-based)
 let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-resize/rotate
-let lastCategoryBarsList = []; // list kategori yg sedang dirender di "Kategori Pengeluaran Teratas"
-                                // (dipakai openKategoriDetailModal() via index, lihat renderCategoryBars_())
 // State pagination lama tab Budget (rekeningCurrentPage/rekeningTotalPages/REKENING_PER_PAGE)
 // DIHAPUS — diganti CARD STACK SLIDER, state-nya (rekeningStackIndex, REKENING_STACK_PEEK)
 // dideklarasikan dekat renderRekeningStack_() di bawah (lihat bagian "CARD STACK SLIDER").
@@ -2159,8 +2157,8 @@ function openTambahRekeningModal() {
     if (chartTitle) chartTitle.textContent = statistikMode === 'tahunan' ? 'Tren Tahun Ini' : 'Tren Bulan Ini';
     const catTitle = document.getElementById('categoryTitle');
     if (catTitle) catTitle.textContent = statistikMode === 'tahunan'
-      ? 'Kategori Pengeluaran Teratas (Tahun Ini)'
-      : 'Kategori Pengeluaran Teratas (Bulan Ini)';
+      ? 'Breakdown Kategori (Tahun Ini)'
+      : 'Breakdown Kategori (Bulan Ini)';
   }
 
   function escHtml_(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
@@ -2229,12 +2227,13 @@ function openTambahRekeningModal() {
     return h;
   }
 
-  function renderCategoryBars_(categories, totalPengeluaran) {
-    const wrap = document.getElementById('categoryBars');
-    const empty = document.getElementById('emptyCategory');
+  function renderCategoryBars_(categories, totalJenis, opts) {
+    const o = opts || {};
+    const wrap = document.getElementById(o.wrapId || 'categoryBars');
+    const empty = document.getElementById(o.emptyId || 'emptyCategory');
     if (!wrap) return;
     const list = (categories || []).filter(c => c.total > 0).slice(0, 8);
-    lastCategoryBarsList = list; // simpan utk dirujuk balik oleh openKategoriDetailModal() via index
+    if (o.storeVar && window[o.storeVar]) { window[o.storeVar] = list; }
     if (!list.length) {
       wrap.innerHTML = '';
       if (empty) empty.classList.remove('hidden');
@@ -2242,16 +2241,21 @@ function openTambahRekeningModal() {
     }
     if (empty) empty.classList.add('hidden');
     const max = Math.max(...list.map(c => c.total), 1);
-    const palette = ['#2D6A4F', '#E86C4A', '#F59E0B', '#10b981', '#3B82F6', '#8B5CF6', '#EC4899', '#64748B'];
+    // Palet warna per jenis: index 0 (kategori terbesar) memakai warna PALING GELAP, makin
+    // kecil nilai kategorinya makin terang — konsisten utk pemasukan (hijau) & pengeluaran (merah).
+    const paletteGreen = ['#064E3B', '#065F46', '#047857', '#059669', '#10B981', '#34D399', '#6EE7B7', '#A7F3D0'];
+    const paletteRed = ['#7F1D1D', '#991B1B', '#B91C1C', '#DC2626', '#EF4444', '#F87171', '#FCA5A5', '#FECACA'];
+    const palette = (o.jenis === 'pemasukan') ? paletteGreen : paletteRed;
+    const jenis = o.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran';
     wrap.innerHTML = list.map((c, i) => {
-      const pct = totalPengeluaran > 0 ? (c.total / totalPengeluaran * 100) : 0;
+      const pct = totalJenis > 0 ? (c.total / totalJenis * 100) : 0;
       const barPct = (c.total / max * 100).toFixed(1);
       const color = palette[i % palette.length];
       // Track progress bar dibuat jadi "sumur"/groove claymorphism (inset ganda, resep sama
       // dgn .clay-input) menggantikan bg flat #F1F5F9 lama, biar senada kartu Transaksi;
       // bar isian tetap warna palette per kategori tapi ditambah sedikit shadow raised
       // supaya kelihatan "timbul" di dalam sumurnya.
-      return `<div ondblclick="openKategoriDetailModal(lastCategoryBarsList[${i}].kategori)" style="cursor:pointer;padding:8px 10px;border-radius:14px;transition:background-color .15s ease;" title="Ketuk/klik dua kali untuk lihat rincian transaksi" onmouseover="this.style.backgroundColor='rgba(38,90,67,.05)'" onmouseout="this.style.backgroundColor='transparent'">
+      return `<div ondblclick="openKategoriDetailModal('${jenis}', decodeURIComponent('${encodeURIComponent(c.kategori || 'Lainnya')}'))" style="cursor:pointer;padding:8px 10px;border-radius:14px;transition:background-color .15s ease;" title="Ketuk/klik dua kali untuk lihat rincian transaksi" onmouseover="this.style.backgroundColor='rgba(38,90,67,.05)'" onmouseout="this.style.backgroundColor='transparent'">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
           <span style="font-size:13px;font-weight:600;color:#334155;">${escHtml_(c.kategori || 'Lainnya')}</span>
           <span style="font-size:13px;font-weight:700;color:#0F172A;font-variant-numeric:tabular-nums;">Rp ${Number(c.total).toLocaleString('id-ID')} <span style="color:#94A3B8;font-weight:500;">(${pct.toFixed(1)}%)</span></span>
@@ -2272,28 +2276,31 @@ function openTambahRekeningModal() {
   }
 
   // MODAL DETAIL TRANSAKSI PER KATEGORI ("card-modal") — dipicu double click/double tap
-  // salah satu baris di "Kategori Pengeluaran Teratas". Menampilkan SEMUA transaksi
-  // pengeluaran kategori tsb pada periode (bulan/tahun ATAU tahun penuh, sesuai filter
-  // Statistik yg sedang aktif). Data diambil dari cachedStatistik.items (sudah dikirim
-  // sekalian oleh getStatistikPeriodeServer(), lihat controller.gs) -> TIDAK ada
-  // google.script.run baru, murni filter di memory.
-  function openKategoriDetailModal(kategori) {
+  // salah satu baris di "Breakdown Kategori" (Pemasukan ATAU Pengeluaran, sesuai argumen
+  // jenis). Menampilkan SEMUA transaksi kategori tsb pada periode (bulan/tahun ATAU tahun
+  // penuh, sesuai filter Statistik yg sedang aktif). Data diambil dari cachedStatistik.items
+  // (sudah dikirim sekalian oleh getStatistikPeriodeServer(), lihat controller.gs) -> TIDAK
+  // ada google.script.run baru, murni filter di memory.
+  function openKategoriDetailModal(jenis, kategori) {
     const modal = document.getElementById('modalKategoriDetail');
     const titleEl = document.getElementById('modalKategoriDetailTitle');
     const subEl = document.getElementById('modalKategoriDetailSub');
     const listEl = document.getElementById('modalKategoriDetailList');
     const totalEl = document.getElementById('modalKategoriDetailTotal');
+    const totalLabelEl = document.getElementById('modalKategoriDetailTotalLabel');
     if (!modal || !listEl) return;
 
+    const isIncome = jenis === 'pemasukan';
     const periodeLabel = statistikMode === 'tahunan'
       ? ('Tahun ' + statistikTahun)
       : (NAMA_BULAN_ID[statistikBulan] + ' ' + statistikTahun);
 
     if (titleEl) titleEl.textContent = kategori || 'Lainnya';
-    if (subEl) subEl.textContent = 'Semua pengeluaran periode ' + periodeLabel;
+    if (subEl) subEl.textContent = 'Semua ' + (isIncome ? 'pemasukan' : 'pengeluaran') + ' periode ' + periodeLabel;
+    if (totalLabelEl) totalLabelEl.textContent = 'Total ' + (isIncome ? 'Pemasukan' : 'Pengeluaran');
 
     const items = ((cachedStatistik && cachedStatistik.items) || [])
-      .filter(it => !isIncomeJenis_(it.jenis) && (it.kategori || 'Lainnya') === kategori)
+      .filter(it => isIncomeJenis_(it.jenis) === isIncome && (it.kategori || 'Lainnya') === kategori)
       .slice()
       .sort((a, b) => new Date(b.tanggalRaw) - new Date(a.tanggalRaw)); // terbaru dulu
 
@@ -2303,13 +2310,15 @@ function openTambahRekeningModal() {
       // Baris transaksi di dalam modal (card-modal) dibuat jd mini "clay-card" flat (bg
       // rgba tipis + radius, TANPA shadow 3D penuh spy tidak berat di list yg discroll)
       // senada nuansa kartu Transaksi (.tx-card-item), gantikan divider border-b lama.
+      const bgRow = isIncome ? 'rgba(16,185,129,.07)' : 'rgba(195,53,53,.05)';
+      const warnaNominal = isIncome ? 'text-success' : 'text-expense';
       listEl.innerHTML = items.map(it => `
-        <div class="flex items-center justify-between gap-3 px-3 py-2.5 mb-1.5 last:mb-0" style="border-radius:14px;background:rgba(195,53,53,.05);">
+        <div class="flex items-center justify-between gap-3 px-3 py-2.5 mb-1.5 last:mb-0" style="border-radius:14px;background:${bgRow};">
           <div class="min-w-0">
             <p class="text-sm text-slate-700 truncate">${escHtml_(it.keterangan || it.kategori || '-')}</p>
             <p class="text-[11px] text-slate-400 mt-0.5">${escHtml_(it.tanggal)} · ${escHtml_(it.sumber || '-')}</p>
           </div>
-          <span class="text-sm font-semibold text-expense shrink-0">Rp ${Number(it.nominal).toLocaleString('id-ID')}</span>
+          <span class="text-sm font-semibold ${warnaNominal} shrink-0">Rp ${Number(it.nominal).toLocaleString('id-ID')}</span>
         </div>`).join('');
     }
 
@@ -2326,7 +2335,7 @@ function openTambahRekeningModal() {
   function renderStatistikUI(data) {
     const container = document.getElementById('statistikContainer');
     if (!container) return;
-    const { pemasukan, pengeluaran, categories, trend, pemasukanSebelumnya, pengeluaranSebelumnya } = data || {};
+    const { pemasukan, pengeluaran, categories, kategoriPemasukan, trend, pemasukanSebelumnya, pengeluaranSebelumnya } = data || {};
 
     const elPemasukan = document.getElementById('totalPemasukan');
     const elPengeluaran = document.getElementById('totalPengeluaran');
@@ -2457,8 +2466,17 @@ function openTambahRekeningModal() {
       }
     }
 
-    // RENDER KATEGORI PENGELUARAN TERATAS
-    renderCategoryBars_(categories || [], pengeluaran);
+    // RENDER BREAKDOWN KATEGORI (2 kolom: Pemasukan & Pengeluaran)
+    renderCategoryBars_(kategoriPemasukan, pemasukan, {
+      wrapId: 'categoryBarsIncome',
+      emptyId: 'emptyCategoryIncome',
+      jenis: 'pemasukan'
+    });
+    renderCategoryBars_(categories || [], pengeluaran, {
+      wrapId: 'categoryBars',
+      emptyId: 'emptyCategory',
+      jenis: 'pengeluaran'
+    });
 
     // AI REKOMENDASI: TIDAK lagi di-fetch otomatis di sini (hemat kuota/biaya Gemini + biar
     // rekomendasi tidak nyangkut dari periode sebelumnya). Kartu direset ke placeholder

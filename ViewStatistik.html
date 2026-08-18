@@ -112,24 +112,42 @@
   </div>
 
   <!-- Category Breakdown — panel netral senada Trend Chart, tiap baris kategori pakai
-       warna palette sendiri (lihat renderCategoryBars_() di ViewJS.html). -->
+       warna palette sendiri (lihat renderCategoryBars_() di ViewJS.html). Sekarang dua
+       kolom: Pemasukan (kiri) & Pengeluaran (kanan), tiap sisi Top kategori dgn progress
+       bar + persentase terhadap total jenis masing-masing. -->
   <div class="clay clay-card clay-key-neutral bg-white p-5">
     <div class="flex items-center justify-between mb-4">
-      <h3 id="categoryTitle" class="font-bold text-sm text-slate-700">Kategori Pengeluaran Teratas (Bulan Ini)</h3>
+      <h3 id="categoryTitle" class="font-bold text-sm text-slate-700">Breakdown Kategori</h3>
       <span class="text-[10px] text-slate-400 hidden sm:inline">Klik 2x kategori utk detail</span>
     </div>
-    <div id="categoryBars" class="space-y-3"></div>
-    <div id="emptyCategory" class="text-center py-8 text-slate-500 text-sm hidden">
-      Belum ada data pengeluaran untuk periode ini.
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#10b981;"></span>Pemasukan
+        </p>
+        <div id="categoryBarsIncome" class="space-y-3"></div>
+        <div id="emptyCategoryIncome" class="text-center py-8 text-slate-500 text-sm hidden">
+          Belum ada data pemasukan untuk periode ini.
+        </div>
+      </div>
+      <div>
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <span class="w-2.5 h-2.5 rounded-full" style="background:#e53e3e;"></span>Pengeluaran
+        </p>
+        <div id="categoryBars" class="space-y-3"></div>
+        <div id="emptyCategory" class="text-center py-8 text-slate-500 text-sm hidden">
+          Belum ada data pengeluaran untuk periode ini.
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- MODAL DETAIL TRANSAKSI PER KATEGORI ("card-modal") — dibuka via double click/double
-       tap salah satu baris kategori di "Kategori Pengeluaran Teratas" (renderCategoryBars_()
-       di ViewJS.html memasang ondblclick per baris). Menampilkan SEMUA transaksi pengeluaran
-       untuk kategori tsb pada periode (bulan/tahun) yang sedang aktif dipilih di filter
-       Statistik. Data diambil dari cachedStatistik.items (sudah dikirim sekalian oleh
-       getStatistikPeriodeServer()), TANPA round-trip server baru — lihat
+       tap salah satu baris kategori di "Breakdown Kategori" (Pemasukan ATAU Pengeluaran;
+       renderCategoryBars_() di ViewJS.html memasang ondblclick per baris). Menampilkan
+       SEMUA transaksi kategori tsb pada periode (bulan/tahun) yang sedang aktif dipilih
+       di filter Statistik. Data diambil dari cachedStatistik.items (sudah dikirim sekalian
+       oleh getStatistikPeriodeServer()), TANPA round-trip server baru — lihat
        openKategoriDetailModal() di ViewJS.html. -->
   <div id="modalKategoriDetail"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
@@ -146,7 +164,7 @@
       <div id="modalKategoriDetailList" class="overflow-y-auto px-5 py-3 space-y-1 flex-1"></div>
       <div
         class="px-5 py-3 border-t border-slate-100 flex items-center justify-between shrink-0 bg-slate-50 rounded-b-2xl">
-        <span class="text-xs font-semibold text-slate-500">Total Pengeluaran</span>
+        <span id="modalKategoriDetailTotalLabel" class="text-xs font-semibold text-slate-500">Total Pengeluaran</span>
         <span id="modalKategoriDetailTotal" class="text-sm font-bold text-expense">Rp 0</span>
       </div>
     </div>

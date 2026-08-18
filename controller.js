@@ -1573,11 +1573,14 @@ function getStatistikPeriodeServer(mode, bulan, tahun) {
 
   let pemasukan = 0, pengeluaran = 0;
   const kategoriMap = {};
+  const kategoriMapPemasukan = {};
 
   items.forEach(it => {
     if (isPindahSaldoJenis_(it.jenis)) return; // transfer antar rekening, bukan pemasukan/pengeluaran
     if (isIncome_(it.jenis)) {
       pemasukan += it.nominal;
+      const cat = it.kategori || 'Lainnya';
+      kategoriMapPemasukan[cat] = (kategoriMapPemasukan[cat] || 0) + it.nominal;
     } else {
       pengeluaran += it.nominal;
       const cat = it.kategori || 'Lainnya';
@@ -1586,6 +1589,10 @@ function getStatistikPeriodeServer(mode, bulan, tahun) {
   });
 
   const categories = Object.entries(kategoriMap)
+    .map(([kategori, total]) => ({ kategori, total }))
+    .sort((a, b) => b.total - a.total);
+
+  const kategoriPemasukan = Object.entries(kategoriMapPemasukan)
     .map(([kategori, total]) => ({ kategori, total }))
     .sort((a, b) => b.total - a.total);
 
@@ -1667,6 +1674,7 @@ function getStatistikPeriodeServer(mode, bulan, tahun) {
     pemasukanSebelumnya,
     pengeluaranSebelumnya,
     categories,
+    kategoriPemasukan,
     trend,
     // ITEMS: rincian transaksi mentah periode ini (Pemasukan + Pengeluaran), dikirim
     // sekalian di sini (BUKAN round-trip terpisah) supaya modal detail kategori
