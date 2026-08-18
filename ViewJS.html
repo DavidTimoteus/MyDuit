@@ -3493,7 +3493,7 @@ function toggleDeleteBtnRekening(cardEl) {
     if (listEl) {
       listEl.innerHTML = entries.length
         ? entries.map((entry, i) => `
-          <div class="bg-slate-50 rounded-lg px-3 py-2.5 ${i === 0 ? 'ring-1 ring-blue-200' : ''}">
+          <div class="rounded-lg px-3 py-2.5 ${i === 0 ? 'bg-blue-50 ring-1 ring-blue-200' : 'bg-slate-50'}">
             ${i === 0 ? '<p class="text-[10px] font-semibold text-blue-700 mb-1">TERBARU</p>' : ''}
             <p class="text-[11.5px] text-slate-600 font-mono leading-snug">${escHtml_(entry)}</p>
           </div>`).join('')
