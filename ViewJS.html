@@ -76,8 +76,8 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     // di ViewTransaksi.html sekarang dienhance dengan resep yang sama persis (§4 DESIGN-MEMORY.md).
     // Aman dipanggil di sini walau elemennya sedang di dalam modal yang masih `hidden` -
     // enhanceClaySelect_() cuma butuh elemen ADA di DOM, tidak butuh visible/terbuka dulu.
-    ['jenis', 'sumber', 'exportBulan', 'exportTahun', 'salinJenis', 'salinSumber',
-     'pindahSaldoSumber', 'pindahSaldoTujuan'].forEach(enhanceClaySelect_);
+['jenis', 'sumber', 'exportBulan', 'exportTahun', 'salinJenis', 'salinSumber',
+      'pindahSaldoSumber', 'pindahSaldoTujuan', 'formBayarUtangSumber'].forEach(enhanceClaySelect_);
     // (lihat komentar lengkap di definisi enhanceClaySelect_)
 
     // FIX (format ribuan otomatis, ATURAN UTAMA seluruh app — lihat definisi lengkap
@@ -724,7 +724,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
   // FIX: tombol FAB "+" di nav bawah sebelumnya selalu hijau & selalu switchTab('tambah'),
   // termasuk saat pengguna sedang di tab Utang (tidak relevan, seharusnya buka form
   // tambah utang bukan form tambah transaksi kas). Sekarang warnanya & fungsinya
-  // menyesuaikan tab aktif: di tab Utang jadi merah/coral + buka modal tambah utang,
+  // menyesuaikan tab aktif: di tab Utang jadi merah + buka modal tambah utang,
   // di tab lain tetap hijau + switchTab('tambah') seperti semula.
   function updateFabAddButton(tabName) {
     const fab = document.getElementById('btnFabAdd');
@@ -736,7 +736,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     // (mis. Tambah Utang/Tambah Rekening).
     closeFabSpeedDial();
 
-    // Pakai inline style (bukan class Tailwind from-x/to-x) karena warna coral bukan
+    // Pakai inline style (bukan class Tailwind from-x/to-x) karena warna merah bukan
     // bagian dari palet tailwind.config di View_Index.html -> inline style lebih pasti menang.
     // Shadow-nya SUDAH tidak di-inline lagi (dulu fab.style.boxShadow) — sekarang cukup
     // toggle class clay-key-danger/clay-key-primary, .clay-fab (ViewCSS.html) yg urus
@@ -942,7 +942,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     }
     if (btnConfirm) {
       btnConfirm.innerHTML = isEdit
-        ? '<span class="material-symbols-outlined text-[16px]">save</span><span>Simpan Perubahan</span>'
+        ? '<span class="material-symbols-outlined text-[16px]">save</span><span>Simpan</span>'
         : '<span class="material-symbols-outlined text-[16px]">sync_alt</span><span>Pindahkan Saldo</span>';
     }
     if (btnSalin) btnSalin.classList.toggle('hidden', !isEdit);
@@ -2946,9 +2946,9 @@ function openTambahRekeningModal() {
       else { dueLabel = `${hariSisa} hari lagi`; dueColor = 'text-slate-500'; }
     }
 
-// Tombol "Bayar"/"Lunasin" — keduanya MERAH (warna pengeluaran), teks putih.
+// Tombol "Bayar"/"Lunasin" — keduanya HIJAU (seperti tombol update transaksi), teks putih.
     // Saat LUNAS tombol disembunyikan.
-    const bayarBtnBg = 'linear-gradient(135deg,#EF5350 0%,#B71C1C 100%)';
+    const bayarBtnBg = 'linear-gradient(135deg,#059669 0%,#047857 100%)';
     const bayarBtnIcon = isCicilan ? 'payments' : 'paid';
     const bayarBtn = !isLunas ? `<button onclick="handleBayarLunasin(event, '${item.id}')"
         style="height:32px;padding:0 12px 0 9px;border:none;border-radius:8px;font-size:11.5px;font-weight:700;letter-spacing:.1px;display:inline-flex;align-items:center;gap:5px;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);background:${bayarBtnBg};cursor:pointer;white-space:nowrap;">
@@ -3098,7 +3098,10 @@ function openTambahRekeningModal() {
     if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
 
     const finish = () => {
-      if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">save</span>Simpan';
+      }
       document.getElementById('modalUtang')?.classList.add('hidden');
     };
 
@@ -3194,24 +3197,24 @@ function openTambahRekeningModal() {
       utangBayarJumlahAktif = jumlahBayar;
       icon.textContent = 'payments';
       icon.className = 'material-symbols-outlined text-[40px] mb-2';
-      icon.style.color = '#0D9488';
+      icon.style.color = '#059669';
       title.textContent = 'Bayar Cicilan Bulan Ini?';
       desc.textContent = `${item.namaPihak} — sisa saat ini Rp ${Number(item.sisa).toLocaleString('id-ID')}`;
       amountEl.textContent = 'Rp ' + jumlahBayar.toLocaleString('id-ID');
       btnConfirm.textContent = 'Ya, Bayar';
       btnConfirm.className = 'px-4 py-2.5 rounded-xl text-white text-xs font-semibold shadow-sm transition-colors';
-      btnConfirm.style.background = 'linear-gradient(135deg,#0D9488 0%,#0B6E63 100%)';
+      btnConfirm.style.background = 'linear-gradient(135deg,#059669 0%,#047857 100%)';
     } else {
       utangBayarJumlahAktif = Number(item.sisa) || 0;
       icon.textContent = 'paid';
       icon.className = 'material-symbols-outlined text-[40px] mb-2';
-      icon.style.color = '#EA580C';
+      icon.style.color = '#059669';
       title.textContent = 'Lunasi Utang Ini?';
       desc.textContent = item.namaPihak;
       amountEl.textContent = 'Rp ' + Number(item.sisa).toLocaleString('id-ID');
       btnConfirm.textContent = 'Ya, Lunasin';
       btnConfirm.className = 'px-4 py-2.5 rounded-xl text-white text-xs font-semibold shadow-sm transition-colors';
-      btnConfirm.style.background = 'linear-gradient(135deg,#EA580C 0%,#B45309 100%)';
+      btnConfirm.style.background = 'linear-gradient(135deg,#059669 0%,#047857 100%)';
     }
 
     // Isi dropdown Sumber Dana dari daftar akun Dompet yang sudah ada (dimuat kalau

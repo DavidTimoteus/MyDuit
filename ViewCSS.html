@@ -71,12 +71,12 @@
     }
   }
 
-  /* Neumorphism text — heading "Transaksi" (InOut.html/#pageHeader), versi hijau brand
+  /* Neumorphism text — heading "Transaksi" (ViewTransaksi.html/#pageHeader), versi hijau brand
      (#2D6A4F, sama dgn var(--primary)). Karena warna teks TIDAK disamakan dgn background
      (beda dari versi netral sebelumnya), trik shadow classic neumorphism (2 shadow di
      container) jadi kurang kelihatan sebab shadow-nya nge-blur/nyambung antar huruf
      (apalagi dgn tracking-tight). Diakali dengan pasang text-shadow PER HURUF (lihat
-     .neu-letter, dibungkus manual di markup InOut.html) -> tiap huruf dapat bevel-nya
+     .neu-letter, dibungkus manual di markup ViewTransaksi.html) -> tiap huruf dapat bevel-nya
      sendiri² (highlight terang kiri-atas + bayangan gelap kanan-bawah), jadi efek timbulnya
      tetap kebaca jelas huruf-per-huruf. */
   .riwayat-heading-neumorphism {
@@ -125,40 +125,8 @@
      Konten asli kartu WAJIB dibungkus <div class="relative z-10"> di HTML supaya tetap di
      atas kedua pseudo-element dekoratif ini (posisinya absolute, tanpa z-index eksplisit
      bisa ketumpuk di atas konten non-positioned kalau tidak diberi z-index lebih tinggi). */
-  .card-3d-coral {
-    position: relative;
-    border-radius: 18px;
-    background: linear-gradient(150deg, #F0805D 0%, #E86C4A 45%, #C24C31 100%);
-    box-shadow:
-      inset 0 1.5px 0 rgba(255, 255, 255, .45),
-      inset 0 -5px 10px -2px rgba(90, 20, 10, .35),
-      0 14px 24px -10px rgba(180, 40, 20, .55),
-      0 4px 10px rgba(120, 30, 15, .28);
-    overflow: hidden;
-  }
-
-  .card-3d-coral::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60%;
-    background: linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, 0) 100%);
-    pointer-events: none;
-  }
-
-  .card-3d-coral::after {
-    content: '';
-    position: absolute;
-    right: -36px;
-    bottom: -36px;
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 72%);
-    pointer-events: none;
-  }
+  /* Card 3D Coral — TIDAK DIGUNAKAN (tab Utang sudah pakai .card-3d-danger dengan warna merah). DIBIARKAN untuk
+     backward compatibility, tapi sebaiknya dihapus di masa depan jika benar-benar tidak dipakai lagi. */
 
   .card-3d-danger {
     position: relative;
@@ -210,12 +178,6 @@
     --primary-hover: #1B4332;
     --primary-light: #D1F5E3;
     --primary-text: #0F172A;
-
-    /* Coral — Signature Accent untuk Urgency/Utang */
-    --coral: #E86C4A;
-    --coral-hover: #D45A3D;
-    --coral-light: #FDE8E0;
-    --coral-text: #7C2D12;
 
     /* Amber — Warning */
     --amber: #F59E0B;
@@ -316,22 +278,6 @@
     background: var(--success-light);
   }
 
-  .text-coral {
-    color: var(--coral);
-  }
-
-  .bg-coral {
-    background: var(--coral);
-  }
-
-  .bg-coral-light {
-    background: var(--coral-light);
-  }
-
-  .text-coral-text {
-    color: var(--coral-text);
-  }
-
   .bg-amber-light {
     background: var(--amber-light);
   }
@@ -363,7 +309,7 @@
   }
 
   /* Tombol — BASE/FALLBACK standar claymorphism seluruh app. Sebelumnya cuma translateY
-     tipis tanpa shadow sama sekali (efek Transaksi hanya berlaku di InOut.html via class
+     tipis tanpa shadow sama sekali (efek Transaksi hanya berlaku di ViewTransaksi.html via class
      clay-* khusus) -> SEKARANG dijadikan standar resmi: SEMUA <button>/.btn (termasuk yg
      TIDAK ditempeli class clay-* apapun, mis. tombol close "×" di header modal, tombol
      periode/panah di Statistik) otomatis dapat resep RAISED (shadow ganda ber-hue netral
@@ -424,25 +370,13 @@
     background: var(--surface-2, #F1F5F9) !important;
   }
 
-  /* FIX: warna tombol #btnSubmit (form Tambah/Edit Transaksi, teksnya toggle
-     "Simpan Transaksi" <-> "Update Transaksi" via innerText, TAPI class-nya SAMA PERSIS
-     di kedua mode -> jadi cukup 1 kali ganti di sini utk berlaku ke keduanya) disamakan
-     dgn tombol "Simpan Transaksi" di modal Salin Transaksi (InOut.html, sudah pakai Tailwind
-     bg-emerald-600/hover:bg-emerald-700 langsung), yg sebelumnya beda sendiri karena
-     .btn-primary di sini masih pakai var(--primary) (hijau tema utama, BUKAN emerald).
-     Aman diubah di sini krn cuma dipakai 2 elemen (#btnSubmit & #btnConfirmDelete) - yg
-     kedua warnanya tetap merah krn class .btn-danger dideklarasikan SETELAH .btn-primary di
-     file ini & spesifisitasnya sama (satu class) -> cascade CSS tetap menangkan .btn-danger,
-     TIDAK terpengaruh perubahan warna di sini. */
   .btn-primary {
     background: #059669;
-    /* Tailwind emerald-600 */
     color: #fff;
   }
 
   .btn-primary:hover {
     background: #047857;
-    /* Tailwind emerald-700 */
   }
 
   .btn-ghost {
@@ -491,7 +425,7 @@
   #viewBudget.view-section {
     /* overflow-x: hidden; */
     /* FIX (dipaksa user): #viewBudget duduk di dalam parent flex/grid (area konten utama,
-       lihat <main>/wrapper di InOut.html) yg tanpa override ini membiarkan default
+       lihat <main>/wrapper di ViewTransaksi.html) yg tanpa override ini membiarkan default
        min-height:auto bawaan flex item -> section ini bisa "menolak mengecil" & ikut
        mendorong tinggi total melebihi 1 layar (konten anaknya, termasuk stack kartu
        rekening, dihitung pada tinggi natural bukan tinggi yg tersedia). !important dipakai
@@ -502,7 +436,7 @@
 
   /* FIX: #viewTambah (modal Tambah/Edit Transaksi) tetap pakai class "view-section" supaya
      kompatibel dgn switchTab() di ViewJS.html (yg toggle .active), tapi markup-nya sekarang
-     wrapper overlay "fixed inset-0 ... flex items-center justify-center" (lihat InOut.html).
+     wrapper overlay "fixed inset-0 ... flex items-center justify-center" (lihat ViewTransaksi.html).
      Tanpa override ini, ".view-section.active{display:block}" di atas menang (spesifisitas
      2 class > 1 class Tailwind "flex") -> flex items-center justify-center jadi tidak
      berfungsi & modal tidak ter-center. */
@@ -989,7 +923,7 @@
      Bawaan flatpickr pakai warna biru (#569ff7 dkk) utk outline/ring tanggal terpilih &
      rentang (hover, selected, startRange/endRange, inRange) -> kontras & tidak nyambung dgn
      tema hijau app. Paling kentara di kalender "Pilih periode" (filter transaksi, mode
-     "range", lihat #filterRangeDate di InOut.html) krn area inRange-nya lebar & mencolok.
+     "range", lihat #filterRangeDate di ViewTransaksi.html) krn area inRange-nya lebar & mencolok.
      Override di bawah mengganti semua warna itu ke var(--primary)/var(--primary-light),
      JUGA menghapus outline/box-shadow biru bawaan pada tanggal fokus via keyboard. */
   .flatpickr-day.selected,
@@ -1050,7 +984,7 @@
   }
 
   /* ============================================================
-     CLAYMORPHISM — tampilan Transaksi (InOut.html) SAJA
+     CLAYMORPHISM — tampilan Transaksi (ViewTransaksi.html) SAJA
      ============================================================
      Mengikuti resep di Claymorphism.md (radius chunky, 3D soft-shadow
      ber-hue, inset sheen, squish on-press) TAPI palet warna lama TIDAK
@@ -1059,7 +993,7 @@
      var(--danger), var(--amber)), masing2 di-darken ~15% jadi channel
      RGB (--clay-h-*) supaya shadow tetap "berwarna sesuai hue kartu",
      bukan abu-abu generik, persis semangat §4 & §7 Claymorphism.md.
-     Semua class di sini prefix "clay-" & HANYA dipakai di InOut.html
+     Semua class di sini prefix "clay-" & HANYA dipakai di ViewTransaksi.html
      + template kartu riwayat (renderRiwayatUI di ViewJS.html) supaya
      tab lain (Budget/Statistik/Utang) tidak ikut berubah dulu. */
   :root {
@@ -1120,9 +1054,7 @@
     --clay-h: var(--clay-h-primary);
   }
 
-  .clay-key-coral {
-    --clay-h: var(--clay-h-coral);
-  }
+  /* clay-key-coral — TIDAK DIGUNAKAN (tab Utang sudah pakai .clay-key-danger dengan warna merah). */
 
   .clay-key-danger {
     --clay-h: var(--clay-h-danger);
@@ -1296,9 +1228,9 @@
      opsi flatpickr-nya allowInput:true -> user BISA ketik manual, gampang salah format &
      visualnya beda dari tombol "Upload Struk"/"Foto Struk" di sebelahnya (persegi clay-btn
      raised/puffy). FIX: dibungkus div ber-class sama persis dgn tombol asli (`btn clay-btn
-     clay-btn-secondary`, lihat markup InOut.html/ViewUtang.html) + ikon calendar_month di
+     clay-btn-secondary`, lihat markup ViewTransaksi.html/ViewUtang.html) + ikon calendar_month di
      kiri -> visual IDENTIK tombol. <input> aslinya (altInput hasil flatpickr, DIBERI class
-     ini via JS setelah init, lihat armDatePicker_() di InOut.html) dibikin transparan total
+     ini via JS setelah init, lihat armDatePicker_() di ViewTransaksi.html) dibikin transparan total
      & caret disembunyikan supaya tidak kelihatan seperti "kotak isian" — user CUMA bisa pilih
      via kalender popup (readOnly=true dipasang barengan di JS, allowInput:false di config). */
   .clay-date-picker-field {
@@ -1325,7 +1257,7 @@
   /* Chip "Pilih periode" (filterRangeDate) — hue primary tetap ditonjolkan (teks hijau bold,
      beda dari field tanggal biasa yg netral) krn ini pemicu kalender RANGE, bukan tanggal
      tunggal, jadi sengaja dibuat sedikit lebih mencolok. Class modifier ditempel manual via
-     armDatePicker_() (InOut.html) — BUKAN selector by-ID, krn altInput hasil flatpickr TIDAK
+     armDatePicker_() (ViewTransaksi.html) — BUKAN selector by-ID, krn altInput hasil flatpickr TIDAK
      mewarisi id dari input aslinya (cuma className, itupun riwayatnya sempat tidak konsisten
      antar versi, lihat catatan di bawah), jadi selector by-ID pasti tidak pernah kena. */
   .clay-date-picker-field--accent {
@@ -1360,7 +1292,7 @@
      bikin altInput baru & nyulitkan targeting persis. SEKARANG diganti total: dibungkus
      ".btn .clay-btn .clay-btn-secondary" (persis gaya tombol "Upload Struk"/"Foto Struk"),
      altInput-nya diberi class ".clay-date-picker-field" langsung via JS (armDatePicker_()
-     di InOut.html, 100% presisi krn imperatif — bukan tebak-tebak selector CSS lagi), jadi
+     di ViewTransaksi.html, 100% presisi krn imperatif — bukan tebak-tebak selector CSS lagi), jadi
      blok hack lama di atas sudah tidak diperlukan & dihapus. */
 
   /* Custom dropdown claymorphism — pengganti popup native <select> (mis. #jenis, #sumber
@@ -1596,7 +1528,7 @@
   /* Ikon "+" FAB berputar 45deg jadi terlihat seperti "x" saat speed-dial terbuka —
      ditoggle via class .fab-icon-open (toggleFabSpeedDial()/closeFabSpeedDial() di
      ViewJS.html), transisinya numpang di "transition-transform duration-200" yg sudah
-     ada dari Tailwind di markup ikon (InOut.html). */
+     ada dari Tailwind di markup ikon (ViewTransaksi.html). */
   .fab-icon-open {
     transform: rotate(45deg);
   }
@@ -1620,7 +1552,7 @@
      FAB, menyatu mulus dgn kurva bulat tombolnya (efek "kolam" tempat FAB duduk).
      PENTING: class .clay-nav ini SEKARANG nempel di <div id="navShell"> > div background
      KOSONG (tanpa anak DOM sama sekali), BUKAN lagi di elemen <nav> yg isinya ikon tab & FAB
-     (lihat InOut.html) — krn CSS mask memotong SELURUH konten elemen yg dipasangi, termasuk
+     (lihat ViewTransaksi.html) — krn CSS mask memotong SELURUH konten elemen yg dipasangi, termasuk
      semua anaknya. Kalau mask ini masih nempel langsung di <nav> yg ada tombol FAB di
      dalamnya, FAB-nya bakal ikut "berlubang" tepat di area notch (posisinya numpang persis di
      tengah-atas, lokasi yg sama dgn cekungan). Makanya background & shadow dipisah ke div
@@ -1717,7 +1649,7 @@
       inset -3px -3px 9px rgba(255, 255, 255, .7);
   }
 
-  /* Loading spinner "Memuat riwayat kas" (InOut.html + renderLoadingState di ViewJS.html)
+  /* Loading spinner "Memuat riwayat kas" (ViewTransaksi.html + renderLoadingState di ViewJS.html)
      — adaptasi dari Uiverse.io by javierBarroso (dot-spinner), disesuaikan ke sistem app:
      1. FIX typo resep asli: "background-color: trasparent" -> "transparent".
      2. Warna glow diganti dari navy hardcode (#183153/rgba(18,31,53,...)) ke hue brand
@@ -1731,7 +1663,7 @@
         serupa di tab lain, JANGAN reuse langsung, duplikasikan dgn prefix baru & sesuaikan
         hue-nya (pola sama kayak --clay-h-* per konteks warna, §4.2).
      Dipakai identik di 2 tempat (WAJIB disamakan kalau salah satu diubah): markup statis
-     awal (InOut.html, sblm JS jalan) & string yg di-inject renderLoadingState() saat fetch
+     awal (ViewTransaksi.html, sblm JS jalan) & string yg di-inject renderLoadingState() saat fetch
      batch riwayat (ViewJS.html, container.innerHTML = '...'). */
   .riwayat-dot-spinner {
     --uib-size: 2.5rem;
