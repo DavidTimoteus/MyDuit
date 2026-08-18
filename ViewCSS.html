@@ -160,6 +160,41 @@
     pointer-events: none;
   }
 
+  .card-3d-danger {
+    position: relative;
+    border-radius: 18px;
+    background: linear-gradient(150deg, #EF5350 0%, #e53e3e 45%, #B71C1C 100%);
+    box-shadow:
+      inset 0 1.5px 0 rgba(255, 255, 255, .45),
+      inset 0 -5px 10px -2px rgba(80, 5, 5, .35),
+      0 14px 24px -10px rgba(150, 20, 20, .55),
+      0 4px 10px rgba(100, 15, 15, .28);
+    overflow: hidden;
+  }
+
+  .card-3d-danger::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .28) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+  }
+
+  .card-3d-danger::after {
+    content: '';
+    position: absolute;
+    right: -36px;
+    bottom: -36px;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, .16) 0%, rgba(255, 255, 255, 0) 72%);
+    pointer-events: none;
+  }
+
   .text-bold {
     font-weight: 600;
   }
@@ -752,7 +787,7 @@
 
   .utang-pagination-dot.active {
     width: 22px;
-    background: var(--coral);
+    background: var(--danger);
   }
 
   .utang-pagination-arrow {
@@ -773,8 +808,8 @@
   }
 
   .utang-pagination-arrow:hover:not(:disabled) {
-    color: var(--coral);
-    border-color: var(--coral);
+    color: var(--danger);
+    border-color: var(--danger);
   }
 
   .utang-pagination-arrow:disabled {

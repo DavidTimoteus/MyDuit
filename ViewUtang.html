@@ -15,10 +15,10 @@
     <header class="pt-4 md:pt-6 pb-4">
       <div class="flex items-center gap-2.5">
         <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) — icon "handshake"
-             (sama dgn ikon nav Utang), kunci warna coral (clay-key-coral) sesuai tema tab ini. -->
+             (sama dgn ikon nav Utang), kunci warna merah (clay-key-danger) sesuai tema tab ini. -->
         <div
-          class="clay-icon-tile clay-key-coral w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
-          style="background: linear-gradient(135deg, #F0805D 0%, #C24C31 100%);">
+          class="clay-icon-tile clay-key-danger w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0"
+          style="background: linear-gradient(135deg, #EF5350 0%, #B71C1C 100%);">
           <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">handshake</span>
         </div>
         <!-- Heading disamakan gaya-nya dgn tab Transaksi (riwayat-heading-neumorphism, tiap
@@ -26,7 +26,7 @@
              pakai "utang-heading-shimmer", sekarang diseragamkan. Paragraf subtitle di bawah
              heading DIHAPUS sesuai instruksi. -->
         <h2
-          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight riwayat-heading-neumorphism truncate text-[#F0805D]">
+          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight riwayat-heading-neumorphism truncate text-[#e53e3e]">
           <span class="neu-letter">U</span><span class="neu-letter">t</span><span class="neu-letter">a</span><span class="neu-letter">n</span><span class="neu-letter">g</span>
           <span class="neu-letter">&amp;</span>
           <span class="neu-letter">C</span><span class="neu-letter">i</span><span class="neu-letter">c</span><span class="neu-letter">i</span><span class="neu-letter">l</span><span class="neu-letter">a</span><span class="neu-letter">n</span>
@@ -34,11 +34,12 @@
       </div>
     </header>
 
-    <!-- Hero Summary — pakai warna coral (signature accent utk urgency/utang, lihat ViewCSS.html),
-         style kartu "3D" (gloss atas + bevel bawah + drop shadow tercelup warna) via .card-3d-coral
-         di ViewCSS.html. Konten dibungkus div relative z-10 supaya tetap di atas lapisan
-         dekorasi ::before/::after kartu (highlight & glow) yang dipakai buat efek kedalamannya. -->
-    <div class="card-3d-coral text-white p-5 mb-4">
+    <!-- Hero Summary — pakai warna merah (signature accent utk urgency/utang, sama dgn warna
+         Pengeluaran, lihat ViewCSS.html), style kartu "3D" (gloss atas + bevel bawah + drop
+         shadow tercelup warna) via .card-3d-danger di ViewCSS.html. Konten dibungkus div
+         relative z-10 supaya tetap di atas lapisan dekorasi ::before/::after kartu (highlight
+         & glow) yang dipakai buat efek kedalamannya. -->
+    <div class="card-3d-danger text-white p-5 mb-4">
       <div class="relative z-10">
         <div class="flex items-center justify-between mb-1">
           <p class="text-xs sm:text-sm opacity-90">Total Sisa Utang Aktif</p>
@@ -57,18 +58,17 @@
          via renderUtangDueSoonNotif_() di ViewJS.html tiap kali data utang dirender. Hidden
          by default & disembunyikan lagi otomatis kalau tidak ada yang mendekati jatuh tempo. -->
     <div id="utangJatuhTempoNotif" class="hidden mb-3 rounded-14 border p-3"
-      style="background:var(--coral-light); border-color:rgba(232,108,74,.35);">
+      style="background:var(--danger-light); border-color:rgba(229,62,62,.35);">
       <div class="flex items-start gap-2.5">
-        <span class="material-symbols-outlined text-coral text-[20px] shrink-0 mt-0.5">notifications_active</span>
+        <span class="material-symbols-outlined text-danger text-[20px] shrink-0 mt-0.5">notifications_active</span>
         <div class="min-w-0 flex-1">
-          <p class="text-xs font-bold text-coral-text mb-1.5">Jatuh Tempo Mendekat (≤5 hari)</p>
+          <p class="text-xs font-bold text-danger mb-1.5">Jatuh Tempo Mendekat (≤5 hari)</p>
           <div id="utangJatuhTempoNotifList" class="space-y-1"></div>
         </div>
       </div>
     </div>
 
-    <div class="flex items-center justify-between mb-2">
-      <h3 class="font-semibold text-sm text-slate-800">Daftar Utang & Cicilan</h3>
+    <div class="flex items-center justify-end mb-2">
       <span id="utangPageIndicator" class="text-[11px] font-medium text-slate-400"></span>
     </div>
   </div>
@@ -91,10 +91,10 @@
 <!-- MODAL TAMBAH/EDIT UTANG -->
 <div id="modalUtang"
   class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
-  <div class="clay-sheet clay-key-coral bg-white w-full max-w-md flex flex-col max-h-[90vh] transition-all">
+  <div class="clay-sheet clay-key-danger bg-white w-full max-w-md flex flex-col max-h-[90vh] transition-all">
     <div class="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
       <h3 id="modalUtangTitle" class="text-base font-bold text-slate-800 flex items-center gap-2">
-        <span class="material-symbols-outlined text-coral">account_balance_wallet</span>
+        <span class="material-symbols-outlined text-danger">account_balance_wallet</span>
         Form Utang / Cicilan
       </h3>
       <button onclick="document.getElementById('modalUtang').classList.add('hidden')" class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">

@@ -711,20 +711,10 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
 
     document.querySelectorAll('.nav-btn').forEach(btn => {
     const tab = btn.getAttribute('data-tab');
-    const icon = btn.querySelector('.material-symbols-outlined');
     const isActive = (tab === tabName);
 
     // Toggle kelas active pada tombol navigasi
     btn.classList.toggle('active', isActive);
-
-    // Logika warna khusus ikon Utang (#F0805D saat aktif)
-    if (tab === 'utang' && icon) {
-      if (isActive) {
-        icon.classList.add('text-[#F0805D]');
-      } else {
-        icon.classList.remove('text-[#F0805D]');
-      }
-    }
    });
 
     updateNavActiveState(tabName);
@@ -749,13 +739,13 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     // Pakai inline style (bukan class Tailwind from-x/to-x) karena warna coral bukan
     // bagian dari palet tailwind.config di View_Index.html -> inline style lebih pasti menang.
     // Shadow-nya SUDAH tidak di-inline lagi (dulu fab.style.boxShadow) — sekarang cukup
-    // toggle class clay-key-coral/clay-key-primary, .clay-fab (ViewCSS.html) yg urus
+    // toggle class clay-key-danger/clay-key-primary, .clay-fab (ViewCSS.html) yg urus
     // resep shadow clay-nya (key warnanya otomatis ikut ganti tanpa perlu inline lagi).
     if (tabName === 'utang') {
-      fab.style.background = 'linear-gradient(135deg, #E86C4A 0%, #B91C1C 100%)';
+      fab.style.background = 'linear-gradient(135deg, #EF5350 0%, #B71C1C 100%)';
       fab.classList.remove('clay-key-primary');
       fab.classList.remove('clay-key-blue');
-      fab.classList.add('clay-key-coral');
+      fab.classList.add('clay-key-danger');
       fab.setAttribute('aria-label', 'Tambah Utang');
       fab.onclick = () => openUtangModal(null, 'add');
     } else if (tabName === 'budget') {
@@ -767,7 +757,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       // class) krn "biru solid FAB" ini beda dari resep gradient clay-key-blue bawaan (yg
       // dipakai kartu/tombol lain di tab Budget) — di sini cukup 1 warna flat sesuai instruksi.
       fab.style.background = '#1d4ed8';
-      fab.classList.remove('clay-key-coral');
+      fab.classList.remove('clay-key-danger');
       fab.classList.remove('clay-key-primary');
       fab.classList.add('clay-key-blue');
       fab.setAttribute('aria-label', 'Tambah Rekening');
@@ -777,7 +767,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       // Saldo/Pemasukan) dulu, bukan langsung switchTab('tambah') lagi. Lihat
       // toggleFabSpeedDial()/openTransaksiPreset()/openPindahSaldoModal() di bawah.
       fab.style.background = '';
-      fab.classList.remove('clay-key-coral');
+      fab.classList.remove('clay-key-danger');
       fab.classList.remove('clay-key-blue');
       fab.classList.add('clay-key-primary');
       fab.setAttribute('aria-label', 'Tambah (Pengeluaran/Pindah Saldo/Pemasukan)');
@@ -1135,7 +1125,7 @@ function handlePindahSaldoSubmit(event) {
   // "nyangkut" di tombol Budget saat user pindah ke tab lain.
   function updateNavActiveState(tabName) {
     document.querySelectorAll('.nav-btn').forEach(btn => {
-      btn.classList.remove('text-primary', 'text-blue-700'); btn.classList.add('text-textSecondary');
+      btn.classList.remove('text-primary', 'text-blue-700', 'text-danger'); btn.classList.add('text-textSecondary');
       const icon = btn.querySelector('.material-symbols-outlined');
       if (icon) icon.style.fontVariationSettings = "'FILL' 0";
       // Pill neumorphic di belakang ikon (lihat .nav-icon-wrap di ViewCSS.html) ->
@@ -1148,7 +1138,7 @@ function handlePindahSaldoSubmit(event) {
     const activeBtn = document.querySelector(`.nav-btn[data-tab="${tabName}"]`);
     if (activeBtn) {
       activeBtn.classList.remove('text-textSecondary');
-      activeBtn.classList.add(tabName === 'budget' ? 'text-blue-700' : 'text-primary');
+      activeBtn.classList.add(tabName === 'budget' ? 'text-blue-700' : (tabName === 'utang' ? 'text-danger' : 'text-primary'));
       const icon = activeBtn.querySelector('.material-symbols-outlined');
       if (icon) icon.style.fontVariationSettings = "'FILL' 1";
       const iconWrap = activeBtn.querySelector('.nav-icon-wrap');
@@ -2623,7 +2613,7 @@ function openTambahRekeningModal() {
       if (u.hariSisa < 0) label = `Terlambat ${Math.abs(u.hariSisa)} hari`;
       else if (u.hariSisa === 0) label = 'Jatuh tempo hari ini';
       else label = `${u.hariSisa} hari lagi`;
-      return `<div class="flex items-center justify-between gap-2 text-xs text-coral-text">
+      return `<div class="flex items-center justify-between gap-2 text-xs text-danger">
         <span class="truncate">${escHtml_(u.namaPihak)} · Rp ${Number(u.sisa).toLocaleString('id-ID')}</span>
         <span class="font-semibold shrink-0 whitespace-nowrap">${label}</span>
       </div>`;
@@ -2635,7 +2625,7 @@ function openTambahRekeningModal() {
     const list = (data && data.list) || [];
 
     // ===== Hero Summary (mengikuti gaya kartu "Total Semua Saldo" di Budget,
-    // dipakai warna coral karena --coral memang disiapkan sbg "Signature Accent
+    // dipakai warna merah karena --danger memang disiapkan sbg "Signature Accent
     // untuk Urgency/Utang" -- lihat ViewCSS.html) =====
     const aktif = list.filter(u => u.status !== 'Lunas');
     const totalSisaAktif = aktif.reduce((a, u) => a + (Number(u.sisa) || 0), 0);
@@ -2755,7 +2745,7 @@ function openTambahRekeningModal() {
 
     if (!utangSortedList.length) {
       track.innerHTML = `<div class="utang-list-page">
-        <div class="bg-white p-8 rounded-14 shadow-sm border border-slate-100 text-center">
+        <div class="clay clay-card clay-key-danger bg-white p-8 text-center">
           <span class="material-symbols-outlined text-[32px] text-slate-300 mb-2 block">account_balance</span>
           <p class="text-sm text-slate-500">Belum ada utang / cicilan.</p>
         </div>
@@ -2947,32 +2937,28 @@ function openTambahRekeningModal() {
       ? Math.min(100, Math.max(0, Math.round(((item.total - item.sisa) / item.total) * 100)))
       : 0;
 
-    const statusBadge = isLunas
-      ? '<span class="text-[10px] px-2 py-1 rounded-full font-semibold bg-success-light text-success">Lunas</span>'
-      : `<span class="text-[10px] px-2 py-1 rounded-full font-semibold ${isMendesak ? 'bg-coral-light text-coral-text' : 'bg-amber-light text-amber-700'}">Belum Lunas</span>`;
-
     let dueLabel = '';
     let dueColor = 'text-slate-500';
     if (!isLunas && hariSisa !== null) {
-      if (hariSisa < 0) { dueLabel = `Terlambat ${Math.abs(hariSisa)} hari`; dueColor = 'text-coral font-semibold'; }
-      else if (hariSisa === 0) { dueLabel = 'Jatuh tempo hari ini'; dueColor = 'text-coral font-semibold'; }
-      else if (hariSisa <= 7) { dueLabel = `${hariSisa} hari lagi`; dueColor = 'text-coral font-semibold'; }
+      if (hariSisa < 0) { dueLabel = `Terlambat ${Math.abs(hariSisa)} hari`; dueColor = 'text-danger font-semibold'; }
+      else if (hariSisa === 0) { dueLabel = 'Jatuh tempo hari ini'; dueColor = 'text-danger font-semibold'; }
+      else if (hariSisa <= 7) { dueLabel = `${hariSisa} hari lagi`; dueColor = 'text-danger font-semibold'; }
       else { dueLabel = `${hariSisa} hari lagi`; dueColor = 'text-slate-500'; }
     }
 
-    // Tombol "Bayar"/"Lunasin" dipakai style inline (bukan class button/.btn di ViewCSS.html)
-    // supaya TIDAK ikut ke-override height:48px/padding:0 16px global -> tanpa ini tombol
-    // kecil malah membengkak jadi lingkaran besar karena height dipaksa 48px.
-    // Bentuk dibuat kotak membulat (rounded-lg, BUKAN rounded-full/pil) + ikon uang tegas
-    // supaya jelas terlihat sebagai tombol persegi, bukan bulatan.
-    const bayarBtnBg = isCicilan
-      ? 'linear-gradient(135deg,#0D9488 0%,#0B6E63 100%)'   // teal — beda dari merah "Tambah Utang" & coral "Lunasin"
-      : 'linear-gradient(135deg,#EA580C 0%,#B45309 100%)';  // amber/oranye tegas — beda dari merah Tambah Utang
-    const bayarBtnIcon = isCicilan ? 'payments' : 'paid'; // ikon uang: "payments" (bayar cicilan) / "paid" (lunas sekaligus)
+// Tombol "Bayar"/"Lunasin" — keduanya MERAH (warna pengeluaran), teks putih.
+    // Saat LUNAS tombol disembunyikan.
+    const bayarBtnBg = 'linear-gradient(135deg,#EF5350 0%,#B71C1C 100%)';
+    const bayarBtnIcon = isCicilan ? 'payments' : 'paid';
     const bayarBtn = !isLunas ? `<button onclick="handleBayarLunasin(event, '${item.id}')"
         style="height:32px;padding:0 12px 0 9px;border:none;border-radius:8px;font-size:11.5px;font-weight:700;letter-spacing:.1px;display:inline-flex;align-items:center;gap:5px;color:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2);background:${bayarBtnBg};cursor:pointer;white-space:nowrap;">
         <span class="material-symbols-outlined" style="font-size:16px;">${bayarBtnIcon}</span>${isCicilan ? 'Bayar' : 'Lunasin'}
       </button>` : '';
+
+    // Badge status: LUNAS → hijau penuh; BELUM LUNAS → merah penuh (teks putih)
+    const statusBadge = isLunas
+      ? '<span class="text-[10px] px-2 py-1 rounded-full font-semibold bg-success text-white">Lunas</span>'
+      : `<span class="text-[10px] px-2 py-1 rounded-full font-semibold bg-danger text-white">${isMendesak ? 'Mendesak' : 'Belum Lunas'}</span>`;
 
     return `<div onclick="toggleDeleteBtnUtang(this)"
           ondblclick="openUtangModal('${item.id}', 'edit')"
@@ -2980,13 +2966,15 @@ function openTambahRekeningModal() {
           ontouchmove="handleUtangLongPressMove(event)"
           ontouchend="handleUtangLongPressEnd(event, this)"
           data-id="${item.id}"
-          class="utang-card-item relative bg-white rounded-xl border border-transparent shadow-sm p-4 mb-3 transition-all select-none cursor-pointer"
-          style="${isMendesak ? 'box-shadow:0 0 0 1px rgba(232,108,74,.35), 0 1px 2px rgba(0,0,0,.05);' : ''}">
+          class="utang-card-item clay clay-card clay-key-danger relative bg-white p-4 mb-3 transition-all select-none cursor-pointer"
+          style="${isMendesak ? 'border:1px solid rgba(229,62,62,.5);' : ''}">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0">
-          <span class="material-symbols-outlined ${isLunas ? 'text-success' : 'text-coral'} text-[20px]">${isLunas ? 'task_alt' : 'account_balance_wallet'}</span>
+          <span class="clay-icon-tile clay-key-danger w-9 h-9 rounded-full bg-danger-light flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined ${isLunas ? 'text-success' : 'text-danger'} text-[18px]">${isLunas ? 'task_alt' : 'account_balance_wallet'}</span>
+          </span>
           <span class="font-semibold text-sm text-slate-800 truncate">${escHtml_(item.namaPihak)}</span>
-          <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium shrink-0">${escHtml_(item.tipe)}</span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-danger-light text-danger font-medium shrink-0">${escHtml_(item.tipe)}</span>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           ${bayarBtn}
@@ -3006,11 +2994,11 @@ function openTambahRekeningModal() {
         ${statusBadge}
       </div>
 
-      <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2">
-        <div class="h-full rounded-full ${isLunas ? 'bg-success' : 'bg-primary'}" style="width:${progressPct}%"></div>
+      <div class="w-full h-2 rounded-full overflow-hidden" style="box-shadow:inset 2px 2px 5px rgba(100,116,139,.18), inset -2px -2px 4px rgba(255,255,255,.8);background:#F1F5F9;">
+        <div class="h-full rounded-full" style="width:${progressPct}%;box-shadow:1px 1px 3px rgba(0,0,0,.15);background:${isLunas ? 'var(--success)' : 'linear-gradient(90deg,var(--danger) 0%,#B71C1C 100%)'}"></div>
       </div>
 
-      <div class="flex items-center justify-between text-[11px] text-slate-500">
+      <div class="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
         <span class="flex items-center gap-1">
           <span class="material-symbols-outlined text-[14px]">event</span>
           Jatuh tempo ${item.tglJatuh}
