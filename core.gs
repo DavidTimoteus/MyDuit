@@ -77,7 +77,7 @@ function doGet(e) {
     return HtmlService.createHtmlOutput('<pre>' + lines.join('\n').replace(/</g, '&lt;') + '</pre>')
       .setTitle('Debug Includes');
   }
-  const template = HtmlService.createTemplateFromFile('View_Index');
+  const template = HtmlService.createTemplateFromFile('ViewIndex');
   const initialFilter = { tipe: 'hari_ini', startDate: '', endDate: '', jenis: 'Semua', search: '' };
 
   // Cek database SEBELUM fetch data apa pun. Kalau belum ada/gagal diakses
@@ -124,7 +124,7 @@ function include(filename) {
 }
 
 function debugTestIncludes() {
-  const files = ['ViewCSS', 'ViewTransaksi', 'ViewBudget', 'ViewStatistik', 'ViewUtang', 'ViewJS', 'DatabaseSetupModal', 'View_Index'];
+  const files = ['ViewCSS', 'ViewTransaksi', 'ViewBudget', 'ViewStatistik', 'ViewUtang', 'ViewJS', 'DatabaseSetupModal', 'ViewIndex'];
   const results = [];
   files.forEach(function (f) {
     try {

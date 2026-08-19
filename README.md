@@ -75,7 +75,7 @@ Detail kolom dan relasi ada di `database.md`. Kalau user memakai skema lama (she
 | `ViewUtang.html` | Tab Utang & Cicilan |
 | `ViewJS.html` | Client-side JavaScript |
 | `ViewCSS.html` | Custom Tailwind styles (claymorphism/neumorphism) |
-| `View_Index.html` | Shell template yang meng-include semua tab |
+| `ViewIndex.html` | Shell template yang meng-include semua tab |
 
 ## Performa
 
