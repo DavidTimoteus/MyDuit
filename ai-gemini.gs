@@ -1,39 +1,93 @@
 /*******************************************************
  * MyDuit — ai-gemini.gs
- * Domain: Integrasi Google Gemini (multi-key round robin + fallback model)
- * 
- * Kompatibel dengan ViewJS.html / controller.js:
- * - processReceiptImage(base64Data, mimeType)
- * - getRekomendasiKeuanganServer(mode, bulan, tahun)
- * - setGeminiApiKey, setGeminiApiKeys, setGeminiApiKeysOnce
+ * Domain: Integrasi Google Gemini
+ * - Multi-Key round-robin: tiap panggilan memutar key yang dipakai duluan,
+ *   sisanya jadi fallback otomatis saat key kena limit/kuota.
+ * - Multi-Model round-robin: tiap panggilan memutar model awal sesuai kebutuhan
+ *   (OCR_STRUK / TUGAS_RINGAN), sisanya jadi fallback jika model gagal.
+ * - Kompatibel dengan ViewJS.html / controller.js:
+ *   - processReceiptImage(base64Data, mimeType)
+ *   - getRekomendasiKeuanganServer(mode, bulan, tahun)
+ *   - setGeminiApiKey, setGeminiApiKeys, setGeminiApiKeysOnce
  *******************************************************/
 
 const GEMINI_MODELS = {
-  FLASH_3_6: 'gemini-2.5-flash',
-  FLASH_LITE_3_5: 'gemini-2.5-flash-lite',
-  FLASH_3_PREVIEW: 'gemini-2.0-flash'
+  PRO_2_5: 'gemini-2.5-pro',
+  FLASH_2_5: 'gemini-2.5-flash',
+  FLASH_LITE_2_5: 'gemini-2.5-flash-lite',
+  FLASH_2_0: 'gemini-2.0-flash',
+  FLASH_LITE_2_0: 'gemini-2.0-flash-lite'
 };
 
+// Daftar model per kebutuhan. Urutan = preferensi, tapi karena round-robin model,
+// model di index awal BERPUTAR per panggilan sehingga semua model terpakai merata.
 const GEMINI_MODEL_ROUTES = {
-  OCR_STRUK: [GEMINI_MODELS.FLASH_3_6, GEMINI_MODELS.FLASH_LITE_3_5, GEMINI_MODELS.FLASH_3_PREVIEW],
-  TUGAS_RINGAN: [GEMINI_MODELS.FLASH_LITE_3_5, GEMINI_MODELS.FLASH_3_6]
+  // OCR struk: butuh kemampuan vision → keluarga Flash (cepat & murah), Pro sebagai cadangan terakhir.
+  OCR_STRUK: [
+    GEMINI_MODELS.FLASH_2_5,
+    GEMINI_MODELS.FLASH_LITE_2_5,
+    GEMINI_MODELS.FLASH_2_0,
+    GEMINI_MODELS.PRO_2_5,
+    GEMINI_MODELS.FLASH_LITE_2_0
+  ],
+  // Rekomendasi (teks ringan): dahulukan model kecil, Pro untuk kualitas saat dibutuhkan.
+  TUGAS_RINGAN: [
+    GEMINI_MODELS.FLASH_LITE_2_5,
+    GEMINI_MODELS.FLASH_2_5,
+    GEMINI_MODELS.FLASH_LITE_2_0,
+    GEMINI_MODELS.FLASH_2_0,
+    GEMINI_MODELS.PRO_2_5
+  ]
 };
 
 function getGeminiModelRoute_(kebutuhan) {
   return GEMINI_MODEL_ROUTES[kebutuhan] || GEMINI_MODEL_ROUTES.OCR_STRUK;
 }
 
+// Round-robin MODEL: memutar index model awal per panggilan (per kebutuhan) supaya
+// semua model di route terpakai merata, bukan selalu model pertama yang dicoba duluan.
+// Dipadukan dengan round-robin key di callGeminiGenerateContent_() → tiap panggilan
+// berputar BAIK model MAUPUN key. State disimpan di ScriptProperties (lock aman).
+function getNextModelIndexAndAdvance_(kebutuhan, totalModels) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(5000);
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const propKey = 'GEMINI_MODEL_RR_IDX_' + kebutuhan;
+    let idx = parseInt(props.getProperty(propKey) || '0', 10);
+    if (isNaN(idx) || idx < 0) idx = 0;
+    const current = idx % totalModels;
+    props.setProperty(propKey, String((idx + 1) % totalModels));
+    return current;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function getGeminiApiKeys_() {
-  const props = PropertiesService.getScriptProperties();
-  const multi = props.getProperty('GEMINI_API_KEYS');
+  // Prioritas: UserProperties (per-user) → ScriptProperties (admin default)
+  const userProps = PropertiesService.getUserProperties();
+  const multi = userProps.getProperty('MYDUIT_AI_KEYS');
   if (multi) {
     try {
       const arr = JSON.parse(multi);
       if (Array.isArray(arr) && arr.length) return arr;
     } catch (e) {}
   }
-  const single = props.getProperty('GEMINI_API_KEY');
+  const single = userProps.getProperty('MYDUIT_AI_KEY');
   if (single) return [single];
+
+  // Fallback ke ScriptProperties (admin default)
+  const scriptProps = PropertiesService.getScriptProperties();
+  const scriptMulti = scriptProps.getProperty('GEMINI_API_KEYS');
+  if (scriptMulti) {
+    try {
+      const arr = JSON.parse(scriptMulti);
+      if (Array.isArray(arr) && arr.length) return arr;
+    } catch (e) {}
+  }
+  const scriptSingle = scriptProps.getProperty('GEMINI_API_KEY');
+  if (scriptSingle) return [scriptSingle];
   return [];
 }
 
@@ -145,10 +199,12 @@ function extractStrukDataWithGemini_(base64Data, mimeType, daftarAkun) {
   };
 
   const modelRoute = getGeminiModelRoute_('OCR_STRUK');
+  // Round-robin: mulai dari model yang berbeda tiap panggilan, sisanya jadi fallback.
+  const startModelIdx = getNextModelIndexAndAdvance_('OCR_STRUK', modelRoute.length);
   let lastError = null;
 
   for (let i = 0; i < modelRoute.length; i++) {
-    const model = modelRoute[i];
+    const model = modelRoute[(startModelIdx + i) % modelRoute.length];
     let response;
     try {
       response = callGeminiGenerateContent_(model, payload, 'OCR');
@@ -261,10 +317,12 @@ function getRekomendasiKeuanganServer(mode, bulan, tahun) {
   };
 
   const modelRoute = getGeminiModelRoute_('TUGAS_RINGAN');
+  // Round-robin: mulai dari model yang berbeda tiap panggilan, sisanya jadi fallback.
+  const startModelIdx = getNextModelIndexAndAdvance_('TUGAS_RINGAN', modelRoute.length);
   let lastError = null;
 
   for (let i = 0; i < modelRoute.length; i++) {
-    const model = modelRoute[i];
+    const model = modelRoute[(startModelIdx + i) % modelRoute.length];
     let resp;
     try {
       resp = callGeminiGenerateContent_(model, payload, 'Rekomendasi');
@@ -305,4 +363,77 @@ function setGeminiApiKeys(keys) {
 
 function setGeminiApiKeysOnce() {
   Logger.log(setGeminiApiKeys(['GANTI_DENGAN_API_KEY_ANDA']));
+}
+
+/**
+ * Simpan API key Gemini ke UserProperties (per-user).
+ * Dipanggil dari modal onboarding AI saat user pertama kali input key.
+ * @param {string[]|string} keys — array key atau string koma-terpisah.
+ * @return {string} pesan sukses.
+ */
+function setUserGeminiApiKeys(keys) {
+  if (!keys) throw new Error('Parameter keys diperlukan.');
+  const arr = Array.isArray(keys) ? keys : String(keys).split(',');
+  const cleaned = arr.map(k => String(k).trim()).filter(Boolean);
+  if (!cleaned.length) throw new Error('Tidak ada API key valid.');
+  PropertiesService.getUserProperties().setProperty('MYDUIT_AI_KEYS', JSON.stringify(cleaned));
+  // Hapus single key lama kalau ada
+  PropertiesService.getUserProperties().deleteProperty('MYDUIT_AI_KEY');
+  return `Tersimpan ${cleaned.length} API key Gemini (user).`;
+}
+
+/**
+ * Cek status API key user.
+ * @return {{exists: boolean, count: number, source: string}}
+ */
+function getUserGeminiApiKeysStatus() {
+  const userProps = PropertiesService.getUserProperties();
+  const multi = userProps.getProperty('MYDUIT_AI_KEYS');
+  if (multi) {
+    try {
+      const arr = JSON.parse(multi);
+      if (Array.isArray(arr) && arr.length) return { exists: true, count: arr.length, source: 'user', dismissed: false };
+    } catch (e) {}
+  }
+  const single = userProps.getProperty('MYDUIT_AI_KEY');
+  if (single) return { exists: true, count: 1, source: 'user', dismissed: false };
+
+  // Cek apakah user pernah menekan "Nggak dulu" (sudah dismiss once)
+  const dismissed = userProps.getProperty('AI_ONBOARDING_DISMISSED') === '1';
+
+  // Fallback ke ScriptProperties (admin default)
+  const scriptProps = PropertiesService.getScriptProperties();
+  const scriptMulti = scriptProps.getProperty('GEMINI_API_KEYS');
+  if (scriptMulti) {
+    try {
+      const arr = JSON.parse(scriptMulti);
+      if (Array.isArray(arr) && arr.length) {
+        // Admin sudah set key → onboarding tidak perlu ditanyakan
+        return { exists: true, count: arr.length, source: 'admin', dismissed: false };
+      }
+    } catch (e) {}
+  }
+  if (scriptProps.getProperty('GEMINI_API_KEY')) {
+    return { exists: true, count: 1, source: 'admin', dismissed: false };
+  }
+  return { exists: false, count: 0, source: 'none', dismissed: dismissed };
+}
+
+/**
+ * Tandai onboarding AI udah pernah dilewati (user tekan "Nggak dulu").
+ * Agar tidak muncul berulang kali sebelum AI dipakai.
+ */
+function markAIOnboardingDismissed() {
+  PropertiesService.getUserProperties().setProperty('AI_ONBOARDING_DISMISSED', '1');
+  return 'Dismissed';
+}
+
+/**
+ * Hapus API key user (mis. saat user mau ganti key baru total).
+ */
+function clearUserGeminiApiKeys() {
+  const up = PropertiesService.getUserProperties();
+  up.deleteProperty('MYDUIT_AI_KEYS');
+  up.deleteProperty('MYDUIT_AI_KEY');
+  return 'API key user dihapus.';
 }

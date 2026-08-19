@@ -1,0 +1,323 @@
+<div
+  id="aiOnboardingModal"
+  class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden"
+>
+  <div class="clay-sheet clay-key-blue bg-white w-full max-w-md p-6 transition-all">
+    <!-- STEP 1: Pilih Ya/Tidak -->
+    <div id="aiStep1" class="space-y-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+          <span class="material-symbols-outlined text-blue-700">auto_awesome</span>
+          Aktifkan Fitur AI?
+        </h3>
+        <button
+          onclick="closeAIOnboardingModal()"
+          class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
+          aria-label="Tutup"
+        >
+          <span class="material-symbols-outlined text-[18px]">close</span>
+        </button>
+      </div>
+
+      <p class="text-sm text-slate-600">
+        MyDuit punya fitur AI bertenaga Google Gemini. Jika diaktifkan, kamu bisa:
+      </p>
+      <ul class="list-disc list-inside space-y-1.5 text-sm text-slate-600">
+        <li><b>Rekomendasi Keuangan</b> — analisis pemasukan/pengeluaran per periode, saran hemat, & prioritas alokasi.</li>
+        <li><b>OCR Struk</b> — upload foto struk belanja, AI isi otomatis tanggal, nominal, kategori, & sumber (selalu dicatat sbg Pengeluaran).</li>
+      </ul>
+      <p class="text-xs text-slate-500 mt-2">
+        Fitur ini butuh API key Gemini (gratis di <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>). Kamu bisa input beberapa key biar fallback otomatis kalau satu key kena limit.
+      </p>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          onclick="skipAIOnboarding()"
+          class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+        >
+          Nggak Dulu
+        </button>
+        <button
+          onclick="showAIStep2()"
+          class="clay-btn clay-key-blue bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors flex items-center gap-1.5"
+        >
+          Ya, Aktifkan
+          <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Pilih jumlah key + input key -->
+    <div id="aiStep2" class="space-y-4 hidden">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-700">key</span>
+        Masukkan API Key
+      </h3>
+
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">
+          Jumlah API Key <span class="text-red-500">*</span>
+        </label>
+        <select
+          id="aiKeyCount"
+          onchange="renderAIKeyInputs()"
+          class="clay-input w-full px-3.5 py-2.5 text-sm bg-white focus:outline-none transition-colors cursor-pointer"
+        >
+          <option value="1">1 Key</option>
+          <option value="2">2 Key (fallback)</option>
+          <option value="3">3 Key</option>
+          <option value="4">4 Key</option>
+          <option value="5">5 Key</option>
+        </select>
+      </div>
+
+      <div id="aiKeyInputs" class="space-y-3"></div>
+
+      <div class="text-center text-xs text-slate-500">
+        <p class="mb-1">Butuh API Key gratis?</p>
+        <div class="flex flex-wrap justify-center gap-2 text-blue-600 underline">
+          <a href="https://aistudio.google.com/apikey" target="_blank" class="hover:text-blue-700">Google AI Studio (Gemini)</a>
+          <a href="https://openrouter.ai/keys" target="_blank" class="hover:text-blue-700">OpenRouter (banyak model gratis)</a>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button
+          onclick="showAIStep1()"
+          class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+        >
+          <span class="material-symbols-outlined text-[16px]">arrow_back</span>
+          Kembali
+        </button>
+        <button
+          onclick="saveAIKeys()"
+          id="btnSaveAIKeys"
+          class="clay-btn clay-key-blue bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors flex items-center gap-1.5"
+        >
+          Simpan & Mulai
+          <span class="material-symbols-outlined text-[16px]">check</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODAL: MASALAH API KEY (dipakai saat AI error) ===== -->
+<div
+  id="aiKeyProblemModal"
+  class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-4 hidden"
+>
+  <div class="clay-sheet clay-key-danger bg-white w-full max-w-md p-6 transition-all">
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+        <span class="material-symbols-outlined text-red-500">warning</span>
+        API Key Bermasalah
+      </h3>
+    </div>
+
+    <p class="text-sm text-slate-600 mb-4">
+      Fitur AI gagal dijalankan (key tidak valid / kuota habis / rate limit).
+      Masukkan API key baru agar fitur AI bisa dipakai lagi.
+    </p>
+
+    <div>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">
+        API Key Baru (bisa lebih dari 1, pisahkan koma) <span class="text-red-500">*</span>
+      </label>
+      <textarea
+        id="aiProblemKeys"
+        rows="3"
+        placeholder="AIza... , AIza... (pisahkan koma)"
+        class="clay-input w-full px-3.5 py-2.5 text-sm focus:outline-none transition-colors font-mono"
+      ></textarea>
+    </div>
+
+    <div class="flex items-center justify-end gap-2 pt-2">
+      <button
+        onclick="closeAIKeyProblemModal()"
+        class="clay-btn clay-btn-secondary px-4 py-2.5 text-xs font-semibold text-slate-600 transition-colors"
+      >
+        Nanti Saja
+      </button>
+        <button
+        onclick="saveAIKeyFromProblem()"
+        id="btnSaveAIProblemKeys"
+        class="clay-btn clay-key-danger bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors flex items-center gap-1.5"
+      >
+        Simpan & Coba Lagi
+        <span class="material-symbols-outlined text-[16px]">refresh</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== AI Onboarding =====
+  // Dipanggil di DOMContentLoaded (pola sama DatabaseSetupModal.html). Hanya muncul
+  // jika database sudah ada TAPI belum ada API key AI (atau user belum pernah pilih).
+  function initAICheck() {
+    // Database belum ada → biarkan DatabaseSetupModal yang muncul dulu; setelah reload,
+    // AI check baru berjalan lagi otomatis.
+    if (window.__HAS_DATABASE__ !== 'true') return;
+
+    google.script.run
+      .withSuccessHandler(handleAIStatus)
+      .withFailureHandler(function () { /* diam jika gagal cek; tidak blokir render */ })
+      .getUserGeminiApiKeysStatus();
+  }
+
+  function handleAIStatus(res) {
+    // Sudah ada key (user atau admin) → tidak usah onboarding.
+    if (res && res.exists) {
+      window.__AI_KEYS_EXISTS__ = true;
+      return;
+    }
+    // User pernah tekan "Nggak dulu" & belum ada key → jangan tanya lagi sampai error.
+    if (res && res.dismissed) {
+      window.__AI_KEYS_EXISTS__ = false;
+      return;
+    }
+    window.__AI_KEYS_EXISTS__ = false;
+    showAIOnboardingModal();
+  }
+
+  function showAIOnboardingModal() {
+    document.getElementById('aiOnboardingModal')?.classList.remove('hidden');
+    // Reset ke step 1
+    showAIStep1();
+  }
+
+  function closeAIOnboardingModal() {
+    document.getElementById('aiOnboardingModal')?.classList.add('hidden');
+  }
+
+  function showAIStep1() {
+    document.getElementById('aiStep2')?.classList.add('hidden');
+    document.getElementById('aiStep1')?.classList.remove('hidden');
+  }
+
+  function showAIStep2() {
+    document.getElementById('aiStep1')?.classList.add('hidden');
+    document.getElementById('aiStep2')?.classList.remove('hidden');
+    // Reset pilihan jumlah key ke 1 & render 1 input
+    const sel = document.getElementById('aiKeyCount');
+    if (sel) sel.value = '1';
+    renderAIKeyInputs();
+  }
+
+  function renderAIKeyInputs() {
+    const sel = document.getElementById('aiKeyCount');
+    const container = document.getElementById('aiKeyInputs');
+    if (!sel || !container) return;
+    const count = Number(sel.value) || 1;
+    let html = '';
+    for (let i = 0; i < count; i++) {
+      html += '' +
+        '<div class="flex flex-col gap-1.5">' +
+          '<label class="text-xs font-semibold text-slate-600">API Key ' + (i + 1) + (i === 0 ? ' <span class="text-red-500">*</span>' : '') + '</label>' +
+          '<input type="text" id="aiKeyInput-' + i + '" placeholder="AIzaSy...-' + (i + 1) + '" ' +
+            'class="clay-input w-full px-3.5 py-2.5 text-sm font-mono focus:outline-none transition-colors" autocomplete="off" />' +
+        '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function collectAIKeys() {
+    const inputs = [];
+    const regex = /^aiKeyInput-(\d+)$/;
+    document.querySelectorAll('[id^="aiKeyInput-"]').forEach(function (el) {
+      const m = el.id.match(regex);
+      if (!m) return;
+      const val = String(el.value || '').trim();
+      if (val) inputs.push({ idx: Number(m[1]), val: val });
+    });
+    inputs.sort(function (a, b) { return a.idx - b.idx; });
+    return inputs.map(function (o) { return o.val; });
+  }
+
+  function saveAIKeys() {
+    const keys = collectAIKeys();
+    if (!keys.length) {
+      showAIToast('Masukkan setidaknya 1 API key.');
+      return;
+    }
+    const btn = document.getElementById('btnSaveAIKeys');
+    btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">hourglass_small</span> Menyimpan...';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Simpan & Mulai';
+        window.__AI_KEYS_EXISTS__ = true;
+        closeAIOnboardingModal();
+        showAIToast('API key tersimpan. Fitur AI siap dipakai.');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span> Simpan & Mulai';
+        showAIToast(err.message || 'Gagal menyimpan API key.');
+      })
+      .setUserGeminiApiKeys(keys);
+  }
+
+  function skipAIOnboarding() {
+    // "Nggak dulu" → catat agar tidak ditanyakan lagi sebelum error.
+    google.script.run
+      .withSuccessHandler(function () { markAIModalDismissedLocally(); })
+      .markAIOnboardingDismissed();
+    closeAIOnboardingModal();
+  }
+
+  function markAIModalDismissedLocally() {
+    window.__AI_KEYS_EXISTS__ = false;
+  }
+
+  // ===== AI Key Problem =====
+  // Dipanggil oleh ViewJS.html bila sebuah panggilan AI gagal karena key (401 / kuota /
+  // rate-limit yang sama sekali tidak bisa, atau semua key habis).
+  function showAIKeyProblemModal() {
+    document.getElementById('aiProblemKeys').value = '';
+    document.getElementById('aiKeyProblemModal')?.classList.remove('hidden');
+  }
+
+  function closeAIKeyProblemModal() {
+    document.getElementById('aiKeyProblemModal')?.classList.add('hidden');
+  }
+
+  function saveAIKeyFromProblem() {
+    const raw = (document.getElementById('aiProblemKeys').value || '').trim();
+    const keys = raw.split(',').map(function (k) { return k.trim(); }).filter(Boolean);
+    if (!keys.length) {
+      showAIToast('Masukkan setidaknya 1 API key.');
+      return;
+    }
+    const btn = document.getElementById('btnSaveAIProblemKeys');
+    btn.disabled = true; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">hourglass_small</span> Menyimpan...';
+
+    google.script.run
+      .withSuccessHandler(function () {
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">refresh</span> Simpan & Coba Lagi';
+        window.__AI_KEYS_EXISTS__ = true;
+        closeAIKeyProblemModal();
+        showAIToast('API key baru tersimpan. Coba lagi sekarang.');
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">refresh</span> Simpan & Coba Lagi';
+        showAIToast(err.message || 'Gagal menyimpan API key.');
+      })
+      .setUserGeminiApiKeys(keys);
+  }
+
+  function showAIToast(text) {
+    let el = document.getElementById('aiToastFallback');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'aiToastFallback';
+      el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(31,41,59,.92);color:#fff;padding:10px 18px;border-radius:999px;font-size:12.5px;font-family:Manrope, sans-serif;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,.25)';
+      document.body.appendChild(el);
+    }
+    el.textContent = text;
+    clearTimeout(window._aiToastHide);
+    window._aiToastHide = setTimeout(function () { if (el && el.parentNode) el.parentNode.removeChild(el); }, 2600);
+  }
+
+  document.addEventListener('DOMContentLoaded', initAICheck);
+</script>

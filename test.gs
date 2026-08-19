@@ -221,11 +221,10 @@ function testStatistikAI() {
 
 function testAIModelFallback() {
   // Simulasi dengan mengubah model ke nama yang tidak valid
-  const originalModels = PropertiesService.getScriptProperties().getProperty('TEST_GEMINI_MODELS');
   // Test ini hanya log, tidak benar-benar mengubah config
-  Logger.log('Test fallback: Pastikan GEMINI_MODELS di controller.gs diubah manual lalu jalankan OCR/rekomendasi');
-  Logger.log('Expected: Logger "[OCR][Gemini] Model X gagal, coba model berikutnya..."');
-  return { status: 'info', message: 'Manual test required - edit GEMINI_MODELS.FLASH_3_6 ke nama invalid' };
+  Logger.log('Test fallback: Pastikan GEMINI_MODELS di ai-gemini.gs diubah manual lalu jalankan OCR/rekomendasi');
+  Logger.log('Expected: model pertama di route gagal → otomatis lanjut ke model berikutnya (round-robin mulai index berbeda tiap panggilan)');
+  return { status: 'info', message: 'Manual test required - edit GEMINI_MODELS.FLASH_2_5 ke nama invalid' };
 }
 
 function testCacheBehavior() {

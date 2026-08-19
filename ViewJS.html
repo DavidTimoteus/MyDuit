@@ -2580,6 +2580,8 @@ function openTambahRekeningModal() {
         // NOTIFIKASI: tampilkan TOAST error (selain pesan detail di dalam kartu) supaya
         // kendala pada fitur AI ini langsung kelihatan, sama seperti fitur scan struk AI.
         showToast('error', 'Gagal memuat rekomendasi AI: ' + (err.message || err));
+        // Kalau errornya karena masalah API key → buka modal input key baru
+        maybeShowAIKeyProblemModal_(err && err.message);
         if (!aiTextDiv) return;
         aiTextDiv.innerHTML = `<div class="flex items-start gap-2 p-3 rounded-8 bg-danger-light"><span class="material-symbols-outlined text-danger text-[16px] mt-0.5">error</span><p class="text-sm text-slate-700">Gagal memuat: ${escHtml_(err.message || err)}</p></div>`;
       })
@@ -3767,6 +3769,8 @@ function handleReceiptImageUpload(event) {
         setScanButtonsDisabled_(false);
         console.error('[OCR] Gagal memanggil processReceiptImage:', err);
         showToast('error', 'Gagal memindai struk: ' + (err.message || err));
+        // Kalau errornya karena masalah API key → buka modal input key baru
+        maybeShowAIKeyProblemModal_(err && err.message);
       })
       .processReceiptImage(base64, file.type);
   };
@@ -4310,6 +4314,30 @@ function handleLongPressEnd(event, cardEl) {
       .hapusPindahSaldoServer(idToDelete, getRiwayatBatchPage_(), batchFetchLimit, getCurrentFilterParams());
   }
   
+
+  // ==========================================
+  // HELPER: DETEKSI MASALAH API KEY AI
+  // ==========================================
+  // Dipanggil dari failure handler panggilan AI (OCR, rekomendasi). Kalau pesan error
+  // mengindikasikan masalah API key (belum dikonfigurasi / semua key gagal / 401-403-429
+  // / rate limit / kuota habis), buka modal "API Key Bermasalah" supaya user bisa input
+  // key baru langsung. Mengembalikan true kalau masalah key terdeteksi (modal dibuka).
+  function maybeShowAIKeyProblemModal_(errMsg) {
+    const t = String(errMsg || '').toLowerCase();
+    const hit =
+      t.indexOf('gemini_api_key') !== -1 ||           // key belum dikonfigurasi
+      t.indexOf('tidak dikonfigurasi') !== -1 ||
+      t.indexOf('semua api key') !== -1 ||            // semua key user gagal
+      t.indexOf('semua model') !== -1 ||
+      t.indexOf('semua key') !== -1 ||
+      (t.indexOf('key#') !== -1 && (t.indexOf('rate limit') !== -1 || t.indexOf('kuota') !== -1 || t.indexOf('status 4') !== -1)) ||
+      t.indexOf('resource_exhausted') !== -1 ||
+      t.indexOf('quota') !== -1;
+    if (hit && typeof showAIKeyProblemModal === 'function') {
+      showAIKeyProblemModal();
+    }
+    return hit;
+  }
 
   // type: 'success' | 'error' | 'loading'. Toast loading TIDAK auto-hide (dipanggil terus
   // sampai proses selesai, lalu di-timpa/ditutup manual oleh showToast('success'/'error', ...)

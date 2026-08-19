@@ -124,7 +124,7 @@ function include(filename) {
 }
 
 function debugTestIncludes() {
-  const files = ['ViewCSS', 'ViewTransaksi', 'ViewBudget', 'ViewStatistik', 'ViewUtang', 'ViewJS', 'DatabaseSetupModal', 'ViewIndex'];
+  const files = ['ViewCSS', 'ViewTransaksi', 'ViewBudget', 'ViewStatistik', 'ViewUtang', 'ViewJS', 'DatabaseSetupModal', 'AIOnboardingModal', 'ViewIndex'];
   const results = [];
   files.forEach(function (f) {
     try {
