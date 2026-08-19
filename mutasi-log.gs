@@ -57,13 +57,18 @@ function getMutasiLogSheet_() {
  * bentrok) — logging ini bersifat pelengkap/audit, kegagalannya tidak boleh
  * membatalkan transaksi utama yang saldo-nya sudah kadung berubah.
  */
-function catatMutasiLog_(akunID, aksi, delta, transaksiID) {
+function catatMutasiLog_(akunID, aksi, delta, transaksiID, tanggal) {
   const id = String(akunID || '').trim();
   if (!id || !delta) return;
   try {
     const sheet = getMutasiLogSheet_();
     const logID = generatePrimaryKey_('LOG');
-    sheet.appendRow([logID, id, new Date(), String(aksi || '').trim(), delta, String(transaksiID || '').trim()]);
+    let ts = new Date();
+    if (tanggal) {
+      ts = (tanggal instanceof Date) ? tanggal : (parseUserDate_(tanggal) || new Date(tanggal));
+      if (isNaN(ts.getTime())) ts = new Date();
+    }
+    sheet.appendRow([logID, id, ts, String(aksi || '').trim(), delta, String(transaksiID || '').trim()]);
   } catch (e) {
     // Sengaja diabaikan — lihat catatan di atas.
   }

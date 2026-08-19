@@ -169,9 +169,10 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
 
     const id = generatePrimaryKey_('TX');
     const sheet = getTransaksiSheet_();
+    const tglTx = parseUserDate_(formData.tanggal, true);
     sheet.appendRow([
       id,
-      new Date(formData.tanggal),
+      tglTx,
       jenis,
       kategoriID,
       akunID,
@@ -182,7 +183,7 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
     ]);
 
     invalidateTransaksiCache_();
-    applyDeltaSaldoAkun_(sumber, jenis.toLowerCase() === 'pengeluaran' ? -nominal : nominal, jenis, id);
+    applyDeltaSaldoAkun_(sumber, jenis.toLowerCase() === 'pengeluaran' ? -nominal : nominal, jenis, id, tglTx);
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
@@ -241,16 +242,17 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
     }
 
     sheet.getRange(targetRow, 2, 1, 8).setValues([[
-      new Date(formData.tanggal), jenisBaru, kategoriIDBaru, akunIDBaru, '', formData.utangID || '', formData.keterangan || '', nominalBaru
+      parseUserDate_(formData.tanggal), jenisBaru, kategoriIDBaru, akunIDBaru, '', formData.utangID || '', formData.keterangan || '', nominalBaru
     ]]);
 
     invalidateTransaksiCache_();
 
+    const tglTxUpd = parseUserDate_(formData.tanggal, true);
     if (sumberSama) {
-      applyDeltaSaldoAkun_(akunIDBaru, deltaBaru - deltaLama, 'Update Transaksi', formData.id);
+      applyDeltaSaldoAkun_(akunIDBaru, deltaBaru - deltaLama, 'Update Transaksi', formData.id, tglTxUpd);
     } else {
-      applyDeltaSaldoAkun_(sumberLamaID, -deltaLama, 'Update Transaksi (Akun Lama)', formData.id);
-      applyDeltaSaldoAkun_(akunIDBaru, deltaBaru, 'Update Transaksi (Akun Baru)', formData.id);
+      applyDeltaSaldoAkun_(sumberLamaID, -deltaLama, 'Update Transaksi (Akun Lama)', formData.id, tglTxUpd);
+      applyDeltaSaldoAkun_(akunIDBaru, deltaBaru, 'Update Transaksi (Akun Baru)', formData.id, tglTxUpd);
     }
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
@@ -275,21 +277,105 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
     const sumber = String(data[2]).trim();
     const nominal = Number(data[6]) || 0;
 
+    const tanggalTx = sheet.getRange(targetRow, TRANSAKSI_COL.TANGGAL, 1, 1).getValue();
+    const logDate = (tanggalTx instanceof Date && !isNaN(tanggalTx.getTime())) ? tanggalTx : new Date();
+
     sheet.deleteRow(targetRow);
     invalidateTransaksiCache_();
 
     if (jenis.toLowerCase() === 'pindah saldo') {
       const akunTujuan = String(data[3] || '').trim();
-      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Pindah Saldo', id);
-      applyDeltaSaldoAkun_(akunTujuan, -nominal, 'Hapus Pindah Saldo', id);
+      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Pindah Saldo', id, logDate);
+      applyDeltaSaldoAkun_(akunTujuan, -nominal, 'Hapus Pindah Saldo', id, logDate);
     } else if (jenis.toLowerCase() === 'pengeluaran') {
-      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Transaksi', id);
+      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Transaksi', id, logDate);
     } else {
-      applyDeltaSaldoAkun_(sumber, -nominal, 'Hapus Transaksi', id);
+      applyDeltaSaldoAkun_(sumber, -nominal, 'Hapus Transaksi', id, logDate);
     }
 
     const riwayat = getRiwayatKasServer(page, limit, filterParams);
     return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Hapus banyak transaksi sekaligus dalam 1 lock (bulk delete).
+ * ids: array/string daftar Transaksi.ID yang dipisah koma.
+ * Mengembalikan riwayat & dompet terbaru seperti hapusTransaksiServer.
+ */
+function hapusTransaksiMassalServer(ids, page, limit, filterParams) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    let idList = Array.isArray(ids) ? ids : String(ids || '').split(',');
+    idList = idList.map(function (s) { return String(s).trim(); }).filter(Boolean);
+    if (!idList.length) throw new Error('Tidak ada transaksi yang dipilih.');
+    // Unik + cegah duplikat
+    idList = idList.filter(function (v, i, a) { return a.indexOf(v) === i; });
+
+    const sheet = getTransaksiSheet_();
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) throw new Error('Tidak ada transaksi untuk dihapus.');
+
+    // Baca seluruh baris sekali, petakan ID -> row index
+    const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+    const rowById = {};
+    for (let i = 0; i < data.length; i++) {
+      rowById[String(data[i][0]).trim()] = i + 2; // index baris sheet (2-based)
+    }
+
+    const deleted = [];
+
+    idList.forEach(function (id) {
+      const rowIdx = rowById[id];
+      if (rowIdx === undefined) return; // sudah terhapus/skip
+      const r = data[rowIdx - 2];
+      const jenis = String(r[2] || '').trim();
+      const sumber = String(r[4] || '').trim(); // Akun.ID
+      const akunTujuan = String(r[5] || '').trim();
+      const nominal = Number(r[8]) || 0;
+      const tanggalTx = r[1] instanceof Date && !isNaN(r[1].getTime()) ? r[1] : new Date();
+
+      deleted.push({ rowIdx: rowIdx, tanggal: tanggalTx, id: id, jenis: jenis, sumber: sumber, akunTujuan: akunTujuan, nominal: nominal });
+    });
+
+    if (!deleted.length) throw new Error('Tidak ada transaksi yang cocok untuk dihapus.');
+
+    // Hapus baris dari paling bawah ke atas (agar index sheet tidak bergeser)
+    deleted.sort(function (a, b) { return b.rowIdx - a.rowIdx; });
+    deleted.forEach(function (d) {
+      sheet.deleteRow(d.rowIdx);
+    });
+
+    invalidateTransaksiCache_();
+
+    // Terapkan delta saldo & catat MutasiLog PER TRANSaksi dengan TransaksiID asli
+    // (bukan akumulasi 'MASSAL') supaya foreign key ke Transaksi tetap akurat.
+    deleted.forEach(function (d) {
+      const jenis = d.jenis;
+      if (jenis.toLowerCase() === 'pindah saldo') {
+        // Hapus pindah saldo: sumber +nominal, tujuan -nominal
+        applyDeltaSaldoAkun_(d.sumber, d.nominal, 'Hapus Pindah Saldo', d.id, d.tanggal);
+        if (d.akunTujuan) applyDeltaSaldoAkun_(d.akunTujuan, -d.nominal, 'Hapus Pindah Saldo', d.id, d.tanggal);
+      } else if (jenis.toLowerCase() === 'pengeluaran') {
+        applyDeltaSaldoAkun_(d.sumber, d.nominal, 'Hapus Transaksi', d.id, d.tanggal);
+      } else {
+        // Pemasukan: hapus → saldo berkurang
+        applyDeltaSaldoAkun_(d.sumber, -d.nominal, 'Hapus Transaksi', d.id, d.tanggal);
+      }
+    });
+
+    const riwayat = getRiwayatKasServer(page, limit, filterParams);
+    return {
+      status: 'success',
+      jumlahDihapus: deleted.length,
+      riwayat: riwayat,
+      dompet: getDompetServer()
+    };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -305,7 +391,7 @@ function pindahSaldoServer(formData, page, limit, filterParams) {
     const tujuan = String(formData.rekeningTujuan || '').trim();
     const nominal = Number(formData.nominal) || 0;
     const catatan = String(formData.catatan || '').trim();
-    const tanggal = formData.tanggal ? new Date(formData.tanggal) : new Date();
+    const tanggal = parseUserDate_(formData.tanggal, true) || new Date();
 
     if (!sumber || !tujuan) throw new Error('Sumber dan tujuan wajib dipilih.');
     if (sumber === tujuan) throw new Error('Sumber dan tujuan tidak boleh sama.');
@@ -328,8 +414,8 @@ function pindahSaldoServer(formData, page, limit, filterParams) {
     sheet.appendRow([id, tanggal, 'Pindah Saldo', 'Pindah Saldo', sumberID, tujuanID, '', ket, nominal]);
 
     invalidateTransaksiCache_();
-    applyDeltaSaldoAkun_(sumber, -nominal, 'Pindah Saldo Keluar', id);
-    applyDeltaSaldoAkun_(tujuan, nominal, 'Pindah Saldo Masuk', id);
+    applyDeltaSaldoAkun_(sumber, -nominal, 'Pindah Saldo Keluar', id, tanggal);
+    applyDeltaSaldoAkun_(tujuan, nominal, 'Pindah Saldo Masuk', id, tanggal);
 
     const dompet = getDompetServer();
     const riwayat = (page && limit) ? getRiwayatKasServer(page, limit, filterParams) : null;

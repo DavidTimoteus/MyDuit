@@ -246,7 +246,7 @@ function bayarCicilanServer(id, sumber) {
 
     invalidateUtangCache_();
     invalidateTransaksiCache_();
-    applyDeltaSaldoAkun_(sumber, -bayar, 'Bayar Cicilan', txID);
+    applyDeltaSaldoAkun_(sumber, -bayar, 'Bayar Cicilan', txID, now);
 
     return {
       status: 'success',
@@ -297,7 +297,7 @@ function lunasinUtangServer(id, sumber) {
 
     invalidateUtangCache_();
     invalidateTransaksiCache_();
-    applyDeltaSaldoAkun_(sumber, -sisa, 'Pelunasan Utang', txID);
+    applyDeltaSaldoAkun_(sumber, -sisa, 'Pelunasan Utang', txID, now);
 
     return {
       status: 'success',

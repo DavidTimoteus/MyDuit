@@ -117,10 +117,39 @@ function getDompetServer() {
         nama: nama,
         saldo: saldo,
         tipe: String(row[2] || '').trim(),
-        catatan: '', // Log teks bebas dihapus di skema baru
+        catatan: '', // diisi dari MutasiLog di bawah
         terakhirDiperbarui: upd ? Utilities.formatDate(upd, timeZone, 'dd/MM/yyyy HH:mm') : '-'
       };
     }).filter(Boolean);
+
+    // Isi field catatan (riwayat perubahan) dari sheet MutasiLog — log teks bebas
+    // sudah dipindah ke tabel MutasiLog di skema baru, jadi UI lama yg membaca
+    // r.catatan harus disuplai dari sini. Format sama dgn dulu: satu baris per
+    // entri, entri TERBARU di baris TERAKHIR (lihat ambilLogTerakhirRekening_()
+    // & openDetailLogRekeningModal() di frontend).
+    // OPTIMASI: ambil hanya 50 entri terbaru (cukup untuk ringkasan), bukan 500.
+    try {
+      const mutasi = getMutasiLogServer('', 50);
+      if (mutasi && mutasi.status === 'success' && mutasi.list.length) {
+        const byAkun = {};
+        mutasi.list.forEach(function (m) {
+          const aid = String(m.akunID || '').trim();
+          if (!byAkun[aid]) byAkun[aid] = [];
+          byAkun[aid].push(m);
+        });
+        rekening.forEach(function (r) {
+          const logs = byAkun[r.id] || [];
+          if (logs.length) {
+            // daftar sudah terbaru-pertama → balik agar terbaru di akhir
+            const baris = logs.slice().reverse().map(function (m) {
+              const tanda = m.delta >= 0 ? '+' : '-';
+              return m.timestamp + ' — ' + (m.aksi || 'Mutasi Saldo') + ': ' + tanda + 'Rp ' + Math.abs(m.delta).toLocaleString('id-ID');
+            });
+            r.catatan = baris.join('\n');
+          }
+        });
+      }
+    } catch (e) { /* biarkan catatan kosong kalau MutasiLog gagal dibaca */ }
 
     const result = {
       status: 'success',
@@ -327,7 +356,7 @@ function getSaldoAkun_(namaOrId) {
  * lama yang belum mengirim keduanya tetap jalan (fallback aksi generik),
  * hanya saja Aksi di MutasiLog kurang deskriptif kalau tidak diisi.
  */
-function applyDeltaSaldoAkun_(namaOrIdAkun, delta, aksi, transaksiID) {
+function applyDeltaSaldoAkun_(namaOrIdAkun, delta, aksi, transaksiID, tanggal) {
   const identifier = String(namaOrIdAkun || '').trim();
   if (!identifier || !delta) return;
 
@@ -347,7 +376,7 @@ function applyDeltaSaldoAkun_(namaOrIdAkun, delta, aksi, transaksiID) {
       const saldoBaru = (Number(data[i][4]) || 0) + delta;
       sheet.getRange(rowIdx, AKUN_COL.SALDO, 1, 2).setValues([[saldoBaru, now]]);
       invalidateAkunCache_();
-      catatMutasiLog_(id, aksi || 'Mutasi Saldo', delta, transaksiID);
+      catatMutasiLog_(id, aksi || 'Mutasi Saldo', delta, transaksiID, tanggal || now);
       return;
     }
   }

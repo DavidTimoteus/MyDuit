@@ -208,6 +208,42 @@ function parseSheetDate(val) {
   return null;
 }
 
+// ===== Parse ISO date-only (yyyy-MM-dd) ke Date di midnight SCRIPT timezone =====
+// Digunakan untuk formData.tanggal dari <input type="date"> / toLocaleDateString('en-CA').
+// new Date('yyyy-MM-dd') parse sebagai UTC midnight → tampil 07:00 di zona +7.
+// Utilities.parseDate interpretasikan di timezone yang ditentukan.
+// Jika useCurrentTime=true, ambil tanggal dari input tapi jam/menit/detik dari waktu sekarang.
+function parseUserDate_(val, useCurrentTime) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  const s = String(val).trim();
+  let parsed = null;
+  // ISO date-only: yyyy-MM-dd
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) {
+    try { parsed = Utilities.parseDate(s, Session.getScriptTimeZone(), 'yyyy-MM-dd'); } catch (e) {}
+  }
+  // dd/MM/yyyy atau dd-MM-yyyy (format manual sheets/OCR)
+  if (!parsed) {
+    const m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m2) {
+      try { parsed = Utilities.parseDate(s, Session.getScriptTimeZone(), 'dd/MM/yyyy'); } catch (e) {}
+    }
+  }
+  // Fallback native (jika sudah format lain)
+  if (!parsed) {
+    const d = new Date(s);
+    parsed = isNaN(d.getTime()) ? null : d;
+  }
+  
+  if (parsed && useCurrentTime) {
+    const now = new Date();
+    parsed.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+  }
+  
+  return parsed;
+}
+
 function maybeRunCleanup(sheet, rawData) {
   const props = PropertiesService.getScriptProperties();
   const todayStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');

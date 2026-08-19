@@ -1553,6 +1553,26 @@
     transition: transform .12s cubic-bezier(.22, 1, .36, 1), box-shadow .12s ease, background-color .2s ease;
   }
 
+  /* ===== MODE SELEKSI HAPUS MASSAL (bulk delete) ===== */
+  .bulk-selectable {
+    border: 2px solid transparent;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .bulk-selectable.bulk-selected {
+    border-color: #1d4ed8; /* blue-700 */
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, .18);
+  }
+  .bulk-selectable.bulk-selected .bulk-check {
+    border-color: #1d4ed8;
+    background-color: #1d4ed8;
+  }
+  .bulk-selectable.bulk-selected .bulk-check .material-symbols-outlined {
+    display: inline-block;
+  }
+  .bulk-check .material-symbols-outlined {
+    display: none;
+  }
+
   .delete-btn-action:active {
     transform: scale(.88);
     box-shadow:
