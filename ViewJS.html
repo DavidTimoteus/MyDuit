@@ -1543,15 +1543,10 @@ function handlePindahSaldoSubmit(event) {
     const nextDisabled = current >= totalPages ? 'disabled' : '';
 
     let middle;
-    if (totalPages <= 7) {
-      middle = `<div class="riwayat-pagination-dots">${
-        Array.from({ length: totalPages }, (_, i) => i + 1).map(p =>
-          `<button type="button" aria-label="Ke halaman ${p}" onclick="loadRiwayat(${p})" class="riwayat-pagination-dot ${p === current ? 'active' : ''}"></button>`
-        ).join('')
-      }</div>`;
-    } else {
-      middle = `<span class="text-[11px] font-medium text-slate-400">Halaman ${current}/${totalPages}</span>`;
-    }
+    // Konsisten: SELALU pakai teks "Halaman x/y" (bukan titik²), pola sama dgn
+    // yg sebelumnya dipakai saat total halaman >7 — tidak bergantung jumlah halaman,
+    // jadi pagination tampil seragam di semua kondisi (FIX ketidakkonsistenan).
+    middle = `<span class="text-[11px] font-medium text-slate-400">Halaman ${current}/${totalPages}</span>`;
 
     controls.innerHTML = `
       <button type="button" aria-label="Halaman sebelumnya" onclick="loadRiwayat(${current - 1})" class="riwayat-pagination-arrow clay-pagination-arrow" ${prevDisabled}>
@@ -4381,21 +4376,27 @@ function handleLongPressEnd(event, cardEl) {
     if (panelRek) panelRek.classList.toggle('hidden', isBudget);
     if (panelLimit) panelLimit.classList.toggle('hidden', !isBudget);
 
-    // Gaya tombol aktif: bg putih + shadow + teks biru (pola pill toggle claymorphism).
-    const activeCls = 'bg-white shadow-sm text-blue-700';
-    const idleCls = 'text-slate-500';
-    if (btnRek) {
-      btnRek.classList.toggle('bg-white', !isBudget);
-      btnRek.classList.toggle('shadow-sm', !isBudget);
-      btnRek.classList.toggle('text-blue-700', !isBudget);
-      btnRek.classList.toggle('text-slate-500', isBudget);
+    // Efek tombol aktif: BUTTON terlihat "ditekan" via inset box-shadow (konsep bayangan
+    // tombol tertekan, pola clay :active) + teks biru + ikon terisi FILL 1. Tombol nonaktif
+    // kembali polos (tembus warna track bg-slate-100, teks abu, ikon outline). BUKAN pill/
+    // wrap terpisah di belakang ikon — efeknya murni di tombol itu sendiri.
+    function setSubTabButton(btn, isActive) {
+      if (!btn) return;
+      const icon = btn.querySelector('.material-symbols-outlined');
+      if (icon) icon.style.fontVariationSettings = isActive ? "'FILL' 1" : "'FILL' 0";
+      btn.classList.toggle('text-blue-700', isActive);
+      btn.classList.toggle('text-slate-500', !isActive);
+      if (isActive) {
+        btn.style.background = '#fff';
+        btn.style.boxShadow = 'inset 3px 3px 7px rgba(0,0,0,.18), inset -3px -3px 7px rgba(255,255,255,.9)';
+      } else {
+        btn.style.background = '';
+        btn.style.boxShadow = '';
+      }
     }
-    if (btnBgt) {
-      btnBgt.classList.toggle('bg-white', isBudget);
-      btnBgt.classList.toggle('shadow-sm', isBudget);
-      btnBgt.classList.toggle('text-blue-700', isBudget);
-      btnBgt.classList.toggle('text-slate-500', !isBudget);
-    }
+
+    setSubTabButton(btnRek, !isBudget);
+    setSubTabButton(btnBgt, isBudget);
 
     updateFabAddButton('budget'); // FAB menyesuaikan sub-tab aktif
 

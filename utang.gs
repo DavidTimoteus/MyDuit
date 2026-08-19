@@ -79,7 +79,7 @@ function getUtangServer() {
 
   const sheet = getUtangSheet_();
   const lastRow = sheet.getLastRow();
-  const timeZone = sheet.getSpreadsheetTimeZone();
+  const timeZone = sheet.getParent().getSpreadsheetTimeZone();
   if (lastRow < 2) {
     const empty = { status: 'success', list: [] };
     cache.put(CACHE_KEY_UTANG, JSON.stringify(empty), CACHE_TTL_SECONDS);
@@ -229,7 +229,7 @@ function bayarCicilanServer(id, sumber) {
     const statusBaru = sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas';
     const jumlahBayarBaru = pembayaran.length + 1;
     const now = new Date();
-    const timeZone = sheet.getSpreadsheetTimeZone();
+    const timeZone = sheet.getParent().getSpreadsheetTimeZone();
     const tglStr = Utilities.formatDate(now, timeZone, 'dd/MM/yyyy HH:mm');
     const ket = `${nama} : Pembayaran Ke-${jumlahBayarBaru} - ${tglStr}`;
 
@@ -282,7 +282,7 @@ function lunasinUtangServer(id, sumber) {
     if (sisa <= 0) throw new Error('Utang ini sudah lunas.');
 
     const now = new Date();
-    const timeZone = sheet.getSpreadsheetTimeZone();
+    const timeZone = sheet.getParent().getSpreadsheetTimeZone();
     const tglStr = Utilities.formatDate(now, timeZone, 'dd/MM/yyyy');
     const ket = `${nama} : Pelunasan Utang - ${tglStr}`;
 

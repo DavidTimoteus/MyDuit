@@ -83,7 +83,7 @@ function getMutasiLogServer(akunID, limit) {
     if (lastRow < 2) return { status: 'success', list: [] };
 
     const data = sheet.getRange(2, 1, lastRow - 1, 6).getValues();
-    const timeZone = sheet.getSpreadsheetTimeZone();
+    const timeZone = sheet.getParent().getSpreadsheetTimeZone();
     const limitNum = Number(limit) || 50;
     const filterAkunID = String(akunID || '').trim();
 

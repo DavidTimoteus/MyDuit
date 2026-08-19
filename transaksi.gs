@@ -46,7 +46,7 @@ function getRiwayatKasServer(page, limit, filterParams) {
     if (lastRow < 2) return { status: 'success', data: [], totalPages: 0, currentPage: 1 };
 
     let rawData = getRawTransaksiCached_(sheet);
-    const timeZone = sheet.getSpreadsheetTimeZone();
+    const timeZone = sheet.getParent().getSpreadsheetTimeZone();
     const now = new Date(); now.setHours(0, 0, 0, 0);
 
     let formattedList = [];

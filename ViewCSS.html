@@ -613,6 +613,13 @@
     white-space: nowrap;
   }
 
+  /* Sub-tab toggle Budget (Rekening | Budget): tombol aktif tampil "ditekan" via inset
+     box-shadow yang dipasang JS (switchBudgetSubTab() di ViewJS.html) — transisi halus
+     dibuat lewat CSS ini supaya pergantian efek timbul->tertekan tidak patah-patah. */
+  .budget-subtab-btn {
+    transition: box-shadow .25s ease, background-color .25s ease, color .2s ease;
+  }
+
   /* ===== UTANG & CICILAN — VIEWPORT "PAS LAYAR" + PAGINATION KARTU =====
      #utangViewport tingginya diset via JS (fitUtangViewport() di ViewJS.html) supaya persis
      muat di ruang kosong viewport (browser height dikurangi header situs & nav bawah), lalu

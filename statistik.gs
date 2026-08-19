@@ -42,7 +42,7 @@ function getSemuaTransaksiBulanServer(bulan, tahun) {
   if (lastRow < 2) return [];
 
   const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
-  const timeZone = sheet.getSpreadsheetTimeZone();
+  const timeZone = sheet.getParent().getSpreadsheetTimeZone();
   const list = [];
 
   data.forEach(function (row) {
@@ -72,7 +72,7 @@ function getSemuaTransaksiTahunServer(tahun) {
   if (lastRow < 2) return [];
 
   const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
-  const timeZone = sheet.getSpreadsheetTimeZone();
+  const timeZone = sheet.getParent().getSpreadsheetTimeZone();
   const list = [];
 
   data.forEach(function (row) {

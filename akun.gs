@@ -30,7 +30,9 @@ const AKUN_COL = {
 const CACHE_KEY_AKUN_PAYLOAD = 'akunPayload_v1';
 
 function invalidateAkunCache_() {
-  CacheService.getUserCache().remove(CACHE_KEY_AKUN_PAYLOAD);
+  const cache = CacheService.getUserCache();
+  cache.remove(CACHE_KEY_AKUN_PAYLOAD);
+  cache.remove('akunMaps_v1');
 }
 
 /**
@@ -89,7 +91,7 @@ function getDompetServer() {
     }
 
     const data = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
-    const timeZone = sheet.getSpreadsheetTimeZone();
+    const timeZone = sheet.getParent().getSpreadsheetTimeZone();
     let totalSaldo = 0;
     let lastUpdatedMax = null;
 
@@ -374,17 +376,45 @@ function getAkunIdByNama_(nama) {
  */
 function getAkunNamaById_(id) {
   if (!id) return '';
-  const sheet = getAkunSheet_();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return '';
+  const maps = getAkunMaps_();
+  return maps.byId[String(id).trim()] || '';
+}
 
-  const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
-  for (let i = 0; i < data.length; i++) {
-    if (String(data[i][0] || '').trim() === String(id).trim()) {
-      return String(data[i][1]).trim();
-    }
+/**
+ * Cache map { byId: { ID: Nama } } dari sheet Akun, pola SAMA persis dengan
+ * getKategoriMaps_() di kategori.gs. TANPA ini, getAkunNamaById_() (yang
+ * dipanggil per-baris lewat getAkunTampilFromStored_() di getRiwayatKasServer)
+ * membaca seluruh sheet Akun SEKALI PER PANGGILAN -> dengan ribuan transaksi
+ * hasil migrasi, doGet() bisa makan puluhan detik. Dgn cache, sheet Akun dibaca
+ * cukup sekali tiap 60 detik.
+ */
+function getAkunMaps_() {
+  const cache = CacheService.getUserCache();
+  const cached = cache.get('akunMaps_v1');
+  if (cached) {
+    try { return JSON.parse(cached); } catch (e) { /* cache korup -> baca ulang */ }
   }
-  return '';
+
+  const maps = { byId: {}, byNama: {} };
+  try {
+    const sheet = getAkunSheet_();
+    const lastRow = sheet.getLastRow();
+    if (lastRow >= 2) {
+      const data = sheet.getRange(2, 1, lastRow - 1, 2).getValues();
+      data.forEach(function (row) {
+        const id = String(row[0] || '').trim();
+        const nama = String(row[1] || '').trim();
+        if (!id || !nama) return;
+        maps.byId[id] = nama;
+        maps.byNama[nama.toLowerCase()] = id;
+      });
+    }
+  } catch (e) {
+    // biarkan maps kosong -> pemanggil fallback ke nama apa adanya
+  }
+
+  try { cache.put('akunMaps_v1', JSON.stringify(maps), CACHE_TTL_SECONDS); } catch (e) { /* payload besar -> lewati cache */ }
+  return maps;
 }
 
 /**
