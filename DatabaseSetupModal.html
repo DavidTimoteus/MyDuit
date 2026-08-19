@@ -1,0 +1,210 @@
+<!--
+  DatabaseSetupModal.html
+  Include lewat include('DatabaseSetupModal') di View_Index.html.
+  Modal ini disembunyikan by default (display:none) dan hanya dimunculkan
+  oleh JS di bawah kalau getUserDatabaseStatusServer() mengembalikan
+  exists:false.
+
+  Alur 2 langkah:
+  1. Buat Database baru (createUserDatabaseServer).
+  2. (Opsional) Migrasi data dari spreadsheet lama MyDuit
+     (migrateLegacyDataServer) — masukkan URL/ID spreadsheet lama.
+-->
+<? if (typeof dbError !== 'undefined' && dbError && dbError.indexOf('DATABASE_BELUM_ADA') === -1) { ?>
+<div id="dbSetupServerNotice" style="position:fixed; top:16px; left:50%; transform:translateX(-50%); background:#FDECEC; color:#7A1F1F; border:1px solid #F5C2C2; padding:10px 16px; border-radius:8px; font-size:13px; z-index:10000; max-width:90%; text-align:center; font-family:sans-serif;">
+  <?= dbError ?>
+</div>
+<? } ?>
+<div id="dbSetupOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; align-items:center; justify-content:center; overflow:auto;">
+  <div style="background:#fff; max-width:460px; width:90%; border-radius:12px; padding:24px; box-shadow:0 8px 30px rgba(0,0,0,0.2); font-family:sans-serif; margin:24px auto;">
+
+    <!-- STEP 1: Buat Database -->
+    <div id="dbSetupStepCreate">
+      <h2 style="margin:0 0 12px; font-size:18px;">Buat Database MyDuit</h2>
+
+      <p id="dbSetupWarningExisting" style="display:none; background:#FFF4E5; color:#8A5300; padding:10px 12px; border-radius:8px; font-size:13px; margin:0 0 12px;"></p>
+
+      <p style="font-size:14px; color:#333; line-height:1.5; margin:0 0 12px;">
+        Aplikasi ini belum menemukan database Anda. Database akan dibuat sebagai
+        1 file Google Spreadsheet baru di <strong>Google Drive Anda sendiri</strong>.
+      </p>
+
+      <div style="background:#FDECEC; border:1px solid #F5C2C2; border-radius:8px; padding:10px 12px; font-size:13px; color:#7A1F1F; margin:0 0 16px; line-height:1.5;">
+        <strong>Penting:</strong> Seluruh data keuangan Anda (transaksi, akun, utang, dll)
+        disimpan di dalam file Spreadsheet tersebut. Jangan menghapus,
+        memindahkan, atau mengubah nama file ini secara sembarangan di Drive Anda,
+        karena aplikasi tidak menyimpan salinan cadangan otomatis di tempat lain.
+      </div>
+
+      <div id="dbSetupError" style="display:none; color:#B00020; font-size:13px; margin:0 0 12px;"></div>
+
+      <button id="dbSetupBtn" style="width:100%; padding:12px; background:#1a73e8; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer;">
+        Buat Database Sekarang
+      </button>
+    </div>
+
+    <!-- STEP 2: Migrasi Data (opsional) -->
+    <div id="dbSetupStepMigrate" style="display:none;">
+      <h2 style="margin:0 0 12px; font-size:18px;">Database Berhasil Dibuat</h2>
+
+      <p style="font-size:14px; color:#333; line-height:1.5; margin:0 0 12px;">
+        Database baru sudah siap di Google Drive Anda. Kalau sebelumnya Anda
+        menggunakan spreadsheet MyDuit lama (dengan data transaksi, akun, dan
+        utang), Anda bisa memindahkannya ke database baru ini.
+      </p>
+
+      <div style="background:#E7F0FD; border:1px solid #C5DCFA; border-radius:8px; padding:10px 12px; font-size:13px; color:#1A3D7C; margin:0 0 14px; line-height:1.5;">
+        <strong>Opsional:</strong> Lewati langkah ini kalau ingin mulai dari nol.
+        Tempel <strong>URL spreadsheet lama</strong> (contoh:
+        https://docs.google.com/spreadsheets/d/...) atau <strong>ID-nya saja</strong>
+        pada kolom di bawah, lalu klik "Migrasi Data".
+      </div>
+
+      <input id="dbMigrateUrl" type="text" placeholder="URL / ID spreadsheet lama (opsional)"
+        style="width:100%; padding:11px 12px; border:1px solid #C9CDD4; border-radius:8px; font-size:14px; box-sizing:border-box; margin:0 0 10px;"
+        autocomplete="off" />
+
+      <div id="dbMigrateResult" style="display:none; background:#E8F5E9; border:1px solid #A5D6A7; border-radius:8px; padding:10px 12px; font-size:13px; color:#1B5E20; margin:0 0 12px; line-height:1.5;"></div>
+      <div id="dbMigrateError" style="display:none; color:#B00020; font-size:13px; margin:0 0 12px;"></div>
+
+      <div style="display:flex; gap:8px;">
+        <button id="dbMigrateSkipBtn" style="flex:1; padding:12px; background:#fff; color:#1a73e8; border:1px solid #1a73e8; border-radius:8px; font-size:14px; cursor:pointer;">
+          Lewati
+        </button>
+        <button id="dbMigrateBtn" style="flex:1; padding:12px; background:#1a73e8; color:#fff; border:none; border-radius:8px; font-size:14px; cursor:pointer;">
+          Migrasi Data
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function initDatabaseCheck() {
+    google.script.run
+      .withSuccessHandler(handleDbStatus)
+      .withFailureHandler(function (err) {
+        showDbSetupModal();
+        showDbError('Gagal mengecek status database: ' + err.message);
+      })
+      .getUserDatabaseStatusServer();
+  }
+
+  function handleDbStatus(res) {
+    if (res.status !== 'success') {
+      showDbSetupModal();
+      showDbError(res.message || 'Terjadi kesalahan saat mengecek database.');
+      return;
+    }
+    if (!res.exists) {
+      if (res.warning) {
+        var warnEl = document.getElementById('dbSetupWarningExisting');
+        warnEl.textContent = res.warning;
+        warnEl.style.display = 'block';
+      }
+      showDbSetupModal();
+    }
+    // Kalau exists:true, modal tidak ditampilkan -> lanjut render UI utama seperti biasa.
+  }
+
+  function showDbSetupModal() {
+    document.getElementById('dbSetupOverlay').style.display = 'flex';
+  }
+
+  function showDbError(msg) {
+    var el = document.getElementById('dbSetupError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideDbError() {
+    document.getElementById('dbSetupError').style.display = 'none';
+  }
+
+  function showDbMigrateError(msg) {
+    var el = document.getElementById('dbMigrateError');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function finishSetup() {
+    window.location.reload();
+  }
+
+  document.getElementById('dbSetupBtn').addEventListener('click', function () {
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Membuat database...';
+    hideDbError();
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res.status === 'success') {
+          // Database berhasil dibuat -> tampilkan langkah migrasi opsional.
+          document.getElementById('dbSetupStepCreate').style.display = 'none';
+          document.getElementById('dbSetupStepMigrate').style.display = 'block';
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Buat Database Sekarang';
+          showDbError(res.message || 'Gagal membuat database.');
+        }
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Buat Database Sekarang';
+        showDbError(err.message);
+      })
+      .createUserDatabaseServer();
+  });
+
+  document.getElementById('dbMigrateSkipBtn').addEventListener('click', finishSetup);
+
+  document.getElementById('dbMigrateBtn').addEventListener('click', function () {
+    var btn = this;
+    var urlInput = document.getElementById('dbMigrateUrl');
+    var url = urlInput.value.trim();
+    if (!url) {
+      showDbMigrateError('Masukkan URL atau ID spreadsheet lama terlebih dahulu, atau klik "Lewati".');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Memigrasi data...';
+    document.getElementById('dbMigrateResult').style.display = 'none';
+    document.getElementById('dbMigrateError').style.display = 'none';
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res.status === 'success') {
+          var parts = [];
+          if (res.data) {
+            if (res.data.akun > 0) parts.push(res.data.akun + ' akun');
+            if (res.data.kategori > 0) parts.push(res.data.kategori + ' kategori');
+            if (res.data.transaksi > 0) parts.push(res.data.transaksi + ' transaksi');
+            if (res.data.utang > 0) parts.push(res.data.utang + ' utang');
+          }
+          var detail = parts.length ? ' (' + parts.join(', ') + ')' : '';
+          var el = document.getElementById('dbMigrateResult');
+          el.textContent = 'Migrasi selesai!' + detail + '. Siap dipakai.';
+          el.style.display = 'block';
+          btn.disabled = true;
+          btn.textContent = 'Migrasi Selesai';
+          setTimeout(finishSetup, 1500);
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Migrasi Data';
+          showDbMigrateError(res.message || 'Gagal migrasi data.');
+        }
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false;
+        btn.textContent = 'Migrasi Data';
+        showDbMigrateError(err.message);
+      })
+      .migrateLegacyDataServer(url);
+  });
+
+  // Jalankan pengecekan begitu halaman siap.
+  document.addEventListener('DOMContentLoaded', initDatabaseCheck);
+</script>

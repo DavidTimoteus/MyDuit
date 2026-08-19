@@ -42,6 +42,13 @@ let targetUtangToDelete = null;
 let editingUtangId = null; // null = mode tambah, terisi = mode edit (id utang yang diedit)
 let utangBayarJumlahAktif = 0; // nominal yg akan dibayar/dilunasi di modal Bayar/Lunasin yg sedang
                                 // terbuka -> dipakai checkBayarUtangSaldo_() utk validasi saldo akun
+// ===== State SUB-TAB Budget (limit per kategori): 'rekening' (default) | 'budget' =====
+let budgetSubTab = 'rekening'; // sub-tab aktif di tab Budget
+let cachedBudget = null; // JS memory cache data Budget periode aktif
+let budgetBulan = new Date().getMonth(); // 0-11
+let budgetTahun = new Date().getFullYear();
+let budgetEditId = null; // null = mode tambah, terisi = mode edit (id budget yg diedit)
+let targetBudgetToDelete = null; // id budget yg dikonfirmasi hapus
 // ===== State PAGINATION tab Utang & Cicilan ("pas layar", lihat layoutAndRenderUtangPages_()) =====
 let utangSortedList = []; // list utang & cicilan hasil sort terbaru (sumber utk dipecah jadi halaman)
 let utangPages = [[]]; // hasil pembagian utangSortedList jadi halaman² sesuai tinggi layar yg tersedia
@@ -77,7 +84,8 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     // Aman dipanggil di sini walau elemennya sedang di dalam modal yang masih `hidden` -
     // enhanceClaySelect_() cuma butuh elemen ADA di DOM, tidak butuh visible/terbuka dulu.
 ['jenis', 'sumber', 'exportBulan', 'exportTahun', 'salinJenis', 'salinSumber',
-      'pindahSaldoSumber', 'pindahSaldoTujuan', 'formBayarUtangSumber'].forEach(enhanceClaySelect_);
+      'pindahSaldoSumber', 'pindahSaldoTujuan', 'formBayarUtangSumber',
+      'budgetBulan', 'budgetTahun'].forEach(enhanceClaySelect_);
     // (lihat komentar lengkap di definisi enhanceClaySelect_)
 
     // FIX (format ribuan otomatis, ATURAN UTAMA seluruh app — lihat definisi lengkap
@@ -108,6 +116,14 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       document.getElementById('salinJenis')?.value,
       document.getElementById('salinSumber')?.value
     ));
+
+    // Combobox Kategori di modal Budget: HANYA kategori PENGELUARAN (budget = plafon
+    // pengeluaran). getKategoriPengeluaran_() difilter dari kategoriJenisSumberMap (atau
+    // fallback cachedKategori) -> lihat definisinya di blok BUDGET UI di bawah.
+    enhanceClayCombobox_('budgetKategori', getKategoriPengeluaran_);
+
+    // Isi dropdown tahun modal Budget (tahun berjalan ± beberapa tahun).
+    populateBudgetTahunSelect_();
     
     if (window.__INITIAL_RIWAYAT__) {
       cachedRiwayat = window.__INITIAL_RIWAYAT__;
@@ -423,6 +439,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
   }
 
   function refreshKategoriJenisMapFromServer_() {
+    if (window.__HAS_DATABASE__ === false) return; // DB belum ada -> modal setup yang menangani
     google.script.run
       .withSuccessHandler((map) => {
         if (map && typeof map === 'object') {
@@ -488,7 +505,8 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
   // kursor dihitung dari kiri.
   const NOMINAL_INPUT_IDS_ = [
     'nominal', 'salinNominal', 'pindahSaldoNominal', 'formUtangTotal',
-    'formUtangCicilan', 'inputSaldoAwalRekeningBaru', 'editRekeningSaldo'
+    'formUtangCicilan', 'inputSaldoAwalRekeningBaru', 'editRekeningSaldo',
+    'budgetLimitNominal'
   ];
 
   function formatRibuanDigits_(digitsOnly) {
@@ -693,12 +711,16 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
 
     // Lazy load data jika belum ada di cache
     if (tabName === 'budget') {
-      if (!cachedDompet) loadDompetServer(true);
-      else renderDompetUI(cachedDompet);
-      // sama alasannya dgn setTimeout(fitRiwayatListViewport_, 0) di tab riwayat: panggil
-      // sesaat SETELAH browser selesai reflow (bukan sinkron) supaya getBoundingClientRect()
-      // #rekeningList sudah akurat begitu #viewBudget baru saja jadi .active.
-      setTimeout(fitRekeningListViewport_, 0);
+      if (budgetSubTab === 'budget') {
+        loadBudget();
+      } else {
+        if (!cachedDompet) loadDompetServer(true);
+        else renderDompetUI(cachedDompet);
+        // sama alasannya dgn setTimeout(fitRiwayatListViewport_, 0) di tab riwayat: panggil
+        // sesaat SETELAH browser selesai reflow (bukan sinkron) supaya getBoundingClientRect()
+        // #rekeningList sudah akurat begitu #viewBudget baru saja jadi .active.
+        setTimeout(fitRekeningListViewport_, 0);
+      }
     } else if (tabName === 'statistik') {
       loadStatistik();
     } else if (tabName === 'utang') {
@@ -760,8 +782,15 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       fab.classList.remove('clay-key-danger');
       fab.classList.remove('clay-key-primary');
       fab.classList.add('clay-key-blue');
-      fab.setAttribute('aria-label', 'Tambah Rekening');
-      fab.onclick = () => openTambahRekeningModal();
+      // Sub-tab menentukan aksi FAB: di sub-tab 'budget' (limit per kategori) buka modal
+      // tambah budget; di sub-tab 'rekening' buka modal tambah rekening.
+      if (budgetSubTab === 'budget') {
+        fab.setAttribute('aria-label', 'Tambah Budget');
+        fab.onclick = () => openTambahBudgetModal();
+      } else {
+        fab.setAttribute('aria-label', 'Tambah Rekening');
+        fab.onclick = () => openTambahRekeningModal();
+      }
     } else {
       // FAB tambah transaksi — sekarang membuka speed-dial 3 pilihan (Pengeluaran/Pindah
       // Saldo/Pemasukan) dulu, bukan langsung switchTab('tambah') lagi. Lihat
@@ -4308,6 +4337,319 @@ function handleLongPressEnd(event, cardEl) {
       rek.saldo += delta;
       cachedDompet.totalSaldo = (cachedDompet.totalSaldo || 0) + delta;
     }
+  }
+
+  // ==========================================
+  // BUDGET UI (limit pengeluaran per kategori per periode)
+  // Kontrak backend (budget.gs): getBudgetServer(bulan, tahun) -> { list: [{ id, kategoriID,
+  // kategori, bulan, tahun, limitNominal, terpakai, sisa, persentase, melebihiLimit }] }.
+  // ==========================================
+
+  // Kategori yang boleh dipilih utk budget = HANYA jenis Pengeluaran. Ambil dari
+  // kategoriJenisSumberMap (bucket Pengeluaran._all) atau fallback cachedKategori.
+  function getKategoriPengeluaran_() {
+    const map = kategoriJenisSumberMap;
+    if (map && map.Pengeluaran && Array.isArray(map.Pengeluaran._all) && map.Pengeluaran._all.length) {
+      return map.Pengeluaran._all.slice();
+    }
+    return (cachedKategori || []).slice();
+  }
+
+  function populateBudgetTahunSelect_() {
+    const sel = document.getElementById('budgetTahun');
+    if (!sel) return;
+    const now = new Date().getFullYear();
+    const current = sel.value;
+    sel.innerHTML = '';
+    for (let i = now + 1; i >= now - 4; i--) {
+      const opt = document.createElement('option');
+      opt.value = i; opt.textContent = i;
+      sel.appendChild(opt);
+    }
+    if (current) sel.value = current;
+  }
+
+  // Pindah sub-tab Budget: 'rekening' (card-stack akun) | 'budget' (limit per kategori).
+  function switchBudgetSubTab(tab) {
+    budgetSubTab = tab;
+    const panelRek = document.getElementById('budgetRekeningPanel');
+    const panelLimit = document.getElementById('budgetLimitPanel');
+    const btnRek = document.getElementById('budgetSubTabBtnRekening');
+    const btnBgt = document.getElementById('budgetSubTabBtnBudget');
+
+    const isBudget = tab === 'budget';
+    if (panelRek) panelRek.classList.toggle('hidden', isBudget);
+    if (panelLimit) panelLimit.classList.toggle('hidden', !isBudget);
+
+    // Gaya tombol aktif: bg putih + shadow + teks biru (pola pill toggle claymorphism).
+    const activeCls = 'bg-white shadow-sm text-blue-700';
+    const idleCls = 'text-slate-500';
+    if (btnRek) {
+      btnRek.classList.toggle('bg-white', !isBudget);
+      btnRek.classList.toggle('shadow-sm', !isBudget);
+      btnRek.classList.toggle('text-blue-700', !isBudget);
+      btnRek.classList.toggle('text-slate-500', isBudget);
+    }
+    if (btnBgt) {
+      btnBgt.classList.toggle('bg-white', isBudget);
+      btnBgt.classList.toggle('shadow-sm', isBudget);
+      btnBgt.classList.toggle('text-blue-700', isBudget);
+      btnBgt.classList.toggle('text-slate-500', !isBudget);
+    }
+
+    updateFabAddButton('budget'); // FAB menyesuaikan sub-tab aktif
+
+    if (isBudget) {
+      loadBudget();
+    } else {
+      // Kembali ke rekening -> layout stack dihitung ulang (tinggi viewport berubah).
+      setTimeout(fitRekeningListViewport_, 0);
+    }
+  }
+
+  function navigateBudgetPeriode(dir) {
+    budgetBulan += dir;
+    if (budgetBulan < 0) { budgetBulan = 11; budgetTahun--; }
+    else if (budgetBulan > 11) { budgetBulan = 0; budgetTahun++; }
+    cachedBudget = null;
+    loadBudget();
+  }
+
+  function loadBudget() {
+    const label = document.getElementById('budgetPeriodeLabel');
+    if (label) label.textContent = NAMA_BULAN_ID[budgetBulan] + ' ' + budgetTahun;
+    if (cachedBudget) {
+      try { renderBudgetUI(cachedBudget); } catch (e) { showToast('error', 'Gagal menampilkan budget: ' + e.message); }
+      return;
+    }
+    const listEl = document.getElementById('budgetLimitList');
+    if (listEl) {
+      listEl.innerHTML = '<div class="flex flex-col items-center justify-center gap-3 py-10 text-slate-400 text-sm">' +
+        '<div class="riwayat-dot-spinner" aria-hidden="true"><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div><div class="riwayat-dot-spinner__dot"></div></div>' +
+        '<span>Memuat budget...</span></div>';
+    }
+    google.script.run
+      .withSuccessHandler(res => {
+        if (!res) { showToast('error', 'Gagal memuat budget (payload kosong).'); return; }
+        if (res.status !== 'success') { showToast('error', res.message || 'Gagal memuat budget.'); return; }
+        cachedBudget = res;
+        try { renderBudgetUI(res); } catch (e) { showToast('error', 'Gagal menampilkan budget: ' + e.message); }
+      })
+      .withFailureHandler(err => {
+        showToast('error', 'Gagal memuat budget: ' + (err && err.message ? err.message : err));
+      })
+      .getBudgetServer(budgetBulan, budgetTahun);
+  }
+
+  function renderBudgetUI(res) {
+    const list = (res && res.list) || [];
+    const listEl = document.getElementById('budgetLimitList');
+    const totalLimitEl = document.getElementById('budgetTotalLimit');
+    const totalTerpakaiEl = document.getElementById('budgetTotalTerpakai');
+    const totalSisaEl = document.getElementById('budgetTotalSisa');
+
+    let totalLimit = 0, totalTerpakai = 0;
+    list.forEach(b => {
+      totalLimit += Number(b.limitNominal) || 0;
+      totalTerpakai += Number(b.terpakai) || 0;
+    });
+    if (totalLimitEl) totalLimitEl.textContent = formatRupiah(totalLimit);
+    if (totalTerpakaiEl) totalTerpakaiEl.textContent = 'Terpakai: ' + formatRupiah(totalTerpakai);
+    if (totalSisaEl) totalSisaEl.textContent = 'Sisa: ' + formatRupiah(Math.max(0, totalLimit - totalTerpakai));
+
+    if (!listEl) return;
+    if (!list.length) {
+      listEl.innerHTML =
+        '<div class="flex flex-col items-center justify-center gap-2 py-10 text-center px-4">' +
+        '<span class="material-symbols-outlined text-[36px] text-slate-300">savings</span>' +
+        '<p class="text-sm font-semibold text-slate-500">Belum ada budget untuk periode ini</p>' +
+        '<p class="text-xs text-slate-400">Atur limit pengeluaran per kategori lewat tombol +</p>' +
+        '<button onclick="openTambahBudgetModal()" class="mt-2 clay-btn clay-key-blue bg-blue-700 text-white text-xs font-semibold hover:bg-blue-800 transition-colors flex items-center gap-1.5 px-4 py-2.5">' +
+        '<span class="material-symbols-outlined text-[16px]">add</span>Tambah Budget</button>' +
+        '</div>';
+      return;
+    }
+
+    listEl.innerHTML = list.map(b => renderBudgetCard_(b)).join('');
+  }
+
+  function renderBudgetCard_(b) {
+    const limit = Number(b.limitNominal) || 0;
+    const terpakai = Number(b.terpakai) || 0;
+    const sisa = Math.max(0, limit - terpakai);
+    const pct = limit > 0 ? Math.min(100, Math.round((terpakai / limit) * 100)) : 0;
+    const over = b.melebihiLimit || terpakai > limit;
+
+    // Warna progress bar: hijau (<75%), amber (75-99%), merah (>=100%).
+    const barColor = over ? 'bg-red-500' : (pct >= 75 ? 'bg-amber-500' : 'bg-blue-600');
+    const statusBadge = over
+      ? '<span class="inline-flex items-center gap-1 text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded-full">' +
+        '<span class="material-symbols-outlined text-[12px]">warning</span>MELEBIHI</span>'
+      : '<span class="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full">SISA ' + formatRupiah(sisa) + '</span>';
+
+    return '' +
+      '<div class="clay clay-card clay-key-blue bg-white p-4">' +
+        '<div class="flex items-center justify-between gap-2 mb-3">' +
+          '<div class="flex items-center gap-2.5 min-w-0">' +
+            '<div class="clay-icon-tile clay-key-blue w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">' +
+              '<span class="material-symbols-outlined text-blue-700 text-[18px]">category</span>' +
+            '</div>' +
+            '<div class="min-w-0">' +
+              '<p class="font-bold text-sm text-slate-800 truncate">' + escHtml_(b.kategori) + '</p>' +
+              '<p class="text-[11px] text-slate-400">Limit ' + formatRupiah(limit) + '</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="shrink-0">' + statusBadge + '</div>' +
+        '</div>' +
+        '<div class="flex items-center gap-3 mb-1.5">' +
+          '<div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">' +
+            '<div class="h-full rounded-full ' + barColor + ' transition-all" style="width:' + pct + '%"></div>' +
+          '</div>' +
+          '<span class="text-xs font-bold text-slate-700 tabular-nums w-11 text-right">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="flex items-center justify-between text-[11px]">' +
+          '<span class="text-slate-500">Terpakai <b class="text-slate-700 font-mono">' + formatRupiah(terpakai) + '</b></span>' +
+          '<div class="flex items-center gap-1">' +
+            '<button onclick="openEditBudgetModal(\'' + b.id + '\')" class="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors" aria-label="Edit budget">' +
+              '<span class="material-symbols-outlined text-[15px]">edit</span>' +
+            '</button>' +
+            '<button onclick="openHapusBudgetModal(\'' + b.id + '\')" class="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors" aria-label="Hapus budget">' +
+              '<span class="material-symbols-outlined text-[15px]">delete</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  // ===== TAMBAH / EDIT BUDGET =====
+  function openTambahBudgetModal() {
+    budgetEditId = null;
+    document.getElementById('budgetId').value = '';
+    document.getElementById('budgetKategori').value = '';
+    document.getElementById('budgetBulan').value = budgetBulan;
+    document.getElementById('budgetTahun').value = budgetTahun;
+    document.getElementById('budgetLimitNominal').value = '';
+    const title = document.getElementById('budgetModalTitleText');
+    if (title) title.textContent = 'Tambah Budget';
+    const btn = document.getElementById('btnSimpanBudget');
+    if (btn) btn.querySelector('span:last-child') && (btn.lastChild.textContent = ' Simpan');
+    document.getElementById('modalBudget')?.classList.remove('hidden');
+    document.getElementById('budgetKategori')?.focus();
+  }
+
+  function openEditBudgetModal(id) {
+    const item = (cachedBudget && cachedBudget.list || []).find(b => b.id === id);
+    if (!item) { showToast('error', 'Budget tidak ditemukan.'); return; }
+    budgetEditId = id;
+    document.getElementById('budgetId').value = id;
+    document.getElementById('budgetKategori').value = item.kategori;
+    document.getElementById('budgetBulan').value = item.bulan;
+    document.getElementById('budgetTahun').value = item.tahun;
+    document.getElementById('budgetLimitNominal').value = item.limitNominal;
+    const title = document.getElementById('budgetModalTitleText');
+    if (title) title.textContent = 'Edit Budget';
+    const btn = document.getElementById('btnSimpanBudget');
+    if (btn) btn.lastChild && (btn.lastChild.textContent = ' Simpan');
+    document.getElementById('modalBudget')?.classList.remove('hidden');
+  }
+
+  function closeBudgetModal() {
+    document.getElementById('modalBudget')?.classList.add('hidden');
+    budgetEditId = null;
+  }
+
+  function handleBudgetSubmit(event) {
+    event.preventDefault();
+    const kategori = document.getElementById('budgetKategori').value.trim();
+    const bulan = Number(document.getElementById('budgetBulan').value);
+    const tahun = Number(document.getElementById('budgetTahun').value);
+    const limitNominal = Number(document.getElementById('budgetLimitNominal').value) || 0;
+    const btn = document.getElementById('btnSimpanBudget');
+
+    if (!kategori) { showToast('error', 'Kategori wajib dipilih.'); return; }
+    if (isNaN(bulan) || bulan < 0 || bulan > 11) { showToast('error', 'Bulan tidak valid.'); return; }
+    if (!tahun) { showToast('error', 'Tahun tidak valid.'); return; }
+    if (limitNominal <= 0) { showToast('error', 'Limit budget harus lebih dari 0.'); return; }
+
+    if (btn) { btn.disabled = true; btn.textContent = 'Menyimpan...'; }
+    closeBudgetModal();
+
+    const formData = budgetEditId
+      ? { id: budgetEditId, kategori: kategori, bulan: bulan, tahun: tahun, limitNominal: limitNominal }
+      : { kategori: kategori, bulan: bulan, tahun: tahun, limitNominal: limitNominal };
+
+    // Update tampilan budget periode aktif kalau periode form = periode yg sedang tampil.
+    const periodeSama = (bulan === budgetBulan && tahun === budgetTahun);
+
+    const runner = google.script.run
+      .withSuccessHandler(res => {
+        if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
+        if (!res || res.status !== 'success') { showToast('error', (res && res.message) || 'Gagal menyimpan budget.'); return; }
+        showToast('success', budgetEditId ? 'Budget berhasil diperbarui!' : 'Budget berhasil ditambahkan!');
+        if (periodeSama) {
+          cachedBudget = res.budget;
+          renderBudgetUI(res.budget);
+        } else {
+          cachedBudget = null;
+          budgetBulan = bulan; budgetTahun = tahun;
+          loadBudget();
+        }
+      })
+      .withFailureHandler(err => {
+        if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
+        showToast('error', 'Koneksi error: ' + (err.message || err));
+      });
+
+    if (budgetEditId) {
+      runner.updateBudgetServer(formData);
+    } else {
+      runner.simpanBudgetServer(formData);
+    }
+  }
+
+  // ===== HAPUS BUDGET =====
+  function openHapusBudgetModal(id) {
+    targetBudgetToDelete = id;
+    document.getElementById('modalHapusBudget')?.classList.remove('hidden');
+  }
+
+  function closeHapusBudgetModal() {
+    targetBudgetToDelete = null;
+    document.getElementById('modalHapusBudget')?.classList.add('hidden');
+  }
+
+  function confirmHapusBudget() {
+    if (!targetBudgetToDelete) return;
+    const idToDelete = targetBudgetToDelete;
+    const btnConfirm = document.getElementById('btnConfirmHapusBudget');
+    if (btnConfirm) { btnConfirm.innerText = 'Menghapus...'; btnConfirm.disabled = true; }
+
+    closeHapusBudgetModal();
+
+    // Optimistic: hapus dari cache & render langsung.
+    if (cachedBudget) {
+      cachedBudget.list = cachedBudget.list.filter(b => b.id !== idToDelete);
+      renderBudgetUI(cachedBudget);
+    }
+
+    google.script.run
+      .withSuccessHandler(res => {
+        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
+        if (!res || res.status !== 'success') {
+          cachedBudget = null;
+          loadBudget();
+          showToast('error', (res && res.message) || 'Gagal menghapus budget.');
+          return;
+        }
+        showToast('success', 'Budget berhasil dihapus!');
+      })
+      .withFailureHandler(err => {
+        if (btnConfirm) { btnConfirm.innerText = 'Ya, Hapus'; btnConfirm.disabled = false; }
+        cachedBudget = null;
+        loadBudget();
+        showToast('error', 'Terputus: ' + (err.message || err));
+      })
+      .hapusBudgetServer(idToDelete);
   }
 
   function openExportModal() {

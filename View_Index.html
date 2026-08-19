@@ -57,12 +57,15 @@
     window.__INITIAL_KATEGORI__ = <?!= JSON.stringify(initialKategori) ?>;
     window.__INITIAL_RIWAYAT__  = <?!= JSON.stringify(initialRiwayat) ?>;
     window.__INITIAL_DOMPET__   = <?!= JSON.stringify(initialDompet) ?>;
+    window.__HAS_DATABASE__     = <?!= (typeof hasDatabase === 'undefined' ? false : hasDatabase) ? 'true' : 'false' ?>;
   </script>
 
   <!-- viewStatistik, viewUtang, dan viewBudget sekarang di-include langsung di dalam ViewTransaksi.html,
        supaya tetap berada di dalam div container utama (max-w-3xl mx-auto ... px-4 md:px-8). -->
 
   <?!= include('ViewJS'); ?>
+
+  <?!= include('DatabaseSetupModal'); ?>
 
 </body>
 

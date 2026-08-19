@@ -1,49 +1,59 @@
-# MyDuit — Catatan Keuangan Pribadi
+# MyDuit: Catatan Keuangan Pribadi
 
-Aplikasi pencatat keuangan pribadi berbasis **Google Apps Script** yang berjalan sebagai Web App, dengan antarmuka modern (Tailwind CSS, claymorphism/neumorphism) dan dukungan kecerdasan buatan **Google Gemini** untuk analisis otomatis.
+Aplikasi pencatat keuangan pribadi berbasis Google Apps Script, berjalan sebagai Web App. Antarmuka Tailwind CSS (claymorphism), analisis AI Google Gemini untuk rekomendasi dan OCR struk.
 
-> Kelola uangmu, kendalikan masa depanmu.
+## Fitur
 
----
+### Transaksi
+- Catat pemasukan dan pengeluaran lengkap dengan tanggal, kategori, sumber/akun, dan keterangan.
+- Filter riwayat: hari ini, minggu ini, bulan ini, tahun ini, semua, rentang tanggal kustom, jenis, dan kata kunci.
+- Pagination client-side (batch 50 item) biar tidak fetch berulang.
+- Salin transaksi dan pindah saldo antar akun (otomatis tercatat sebagai transaksi keluar + masuk).
 
-## Fitur Utama
-
-### 1. Transaksi (Riwayat Kas)
-- Catat **Pemasukan** & **Pengeluaran** lengkap dengan tanggal, kategori, sumber/akun, dan keterangan.
-- Filter riwayat: **hari ini, minggu ini, bulan ini, tahun ini, semua**, rentang tanggal kustom, jenis (Pemasukan/Pengeluaran), dan pencarian kata kunci.
-- Pagination client-side (batch 50 item) untuk navigasi cepat tanpa fetch berulang.
-- Salin transaksi & **pindah saldo antar akun** (dicatat otomatis sebagai transaksi keluar + masuk).
-
-### 2. Budget / Dompet (Rekening)
-- Kelola beberapa akun (Rekening Utama, Tabungan, E-Wallet, Dana Darurat, dll.) dengan **saldo real-time** yang otomatis tersinkron setiap ada transaksi.
+### Rekening & Budget
+- Kelola beberapa akun (Rekening Utama, Tabungan, E-Wallet, dll.) dengan saldo real-time yang tersinkron tiap ada transaksi.
 - Riwayat perubahan saldo per akun (audit log "Perubahan Terakhir").
-- Formulir rekening memakai desain **card stack slider**.
+- Sub-tab Budget: atur limit pengeluaran per kategori per periode, lihat terpakai vs sisa, dan badge merah saat melebihi limit.
+- Formulir rekening memakai desain card stack slider.
 
-### 3. Statistik & Analisis
-- Grafik bulanan/tahunan (Chart.js): pemasukan vs pengeluaran, tren, dan breakdown kategori.
-- **Breakdown kategori 2 kolom** (Pemasukan hijau / Pengeluaran merah) dengan progress bar & persentase.
-- Tren 12 bulan, analisis kategori, dan statistik 3 bulan terakhir.
+### Statistik
+- Grafik bulanan/tahunan (Chart.js): pemasukan vs pengeluaran, tren 12 bulan, dan breakdown kategori.
+- Breakdown kategori 2 kolom (Pemasukan hijau / Pengeluaran merah) dengan progress bar dan persentase.
 
-### 4. Rekomendasi AI (Google Gemini)
-- Analisis kesehatan keuangan per periode: **KONDISI**, **HEMAT DI SINI**, dan **PRIORITAS ALOKASI**.
-- **OCR Struk**: upload foto struk → AI mengekstrak tanggal, nominal, kategori, dan sumber otomatis (selalu dicatat sebagai Pengeluaran).
-- Multi-model & multi-API-key dengan **fallback otomatis** saat kuota/rate-limit habis.
+### Rekomendasi AI (Google Gemini)
+- Analisis kesehatan keuangan per periode: KONDISI, HEMAT DI SINI, dan PRIORITAS ALOKASI.
+- OCR Struk: upload foto struk, AI mengekstrak tanggal, nominal, kategori, dan sumber otomatis (selalu dicatat sebagai Pengeluaran).
+- Multi-model dan multi-API-key dengan fallback otomatis saat kuota/rate-limit habis.
 
-### 5. Utang & Cicilan
+### Utang & Cicilan
 - Catat utang/kredit/tagihan dengan jangka waktu, tanggal jatuh tempo, dan cicilan per bulan.
-- **Bayar cicilan** & **lunasi utang** langsung dari kartu — otomatis dicatat sebagai transaksi pengeluaran dari sumber dana terpilih (dengan validasi saldo).
-- Status **Lunas / Belum Lunas**, badge otomatis, dan reminder utang mendekati jatuh tempo.
+- Bayar cicilan dan lunasi utang langsung dari kartu, otomatis tercatat sebagai transaksi pengeluaran dari sumber dana terpilih (dengan validasi saldo).
+- Status Lunas / Belum Lunas, badge otomatis, dan penanda utang mendekati jatuh tempo.
 
-### 6. Laporan PDF
-- Ekspor **laporan keuangan bulanan** bergaya profesional: header branding, ringkasan pemasukan/pengeluaran/saldo bersih, ringkasan utang aktif, breakdown kategori, tabel rincian transaksi, dan catatan rekomendasi AI.
+### Laporan PDF
+- Ekspor laporan keuangan bulanan: header branding, ringkasan pemasukan/pengeluaran/saldo bersih, ringkasan utang aktif, breakdown kategori, tabel rincian transaksi, dan catatan rekomendasi AI.
 
----
+## Database
+
+Skema dibangun otomatis saat pertama kali dipakai (`initSchema`). Tujuh tabel, tiap baris ber-ID primary key (format `PREFIX-yyyyMMdd-HEX4`):
+
+| Tabel | Prefix | Isi |
+|-------|--------|-----|
+| `Akun` | AKN | Rekening / dompet |
+| `Kategori` | KAT | Kategori pemasukan & pengeluaran |
+| `Transaksi` | TX | Catatan transaksi |
+| `Utang` | UTG | Utang, cicilan, tagihan |
+| `PembayaranUtang` | BAY | Riwayat pembayaran utang |
+| `Budget` | BGT | Limit pengeluaran per kategori per periode |
+| `MutasiLog` | LOG | Audit perubahan saldo akun |
+
+Detail kolom dan relasi ada di `database.md`. Kalau user memakai skema lama (sheet `in/out`, `Dompet`, dll.), `migrasi.gs` memindahkan datanya ke tabel baru saat pertama kali menjalankan.
 
 ## Teknologi
 
 | Bagian | Teknologi |
 |--------|-----------|
-| Backend | Google Apps Script (`controller.js`) |
+| Backend | Google Apps Script (satu file `.gs` per modul) |
 | Frontend | HTML, Tailwind CSS (CDN), JavaScript vanilla |
 | Grafik | Chart.js |
 | Date picker | flatpickr |
@@ -55,45 +65,39 @@ Aplikasi pencatat keuangan pribadi berbasis **Google Apps Script** yang berjalan
 
 | File | Peran |
 |------|-------|
-| `controller.js` | Backend Google Apps Script — CRUD, caching, operasi sheet, integrasi Gemini, pembuatan PDF |
+| `core.gs` | Inti backend: routing, primary key, cache |
+| `schema.gs`, `database-init.gs` | Definisi & pembuatan skema 7 tabel |
+| `transaksi.gs`, `akun.gs`, `kategori.gs`, `budget.gs`, `utang.gs`, `statistik.gs`, `laporan-pdf.gs`, `ai-gemini.gs`, `mutasi-log.gs` | CRUD per modul |
+| `migrasi.gs` | Migrasi data dari skema lama ke tabel baru |
 | `ViewTransaksi.html` | Tab Transaksi/Riwayat (entry point utama via `doGet`) |
-| `ViewBudget.html` | Tab Budget/Dompet (card stack slider) |
+| `ViewBudget.html` | Tab Budget/Dompet (sub-tab Rekening & Budget) |
 | `ViewStatistik.html` | Tab Statistik (Chart.js) |
 | `ViewUtang.html` | Tab Utang & Cicilan |
-| `ViewJS.html` | Client-side JavaScript (4.000+ baris) |
+| `ViewJS.html` | Client-side JavaScript |
 | `ViewCSS.html` | Custom Tailwind styles (claymorphism/neumorphism) |
 | `View_Index.html` | Shell template yang meng-include semua tab |
 
-## Struktur Google Sheet
-
-### Sheet `in/out` — Transaksi
-- Kolom A–G, data mulai **baris 6**.
-- Berisi ID, tanggal, jenis, kategori, sumber, keterangan, dan nominal.
-
-### Sheet `Dompet` — Rekening Akun
-- Data mulai **baris 7**, kolom A=ID, B=Nama, C=Saldo, D=Perubahan Terakhir, E=Tipe, F=Catatan.
-
-### Sheet `Utang` — Utang & Cicilan
-- Dibuat otomatis saat pertama kali digunakan (`initUtangSheet_`).
-
----
-
 ## Performa
 
-- **Caching 60 detik** via `CacheService.getScriptCache()` untuk transaksi, dompet, statistik, dan rekomendasi AI — pindah tab/filter berulang tidak membaca ulang sheet fisik.
-- Cache **di-invalidate instan** setiap ada operasi CRUD.
-- Data awal disuntikkan langsung dari `doGet()` (zero round-trip saat render pertama & buka tab Budget).
+- Caching 60 detik via `CacheService.getScriptCache()` untuk transaksi, rekening, statistik, dan rekomendasi AI. Pindah tab/filter berulang tidak membaca ulang sheet fisik.
+- Cache di-invalidate instan setiap ada operasi CRUD.
+- Data awal disuntikkan langsung dari `doGet()` (zero round-trip saat render pertama dan buka tab Budget).
 
----
+## Cara Menggunakan
 
-## Cara Menjalankan
+Aplikasi ini dijalankan sebagai Web App. Cukup buka URL deployment-nya:
 
-1. Buka project di [Google Apps Script](https://script.google.com) (backed by Google Sheets).
-2. Pasang/atur dependensi via `clasp` (opsional, untuk pengembangan lokal):
+1. Buka URL Web App.
+2. Saat pertama kali dibuka, aplikasi membuat database 7 tabel secara otomatis. Kalau data lama (sheet `in/out`, `Dompet`, dll.) terdeteksi, aplikasi menawarkan migrasi ke tabel baru.
+3. Catat pemasukan dan pengeluaran di tab Transaksi, atur rekening dan limit budget di tab Budget, dan pantau grafiknya di tab Statistik.
+4. Fitur AI (OCR struk dan rekomendasi) butuh API key Google Gemini. Isi lewat menu pengaturan di aplikasi sebelum fitur AI dipakai.
+
+## Pengembangan Lokal
+
+1. Clone repo dan buka project-nya di [Google Apps Script](https://script.google.com) (backed by Google Sheets).
+2. Sinkronkan kode dengan `clasp`:
    ```bash
    npx @google/clasp push
    ```
-3. Deploy sebagai **Web App** dengan akses eksekusi sesuai kebutuhan.
-4. Buka URL Web App → aplikasi siap digunakan.
-
-> Fitur AI (OCR struk & rekomendasi) membutuhkan **API key Google Gemini** yang diatur lewat menu pengaturan pada aplikasi.
+3. Deploy sebagai Web App dengan akses eksekusi sesuai kebutuhan.
+4. Terapkan perubahan lewat `clasp push`, lalu uji di URL deployment.

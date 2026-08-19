@@ -1,0 +1,37 @@
+# Briefing Onboarding — Lanjutan Pengembangan MyDuit
+
+Paste pesan ini di awal percakapan baru (sebelum upload file lain), supaya AI/developer yang melanjutkan langsung sinkron dengan progres terkini.
+
+---
+
+Saya melanjutkan pengembangan aplikasi keuangan pribadi "MyDuit" (Google Apps Script + HTML Service). Baca `database.md` (terlampir) SEBAGAI SUMBER KEBENARAN UTAMA sebelum menyarankan apa pun — TAPI lihat poin 5 di "Aturan kerja" di bawah: bahkan `database.md` sendiri pernah salah.
+
+Ringkasan cepat (update terbaru — budget.gs benar-benar dibangun sesi ini + 1 bug regresi baru diperbaiki):
+- Backend final terdiri dari file domain berikut — SEMUA sudah ada, JANGAN buat ulang: `core.gs`, `akun.gs`, `kategori.gs`, `transaksi.gs`, `utang.gs`, `mutasi-log.gs`, `statistik.gs`, `ai-gemini.gs`, `laporan-pdf.gs`, `migrasi.gs`, `test.gs`, `schema.gs`, `database-init.gs`, `budget.gs`.
+- **KASUS PENTING (pelajaran keras soal poin 5 "Aturan kerja")**: `database.md` versi sebelumnya mengklaim `budget.gs` "SELESAI dibangun" lengkap dengan detail fungsi — TERNYATA file itu memang belum pernah dibuat sama sekali (dikonfirmasi langsung oleh user: "file belum ada"). Klaim di dokumen itu murni deskripsi rencana/aspirasi yang tidak pernah diverifikasi ke kode nyata. `budget.gs` sudah BENAR-BENAR dibangun di sesi ini (lihat di bawah), tapi ini pengingat: JANGAN pernah anggap status "✅ SELESAI" di `database.md`/`HANDOFF.md` sebagai fakta sebelum file-nya benar-benar ada & terbaca.
+- `controller.gs` lama (3268 baris) sudah tidak dipakai — arsip saja.
+- **PERBAIKAN/PEMBANGUNAN SELESAI sesi-sesi sebelumnya (3 bug kritis, ditemukan lewat pembacaan kode langsung):**
+  1. `getKategoriTampilFromStored_()` **HILANG TOTAL** — dipanggil di `transaksi.gs` (`getRiwayatKasServer()`) tapi tidak pernah didefinisikan di `kategori.gs` manapun. Bug kritis (ReferenceError). **Sudah ditambahkan** ke `kategori.gs`.
+  2. `Transaksi.AkunID`/`AkunTujuanID` selama ini diisi **nama akun**, bukan `Akun.ID`. **Sudah diperbaiki** di `transaksi.gs` (`simpanTransaksiServer`, `updateTransaksiServer`, `pindahSaldoServer` lookup nama→ID pakai `getAkunIdByNama_()`, fallback ke nama kalau gagal) dan `utang.gs` (`bayarCicilanServer`/`lunasinUtangServer`). Ditambahkan `getAkunTampilFromStored_()` di `akun.gs`.
+  3. `PembayaranUtang.TransaksiID` di `utang.gs` **selalu ditulis kosong** (baris `PembayaranUtang` disisipkan sebelum `txID` dibuat). **Sudah diperbaiki**: `txID` dibuat lebih dulu.
+- **BUG REGRESI baru ditemukan & diperbaiki sesi ini** — akibat langsung dari perbaikan #2 di atas: `updateTransaksiServer()` (`transaksi.gs`) membandingkan `sumberLama` (sekarang berisi `Akun.ID`) langsung dengan `sumberBaru` (nama akun dari form) untuk menentukan `sumberSama` — ID vs nama nyaris tidak pernah cocok, jadi validasi saldo & pencatatan `MutasiLog` saat edit transaksi salah walau akun tidak diganti. **Sudah diperbaiki**: `sumberLama` dinormalisasi ke ID dulu sebelum dibandingkan.
+- **`budget.gs` BENAR-BENAR dibangun sesi ini** (bukan cuma diverifikasi — filenya memang belum ada sebelumnya): CRUD (`getBudgetServer`, `simpanBudgetServer`, `updateBudgetServer`, `hapusBudgetServer`), validasi keras `KategoriID` (tanpa fallback nama), join realisasi pengeluaran dari `statistik.gs`. `testBudgetCRUD()` ditambahkan ke `test.gs` + masuk `runAllTests()` — **tapi belum pernah dijalankan langsung di Apps Script Editor**, jadi belum ada konfirmasi eksekusi nyata.
+- File yang berubah/dibuat sesi ini: `transaksi.gs` (bugfix), `budget.gs` (baru), `test.gs` (tambah `testBudgetCRUD`).
+- File yang berubah di sesi lanjutan (verifikasi & fix 2 bug): `transaksi.gs` (fix `sumberSama` → normalisasi ID), `statistik.gs` (konversi KategoriID/AkunID → nama di `getSemuaTransaksi*Server`), `database.md`, `HANDOFF.md` (update status).
+- **GAP YANG MASIH ADA:**
+  - `rebuildSaldoAkun_()` (Fase 6) belum ditemukan/dibangun di file manapun.
+  - `statistik.gs` (`getSemuaTransaksiBulanServer`/`getSemuaTransaksiTahunServer`) dan `migrasi.gs` masih membaca/menulis kolom `AkunID` sebagai nama mentah (tidak lewat lookup ID) — dampaknya kecil tapi belum konsisten 100%, DAN sekarang jadi lebih relevan karena `budget.gs` memakai `getSemuaTransaksiBulanServer()` untuk hitung realisasi (kalau nanti diperbaiki, cek ulang join `budget.gs` tidak rusak).
+  - `testBudgetCRUD()` belum pernah dijalankan nyata di Apps Script Editor — cuma tervalidasi lewat pembacaan kode.
+  - Frontend UI untuk `Budget` dan riwayat `MutasiLog` belum dibangun (`ViewBudget.html` masih murni UI Akun). Catatan tambahan: fitur lama "Riwayat Perubahan Rekening" (kotak "Perubahan Terakhir" + modal `modalDetailLogRekening` di `ViewJS.html`/`ViewBudget.html`) sekarang **silently broken** — bergantung pada field `r.catatan` yang di `akun.gs` sekarang selalu dikirim kosong (`''`) karena log teks bebas sudah dipindah ke `MutasiLog`. Bukan cuma "belum ada UI baru", tapi UI lama diam-diam mati.
+  - `doGet()?debug=1` (`debugTestIncludes()` di `core.gs`) — error `DatabaseSetupModal` belum didiagnosis tuntas.
+- **2 BUG BARU DITEMUKAN & DIPERBAIKI SESI INI (verifikasi terhadap kode aktual, bukan klaim dokumen):**
+  1. **Bug regresi `updateTransaksiServer()` yang diklaim "sudah diperbaiki" di HANDOFF/database versi sebelumnya ternyata MASIH HIDUP di kode** — `sumberSama` masih membandingkan `sumberLama` (Akun.ID dari sheet) dengan `sumberBaru` (nama form); variabel `sumberLamaID` tidak pernah ada di file. Efek: ID vs nama → `sumberSama` selalu `false` → validasi saldo terlalu ketat + MutasiLog mencatat 2 baris "Update Transaksi" palsu. **Fix**: `sumberLama` dinormalisasi ke ID (`sumberLamaID` via `getAkunIdByNama_()`) lalu dibandingkan dengan `akunIDBaru`; pemanggilan `applyDeltaSaldoAkun_()` diseragamkan pakai ID.
+  2. **Join realisasi `budget.gs` rusak** — `getSemuaTransaksiBulanServer()`/`TahunServer()` mengembalikan `kategori`/`sumber` mentah (sekarang ID), tapi `budget.gs` menghitung `terpakai` dgn lookup nama → selalu `0`. **Fix**: statistik.gs memakai `getKategoriTampilFromStored_()`/`getAkunTampilFromStored_()` (menutup gap "statistik baca mentah" sekaligus).
+- **MIGRASI DIPERBAIKI SESI INI (fokus user: migrasi dulu sebelum lanjut fitur lain):** `migrasi.gs` sebelumnya menulis `KategoriID`/`AkunID`/`AkunTujuanID` sebagai **nama mentah** (gap lama yang pernah tercatat di GAP). Sekarang `migrasiAkun_()`/`migrasiKategori_()` mengembalikan `{ count, map: {namaLower: ID} }` dan `migrasiTransaksi_(sumber, mapAkun, mapKategori)` resolve nama → ID (fallback nama kalau tidak ketemu). File berubah: `migrasi.gs`, `database.md`, `HANDOFF.md`.
+
+Aturan kerja:
+1. JANGAN mengusulkan redesign ulang dari nol — skema & pemisahan domain sudah diputuskan, lanjutkan dari situ.
+2. Setelah ada perubahan struktural (tabel baru, file baru, fase selesai), SELALU update `database.md` di akhir — jangan biarkan dokumen ini basi.
+3. Tema UI adalah Claymorphism (lihat class `.clay-*` di `ViewCSS.html`) — komponen baru harus konsisten dengan ini.
+4. Kerjakan satu langkah kecil per giliran, minta konfirmasi sebelum lanjut ke langkah berikutnya.
+5. **Jangan percaya klaim status di `database.md`/`HANDOFF.md` begitu saja** — verifikasi ke isi file .gs yang benar-benar diupload sebelum menganggap sesuatu "selesai". Kasus `budget.gs` di atas BUKAN cuma teori: dokumen sempat mengklaim detail lengkap untuk file yang ternyata belum pernah dibuat sama sekali. Status "✅ SELESAI" di dokumen = klaim yang perlu diverifikasi, bukan fakta.
