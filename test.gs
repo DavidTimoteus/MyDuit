@@ -13,13 +13,13 @@
  * - testUtangCRUD()       -> test.gs dites lewat utang.gs
  * - testBudgetCRUD()      -> test.gs dites lewat budget.gs (termasuk validasi keras
  *                            KategoriID & validasi duplikat kategori+periode)
- * - testStatistikAI()     -> test.gs dites lewat statistik.gs + ai-gemini.gs
+ * - testStatistikAI()     -> test.gs dites lewat statistik.gs + ai-model.gs
  * - testCacheBehavior()   -> test.gs dites lewat core.gs (cache raw transaksi/dompet)
  * - testAIModelFallback() -> panduan manual (bukan test otomatis)
  * - runAllTests()         -> jalankan semua test berurutan
  *
  * NB: butuh SEMUA domain file lain sudah ada di project yang sama
- * (transaksi.gs, dompet.gs, utang.gs, statistik.gs, ai-gemini.gs)
+ * (transaksi.gs, dompet.gs, utang.gs, statistik.gs, ai-model.gs)
  * karena fungsi test di sini memanggil fungsi CRUD dari domain2
  * tsb secara langsung.
  *******************************************************/
@@ -222,9 +222,9 @@ function testStatistikAI() {
 function testAIModelFallback() {
   // Simulasi dengan mengubah model ke nama yang tidak valid
   // Test ini hanya log, tidak benar-benar mengubah config
-  Logger.log('Test fallback: Pastikan GEMINI_MODELS di ai-gemini.gs diubah manual lalu jalankan OCR/rekomendasi');
-  Logger.log('Expected: model pertama di route gagal → otomatis lanjut ke model berikutnya (round-robin mulai index berbeda tiap panggilan)');
-  return { status: 'info', message: 'Manual test required - edit GEMINI_MODELS.FLASH_2_5 ke nama invalid' };
+  Logger.log('Test fallback: edit AI_MODEL_CATALOG di ai-model.gs model id ke nama invalid, lalu jalankan OCR/rekomendasi');
+  Logger.log('Expected: model aktif dideteksi otomatis → model yang error dilewati → lanjut model berikutnya (round-robin mulai index berbeda tiap panggilan)');
+  return { status: 'info', message: 'Manual test required - edit AI_MODEL_CATALOG model id ke nama invalid' };
 }
 
 function testCacheBehavior() {

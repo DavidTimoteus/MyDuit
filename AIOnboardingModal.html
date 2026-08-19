@@ -27,7 +27,7 @@
         <li><b>OCR Struk</b> — upload foto struk belanja, AI isi otomatis tanggal, nominal, kategori, & sumber (selalu dicatat sbg Pengeluaran).</li>
       </ul>
       <p class="text-xs text-slate-500 mt-2">
-        Fitur ini butuh API key Gemini (gratis di <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>). Kamu bisa input beberapa key biar fallback otomatis kalau satu key kena limit.
+        Fitur ini butuh API key — bisa <b>Gemini</b> (gratis di <a href="https://aistudio.google.com/apikey" target="_blank" class="text-blue-600 underline">Google AI Studio</a>) atau <b>OpenRouter</b> (<a href="https://openrouter.ai/keys" target="_blank" class="text-blue-600 underline">banyak model gratis</a>). Sistem otomatis mendeteksi model yang tersedia & memakai model dari semua provider secara bergiliran (round-robin). Tambah beberapa key supaya makin tangguh saat kena limit.
       </p>
 
       <div class="flex items-center justify-end gap-2 pt-2">
@@ -122,6 +122,19 @@
 
     <div>
       <label class="block text-xs font-semibold text-slate-600 mb-1">
+        Provider API Key <span class="text-red-500">*</span>
+      </label>
+      <select
+        id="aiProblemProvider"
+        class="clay-input w-full px-3.5 py-2.5 text-sm bg-white focus:outline-none transition-colors cursor-pointer"
+      >
+        <option value="gemini">Gemini (key AIza...)</option>
+        <option value="openrouter">OpenRouter (key sk-or-...)</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">
         API Key Baru (bisa lebih dari 1, pisahkan koma) <span class="text-red-500">*</span>
       </label>
       <textarea
@@ -213,10 +226,16 @@
     let html = '';
     for (let i = 0; i < count; i++) {
       html += '' +
-        '<div class="flex flex-col gap-1.5">' +
+        '<div class="flex flex-col gap-1.5 p-3 rounded-8 bg-slate-50">' +
           '<label class="text-xs font-semibold text-slate-600">API Key ' + (i + 1) + (i === 0 ? ' <span class="text-red-500">*</span>' : '') + '</label>' +
-          '<input type="text" id="aiKeyInput-' + i + '" placeholder="AIzaSy...-' + (i + 1) + '" ' +
-            'class="clay-input w-full px-3.5 py-2.5 text-sm font-mono focus:outline-none transition-colors" autocomplete="off" />' +
+          '<div class="flex gap-2">' +
+            '<select id="aiKeyProvider-' + i + '" class="clay-input w-[38%] px-2 py-2.5 text-xs font-semibold bg-white focus:outline-none transition-colors cursor-pointer">' +
+              '<option value="gemini">Gemini</option>' +
+              '<option value="openrouter">OpenRouter</option>' +
+            '</select>' +
+            '<input type="text" id="aiKeyInput-' + i + '" placeholder="AIza... / sk-or-..." ' +
+              'class="clay-input flex-1 px-3.5 py-2.5 text-sm font-mono focus:outline-none transition-colors" autocomplete="off" />' +
+          '</div>' +
         '</div>';
     }
     container.innerHTML = html;
@@ -228,11 +247,14 @@
     document.querySelectorAll('[id^="aiKeyInput-"]').forEach(function (el) {
       const m = el.id.match(regex);
       if (!m) return;
+      const idx = Number(m[1]);
       const val = String(el.value || '').trim();
-      if (val) inputs.push({ idx: Number(m[1]), val: val });
+      if (!val) return;
+      const provSel = document.getElementById('aiKeyProvider-' + idx);
+      inputs.push({ idx: idx, val: val, p: (provSel && provSel.value === 'openrouter') ? 'openrouter' : 'gemini' });
     });
     inputs.sort(function (a, b) { return a.idx - b.idx; });
-    return inputs.map(function (o) { return o.val; });
+    return inputs.map(function (o) { return { k: o.val, p: o.p }; });
   }
 
   function saveAIKeys() {
@@ -284,7 +306,9 @@
 
   function saveAIKeyFromProblem() {
     const raw = (document.getElementById('aiProblemKeys').value || '').trim();
-    const keys = raw.split(',').map(function (k) { return k.trim(); }).filter(Boolean);
+    const provSel = document.getElementById('aiProblemProvider');
+    const p = (provSel && provSel.value === 'openrouter') ? 'openrouter' : 'gemini';
+    const keys = raw.split(',').map(function (k) { return { k: k.trim(), p: p }; }).filter(function (o) { return o.k; });
     if (!keys.length) {
       showAIToast('Masukkan setidaknya 1 API key.');
       return;

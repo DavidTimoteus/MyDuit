@@ -14,7 +14,7 @@
  * - parseSheetDate(), maybeRunCleanup()
  *
  * Dipakai oleh: dompet.gs, transaksi.gs, utang.gs, statistik.gs,
- * ai-gemini.gs, laporan-pdf.gs, test.gs.
+ * ai-model.gs, laporan-pdf.gs, test.gs.
  * Bergantung pada: database-init.gs (getUserDatabase_()),
  * transaksi.gs (fetchKategoriServer(), getRiwayatKasServer()),
  * dompet.gs (getDompetServer()) — dipanggil dari doGet().

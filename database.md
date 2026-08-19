@@ -17,7 +17,7 @@ Status: **redesign dari nol**, tidak perlu kompatibel dengan data lama (sudah di
 >   - `utang.gs` — CRUD `Utang` + `PembayaranUtang`, prefix `UTG-`/`BAY-`
 >   - `budget.gs` (baru — Fase 4, dibangun & diverifikasi di sesi ini, lihat poin di bawah) — CRUD `Budget`, prefix `BGT-`
 >   - `mutasi-log.gs` (baru — Fase 5, lihat poin di bawah) — log audit `MutasiLog`, prefix `LOG-`
->   - `statistik.gs`, `ai-gemini.gs`, `laporan-pdf.gs` — sudah query dari skema baru
+>   - `statistik.gs`, `ai-model.gs`, `laporan-pdf.gs` — sudah query dari skema baru
 >   - `migrasi.gs` (baru) — migrasi data dari spreadsheet lama (opsional, dipicu user)
 > - ✅ **Perbaikan `Transaksi.KategoriID` (Langkah A–D) SELESAI & DIKONFIRMASI.** Kolom itu sekarang konsisten ditulis sebagai `Kategori.ID` asli (Langkah B), dan dikonversi balik ke nama saat dibaca untuk frontend (Langkah C, via `getKategoriTampilFromStored_()` di `kategori.gs`). Fallback pada helper itu ("kalau lookup ID gagal, anggap value memang sudah nama") menutupi Langkah D (baris lama/nilai pseudo `"Pindah Saldo"`/`"Pembayaran"`) tanpa logic terpisah — dikonfirmasi user, tidak perlu penanganan tambahan.
 > - ✅ **`budget.gs` (Fase 4) SELESAI dibangun.** CRUD: `getBudgetServer(bulan, tahun)`, `simpanBudgetServer(formData)`, `updateBudgetServer(formData)`, `hapusBudgetServer(id)`. `Budget.KategoriID` **WAJIB** Kategori.ID valid saat simpan (validasi keras, TANPA fallback nama — beda dari Transaksi yang longgar) supaya join selalu akurat. `getBudgetServer()` sudah menggabungkan limit dengan realisasi pengeluaran aktual per kategori/periode (dari `getSemuaTransaksiBulanServer()` di `statistik.gs`), menghitung `terpakai`/`sisa`/`persentase`/`melebihiLimit` per baris. **Belum ada UI/frontend untuk fitur ini** — hanya backend.
@@ -210,7 +210,7 @@ Sudah ada di `utang.gs`:
 - **D. Backward-compat** — ⏳ MENUNGGU KONFIRMASI USER, tapi secara fungsional sudah tertutup: fallback di `getKategoriTampilFromStored_()` ("kalau lookup by-ID gagal, anggap value memang sudah nama") otomatis menangani baris lama yang `KategoriID`-nya masih berisi nama, TANPA perlu logic backward-compat terpisah. Belum ditandai selesai resmi karena belum diverifikasi langsung terhadap data lama di Apps Script Editor.
 - **E. Baru lanjut `budget.gs`**: setelah D dikonfirmasi, `Budget.KategoriID` bisa join akurat ke `Kategori.ID` asli.
 
-Dampak sampingan: `laporan-pdf.gs` & `ai-gemini.gs` **tidak perlu diubah** — keduanya konsumsi field `.kategori` (nama) hasil `statistik.gs`, otomatis ikut benar setelah langkah C.
+Dampak sampingan: `laporan-pdf.gs` & `ai-model.gs` **tidak perlu diubah** — keduanya konsumsi field `.kategori` (nama) hasil `statistik.gs`, otomatis ikut benar setelah langkah C.
 
 **Dependency baru (sudah terjadi)**: `transaksi.gs` & `statistik.gs` sekarang memanggil `getKategoriIdByNama_()`/`getKategoriTampilFromStored_()` dari `kategori.gs` — perlu ditambahkan ke diagram "Urutan dependensi antar file" (bagian "Pemisahan File per Domain"): `kategori.gs` jadi prasyarat `transaksi.gs` & `statistik.gs`, bukan sebaliknya.
 
@@ -231,7 +231,7 @@ Dampak sampingan: `laporan-pdf.gs` & `ai-gemini.gs` **tidak perlu diubah** — k
 ### Fase 6 — Fungsi turunan (read-only) — ⚠️ SEBAGIAN
 - `rebuildSaldoAkun_()` — **belum ditemukan** di file manapun yang diupload.
 - Statistik/laporan (`statistik.gs`) — ✅ sudah query dari skema baru (`getSemuaTransaksiBulanServer`, `getStatistikPeriodeServer`, dll). **Update sesi ini**: `getSemuaTransaksiBulanServer`/`getSemuaTransaksiTahunServer` sekarang mengonversi `KategoriID`/`AkunID` mentah → nama via `getKategoriTampilFromStored_()`/`getAkunTampilFromStored_()` (menutup gap lama + memperbaiki join realisasi di `budget.gs`).
-- AI/rekomendasi keuangan (`ai-gemini.gs`) — ✅ sudah ada, terintegrasi dgn `statistik.gs`.
+- AI/rekomendasi keuangan (`ai-model.gs`) — ✅ sudah ada, terintegrasi dgn `statistik.gs`.
 
 ### Ringkasan Urutan
 
@@ -258,7 +258,7 @@ Dampak sampingan: `laporan-pdf.gs` & `ai-gemini.gs` **tidak perlu diubah** — k
 | **`transaksi.gs`** | 14 | 581 | CRUD Transaksi, riwayat & filter, kategori/sumber akun, Pindah Saldo |
 | **`utang.gs`** | 15 | 287 | CRUD Utang/Cicilan, Bayar Cicilan/Lunasin, notifikasi jatuh tempo |
 | **`statistik.gs`** | 14 | 327 | Nama bulan, agregasi statistik per periode, query transaksi mentah |
-| **`ai-gemini.gs`** | 22 | 470 | Multi API key Gemini (round-robin+fallback), OCR struk, rekomendasi keuangan |
+| **`ai-model.gs`** | 22 | 470 | Multi API key Gemini (round-robin+fallback), OCR struk, rekomendasi keuangan |
 | **`laporan-pdf.gs`** | 5 | 401 | Export laporan PDF, template HTML, helper escape/parsing |
 | **`test.gs`** | 7 | 212 | Test harness (`testTransaksiCRUD`, `runAllTests`, dst) |
 | **`schema.gs`** *(sudah ada sebelumnya)* | 6 | ~150 | `initSchema`, `ensureSheetSchema_`, `debugSchemaStatus`, `SCHEMA_DEFINITION`, `SCHEMA_PK_PREFIX` |
@@ -273,8 +273,8 @@ core.gs            (fondasi — tidak bergantung file lain)
       └─ transaksi.gs  (butuh core.gs + dompet.gs)
           └─ utang.gs    (butuh core.gs + dompet.gs + transaksi.gs)
               └─ statistik.gs (butuh core.gs + transaksi.gs + utang.gs)
-                  └─ ai-gemini.gs (butuh transaksi.gs + statistik.gs + utang.gs)
-                      └─ laporan-pdf.gs (butuh statistik.gs + utang.gs + ai-gemini.gs)
+                  └─ ai-model.gs (butuh transaksi.gs + statistik.gs + utang.gs)
+                      └─ laporan-pdf.gs (butuh statistik.gs + utang.gs + ai-model.gs)
 test.gs             (butuh SEMUA file domain di atas)
 database-init.gs    (dipakai core.gs, tidak bergantung file domain manapun)
 schema.gs           (dipakai database-init.gs, tidak bergantung file domain manapun)

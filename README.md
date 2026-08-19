@@ -67,7 +67,7 @@ Detail kolom dan relasi ada di `database.md`. Kalau user memakai skema lama (she
 |------|-------|
 | `core.gs` | Inti backend: routing, primary key, cache |
 | `schema.gs`, `database-init.gs` | Definisi & pembuatan skema 7 tabel |
-| `transaksi.gs`, `akun.gs`, `kategori.gs`, `budget.gs`, `utang.gs`, `statistik.gs`, `laporan-pdf.gs`, `ai-gemini.gs`, `mutasi-log.gs` | CRUD per modul |
+| `transaksi.gs`, `akun.gs`, `kategori.gs`, `budget.gs`, `utang.gs`, `statistik.gs`, `laporan-pdf.gs`, `ai-model.gs`, `mutasi-log.gs` | CRUD per modul |
 | `migrasi.gs` | Migrasi data dari skema lama ke tabel baru |
 | `ViewTransaksi.html` | Tab Transaksi/Riwayat (entry point utama via `doGet`) |
 | `ViewBudget.html` | Tab Budget/Dompet (sub-tab Rekening & Budget) |

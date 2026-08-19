@@ -2213,8 +2213,21 @@ function openTambahRekeningModal() {
     });
   }
 
+  // Hilangkan sisa markdown yang kadang masih ikut dari model AI (**: tebal, *: miring, __, `, #, [](url)).
+  function stripMarkdown_(s) {
+    return String(s || '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')      // **tebal**
+      .replace(/\*([^*]+)\*/g, '$1')          // *miring*
+      .replace(/__([^_]+)__/g, '$1')          // __tebal__
+      .replace(/`([^`]+)`/g, '$1')            // `code`
+      .replace(/^#{1,6}\s+/gm, '')            // heading
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // link → teks
+      .replace(/^\s*[-*]\s+/gm, '- ')         // bullet apa pun → "- "
+      .trim();
+  }
+
   function parseRek_(raw) {
-    const txt = String(raw || '').trim();
+    const txt = stripMarkdown_(raw);
     const m1 = txt.match(/KONDISI:\s*([\s\S]*?)(?=HEMAT DI SINI:|PRIORITAS ALOKASI:|$)/i);
     const m2 = txt.match(/HEMAT DI SINI:\s*([\s\S]*?)(?=PRIORITAS ALOKASI:|$)/i);
     const m3 = txt.match(/PRIORITAS ALOKASI:\s*([\s\S]*)$/i);
@@ -2225,7 +2238,7 @@ function openTambahRekeningModal() {
   function renderRekomendasiAI_(raw) {
     const p = parseRek_(raw);
     if (!p.kondisi && !p.hemat.length && !p.prioritas.length)
-      return `<p class="text-sm text-slate-600 leading-relaxed">${escHtml_(raw)}</p>`;
+      return `<p class="text-sm text-slate-600 leading-relaxed">${escHtml_(stripMarkdown_(raw))}</p>`;
 
     let h = '';
 
@@ -4326,6 +4339,7 @@ function handleLongPressEnd(event, cardEl) {
     const t = String(errMsg || '').toLowerCase();
     const hit =
       t.indexOf('gemini_api_key') !== -1 ||           // key belum dikonfigurasi
+      t.indexOf('openrouter_api_key') !== -1 ||
       t.indexOf('tidak dikonfigurasi') !== -1 ||
       t.indexOf('semua api key') !== -1 ||            // semua key user gagal
       t.indexOf('semua model') !== -1 ||
