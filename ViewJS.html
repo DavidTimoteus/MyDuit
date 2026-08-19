@@ -154,6 +154,12 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     } else {
       google.script.run.withSuccessHandler(populateSumberAkun).fetchSumberAkunServer();
     }
+
+    // SPLASH SCREEN: biarkan logo/nama tampil sejenak, lalu dissolve ke beranda.
+    // Dipanggil PALING AKHIR supaya elemen aplikasi sudah dirender (riwayat, kategori,
+    // dompet) sebelum overlay dihapus — tanpa ini, splash menghilang duluan padahal
+    // konten belum tampil & user lihat flash kosong.
+    initSplashScreen_();
   });
 
   // Reflow ulang layout "pas layar" tab Utang saat window di-resize/rotate (mis. desktop
@@ -235,6 +241,28 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     const current = sel.value;
     sel.innerHTML = '<option value="" disabled selected>Pilih Sumber/Akun</option>' + (list || []).map(s => `<option value="${s}">${s}</option>`).join('');
     if (current) sel.value = current;
+  }
+
+  // ===== SPLASH SCREEN (loading ala mobile) =====
+  // Overlay logo + nama "MyDuit" menutupi proses pemuatan awal, lalu di-dissolve
+  // (fade out) ke beranda (tab Transaksi/Riwayat). Dipanggil dari DOMContentLoaded.
+  // Tidak ada block delay: splash menunggu minimum ~1.4s biar efek masuk terasa
+  // (logo pop + huruf masuk beranimasi), lalu fade 550ms & elemen dihapus dr DOM.
+  function initSplashScreen_() {
+    const splash = document.getElementById('splashScreen');
+    if (!splash) return;
+
+    const splashMinTime = 1400; // ms minimum splash tampil (efek animasi logo terasa)
+    const fadeMs = 550;
+
+    const done = function () {
+      splash.classList.add('is-leaving');
+      setTimeout(function () {
+        if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+      }, fadeMs);
+    };
+
+    setTimeout(done, splashMinTime);
   }
 
   function resetTanggal() {

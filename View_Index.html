@@ -50,6 +50,33 @@
 
 <body class="bg-surface text-textPrimary antialiased pb-24 font-sans selection:bg-primary selection:text-white">
 
+  <!-- ===== SPLASH SCREEN (loading ala mobile) =====
+       Overlay penuh layar yang menutupi proses pemuatan awal. Logo + nama aplikasi
+       tampil dulu, lalu di-dissolve (fade out) ke beranda begitu data awal siap.
+       Dibuat di View_Index.html (di luar konten tab) supaya muncul SEBELUM render
+       aplikasi. Logika & durasi dissolve di ViewJS.html (initSplashScreen_()),
+       styling di ViewCSS.html (.splash-*). -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-inner">
+      <div class="splash-logo">
+        <span class="material-symbols-outlined">savings</span>
+      </div>
+      <div class="splash-title">
+        <span class="splash-title-letter">M</span><span class="splash-title-letter">y</span><span class="splash-title-letter">D</span><span class="splash-title-letter">u</span><span class="splash-title-letter">i</span><span class="splash-title-letter">t</span>
+      </div>
+      <div class="splash-tagline">Catat. Pantau. Kendalikan.</div>
+      <div class="splash-sub">Pemasukan dan pengeluaranmu dalam satu tempat.</div>
+      <div class="splash-dots" aria-hidden="true">
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+        <span class="splash-dot"></span>
+      </div>
+    </div>
+  </div>
+
   <?!= include('ViewTransaksi'); ?>
   <script>
     // Data awal disuntikkan dari doGet() (initialKategori/initialRiwayat/initialDompet) -

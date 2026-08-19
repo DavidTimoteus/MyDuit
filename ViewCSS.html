@@ -9,6 +9,128 @@
     font-display: swap;
   }
 
+  /* ===== SPLASH SCREEN (loading ala mobile) =====
+     Overlay penuh layar sebelum beranda tampil. Logo clay biru + nama "MyDuit" + tagline
+     + dot spinner. Dissolve ke beranda dikontrol JS (initSplashScreen_() di ViewJS.html):
+     class .splash-screen.is-leaving men-trigger fade-out, lalu elemen dihapus dr DOM
+     (splashOnComplete). Basis latar gradient biru senada brand tab Budget (bukan hijau). */
+  .splash-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, #1b4332 0%, #2d6a4f 55%, #40916c 100%);
+    transition: opacity .55s ease, visibility .55s ease;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .splash-screen.is-leaving {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .splash-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  .splash-logo {
+    width: 76px;
+    height: 76px;
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(255, 255, 255, .16);
+    box-shadow:
+      inset 2px 2px 6px rgba(255, 255, 255, .35),
+      inset -2px -2px 6px rgba(0, 0, 0, .12);
+    animation: splash-logo-pop .7s cubic-bezier(.34, 1.56, .64, 1) both;
+  }
+
+  .splash-logo .material-symbols-outlined {
+    font-size: 42px;
+    font-variation-settings: 'FILL' 1, 'wght' 500;
+  }
+
+  .splash-title {
+    display: flex;
+    font-weight: 800;
+    font-size: 34px;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .splash-title-letter {
+    display: inline-block;
+    animation: splash-letter-in .5s ease-out both;
+  }
+  .splash-title-letter:nth-child(1) { animation-delay: .12s; }
+  .splash-title-letter:nth-child(2) { animation-delay: .18s; }
+  .splash-title-letter:nth-child(3) { animation-delay: .24s; }
+  .splash-title-letter:nth-child(4) { animation-delay: .30s; }
+  .splash-title-letter:nth-child(5) { animation-delay: .36s; }
+  .splash-title-letter:nth-child(6) { animation-delay: .42s; }
+
+  .splash-tagline {
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+
+  .splash-sub {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, .78);
+    letter-spacing: .01em;
+    margin-top: -6px;
+  }
+
+  .splash-dots {
+    display: flex;
+    gap: 7px;
+    margin-top: 4px;
+  }
+
+  .splash-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .55);
+    animation: splash-dot-bounce 1.1s ease-in-out infinite;
+  }
+  .splash-dot:nth-child(2) { animation-delay: .12s; }
+  .splash-dot:nth-child(3) { animation-delay: .24s; }
+  .splash-dot:nth-child(4) { animation-delay: .36s; }
+  .splash-dot:nth-child(5) { animation-delay: .48s; }
+  .splash-dot:nth-child(6) { animation-delay: .60s; }
+
+  @keyframes splash-logo-pop {
+    from { transform: scale(.6) rotate(-8deg); opacity: 0; }
+    to   { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  @keyframes splash-letter-in {
+    from { transform: translateY(14px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  @keyframes splash-dot-bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: .55; }
+    30%           { transform: translateY(-7px); opacity: 1; }
+  }
+
   /* Teks tabular/angka (mis. nominal, kode) — tetap pakai Manrope, keselarasan digit dijaga
      lewat font-variant-numeric alih-alih font monospace terpisah. Pakai !important krn class
      "font-mono" ini nabrak nama utility bawaan Tailwind (CDN) yg defaultnya font monospace asli
