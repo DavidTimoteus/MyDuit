@@ -2021,8 +2021,8 @@ function handlePindahSaldoSubmit(event) {
     const logTerakhir = ambilLogTerakhirRekening_(r.catatan);
     return `<div class="flex items-center gap-2 mb-2">
         <div class="flex items-center gap-2 min-w-0 flex-1">
-          <div class="clay-icon-tile clay-key-blue w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-            <span class="material-symbols-outlined text-blue-700 text-[18px]">account_balance</span>
+          <div class="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center shrink-0 shadow-none">
+            <span class="material-symbols-outlined text-blue-700 text-[14px]">account_balance</span>
           </div>
           <span class="font-bold text-base text-slate-800 truncate">${r.nama}</span>
         </div>
@@ -2031,18 +2031,25 @@ function handlePindahSaldoSubmit(event) {
           <span class="material-symbols-outlined text-[18px]">delete</span>
         </button>
       </div>
-      <div class="mb-2">
-        <p class="text-xs text-slate-400">Saldo Akhir</p>
-        <p class="font-mono text-lg font-bold text-slate-800">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
-      </div>
-        ${logTerakhir ? `<div class="mb-2 bg-slate-50 rounded-lg px-2.5 py-2">
+      ${logTerakhir ? `
+        <div class="mb-2">
+          <p class="text-xs text-slate-400">Saldo Akhir</p>
+          <p class="font-mono text-lg font-bold text-slate-800">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
+        </div>
+        <div class="mb-2 bg-slate-50 rounded-lg px-2.5 py-2">
           <p class="text-xs font-semibold text-slate-400 mb-1">Perubahan Terakhir</p>
           <p class="text-xs ${getLogWarna_(logTerakhir)} font-mono truncate">${escHtml_(logTerakhir)}</p>
           <p class="text-[10px] text-blue-700/70 mt-1 flex items-center gap-1">
             <span class="material-symbols-outlined text-[12px]">touch_app</span>
             Tahan kartu utk lihat semua riwayat
           </p>
-        </div>` : ''}`;
+        </div>
+      ` : `
+        <div class="mb-2 text-center">
+          <p class="text-sm font-semibold text-slate-500">Saldo Akhir</p>
+          <p class="font-mono text-[3.75rem] sm:text-[4.5rem] font-bold text-slate-800 leading-none">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
+        </div>
+      `}`;
   }
 
    // Ambil BARIS TERAKHIR (entri paling baru) dari teks log multi-baris "catatan" rekening —
@@ -4561,10 +4568,15 @@ function handleLongPressEnd(event, cardEl) {
     const panelLimit = document.getElementById('budgetLimitPanel');
     const btnRek = document.getElementById('budgetSubTabBtnRekening');
     const btnBgt = document.getElementById('budgetSubTabBtnBudget');
+    // #rekeningList (card-stack akun) berada DI LUAR kedua panel (anak langsung #budgetViewport,
+    // ViewBudget.html), jadi harus ikut disembunyikan saat sub-tab Budget aktif supaya stack
+    // rekening tidak "bocor" muncul di bawah panel budget.
+    const stackRek = document.getElementById('rekeningList');
 
     const isBudget = tab === 'budget';
     if (panelRek) panelRek.classList.toggle('hidden', isBudget);
     if (panelLimit) panelLimit.classList.toggle('hidden', !isBudget);
+    if (stackRek) stackRek.classList.toggle('hidden', isBudget);
 
     // Efek tombol aktif: BUTTON terlihat "ditekan" via inset box-shadow (konsep bayangan
     // tombol tertekan, pola clay :active) + teks biru + ikon terisi FILL 1. Tombol nonaktif
@@ -4772,23 +4784,33 @@ function handleLongPressEnd(event, cardEl) {
     // Update tampilan budget periode aktif kalau periode form = periode yg sedang tampil.
     const periodeSama = (bulan === budgetBulan && tahun === budgetTahun);
 
+    // TOST OPTIMISTIC: pemberitahuan sukses muncul LANGSUNG tanpa menunggu server. Panel
+    // budget menampilkan spinner "Memuat budget..." (loadBudget) sementara data segar
+    // dikirim balik server; kalau gagal, toast error menggantikan di bawah.
+    showToast('success', budgetEditId ? 'Budget berhasil diperbarui!' : 'Budget berhasil ditambahkan!');
+    cachedBudget = null;
+    if (!periodeSama) { budgetBulan = bulan; budgetTahun = tahun; }
+    loadBudget();
+
     const runner = google.script.run
       .withSuccessHandler(res => {
         if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
-        if (!res || res.status !== 'success') { showToast('error', (res && res.message) || 'Gagal menyimpan budget.'); return; }
-        showToast('success', budgetEditId ? 'Budget berhasil diperbarui!' : 'Budget berhasil ditambahkan!');
-        if (periodeSama) {
-          cachedBudget = res.budget;
-          renderBudgetUI(res.budget);
-        } else {
+        if (!res || res.status !== 'success') {
+          // Kalau server menolak (mis. budget duplikat), toast optimistic di atas di-replace.
+          showToast('error', (res && res.message) || 'Gagal menyimpan budget.');
           cachedBudget = null;
-          budgetBulan = bulan; budgetTahun = tahun;
           loadBudget();
+          return;
         }
+        // Server sukses -> muat ulang data segar (spinner sudah tampil dari loadBudget() di atas).
+        cachedBudget = null;
+        loadBudget();
       })
       .withFailureHandler(err => {
         if (btn) { btn.disabled = false; btn.textContent = 'Simpan'; }
         showToast('error', 'Koneksi error: ' + (err.message || err));
+        cachedBudget = null;
+        loadBudget();
       });
 
     if (budgetEditId) {

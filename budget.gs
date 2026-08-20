@@ -183,7 +183,10 @@ function simpanBudgetServer(formData) {
     sheet.appendRow([id, kategoriID, bulan, tahun, limitNominal]);
     invalidateBudgetCache_(bulan, tahun);
 
-    return { status: 'success', budget: getBudgetServer(bulan, tahun) };
+    // PERFORMA (Opsi B): jangan bangun ulang seluruh payload budget di sini (getBudgetServer()
+    // memindai seluruh sheet Transaksi utk realisasi — mahal). Cukup return id; client memuat
+    // ulang via loadBudget() yg memakai cache payload yg baru di-invalidate.
+    return { status: 'success', id: id };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -236,7 +239,7 @@ function updateBudgetServer(formData) {
     invalidateBudgetCache_(bulanLama, tahunLama);
     invalidateBudgetCache_(bulan, tahun);
 
-    return { status: 'success', budget: getBudgetServer(bulan, tahun) };
+    return { status: 'success', id: formData.id };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
@@ -259,7 +262,7 @@ function hapusBudgetServer(id) {
     sheet.deleteRow(targetRow);
     invalidateBudgetCache_(bulan, tahun);
 
-    return { status: 'success', budget: getBudgetServer(bulan, tahun) };
+    return { status: 'success', id: id };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {

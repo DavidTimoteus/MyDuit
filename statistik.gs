@@ -38,10 +38,7 @@ function getStatistikBulananServer(bulan, tahun) {
 
 function getSemuaTransaksiBulanServer(bulan, tahun) {
   const sheet = getTransaksiSheet_();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  const data = getRawTransaksiCached_(sheet);
   const timeZone = sheet.getParent().getSpreadsheetTimeZone();
   const list = [];
 
@@ -68,10 +65,7 @@ function getSemuaTransaksiBulanServer(bulan, tahun) {
 
 function getSemuaTransaksiTahunServer(tahun) {
   const sheet = getTransaksiSheet_();
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-
-  const data = sheet.getRange(2, 1, lastRow - 1, 9).getValues();
+  const data = getRawTransaksiCached_(sheet);
   const timeZone = sheet.getParent().getSpreadsheetTimeZone();
   const list = [];
 
