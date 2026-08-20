@@ -1771,14 +1771,14 @@ function handlePindahSaldoSubmit(event) {
   }
 
   // ==========================================
-  // BUDGET: CARD STACK SLIDER (HORIZONTAL) — pengganti pagination
+  // BUDGET: CARD STACK SLIDER (VERTIKAL) — pengganti pagination
   // ==========================================
   // Semua kartu rekening DIRENDER SEKALIGUS ke DOM (jumlah rekening biasanya kecil, jadi
   // aman scr performa) & POSISINYA (bukan kontennya) yg diubah tiap pindah kartu — supaya CSS
   // transition pada transform/opacity bisa jalan mulus tanpa perlu bikin/hapus elemen tiap
   // swipe (lihat applyRekeningStackTransform_()). Hanya kartu PALING ATAS (delta 0, sesuai
   // rekeningStackIndex) yg pointer-events aktif -> otomatis jadi satu²nya kartu yg menerima
-  // sentuhan/klik, kartu di belakangnya sekadar "mengintip" utk efek tumpukan.
+  // sentuhan/klik, kartu di belakangnya sekadar "mengintip" ke BAWAH utk efek tumpukan.
   let rekeningStackIndex = 0; // index kartu yg sedang di depan (0-based)
   const REKENING_STACK_PEEK = 3; // maks kartu di belakang yg ikut "mengintip"
 
@@ -1794,15 +1794,28 @@ function handlePindahSaldoSubmit(event) {
       ? list.map((r, i) => renderRekeningCard(r, i)).join('')
       : `<div class="text-center text-slate-500 py-10 text-sm">Belum ada rekening.</div>`;
 
+    // Kartu diukur SETINGGI KONTENnya (bukan memanjang penuh container). Kenapa? Kalau kartu
+    // memanjang penuh (inset-[6px] atas+bawah), kartu mengintip (delta 1..PEEK) yg ditranslate
+    // turun translateY delta*12px akan keluar melewati garis clip overflow:hidden (yg memotong
+    // di tepi padding box) -> kartu lapis 2/3 terpotong (laporan user). Dengan tinggi = tinggi
+    // konten & container yg sengaja dibuat lebih tinggi (fitRekeningListViewport_()), kartu
+    // mengintip jatuh DI DALAM area container -> tidak terpotong & shadow bawah punya ruang.
+    const contentH = list.length ? ukurTinggiKontenRekeningMax_(list) : 0;
+    container.querySelectorAll('.rekening-stack-card').forEach(c => {
+      if (contentH) c.style.height = contentH + 'px';
+    });
+
     if (list.length) applyRekeningStackTransform_(false); // posisi awal LANGSUNG tanpa transisi, hindari "kartu terbang" saat render pertama/ganti tab
     renderRekeningStackIndicator_(rekeningStackIndex, list.length);
     fitRekeningListViewport_();
   }
 
-  // Hitung & terapkan transform/opacity/z-index tiap kartu berdasar jaraknya (delta) dari
-  // rekeningStackIndex -> delta<0 kartu sudah "dilewati" (digeser ke KIRI, siap muncul lagi
-  // kalau user swipe-kanan/mundur), delta 0 kartu depan (aktif), delta 1..PEEK kartu
-  // mengintip di KANANnya (makin kecil & pudar makin jauh), delta>PEEK disembunyikan total.
+  // Hitung & terapkan transform/z-index tiap kartu berdasar jaraknya (delta) dari
+  // rekeningStackIndex -> delta<0 kartu sudah "dilewati" (digeser ke ATAS, siap muncul lagi
+  // kalau user swipe-bawah/mundur), delta 0 kartu depan (aktif), delta 1..PEEK kartu
+  // mengintip di BAWAHnya sebagai TUMPUKAN KARTU (solid, bergeser makin ke bawah makin jauh,
+  // tanpa fade transparan — tiap kartu tetap terlihat jelas seperti setumpuk kartu fisik),
+  // delta>PEEK disembunyikan total.
   // FIX (loop rekening 6/6 -> 1/6 & sebaliknya): delta dihitung SIRKULER (jarak terpendek
   // mengelilingi total kartu, bukan selisih indeks mentah) supaya kartu terakhir & pertama
   // dianggap "bersebelahan" dlm lingkaran -> transisi wrap-around tetap terasa 1 arah yg
@@ -1819,24 +1832,24 @@ function handlePindahSaldoSubmit(event) {
         if (delta > total / 2) delta -= total;
         if (delta < -total / 2) delta += total;
       }
-      card.style.transition = animate ? 'transform .32s cubic-bezier(.22,.61,.36,1), opacity .32s ease' : 'none';
+      card.style.transition = animate ? 'transform .32s cubic-bezier(.22,.61,.36,1)' : 'none';
       if (delta < 0) {
-        card.style.transform = 'translateX(-115%) scale(0.94)';
+        card.style.transform = 'translateY(-115%) scale(0.96)';
         card.style.opacity = '0';
         card.style.zIndex = 10;
         card.style.pointerEvents = 'none';
       } else if (delta === 0) {
-        card.style.transform = 'translateX(0) scale(1)';
+        card.style.transform = 'translateY(0) scale(1)';
         card.style.opacity = '1';
         card.style.zIndex = 100;
         card.style.pointerEvents = 'auto';
       } else if (delta <= REKENING_STACK_PEEK) {
-        card.style.transform = `translateX(${delta * 14}px) scale(${1 - delta * 0.045})`;
-        card.style.opacity = String(1 - delta * 0.18);
+        card.style.transform = `translateY(${delta * 12}px) scale(${1 - delta * 0.03})`;
+        card.style.opacity = '1';
         card.style.zIndex = 100 - delta;
         card.style.pointerEvents = 'none';
       } else {
-        card.style.transform = `translateX(${REKENING_STACK_PEEK * 14}px) scale(${1 - REKENING_STACK_PEEK * 0.045})`;
+        card.style.transform = `translateY(${REKENING_STACK_PEEK * 12}px) scale(${1 - REKENING_STACK_PEEK * 0.03})`;
         card.style.opacity = '0';
         card.style.zIndex = 1;
         card.style.pointerEvents = 'none';
@@ -1867,11 +1880,13 @@ function handlePindahSaldoSubmit(event) {
     goToRekeningStack_(rekeningStackIndex <= 0 ? list.length - 1 : rekeningStackIndex - 1);
   }
 
-  // Indikator posisi (dot ≤7 rekening, teks "x/y" kalau lebih) + tombol panah kiri/kanan ->
-  // bentuknya DISAMAKAN dgn renderPaginationUI() tab Riwayat/Transaksi (lihat
-  // .rekening-pagination-* di ViewCSS.html, struktur identik .riwayat-pagination-*, cuma
-  // hue biru). Dipakai jg oleh desktop/non-touch (klik panah) selain swipe langsung di
-  // kartu. FIX: sebelumnya fungsi ini nulis ke id yg tidak pernah ada di ViewBudget.html
+  // Indikator posisi (TEKS "Halaman x/y" + tombol panah kiri/kanan) -> bentuknya DISAMAKAN
+  // dgn renderPaginationUI() tab Riwayat/Transaksi (lihat .rekening-pagination-* di
+  // ViewCSS.html, struktur identik .riwayat-pagination-*, cuma hue biru). Dipakai jg oleh
+  // desktop/non-touch (klik panah) selain swipe langsung di kartu. Perubahan: SEBELUMNYA
+  // pakai dots kalau total ≤7 rekening — sekarang SELALU teks "Halaman x/y" (konsisten &
+  // informatif berapa banyak rekening yg ada, tidak peduli jumlahnya). FIX: sebelumnya
+  // fungsi ini nulis ke id yg tidak pernah ada di ViewBudget.html
   // (#rekeningDotsContainer/#btnPrevRekening/#btnNextRekening) & baca variabel yg tidak
   // pernah dideklarasikan (rekeningTotalPages/rekeningCurrentPage) -> silent no-op,
   // #rekeningPaginationControls selalu kosong. Sekarang render ke #rekeningPaginationControls
@@ -1887,16 +1902,7 @@ function handlePindahSaldoSubmit(event) {
     const current = indexZeroBased + 1; // tampilan 1-based, samakan dgn renderPaginationUI
     const arrowDisabled = total <= 1 ? 'disabled' : '';
 
-    let middle;
-    if (total <= 7) {
-      middle = `<div class="rekening-pagination-dots">${
-        Array.from({ length: total }, (_, i) => i).map(i =>
-          `<button type="button" aria-label="Ke rekening ${i + 1}" onclick="goToRekeningStack_(${i})" class="rekening-pagination-dot ${i === indexZeroBased ? 'active' : ''}"></button>`
-        ).join('')
-      }</div>`;
-    } else {
-      middle = `<span class="text-[11px] font-medium text-slate-400">${current}/${total}</span>`;
-    }
+    const middle = `<span class="text-[11px] font-semibold text-slate-600">Halaman ${current}/${total}</span>`;
 
     controls.innerHTML = `
       <button type="button" aria-label="Rekening sebelumnya" onclick="prevRekeningStack_()" class="rekening-pagination-arrow clay-pagination-arrow" ${arrowDisabled}>
@@ -1944,7 +1950,12 @@ function handlePindahSaldoSubmit(event) {
     const available = Math.max(viewportHeight - top - navH - navGap, 150);
     const dataList = (cachedDompet && cachedDompet.rekening) ? cachedDompet.rekening : [];
     const MIN_H = 150; // tinggi minimum wajar utk 1 kartu (ikon+nama+saldo), jaga2 kartu tanpa log
-    const contentH = dataList.length ? (ukurTinggiKontenRekeningMax_(dataList) + 12) : MIN_H; // +12 = kompensasi inset-[6px] atas+bawah
+    // Tinggi container = 6 (inset top kartu) + tinggi konten kartu + 36 (offset kartu mengintip
+    // delta 1..3, translateY delta*12px) + 24 (ruang shadow bawah). Kartu TIDAK memanjang penuh
+    // container (renderRekeningStack_() set height = tinggi konten, lihat di atas) sehingga kartu
+    // mengintip yg ditranslate turun jatuh DI DALAM area container ini -> tidak terpotong clip.
+    const BOTTOM_ROOM = 36 + 24;
+    const contentH = dataList.length ? (ukurTinggiKontenRekeningMax_(dataList) + 6 + BOTTOM_ROOM) : (MIN_H + BOTTOM_ROOM);
     list.style.height = Math.min(Math.max(contentH, MIN_H), available) + 'px';
   }
 
@@ -2010,7 +2021,7 @@ function handlePindahSaldoSubmit(event) {
           data-item='${JSON.stringify(r).replace(/'/g, "&apos;")}'
           data-id="${r.id}"
           data-index="${i}"
-          class="rek-card-item tx-card-item rekening-stack-card clay clay-card clay-key-blue absolute inset-[6px] w-auto bg-white p-4 transition-all select-none cursor-pointer">${renderRekeningCardInnerHtml_(r)}</div>`;
+          class="rek-card-item tx-card-item rekening-stack-card clay clay-card clay-key-blue absolute left-[6px] right-[6px] top-[6px] w-auto bg-white p-4 transition-all select-none cursor-pointer">${renderRekeningCardInnerHtml_(r)}</div>`;
   }
 
   // Konten kartu (tanpa wrapper/positioning) DIPISAH ke fungsi sendiri supaya bisa dipakai
@@ -2036,7 +2047,7 @@ function handlePindahSaldoSubmit(event) {
           <p class="text-xs text-slate-400">Saldo Akhir</p>
           <p class="font-mono text-lg font-bold text-slate-800">Rp ${Number(r.saldo).toLocaleString('id-ID')}</p>
         </div>
-        <div class="mb-2 bg-slate-50 rounded-lg px-2.5 py-2">
+        <div class="mb-2 bg-slate-50 rounded-lg px-2.5 py-2 rek-last-change-box">
           <p class="text-xs font-semibold text-slate-400 mb-1">Perubahan Terakhir</p>
           <p class="text-xs ${getLogWarna_(logTerakhir)} font-mono truncate">${escHtml_(logTerakhir)}</p>
           <p class="text-[10px] text-blue-700/70 mt-1 flex items-center gap-1">
@@ -3494,14 +3505,14 @@ function openTambahRekeningModal() {
   // Menggabungkan 3 interaksi di elemen yg sama:
   // 1) TAP singkat (tanpa geser signifikan) -> event 'click' native tetap jalan normal
   //    (toggleDeleteBtnRekening, lihat onclick di renderRekeningCard()), TIDAK ditangani di sini.
-  // 2) TAHAN >=1.2 detik TANPA geser -> buka modal detail riwayat perubahan (log lengkap),
+  // 2) TAHAN >=0.8 detik TANPA geser -> buka modal detail riwayat perubahan (log lengkap),
   //    lihat openDetailLogRekeningModal(). Menggantikan perilaku lama (dulu tahan -> buka Edit;
   //    Edit sekarang dipicu double-click/dblclick, TIDAK berubah).
-  // 3) GESER horizontal (>=10px, sumbu X lebih dominan dr Y) -> dianggap swipe stack: kartu
+  // 3) GESER VERTIKAL (>=10px, sumbu Y lebih dominan dr X) -> dianggap swipe stack: kartu
   //    ikut jari (live drag feedback) & long-press timer otomatis dibatalkan; dilepas dgn jarak
   //    >=SWIPE_MIN_DIST -> pindah kartu (goToRekeningStack_()), kalau kurang -> kartu balik
-  //    ke posisi semula. Geser dominan VERTIKAL dibiarkan lolos (scroll halaman normal),
-  //    konsisten dgn "touch-action: pan-y" di .rekening-stack-card (ViewCSS.html). Hanya
+  //    ke posisi semula. Geser dominan HORIZONTAL dibiarkan lolos (tidak ada scroll horizontal),
+  //    konsisten dgn "touch-action: pan-x" di .rekening-stack-card (ViewCSS.html). Hanya
   //    kartu PALING DEPAN (delta 0) yg pointer-events aktif (lihat
   //    applyRekeningStackTransform_()) jadi handler ini otomatis hanya berlaku utk kartu depan.
   let rekeningTouchStartX = null;
@@ -3517,11 +3528,11 @@ function openTambahRekeningModal() {
     clearTimeout(window._rekLpTimer);
     window._rekLpTimer = setTimeout(() => {
       openDetailLogRekeningModal(JSON.parse(cardEl.getAttribute('data-item')));
-    }, 1200);
+    }, 800);
   }
 
   function handleRekeningTouchMove_(event, cardEl) {
-    if (!event.touches || event.touches.length !== 1 || rekeningTouchStartX === null) return;
+    if (!event.touches || event.touches.length !== 1 || rekeningTouchStartY === null) return;
     const touch = event.touches[0];
     const diffX = touch.clientX - rekeningTouchStartX;
     const diffY = touch.clientY - rekeningTouchStartY;
@@ -3529,14 +3540,21 @@ function openTambahRekeningModal() {
     if (!rekeningSwipeDragging) {
       if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) return;
       clearTimeout(window._rekLpTimer); // sudah bergerak -> batalkan long-press
-      if (Math.abs(diffX) <= Math.abs(diffY)) { rekeningTouchStartX = null; return; } // dominan vertikal -> bukan swipe stack, biarkan scroll halaman normal
+      if (Math.abs(diffY) <= Math.abs(diffX)) { rekeningTouchStartY = null; return; } // dominan horizontal -> bukan swipe stack
       rekeningSwipeDragging = true;
     }
 
-    const rotate = Math.max(-6, Math.min(6, diffX / 18));
+    // EFEK 3D LIFT INTERAKTIF: kartu depan mengikuti jari & "terangkat" di sisi yg searah arah
+    // swipe — swipe ke KANAN -> sisi KANAN terangkat dulu; swipe ke KIRI -> sisi KIRI terangkat
+    // dulu (rotateY). Begitu jg vertikal: swipe ke ATAS -> sisi ATAS terangkat (rotateX positif
+    // = tepi atas mendekat ke pemirsa), swipe ke BAWAH -> sisi BAWAH terangkat. perspective(900px)
+    // inline di transform (bukan properti CSS) supaya perspektif 3D ikut diterapkan per-kartu,
+    // tanpa mengganggu perspektif kartu lain. translateX kecil disertakan supaya kartu sedikit
+    // mengikuti gerak horizontal jari juga (natural).
+    const ry = Math.max(-14, Math.min(14, -diffX / 24));
+    const rx = Math.max(-14, Math.min(14, -diffY / 24));
     cardEl.style.transition = 'none';
-    cardEl.style.transform = `translateX(${diffX}px) rotate(${rotate}deg)`;
-    cardEl.style.opacity = String(Math.max(0.5, 1 - Math.abs(diffX) / 300));
+    cardEl.style.transform = `perspective(900px) translateY(${diffY}px) translateX(${diffX * 0.4}px) rotateX(${rx}deg) rotateY(${ry}deg)`;
   }
 
   function handleRekeningTouchEnd_(event, cardEl) {
@@ -3548,12 +3566,12 @@ function openTambahRekeningModal() {
     }
 
     const SWIPE_MIN_DIST = 60; // px — ambang minimal supaya swipe pendek/ragu² tidak kepicu ganti kartu
-    const diffX = (event.changedTouches && event.changedTouches[0]) ? event.changedTouches[0].clientX - rekeningTouchStartX : 0;
+    const diffY = (event.changedTouches && event.changedTouches[0]) ? event.changedTouches[0].clientY - rekeningTouchStartY : 0;
 
-    if (diffX <= -SWIPE_MIN_DIST) {
-      nextRekeningStack_(); // swipe ke KIRI -> rekening berikutnya
-    } else if (diffX >= SWIPE_MIN_DIST) {
-      prevRekeningStack_(); // swipe ke KANAN -> rekening sebelumnya
+    if (diffY <= -SWIPE_MIN_DIST) {
+      nextRekeningStack_(); // swipe ke ATAS -> rekening berikutnya
+    } else if (diffY >= SWIPE_MIN_DIST) {
+      prevRekeningStack_(); // swipe ke BAWAH -> rekening sebelumnya
     } else {
       applyRekeningStackTransform_(true); // swipe terlalu pendek -> kartu balik ke posisi semula
     }

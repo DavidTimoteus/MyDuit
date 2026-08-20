@@ -1000,40 +1000,42 @@
     cursor: not-allowed;
   }
 
-  /* ===== BUDGET/CATATAN REKENING — CARD STACK SLIDER (HORIZONTAL) =====
+  /* ===== BUDGET/CATATAN REKENING — CARD STACK SLIDER (VERTIKAL) =====
      Pengganti list+pagination lama: #rekeningList (ViewBudget.html) jadi "meja" tumpukan
      kartu — overflow:hidden supaya kartu yg digeser keluar (delta<0, lihat
      applyRekeningStackTransform_() di ViewJS.html) tidak nongol menembus komponen lain di
      sampingnya. Tiap kartu (.rekening-stack-card) diposisikan absolute nyaris-penuh di dalam
      #rekeningList supaya bisa saling bertumpuk persis di titik yg sama sebelum
-     transform/translateX menggeser & mengecilkannya (ke KANAN, arah "mengintip") sesuai
+     transform/translateY menggeser & mengecilkannya (ke BAWAH, arah "mengintip") sesuai
      jaraknya (delta) dari kartu aktif (rekeningStackIndex). position:relative WAJIB ada di
      #rekeningList sbg containing block utk anak-anaknya yg absolute.
      FIX (shadow clay kartu depan kelihatan "terpotong" rata di tepi wadah): kartu
      (.rekening-stack-card, lihat renderRekeningCard() di ViewJS.html) sekarang pakai
      "inset-[6px]" (BUKAN "inset-0" lagi) supaya shadow clay-nya (yg menyebar ~6px ke segala
      arah) punya ruang napas di dalam wadah SEBELUM kena garis overflow:hidden.
-     FIX (kartu yg "mengintip"/keluar-masuk stack kelihatan terpotong rata garis lurus):
-     ditambah mask-image gradient **horizontal (kiri-kanan) + vertikal (atas-bawah)** di #rekeningList (menggunakan mask-composite:intersect) supaya kartu yg
-     digeser keluar batas memudar (fade) halus, bukan terpotong tegas — pengganti "pembatas"
-     tegas dgn transisi visual yg lebih halus. */
+     Efek tumpukan kartu: kartu di belakang (delta 1..PEEK) tetap SOLID (opacity 1, tanpa
+     fade) & digeser turun tiap kartu (translateY delta*12px) supaya terlihat seperti
+     setumpuk kartu fisik yg mengintip ke bawah — no mask-image fade di sini, supaya tepi
+     kartu tetap tegas (bukan memudar). */
   #rekeningList {
     position: relative;
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%),
-      linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
-    mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%),
-      linear-gradient(to bottom, transparent 0, #000 10px, #000 calc(100% - 14px), transparent 100%);
-    -webkit-mask-composite: source-in;
-    mask-composite: intersect;
+    /* Penting: TIDAK pakai padding-bottom utk ruang kartu mengintip. Kenapa? overflow:hidden
+       memotong di tepi PADDING BOX, jadi padding bawah malah menaikkan garis clip & kartu
+       absolute inset-[6px] ikut "menyusut" — kartu lapis 2/3 tetap terpotong. Ruang bawah
+       justru diberikan lewat TINGGI container (fitRekeningListViewport_() di ViewJS.html:
+       ukurTinggiKontenRekeningMax_ + 72) sementara KARTU sendiri diukur setinggi kontennya
+       (lihat renderRekeningCard() di ViewJS.html: top-[6px] tanpa bottom/height) supaya kartu
+       mengintip (delta 1..PEEK, translateY delta*12px) jatuh DI DALAM area container yg lebih
+       tinggi itu tanpa kena clip. */
   }
 
   .rekening-stack-card {
     will-change: transform, opacity;
-    /* pan-y: biarkan browser tangani scroll vertikal halaman, gesture horizontal (swipe
-       ganti kartu) sepenuhnya ditangani JS (handleRekeningTouchMove_/-End_) tanpa "rebutan"
-       dgn scroll native — sama pola dgn .utang-list-viewport di atas. */
-    touch-action: pan-y;
+    /* pan-x: biarkan browser tangani scroll horizontal (tidak ada), gesture vertikal (swipe
+       ganti kartu) sepenuhnya ditangani JS (handleRekeningTouchMove_/-End_) — terbalik dari
+       sebelumnya pan-y karena stack rekening sekarang BERTUMPUK VERTIKAL (mengintip ke bawah). */
+    touch-action: pan-x;
   }
 
 
@@ -1168,13 +1170,17 @@
      NW .75) mendominasi sementara sisi gelap ber-hue (.20) kurang kebaca -> kesan flat.
      FIX: dinaikkan manual (opacity sisi gelap + blur diperkuat) KHUSUS selector
      .rek-card-item, TIDAK mengubah ".clay" global (masih dipakai kartu Transaksi & lain2
-     yg sudah oke). */
+     yg sudah oke).
+     FIX (perhalus shadow, laporan user): versi lama pakai "6px 6px 18px .32 / -6px -6px 18px
+     .85" — shadow terlalu besar & tegas sehingga sering terpotong pembatas & terlihat kasar.
+     Sekarang dilembutkan (blur lebih pendek, opacity lebih rendah) supaya tetap cembung
+     tapi halus & punya ruang napas di dalam wadah (inset-[6px] + padding-bottom 24px). */
   .rek-card-item.clay {
     box-shadow:
-      6px 6px 18px rgba(var(--clay-h), .32),
-      -6px -6px 18px rgba(255, 255, 255, .85),
-      inset 2px 2px 5px rgba(255, 255, 255, .6),
-      inset -3px -3px 8px rgba(var(--clay-h), .18);
+      4px 4px 12px rgba(var(--clay-h), .24),
+      -4px -4px 12px rgba(255, 255, 255, .72),
+      inset 2px 2px 4px rgba(255, 255, 255, .5),
+      inset -2px -2px 6px rgba(var(--clay-h), .14);
   }
 
   /* Varian kunci hue — tinggal tempel di elemen ber-.clay utk ganti "H"
@@ -1612,6 +1618,20 @@
   .tx-card-item:active {
     transform: translateY(0) scale(.98);
     background-color: rgba(var(--clay-h), .08) !important;
+  }
+
+  /* Kartu Rekening (tab Budget) — saat TAP-HOLD/long-press (buka modal rincian, 0.8 dtk,
+     lihat handleRekeningTouchStart_() di ViewJS.html) kartu TETAP putih solid (tanpa tint
+     rgba(--clay-h,.08) dari .tx-card-item:active di atas). Efek tekan scale(.98) tetap
+     dipertahankan. Tint BIRU justru dipindah ke kotak "Perubahan Terakhir"
+     (.rek-last-change-box, lihat renderRekeningCardInnerHtml_() di ViewJS.html) supaya
+     penekanan terasa "menyoroti" rincian terbaru, bukan seluruh kartu. */
+  .rek-card-item.tx-card-item:active {
+    background-color: #ffffff !important;
+  }
+
+  .rek-card-item.tx-card-item:active .rek-last-change-box {
+    background-color: rgba(var(--clay-h), .12) !important;
   }
 
   /* FAB tambah transaksi — clay level lebih tinggi, tetap gradient hijau lama */

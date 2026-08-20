@@ -1,4 +1,4 @@
-<div id="budgetViewport" class="budget-viewport">
+<div id="budgetViewport" class="budget-viewport px-4 -mx-4">
   <div class="budget-viewport-fixed">
     <header class="pt-3 md:pt-6 pb-4">
       <div class="flex items-center gap-1.5">
@@ -19,7 +19,7 @@
          "heading-accent-blue" ditambah supaya warnanya ikut biru, TANPA mengubah heading
          "Transaksi" yg masih hijau (lihat modifier di ViewCSS.html). -->
         <h3
-          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight tracking-tight riwayat-heading-neumorphism heading-accent-blue truncate"
+          class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight tracking-tight riwayat-heading-neumorphism heading-accent-blue whitespace-nowrap"
         >
           <span class="neu-letter">R</span><span class="neu-letter">e</span
           ><span class="neu-letter">k</span><span class="neu-letter">e</span
@@ -87,7 +87,7 @@
      tab Transaksi: ikut terhitung sbg "header statis" oleh fitRekeningListViewport_() lewat
      list.getBoundingClientRect().top). Lihat renderRekeningStackIndicator_() di ViewJS.html. -->
     <div
-      class="flex justify-center gap-2 mb-3"
+      class="flex items-center justify-center gap-2 mb-3"
       id="rekeningPaginationControls"
     ></div>
     </div>
@@ -136,15 +136,17 @@
     </div>
   </div>
 
-  <!-- CARD STACK SLIDER (HORIZONTAL): kartu rekening ditumpuk (bukan list yg discroll/pagination
+  <!-- CARD STACK SLIDER (VERTIKAL): kartu rekening ditumpuk (bukan list yg discroll/pagination
      halaman lagi) — tiap kartu diposisikan absolute nyaris-penuh (inset-[6px], ruang napas
      shadow) di dalam wrapper ini (lihat .rekening-stack-card & #rekeningList di ViewCSS.html),
-     kartu paling depan bisa digeser kiri (lanjut ke rekening berikutnya)/kanan (kembali ke
-     rekening sebelumnya) via swipe, kartu di belakangnya "mengintip" sedikit ke kanan sbg
+     kartu paling depan bisa digeser ke atas (lanjut ke rekening berikutnya)/ke bawah (kembali
+     ke rekening sebelumnya) via swipe, kartu di belakangnya "mengintip" sedikit ke bawah sbg
      efek tumpukan (tepinya memudar halus lewat mask-image, bukan terpotong tegas). Tinggi
      wrapper diatur JS (fitRekeningListViewport_()) supaya tetap pas 1 layar, konsisten dgn
-     tab Transaksi. -->
-  <div id="rekeningList" class="relative">
+     tab Transaksi. px-4 -mx-4: pola sama dgn #riwayatList (tab Transaksi) — kasih ruang
+     horizontal utk shadow clay kartu (±16px bleed) supaya tidak terpotong oleh overflow:hidden
+     #rekeningList di sisi kanan/kiri. -->
+  <div id="rekeningList" class="relative px-4 -mx-4">
     <div
       class="text-center text-blue-700/70 py-10 text-sm font-medium animate-pulse"
     >
@@ -153,7 +155,7 @@
   </div>
 </div>
 <!-- ================= MODAL: DETAIL LOG PERUBAHAN REKENING =================
-     Dibuka via TEKAN-TAHAN (long-press, 1.2 detik) kartu rekening di stack di atas — lihat
+     Dibuka via TEKAN-TAHAN (long-press, 0.8 detik) kartu rekening di stack di atas — lihat
      handleRekeningTouchStart_() & openDetailLogRekeningModal() di ViewJS.html. Beda dgn kotak
      "Perubahan Terakhir" di kartu (yg cuma nampilkan 1 baris log paling baru), modal ini
      nampilkan SELURUH riwayat perubahan (semua baris "catatan", dipisah per-entri), entri
