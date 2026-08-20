@@ -2518,7 +2518,7 @@ function openTambahRekeningModal() {
                 hoverBackgroundColor: '#0d9c6c',
                 borderRadius: 4,
                 borderSkipped: false,
-                maxBarThickness: 28
+                order: 1
               },
               {
                 label: 'Keluar',
@@ -2527,7 +2527,7 @@ function openTambahRekeningModal() {
                 hoverBackgroundColor: '#c53030',
                 borderRadius: 4,
                 borderSkipped: false,
-                maxBarThickness: 28
+                order: 2
               }
             ]
           },
@@ -2548,10 +2548,12 @@ function openTambahRekeningModal() {
             },
             scales: {
               x: {
+                stacked: true,
                 grid: { display: false },
                 ticks: { color: '#64748b', font: { size: 11 } }
               },
               y: {
+                stacked: true,
                 beginAtZero: true,
                 grid: { color: 'rgba(148,163,184,.15)' },
                 ticks: {
