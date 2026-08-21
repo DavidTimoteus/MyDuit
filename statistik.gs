@@ -160,40 +160,54 @@ function getStatistikPeriodeServer(mode, bulan, tahun) {
   });
 
   // ---- Ringkasan panel (aside kanan di desktop) ----
-  // Pengeluaran HARI INI: MIRROR PERSIS filter "hari_ini" di getRiwayatKasServer()
-  // (transaksi.gs) — bandingkan parsedDate vs now lewat SELISIH HARI
-  // (Math.floor((now - parsedDate)/86400000) === 0), BUKAN string tanggalRaw,
-  // supaya tidak rentan beda timezone spreadsheet vs script. Inilah sumber data
-  // "list transaksi" yang difilter hari ini, lalu ditotal untuk Ringkasan.
-  const tSheet = getTransaksiSheet_();
-  const rawData = getRawTransaksiCached_(tSheet);
-  const nowDay = new Date();
-  nowDay.setHours(0, 0, 0, 0);
+  // Pengeluaran HARI INI: dari items bulan berjalan (sudah di-scan oleh
+  // getSemuaTransaksiBulanServer di atas), bandingkan tanggalRaw (yyyy-MM-dd
+  // dalam timezone spreadsheet) dengan todayStr di timezone SAMA. Tidak perlu
+  // baca rawData tambahan -> hanya 1 scan sheet, bukan 2.
+  const tz = getTransaksiSheet_().getParent().getSpreadsheetTimeZone();
+  const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
   let pengeluaranHariIni = 0, pengeluaranHariIniCount = 0;
-  rawData.forEach(function (row) {
-    const parsedDate = parseSheetDate(row[1]);
-    if (!parsedDate) return;
-    parsedDate.setHours(0, 0, 0, 0);
-    if (Math.floor((nowDay - parsedDate) / 86400000) !== 0) return; // bukan hari ini
-    const j = String(row[2] || '').trim().toLowerCase();
-    if (j === 'pemasukan' || j === 'pendapatan' || j === 'pindah saldo') return; // bukan pengeluaran
-    pengeluaranHariIni += Number(row[8]) || 0;
+  items.forEach(function (it) {
+    if (it.tanggalRaw !== todayStr) return;
+    if (isIncome(it.jenis) || it.jenis.toLowerCase() === 'pindah saldo') return;
+    pengeluaranHariIni += it.nominal;
     pengeluaranHariIniCount += 1;
   });
 
-  // Budget BULANAN berjalan (selalu bulan+tahun saat ini, bukan periode statistik
-  // yang mungkin sedang dipilih user) -> agregat dari getBudgetServer().
-  // Dipisah di try/catch supaya kalau getBudgetServer gagal, perhitungan
-  // pengeluaran hari ini di atas tetap terkirim ke client.
+  // Budget BULANAN berjalan (selalu bulan+tahun saat ini) -> agregat dari
+  // budget sheet (Tanpa join transaksi -> JAUH LEBIH CEPAT). Gunakan cache.
   let budgetLimit = 0, budgetTerpakai = 0, budgetPersen = 0;
   try {
     const now = new Date();
-    const budgetRows = getBudgetServer(now.getMonth(), now.getFullYear());
-    (budgetRows.list || []).forEach(function (b) {
-      budgetLimit += Number(b.limitNominal) || 0;
-      budgetTerpakai += Number(b.terpakai) || 0;
-    });
-    budgetPersen = budgetLimit > 0 ? Math.round((budgetTerpakai / budgetLimit) * 100) : 0;
+    const cache = CacheService.getUserCache();
+    // Coba ambil dari cache budget payload (sudah ada dari getBudgetServer())
+    const cacheKey = 'budgetPayload_v1_' + now.getMonth() + '_' + now.getFullYear();
+    const cachedBudget = cache.get(cacheKey);
+    if (cachedBudget) {
+      const parsed = JSON.parse(cachedBudget);
+      if (parsed.list && Array.isArray(parsed.list)) {
+        parsed.list.forEach(function (b) {
+          budgetLimit += Number(b.limitNominal) || 0;
+          budgetTerpakai += Number(b.terpakai) || 0;
+        });
+        budgetPersen = budgetLimit > 0 ? Math.round((budgetTerpakai / budgetLimit) * 100) : 0;
+      }
+    } else {
+      // Fallback: baca budget sheet langsung tanpa join transaksi (hanya limit)
+      const sheet = getBudgetSheet_();
+      const lastRow = sheet.getLastRow();
+      if (lastRow >= 2) {
+        const data = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+        data.forEach(function (row) {
+          const rowBulan = Number(row[2]);
+          const rowTahun = Number(row[3]);
+          if (rowBulan === now.getMonth() && rowTahun === now.getFullYear()) {
+            budgetLimit += Number(row[4]) || 0;
+          }
+        });
+      }
+      budgetPersen = budgetLimit > 0 ? Math.round((budgetTerpakai / budgetLimit) * 100) : 0;
+    }
   } catch (e) {
     // biarkan budget 0, jangan gagalkan seluruh response
   }

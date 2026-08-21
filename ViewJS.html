@@ -149,10 +149,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       loadDompetServer(true);
     }
 
-    // ISI panel Ringkasan (aside kanan desktop): total saldo sudah diisi oleh
-    // renderDompetUI() di atas; budget bulanan & pengeluaran hari ini diisi dari
-    // getStatistikPeriodeServer() via loadSummaryData().
-    loadSummaryData();
+    setTimeout(loadSummaryData, 1500);
 
     // OPTIMASI: derive dari __INITIAL_DOMPET__ (nama akun) drpd fetch server lagi -
     // hemat 1 round-trip di SETIAP fresh page load.
@@ -1319,16 +1316,17 @@ function handlePindahSaldoSubmit(event) {
   }
 
   function updateFilterActiveLabel() {
-    const label = document.getElementById('filterActiveLabel');
-    if (!label) return;
+    const labels = document.querySelectorAll('#filterActiveLabel, #filterActiveLabelDesktop');
     const map = { hari_ini: 'Hari Ini', semua: 'Semua Transaksi', '7hari': '7 Hari Terakhir', '30hari': '30 Hari Terakhir' };
+    let txt = 'Filter';
     if (filterTipe === 'custom' && filterStartDate && filterEndDate) {
       const [ys, ms, ds] = filterStartDate.split('-');
       const [ye, me, de] = filterEndDate.split('-');
-      label.textContent = `${ds}/${ms} - ${de}/${me}`;
+      txt = `${ds}/${ms} - ${de}/${me}`;
     } else {
-      label.textContent = map[filterTipe] || 'Filter';
+      txt = map[filterTipe] || 'Filter';
     }
+    labels.forEach(label => { if (label) label.textContent = txt; });
   }
 
   function openFilterModal() {
@@ -1610,13 +1608,18 @@ function handlePindahSaldoSubmit(event) {
     const list = document.getElementById('riwayatList');
     const viewSection = document.getElementById('viewRiwayat');
     if (!list || !viewSection || !viewSection.classList.contains('active')) return;
+    const isMobile = window.innerWidth < 768;
     const nav = document.querySelector('nav');
-    const navH = nav ? nav.getBoundingClientRect().height : 80;
-    const navGap = window.innerWidth >= 768 ? 28 : 16;
+    const navH = isMobile && nav ? nav.getBoundingClientRect().height : 0;
+    const navGap = isMobile ? 16 : 0;
     const top = list.getBoundingClientRect().top;
     const viewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-    const available = viewportHeight - top - navH - navGap;
-    list.style.maxHeight = Math.max(available, 200) + 'px';
+    const available = viewportHeight - top - navH - navGap - 24;
+    // Desktop: tampilkan pas 4 transaksi dengan max-height 485px agar tidak terpotong.
+    // Mobile: minimal 200px (sesuai perilaku lama).
+    const minH = isMobile ? 200 : 485;
+    const targetH = isMobile ? Math.max(available, minH) : Math.min(available, minH);
+    list.style.maxHeight = targetH + 'px';
     list.style.overflowY = 'auto';
   }
   let riwayatResizeTimer_ = null;
@@ -1782,52 +1785,160 @@ function handlePindahSaldoSubmit(event) {
     if (el) el.textContent = 'Rp ' + Number(total).toLocaleString('id-ID');
   }
 
-  function updateSummaryBudgetAndDaily(data) {
-    // data: { budgetLimit, budgetTerpakai, budgetPersen, pengeluaranHariIni, pengeluaranCount, saldoBulanIni }
-    if (data) {
-      const limitEl = document.getElementById('summaryBudgetLimit');
-      if (limitEl) limitEl.textContent = 'Rp ' + Number(data.budgetLimit).toLocaleString('id-ID');
-      const terpakaiEl = document.getElementById('summaryBudgetTerpakai');
-      if (terpakaiEl) terpakaiEl.textContent = 'Terpakai Rp' + Number(data.budgetTerpakai).toLocaleString('id-ID') + ' dari Rp' + Number(data.budgetLimit).toLocaleString('id-ID');
-      const persenEl = document.getElementById('summaryBudgetPersen');
-      if (persenEl) persenEl.textContent = data.budgetPersen + '%';
-      const barEl = document.getElementById('summaryBudgetBar');
-      if (barEl) barEl.style.width = Math.min(data.budgetPersen, 100) + '%';
-      const pengeluaranEl = document.getElementById('summaryPengeluaranHariIni');
-      if (pengeluaranEl) pengeluaranEl.textContent = 'Rp ' + Number(data.pengeluaranHariIni).toLocaleString('id-ID');
-      const countEl = document.getElementById('summaryPengeluaranCount');
-      if (countEl) countEl.textContent = data.pengeluaranCount + ' transaksi · Hari ini';
-      const saldoBulanEl = document.getElementById('summarySaldoBulanIni');
-      if (saldoBulanEl) {
-        const selisih = data.saldoBulanIni || 0;
-        const arrow = selisih >= 0 ? 'trending_up' : 'trending_down';
-        const sign = selisih >= 0 ? '+' : '';
-        saldoBulanEl.innerHTML = `<span class="material-symbols-outlined text-[12px]">${arrow}</span> ${sign}Rp${Math.abs(selisih).toLocaleString('id-ID')} bulan ini`;
-      }
+  function updateSummaryPengeluaranHariIni(total, count) {
+    const pengeluaranEl = document.getElementById('summaryPengeluaranHariIni');
+    if (pengeluaranEl) pengeluaranEl.textContent = 'Rp ' + Number(total).toLocaleString('id-ID');
+    const countEl = document.getElementById('summaryPengeluaranCount');
+    if (countEl) countEl.textContent = count + ' transaksi · Hari ini';
+  }
+
+  function updateSummarySaldoBulanIni(saldo) {
+    const saldoBulanEl = document.getElementById('summarySaldoBulanIni');
+    if (saldoBulanEl) {
+      const selisih = saldo || 0;
+      const arrow = selisih >= 0 ? 'trending_up' : 'trending_down';
+      const sign = selisih >= 0 ? '+' : '';
+      saldoBulanEl.innerHTML = `<span class="material-symbols-outlined text-[12px]">${arrow}</span> ${sign}Rp${Math.abs(selisih).toLocaleString('id-ID')} bulan ini`;
     }
   }
 
-  function loadSummaryData() {
-    const now = new Date();
-    const bulan = now.getMonth();
-    const tahun = now.getFullYear();
+  function updateSummaryTopCategory(stat) {
+    const categories = stat.categories || [];
+    const incomeCategories = stat.kategoriPemasukan || [];
+    
+    const topExpense = categories[0] || null;
+    const topIncome = incomeCategories[0] || null;
+    
+    const topExpenseTotal = topExpense ? topExpense.total : 0;
+    const topIncomeTotal = topIncome ? topIncome.total : 0;
+    
+    let topCategory = null;
+    let isIncome = false;
+    
+    if (topIncomeTotal >= topExpenseTotal && topIncomeTotal > 0) {
+      topCategory = topIncome;
+      isIncome = true;
+    } else if (topExpenseTotal > 0) {
+      topCategory = topExpense;
+      isIncome = false;
+    }
+    
+    const card = document.getElementById('summaryTopCategoryCard');
+    const icon = document.getElementById('summaryTopCategoryIcon');
+    const badge = document.getElementById('summaryTopCategoryTypeBadge');
+    const nameEl = document.getElementById('summaryTopCategoryName');
+    const amountEl = document.getElementById('summaryTopCategoryAmount');
+    
+    if (topCategory) {
+      if (isIncome) {
+        card.className = 'clay clay-card clay-key-primary bg-surfaceContainerLowest flex flex-col gap-1 p-4 rounded-[18px]';
+        icon.className = 'material-symbols-outlined text-[16px] text-emerald-600';
+        icon.textContent = 'category';
+        badge.className = 'text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full';
+        badge.textContent = 'Pemasukan';
+        amountEl.className = 'font-mono font-extrabold text-sm tracking-tight text-emerald-600';
+      } else {
+        card.className = 'clay clay-card clay-key-danger bg-surfaceContainerLowest flex flex-col gap-1 p-4 rounded-[18px]';
+        icon.className = 'material-symbols-outlined text-[16px] text-red-500';
+        icon.textContent = 'category';
+        badge.className = 'text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded-full';
+        badge.textContent = 'Pengeluaran';
+        amountEl.className = 'font-mono font-extrabold text-sm tracking-tight text-red-500';
+      }
+      
+      nameEl.textContent = topCategory.kategori || '-';
+      amountEl.textContent = 'Rp ' + Number(topCategory.total).toLocaleString('id-ID');
+    } else {
+      card.className = 'clay clay-card clay-key-primary bg-surfaceContainerLowest flex flex-col gap-1 p-4 rounded-[18px]';
+      icon.className = 'material-symbols-outlined text-[16px] text-slate-500';
+      icon.textContent = 'category';
+      badge.className = 'text-[10px] font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded-full';
+      badge.textContent = 'Tidak Ada';
+      nameEl.textContent = '-';
+      amountEl.className = 'font-mono font-extrabold text-sm tracking-tight text-slate-500';
+      amountEl.textContent = 'Rp 0';
+    }
+  }
 
-    // getStatistikPeriodeServer() sudah mengembalikan pengeluaranHariIni,
-    // pengeluaranHariIniCount, budgetLimit, budgetTerpakai, budgetPersen, dan saldo.
-    google.script.run
-      .withSuccessHandler(function(stat) {
-        if (!stat) return;
-        updateSummaryBudgetAndDaily({
-          budgetLimit: stat.budgetLimit || 0,
-          budgetTerpakai: stat.budgetTerpakai || 0,
-          budgetPersen: stat.budgetPersen || 0,
-          pengeluaranHariIni: stat.pengeluaranHariIni || 0,
-          pengeluaranCount: stat.pengeluaranHariIniCount || 0,
-          saldoBulanIni: stat.saldo || 0
-        });
-      })
-      .withFailureHandler(function() { /* ignore */ })
-      .getStatistikPeriodeServer('bulanan', bulan, tahun);
+  function calculateTodayExpensesFromList() {
+    if (!cachedRiwayat || !cachedRiwayat.data) return { total: 0, count: 0 };
+    
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    let total = 0;
+    let count = 0;
+    
+    (cachedRiwayat.data || []).forEach(item => {
+      if (item.tanggalRaw === todayStr) {
+        const jenis = (item.jenis || '').toLowerCase();
+        if (jenis === 'pengeluaran') {
+          total += (item.nominal || 0);
+          count++;
+        }
+      }
+    });
+    
+    return { total, count };
+  }
+
+  // Hitung utang/cicilan dengan tanggal jatuh tempo PALING DEKAT (hari ini atau masa depan).
+  // cachedUtang.list adalah daftar utang, masing-masing punya field tglJatuh (dd/MM/yyyy).
+  // Filter yg belum lunas (sisa > 0) & jatuh tempo >= hari ini, urut ascending, ambil #1.
+  function updateSidebarNearestDebt() {
+    const card = document.getElementById('sidebarNearestDebtCard');
+    if (!card) return;
+    const list = (cachedUtang && cachedUtang.list) || [];
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const future = list.filter(u => {
+      const d = parseTglJatuh_(u.tglJatuh);
+      const lunas = u.status === 'Lunas' || (Number(u.sisa) || 0) <= 0;
+      return d && !isNaN(d.getTime()) && !lunas;
+    });
+    future.sort((a, b) => parseTglJatuh_(a.tglJatuh) - parseTglJatuh_(b.tglJatuh));
+    const nearest = future[0];
+    if (!nearest) {
+      card.style.display = 'none';
+      return;
+    }
+    card.style.display = '';
+    const namaEl = document.getElementById('sidebarNearestDebtNama');
+    const dateEl = document.getElementById('sidebarNearestDebtDate');
+    const nominalEl = document.getElementById('sidebarNearestDebtNominal');
+    if (namaEl) namaEl.textContent = nearest.namaPihak || nearest.deskripsi || '—';
+    const due = parseTglJatuh_(nearest.tglJatuh);
+    const hariSisa = Math.round((due - now) / 86400000);
+    if (dateEl) {
+      const dateStr = due.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      const sisaStr = hariSisa === 0 ? 'hari ini' : (hariSisa > 0 ? `${hariSisa} hari lagi` : `${Math.abs(hariSisa)} hari lewat`);
+      dateEl.textContent = `${dateStr} · ${sisaStr}`;
+    }
+    const nominal = Number(nearest.sisa) || 0;
+    if (nominalEl) nominalEl.textContent = 'Rp ' + nominal.toLocaleString('id-ID');
+  }
+
+  function loadSummaryData() {
+    const { total: todayExpenses, count: todayExpensesCount } = calculateTodayExpensesFromList();
+    updateSummaryPengeluaranHariIni(todayExpenses, todayExpensesCount);
+    
+    if (cachedStatistik) {
+      updateSummarySaldoBulanIni(cachedStatistik.saldo || 0);
+      updateSummaryTopCategory(cachedStatistik);
+    } else {
+      const now = new Date();
+      const bulan = now.getMonth();
+      const tahun = now.getFullYear();
+      
+      google.script.run
+        .withSuccessHandler(function(stat) {
+          if (!stat) return;
+          updateSummarySaldoBulanIni(stat.saldo || 0);
+          updateSummaryTopCategory(stat);
+        })
+        .withFailureHandler(function() { /* ignore */ })
+        .getStatistikPeriodeServer('bulanan', bulan, tahun);
+    }
   }
 
   // ==========================================
@@ -1992,15 +2103,17 @@ function handlePindahSaldoSubmit(event) {
     const list = document.getElementById('rekeningList');
     const viewSection = document.getElementById('viewBudget');
     if (!viewport || !list || !viewSection || !viewSection.classList.contains('active')) return;
+    const isMobile = window.innerWidth < 768;
     const nav = document.querySelector('nav');
-    const navH = nav ? nav.getBoundingClientRect().height : 80;
-    const navGap = window.innerWidth >= 768 ? 28 : 16;
+    const navH = isMobile && nav ? nav.getBoundingClientRect().height : 0;
+    const navGap = isMobile ? 16 : 0;
     const viewportHeight = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
 
     // Set dulu tinggi #budgetViewport PERSIS sebesar sisa ruang kosong viewport (sama pola
     // fitUtangViewport() tab Utang): bagian fixed di atas (header/hero/indikator) tidak ikut
     // berubah tinggi/discroll, dan total tab TIDAK PERNAH melebihi layar -> tanpa scroll
     // halaman walau kontennya panjang. Bottom pb-24 body dinolkan by updateBodyPaddingForTab_().
+    // Desktop: navH = 0 karena bottom nav hidden, sehingga list lebih panjang.
     const topViewport = viewport.getBoundingClientRect().top;
     viewport.style.height = Math.max(280, Math.round(viewportHeight - topViewport - navH - navGap)) + 'px';
 
@@ -2014,8 +2127,18 @@ function handlePindahSaldoSubmit(event) {
     // delta 1..3, translateY delta*12px) + 24 (ruang shadow bawah). Kartu TIDAK memanjang penuh
     // container (renderRekeningStack_() set height = tinggi konten, lihat di atas) sehingga kartu
     // mengintip yg ditranslate turun jatuh DI DALAM area container ini -> tidak terpotong clip.
+    // Desktop: perbesar container sampai muat ~4 kartu (200px/kartu + spacing) agar list rekening
+    // terasa "panjang & informatif" — dibatasi ATAS oleh `available` (sisa ruang layar) agar tetap
+    // tidak pernah memicu scroll halaman.
     const BOTTOM_ROOM = 36 + 24;
-    const contentH = dataList.length ? (ukurTinggiKontenRekeningMax_(dataList) + 6 + BOTTOM_ROOM) : (MIN_H + BOTTOM_ROOM);
+    const singleCardH = ukurTinggiKontenRekeningMax_(dataList) + 6 + BOTTOM_ROOM;
+    let contentH;
+    if (dataList.length) {
+      const DESKTOP_TARGET_CARDS = (window.innerWidth >= 768) ? 4 : 2;
+      contentH = singleCardH * DESKTOP_TARGET_CARDS + (singleCardH * 0.4 * (DESKTOP_TARGET_CARDS - 1));
+    } else {
+      contentH = MIN_H + BOTTOM_ROOM;
+    }
     list.style.height = Math.min(Math.max(contentH, MIN_H), available) + 'px';
   }
 
@@ -2727,9 +2850,9 @@ function openTambahRekeningModal() {
   // LOAD & RENDER UTANG & CICILAN
   // ==========================================
   function loadUtang() {
-    if (cachedUtang) { renderUtangUI(cachedUtang); return; }
+    if (cachedUtang) { renderUtangUI(cachedUtang); updateSidebarNearestDebt(); return; }
     google.script.run
-      .withSuccessHandler(res => { cachedUtang = res; renderUtangUI(res); })
+      .withSuccessHandler(res => { cachedUtang = res; renderUtangUI(res); updateSidebarNearestDebt(); })
       .withFailureHandler(err => { showToast('error', 'Gagal memuat utang: ' + err.message); })
       .getUtangServer();
   }
@@ -4593,6 +4716,7 @@ function handleLongPressEnd(event, cardEl) {
   function refreshVisibleUI_() {
      renderRiwayatResult(cachedRiwayat);
      if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
+     updateSidebarNearestDebt();
    }
 
   function cloneCache_(obj) {
