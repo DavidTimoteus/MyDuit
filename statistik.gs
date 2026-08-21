@@ -159,16 +159,61 @@ function getStatistikPeriodeServer(mode, bulan, tahun) {
     else pengeluaranSebelumnya += it.nominal;
   });
 
+  // ---- Ringkasan panel (aside kanan di desktop) ----
+  // Pengeluaran HARI INI: MIRROR PERSIS filter "hari_ini" di getRiwayatKasServer()
+  // (transaksi.gs) — bandingkan parsedDate vs now lewat SELISIH HARI
+  // (Math.floor((now - parsedDate)/86400000) === 0), BUKAN string tanggalRaw,
+  // supaya tidak rentan beda timezone spreadsheet vs script. Inilah sumber data
+  // "list transaksi" yang difilter hari ini, lalu ditotal untuk Ringkasan.
+  const tSheet = getTransaksiSheet_();
+  const rawData = getRawTransaksiCached_(tSheet);
+  const nowDay = new Date();
+  nowDay.setHours(0, 0, 0, 0);
+  let pengeluaranHariIni = 0, pengeluaranHariIniCount = 0;
+  rawData.forEach(function (row) {
+    const parsedDate = parseSheetDate(row[1]);
+    if (!parsedDate) return;
+    parsedDate.setHours(0, 0, 0, 0);
+    if (Math.floor((nowDay - parsedDate) / 86400000) !== 0) return; // bukan hari ini
+    const j = String(row[2] || '').trim().toLowerCase();
+    if (j === 'pemasukan' || j === 'pendapatan' || j === 'pindah saldo') return; // bukan pengeluaran
+    pengeluaranHariIni += Number(row[8]) || 0;
+    pengeluaranHariIniCount += 1;
+  });
+
+  // Budget BULANAN berjalan (selalu bulan+tahun saat ini, bukan periode statistik
+  // yang mungkin sedang dipilih user) -> agregat dari getBudgetServer().
+  // Dipisah di try/catch supaya kalau getBudgetServer gagal, perhitungan
+  // pengeluaran hari ini di atas tetap terkirim ke client.
+  let budgetLimit = 0, budgetTerpakai = 0, budgetPersen = 0;
+  try {
+    const now = new Date();
+    const budgetRows = getBudgetServer(now.getMonth(), now.getFullYear());
+    (budgetRows.list || []).forEach(function (b) {
+      budgetLimit += Number(b.limitNominal) || 0;
+      budgetTerpakai += Number(b.terpakai) || 0;
+    });
+    budgetPersen = budgetLimit > 0 ? Math.round((budgetTerpakai / budgetLimit) * 100) : 0;
+  } catch (e) {
+    // biarkan budget 0, jangan gagalkan seluruh response
+  }
+
   return {
     pemasukan: pemasukan,
     pengeluaran: pengeluaran,
     total: pemasukan - pengeluaran,
+    saldo: pemasukan - pengeluaran,
     pemasukanSebelumnya: pemasukanSebelumnya,
     pengeluaranSebelumnya: pengeluaranSebelumnya,
     categories: categories,
     kategoriPemasukan: kategoriPemasukan,
     trend: trend,
-    items: items
+    items: items,
+    pengeluaranHariIni: pengeluaranHariIni,
+    pengeluaranHariIniCount: pengeluaranHariIniCount,
+    budgetLimit: budgetLimit,
+    budgetTerpakai: budgetTerpakai,
+    budgetPersen: budgetPersen
   };
 }
 

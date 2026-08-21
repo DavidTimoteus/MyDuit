@@ -149,6 +149,11 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       loadDompetServer(true);
     }
 
+    // ISI panel Ringkasan (aside kanan desktop): total saldo sudah diisi oleh
+    // renderDompetUI() di atas; budget bulanan & pengeluaran hari ini diisi dari
+    // getStatistikPeriodeServer() via loadSummaryData().
+    loadSummaryData();
+
     // OPTIMASI: derive dari __INITIAL_DOMPET__ (nama akun) drpd fetch server lagi -
     // hemat 1 round-trip di SETIAP fresh page load.
     if (window.__INITIAL_DOMPET__ && window.__INITIAL_DOMPET__.rekening) {
@@ -1764,10 +1769,65 @@ function handlePindahSaldoSubmit(event) {
        const d = res.lastUpdated ? new Date(res.lastUpdated) : null;
        lastUpdEl.textContent = d && !isNaN(d.getTime()) ? `Terakhir diperbarui: ${d.toLocaleDateString('id-ID')} ${d.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'})}` : 'Terakhir diperbarui: -';
     }
+    // Update summary total saldo
+    updateSummaryTotalSaldo(res.totalSaldo);
     // List rekening dirender sbg CARD STACK (bukan pagination lagi, lihat renderRekeningStack_())
     // -> rekeningStackIndex TIDAK direset ke 0 di sini, supaya user tidak "terlempar" balik ke
     // kartu paling atas cuma gara2 optimistic update (tambah/edit/hapus 1 rekening).
     renderRekeningStack_();
+  }
+
+  function updateSummaryTotalSaldo(total) {
+    const el = document.getElementById('summaryTotalSaldo');
+    if (el) el.textContent = 'Rp ' + Number(total).toLocaleString('id-ID');
+  }
+
+  function updateSummaryBudgetAndDaily(data) {
+    // data: { budgetLimit, budgetTerpakai, budgetPersen, pengeluaranHariIni, pengeluaranCount, saldoBulanIni }
+    if (data) {
+      const limitEl = document.getElementById('summaryBudgetLimit');
+      if (limitEl) limitEl.textContent = 'Rp ' + Number(data.budgetLimit).toLocaleString('id-ID');
+      const terpakaiEl = document.getElementById('summaryBudgetTerpakai');
+      if (terpakaiEl) terpakaiEl.textContent = 'Terpakai Rp' + Number(data.budgetTerpakai).toLocaleString('id-ID') + ' dari Rp' + Number(data.budgetLimit).toLocaleString('id-ID');
+      const persenEl = document.getElementById('summaryBudgetPersen');
+      if (persenEl) persenEl.textContent = data.budgetPersen + '%';
+      const barEl = document.getElementById('summaryBudgetBar');
+      if (barEl) barEl.style.width = Math.min(data.budgetPersen, 100) + '%';
+      const pengeluaranEl = document.getElementById('summaryPengeluaranHariIni');
+      if (pengeluaranEl) pengeluaranEl.textContent = 'Rp ' + Number(data.pengeluaranHariIni).toLocaleString('id-ID');
+      const countEl = document.getElementById('summaryPengeluaranCount');
+      if (countEl) countEl.textContent = data.pengeluaranCount + ' transaksi · Hari ini';
+      const saldoBulanEl = document.getElementById('summarySaldoBulanIni');
+      if (saldoBulanEl) {
+        const selisih = data.saldoBulanIni || 0;
+        const arrow = selisih >= 0 ? 'trending_up' : 'trending_down';
+        const sign = selisih >= 0 ? '+' : '';
+        saldoBulanEl.innerHTML = `<span class="material-symbols-outlined text-[12px]">${arrow}</span> ${sign}Rp${Math.abs(selisih).toLocaleString('id-ID')} bulan ini`;
+      }
+    }
+  }
+
+  function loadSummaryData() {
+    const now = new Date();
+    const bulan = now.getMonth();
+    const tahun = now.getFullYear();
+
+    // getStatistikPeriodeServer() sudah mengembalikan pengeluaranHariIni,
+    // pengeluaranHariIniCount, budgetLimit, budgetTerpakai, budgetPersen, dan saldo.
+    google.script.run
+      .withSuccessHandler(function(stat) {
+        if (!stat) return;
+        updateSummaryBudgetAndDaily({
+          budgetLimit: stat.budgetLimit || 0,
+          budgetTerpakai: stat.budgetTerpakai || 0,
+          budgetPersen: stat.budgetPersen || 0,
+          pengeluaranHariIni: stat.pengeluaranHariIni || 0,
+          pengeluaranCount: stat.pengeluaranHariIniCount || 0,
+          saldoBulanIni: stat.saldo || 0
+        });
+      })
+      .withFailureHandler(function() { /* ignore */ })
+      .getStatistikPeriodeServer('bulanan', bulan, tahun);
   }
 
   // ==========================================
@@ -4531,8 +4591,8 @@ function handleLongPressEnd(event, cardEl) {
   }
 
   function refreshVisibleUI_() {
-       renderRiwayatResult(cachedRiwayat);
-       if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
+     renderRiwayatResult(cachedRiwayat);
+     if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
    }
 
   function cloneCache_(obj) {

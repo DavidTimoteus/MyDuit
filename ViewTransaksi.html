@@ -16,28 +16,46 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-<!-- ================= SITE HEADER (WEB/DESKTOP ONLY) =================
-     Header brand "MyDuit" bertema keuangan, ditampilkan HANYA di layar md ke atas.
-     Ini terpisah dari <header id="pageHeader"> di bawah (yang tetap dipakai untuk
-     sapaan pengguna & tombol export, tampil di mobile maupun desktop). -->
-<header
-  class="hidden md:block sticky top-0 z-30 bg-surfaceContainerLowest/95 backdrop-blur-sm border-b border-slate-100">
-  <div class="max-w-5xl mx-auto px-8 h-16 flex items-center justify-between">
-    <div class="flex items-center gap-2.5">
-      <div
-        class="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shadow-sm">
-        <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">savings</span>
+<div class="md:flex md:h-screen md:overflow-hidden">
+  <aside class="hidden md:flex md:flex-col md:shrink-0 md:w-[232px] lg:w-[320px] md:h-full md:p-4 md:pr-2 md:gap-4">
+    <div class="clay clay-key-primary bg-surfaceContainerLowest flex flex-col h-full rounded-[28px] p-4 lg:p-5">
+      <div class="flex items-center gap-3 px-1 pt-1 pb-4">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shadow-lg shrink-0">
+          <span class="material-symbols-outlined text-[22px]" style="font-variation-settings:'FILL' 1">savings</span>
+        </div>
+        <div>
+          <p class="font-extrabold text-lg leading-tight tracking-tight">MyDuit</p>
+          <p class="text-[11px] font-semibold text-textSecondary tracking-wide uppercase">Catat · Pantau · Kendalikan</p>
+        </div>
       </div>
-      <div class="leading-tight">
-        <p class="font-extrabold text-textPrimary text-[15px] tracking-tight">MyDuit</p>
-        <p class="text-[10px] text-textSecondary -mt-0.5">Catatan Keuangan Pribadi</p>
-      </div>
+      <div class="h-px bg-slate-200/70 mx-1"></div>
+      <nav class="flex flex-col gap-2 mt-4 flex-1">
+        <button onclick="handleHomeButtonClick()" data-tab="riwayat" id="desktopNavRiwayat" class="clay-chip clay-key-primary w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 text-white text-sm font-semibold transition-all">
+          <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">home</span>
+          Transaksi
+        </button>
+        <button onclick="switchTab('statistik')" data-tab="statistik" id="desktopNavStatistik" class="clay-chip clay-key-neutral w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surfaceContainerLowest text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-slate-800 transition-all">
+          <span class="material-symbols-outlined text-[20px]">monitoring</span>
+          Statistik
+        </button>
+        <button onclick="switchTab('budget'); if (cachedDompet) renderDompetUI(cachedDompet);" data-tab="budget" id="desktopNavBudget" class="clay-chip clay-key-blue w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surfaceContainerLowest text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-slate-800 transition-all">
+          <span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+          Budget
+        </button>
+        <button onclick="switchTab('utang')" data-tab="utang" id="desktopNavUtang" class="clay-chip clay-key-danger w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surfaceContainerLowest text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-slate-800 transition-all">
+          <span class="material-symbols-outlined text-[20px]">handshake</span>
+          Utang
+        </button>
+      </nav>
+      <button onclick="toggleFabSpeedDial()" aria-label="Tambah Transaksi" class="clay-btn clay-key-primary w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 text-white text-sm font-bold mt-4">
+        <span class="material-symbols-outlined text-[20px]" style="font-variation-settings:'FILL' 1">add_circle</span>
+        Tambah Transaksi
+      </button>
     </div>
-    <p class="text-xs text-textSecondary">Kelola Uangmu, Kendalikan Masa Depanmu</p>
-  </div>
-</header>
-
-<div class="max-w-3xl mx-auto min-h-screen relative px-4 md:px-8">
+  </aside>
+  <main class="flex-1 md:h-full md:overflow-hidden md:flex md:flex-col md:px-4 lg:px-6">
+    <div class="md:h-full md:overflow-y-auto panel-scroll md:pr-2 md:rounded-[28px]">
+      <div class="max-w-3xl mx-auto min-h-screen relative px-4 md:max-w-none md:px-6 md:mx-0 md:bg-transparent">
 
   <header id="pageHeader" class="pt-4 md:pt-6 pb-4 viewriwayat-font-circular">
 
@@ -550,25 +568,74 @@
     </nav>
   </div>
 
-</div>
+      </div>
+    </main>
 
-<!-- ================= SITE FOOTER (WEB/DESKTOP ONLY) ================= -->
-<footer class="hidden md:block border-t border-slate-100 mt-10 pb-28">
-  <div class="max-w-5xl mx-auto px-8 py-6 flex flex-col items-center gap-1 text-center">
-    <div class="flex items-center gap-2 text-textSecondary">
-      <span class="material-symbols-outlined text-[16px] text-primary">savings</span>
-      <span class="text-xs font-semibold text-textPrimary">MyDuit</span>
+    <aside class="hidden lg:flex lg:flex-col lg:shrink-0 lg:w-[320px] md:h-full md:p-4 md:pl-2">
+      <div class="clay clay-key-primary bg-surfaceContainerLowest flex flex-col h-full rounded-[28px] p-5">
+        <div class="flex items-center justify-between px-1 pb-3 shrink-0">
+          <h2 class="font-extrabold text-base tracking-tight text-slate-800">Ringkasan</h2>
+          <button class="clay-chip clay-key-neutral w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-700 transition-colors">
+            <span class="material-symbols-outlined text-[16px]">more_vert</span>
+          </button>
+        </div>
+        <div class="h-px bg-slate-200/70 mb-3 shrink-0"></div>
+        <div class="flex-1 flex flex-col gap-2 min-h-0">
+          <div class="clay clay-card clay-key-primary bg-gradient-to-br from-primary to-emerald-700 text-white flex flex-col gap-0.5 p-4 rounded-[18px]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[16px] opacity-90" style="font-variation-settings:'FILL' 1">savings</span>
+              <p class="text-[10px] font-semibold uppercase tracking-wider opacity-90">Total Saldo</p>
+            </div>
+            <p id="summaryTotalSaldo" class="font-mono font-extrabold text-xl tracking-tight mt-0.5">Rp0</p>
+            <p id="summarySaldoBulanIni" class="text-[10px] font-medium opacity-80 mt-0.5 flex items-center gap-1">
+              <span class="material-symbols-outlined text-[12px]">trending_up</span> —
+            </p>
+          </div>
+          <div class="clay clay-card clay-key-blue bg-surfaceContainerLowest flex flex-col gap-1.5 p-4 rounded-[18px]">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px] text-blue-700" style="font-variation-settings:'FILL' 1">account_balance_wallet</span>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Budget Bulanan</p>
+              </div>
+              <span id="summaryBudgetPersen" class="text-[10px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded-full">0%</span>
+            </div>
+            <p id="summaryBudgetLimit" class="font-mono font-extrabold text-lg tracking-tight text-slate-800">Rp0</p>
+            <div class="h-1.5 w-full rounded-full clay-inset bg-slate-100 overflow-hidden">
+              <div id="summaryBudgetBar" class="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-700" style="width:0%"></div>
+            </div>
+            <p id="summaryBudgetTerpakai" class="text-[10px] font-medium text-textSecondary">Terpakai Rp0 dari Rp0</p>
+          </div>
+          <div class="clay clay-card clay-key-danger bg-surfaceContainerLowest flex flex-col gap-0.5 p-4 rounded-[18px]">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-[16px] text-expense" style="font-variation-settings:'FILL' 1">today</span>
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
+            </div>
+            <p id="summaryPengeluaranHariIni" class="font-mono font-extrabold text-lg tracking-tight text-expense mt-0.5">Rp0</p>
+            <p id="summaryPengeluaranCount" class="text-[10px] font-medium text-textSecondary">0 transaksi · Hari ini</p>
+          </div>
+        </div>
+        <div class="h-px bg-slate-200/70 my-3 shrink-0"></div>
+        <div class="shrink-0">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">Aksi Cepat</p>
+          <div class="flex flex-col gap-1.5">
+            <button onclick="openTransaksiPreset('Pemasukan')" class="clay-btn clay-key-primary w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-white text-xs font-bold">
+              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">add_circle</span>
+              Tambah Pemasukan
+            </button>
+            <button onclick="openTransaksiPreset('Pengeluaran')" class="clay-btn clay-key-danger w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white text-xs font-bold">
+              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">remove_circle</span>
+              Tambah Pengeluaran
+            </button>
+            <button onclick="openPindahSaldoModal()" class="clay-btn clay-key-blue w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold">
+              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">swap_horiz</span>
+              Pindah Saldo
+            </button>
+          </div>
     </div>
-    <p class="text-[11px] text-textSecondary">© <span id="footerTahun"></span> MyDuit — Aplikasi Pencatatan Keuangan
-      Pribadi</p>
   </div>
-</footer>
-<script>
-  (function () {
-    var el = document.getElementById('footerTahun');
-    if (el) el.textContent = new Date().getFullYear();
-  })();
-</script>
+</aside>
+
+</div>
 
 <!-- ================= INIT DATEPICKER (flatpickr) =================
      dateFormat "Y-m-d" dipertahankan (bukan altInput) supaya nilai .value pada input tetap
