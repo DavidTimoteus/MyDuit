@@ -512,6 +512,30 @@ function processReceiptImage(base64Data, mimeType) {
   };
 }
 
+/**
+ * FINGERPRINT DATA TRANSAKSI: lastRow + ID baris terakhir sheet Transaksi & MutasiLog.
+ * Murah (hanya baca beberapa sel) tapi peka terhadap tambah/edit/hapus lewat jalur
+ * manapun -> dipakai utk memutuskan apakah rekomendasi AI perlu di-generate ulang.
+ */
+function dataFingerprint_() {
+  try {
+    const tx = getTransaksiSheet_();
+    const lrTx = tx.getLastRow();
+    const idTx = lrTx > 1 ? String(tx.getRange(lrTx, 1).getDisplayValue()) : '';
+    let lrLog = 0, idLog = '';
+    try {
+      const log = tx.getParent().getSheetByName('MutasiLog');
+      if (log) {
+        lrLog = log.getLastRow();
+        idLog = lrLog > 1 ? String(log.getRange(lrLog, 1).getDisplayValue()) : '';
+      }
+    } catch (e2) {}
+    return lrTx + '|' + idTx + '|' + lrLog + '|' + idLog;
+  } catch (e) {
+    return 'fp-err-' + new Date().getTime(); // gagal baca -> anggap berubah (regenerate)
+  }
+}
+
 function getRekomendasiKeuanganServer(mode, bulan, tahun) {
   const now = new Date();
   const modeAktif = (mode === 'tahunan') ? 'tahunan' : 'bulanan';
@@ -519,11 +543,18 @@ function getRekomendasiKeuanganServer(mode, bulan, tahun) {
   const tahunAktif = (tahun === undefined || tahun === null || tahun === '') ? now.getFullYear() : Number(tahun);
   const labelPeriode = modeAktif === 'tahunan' ? ('Tahun ' + tahunAktif) : (BULAN_NAMA[bulanAktif] + ' ' + tahunAktif);
 
-  const cacheKey = 'rekomendasiAI_v4_' + modeAktif + '_' + bulanAktif + '_' + tahunAktif;
+  // CACHE TAHAN LAMA + FINGERPRINT: rekomendasi hanya di-generate ulang saat data
+  // transaksi/mutasi BERUBAH (fingerprint beda). Sama = balas instan tanpa panggil AI.
+  // (Sebelumnya TTL cuma 60 detik -> hampir selalu regenerate & boros kuota AI.)
+  const fp = dataFingerprint_();
+  const cacheKey = 'rekomendasiAI_v5_' + modeAktif + '_' + bulanAktif + '_' + tahunAktif;
   const cache = CacheService.getUserCache();
-  const cached = cache.get(cacheKey);
-  if (cached) {
-    try { return JSON.parse(cached); } catch (e) {}
+  const cachedRaw = cache.get(cacheKey);
+  if (cachedRaw) {
+    try {
+      const parsed = JSON.parse(cachedRaw);
+      if (parsed && parsed.fp === fp && parsed.hasil) return parsed.hasil;
+    } catch (e) {}
   }
 
   const stats = getStatistikPeriodeServer(modeAktif, bulanAktif, tahunAktif);
@@ -532,7 +563,7 @@ function getRekomendasiKeuanganServer(mode, bulan, tahun) {
     const hasilKosong = {
       rekomendasi: 'Belum ada transaksi untuk periode ' + labelPeriode + '.'
     };
-    try { cache.put(cacheKey, JSON.stringify(hasilKosong), 60); } catch (e) {}
+    try { cache.put(cacheKey, JSON.stringify({ fp: fp, hasil: hasilKosong }), 600); } catch (e) {}
     return hasilKosong;
   }
 
@@ -581,7 +612,7 @@ function getRekomendasiKeuanganServer(mode, bulan, tahun) {
     if (!adaKondisi && !(adaHemat && adaPrioritas)) throw new Error('Format output tidak sesuai (KONDISI/HEMAT/PRIORITAS)');
     return { rekomendasi: t };
   }, { rotate: false });
-  try { cache.put(cacheKey, JSON.stringify(hasil), 60); } catch (e) {}
+  try { cache.put(cacheKey, JSON.stringify({ fp: fp, hasil: hasil }), 21600); } catch (e) {}
   return hasil;
 }
 
@@ -673,4 +704,108 @@ function clearUserGeminiApiKeys() {
   up.deleteProperty('MYDUIT_AI_KEYS');
   up.deleteProperty('MYDUIT_AI_KEY');
   return 'API key user dihapus.';
+}
+
+/**
+ * TIPS HARIAN (kartu sidebar tab Statistik) � dibuat oleh AI SEKALI PER HARI
+ * berdasarkan evaluasi transaksi KEMARIN, lalu disimpan seharian penuh supaya
+ * tidak ada prompt ulang (hemat kuota/request API).
+ *
+ * Penyimpanan: UserProperties (bukan CacheService � TTL CacheService maks 6 jam,
+ * tidak cukup untuk "selama sehari"). Key: tipsHarian_v1 = {tanggal, tips}.
+ * Fallback: jika belum ada API key / semua model gagal / tidak ada transaksi
+ * kemarin -> kembalikan tips:'' dan client memakai pool tips statis.
+ */
+function getTipsHarianServer() {
+  try {
+    const tz = Session.getScriptTimeZone();
+    const fmtDay = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
+    const now = new Date();
+    const todayStr = fmtDay(now);
+    const kemarin = new Date(now.getTime() - 86400000);
+    const kemarinStr = fmtDay(kemarin);
+
+    // 1) Sudah ada tips untuk HARI INI? -> pakai tanpa panggil AI sama sekali
+    const props = PropertiesService.getUserProperties();
+    const stored = props.getProperty('tipsHarian_v1');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (parsed && parsed.tanggal === todayStr && parsed.tips) {
+          return { status: 'success', tips: parsed.tips, sumber: 'cache-harian' };
+        }
+      } catch (e) {}
+    }
+
+    // 2) Kumpulkan ringkasan transaksi KEMARIN (evaluasi kondisi sebelumnya)
+    const sheet = getTransaksiSheet_();
+    const lastRow = sheet.getLastRow();
+    let masuk = 0, keluar = 0, jml = 0;
+    const katMap = {};
+    if (lastRow >= 2) {
+      const raw = getRawTransaksiCached_(sheet);
+      raw.forEach(function (row) {
+        const tgl = parseSheetDate(row[1]);
+        if (!tgl || fmtDay(tgl) !== kemarinStr) return;
+        const jenis = String(row[2] || '').trim().toLowerCase();
+        if (jenis === 'pindah saldo') return;
+        const nominal = Number(row[8]) || 0;
+        jml += 1;
+        if (jenis === 'pemasukan') { masuk += nominal; return; }
+        keluar += nominal;
+        const kat = getKategoriTampilFromStored_(row[3]) || 'Lainnya';
+        katMap[kat] = (katMap[kat] || 0) + nominal;
+      });
+    }
+
+    // Tidak ada aktivitas kemarin -> tidak perlu AI; biarkan client pakai tips statis
+    if (jml === 0) return { status: 'success', tips: '', sumber: 'tanpa-data' };
+
+    const katTop = Object.keys(katMap).sort(function (a, b) { return katMap[b] - katMap[a]; })[0] || '-';
+
+    // 3) Prompt RINGKAS & TO THE POINT (output 1 kalimat pendek saja)
+    const prompt =
+      'Kamu asisten keuangan aplikasi MyDuit.\n' +
+      'DATA TRANSAKSI KEMARIN (' + kemarinStr + '):\n' +
+      '- Pemasukan: Rp ' + masuk.toLocaleString('id-ID') + '\n' +
+      '- Pengeluaran: Rp ' + keluar.toLocaleString('id-ID') + ' (' + jml + ' transaksi)\n' +
+      '- Kategori pengeluaran terbesar: ' + katTop + '\n\n' +
+      'Beri SATU tips keuangan praktis untuk HARI INI berdasarkan pola kemarin.\n' +
+      'ATURAN KERAS:\n' +
+      '- MAKSIMAL 20 kata, Bahasa Indonesia santai.\n' +
+      '- Satu kalimat langsung, TANPA emoji, TANPA sapaan, TANPA markdown/bullet.\n' +
+      '- Spesifik merujuk data di atas (sebut kategori/nominal bila relevan).\n' +
+      'Contoh bentuk: Kurangi jajan di kantin hari ini, alokasikan Rp20rb untuk tabungan.\n' +
+      'Jawab HANYA kalimat tips itu.';
+
+    const payload = {
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 80,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    };
+
+    const hasil = callModelRoundRobin_('REKOMENDASI_AI', payload, 'Tips Harian', function (text) {
+      let t = String(text || '').trim()
+        .replace(/^["'\u201C\u201D]+|["'\u201C\u201D]+$/g, '')   // buang kutip pembungkus
+        .replace(/\s+/g, ' ');
+      if (t.length < 15) throw new Error('Output terlalu pendek (' + t.length + ' char)');
+      if (t.length > 220) t = t.slice(0, 217).trim() + '...';
+      return t;
+    }, { rotate: false });
+
+    const tipsFinal = (typeof hasil === 'string') ? hasil : ((hasil && hasil.rekomendasi) || '');
+    if (!tipsFinal) throw new Error('Tips kosong');
+
+    // 4) Simpan seharian penuh -> besok baru regenerate
+    try { props.setProperty('tipsHarian_v1', JSON.stringify({ tanggal: todayStr, tips: tipsFinal })); } catch (e) {}
+    try { CacheService.getUserCache().put('tipsHarian_v1_today', tipsFinal, 300); } catch (e) {}
+
+    return { status: 'success', tips: tipsFinal, sumber: 'ai' };
+  } catch (err) {
+    // Gagal (API key belum ada / kuota habis / dsb.) -> client pakai pool statis
+    return { status: 'success', tips: '', sumber: 'fallback', pesan: err.message };
+  }
 }

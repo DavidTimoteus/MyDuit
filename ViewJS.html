@@ -56,7 +56,22 @@ const cancelledTempEntries_ = new Map();
 const pendingSaveMeta_ = new Map();
 let bulkSelectModeActive = false;   // mode seleksi hapus massal aktif?
 const bulkSelectedIds = new Set();  // daftar Transaksi.ID yang dicentang utk hapus massal
-let cachedStatistik = null; // JS memory cache Statistik
+let cachedStatistik = null; // payload Statistik AKTIF yang sedang tampil
+// CACHE MULTI-SLOT Statistik: key "mode_bulan_tahun" -> payload getStatistikPeriodeServer.
+// Pindah Bulanan<->Tahunan / mundur periode jadi INSTAN (tanpa fetch ulang), dan hasil
+// prefetch belakang layar (tahunan + bulan sebelumnya) disimpan di sini juga.
+const statCacheMap_ = new Map();
+let statPrefetchDone_ = false; // guard: prefetch latar hanya sekali per sesi
+
+function statistikCacheKey_(mode, bulan, tahun) { return mode + '_' + bulan + '_' + tahun; }
+
+// Dipanggil saat ada MUTASI transaksi (tambah/edit/hapus/pindah saldo/bayar utang):
+// kosongkan semua slot -> kunjungan statistik berikutnya otomatis mengambil data segar.
+function invalidateStatCache_() {
+  statCacheMap_.clear();
+  cachedStatistik = null;
+  statPrefetchDone_ = false; // izinkan warm-up ulang setelahnya
+}
 let statistikMode = 'bulanan'; // 'bulanan' | 'tahunan'
 let statistikBulan = new Date().getMonth(); // 0-11
 let statistikTahun = new Date().getFullYear();
@@ -214,6 +229,11 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       const viewSection = document.getElementById('viewUtang');
       if (viewSection && viewSection.classList.contains('active')) {
         layoutAndRenderUtangPages_();
+      }
+      // Sekalian pas-ulang tinggi scroll Statistik bila tab-nya sedang aktif
+      const statSection = document.getElementById('viewStatistik');
+      if (statSection && statSection.classList.contains('active')) {
+        fitStatistikViewport_();
       }
     }, delay || 200);
   }
@@ -761,6 +781,38 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       }
     }
 
+    // Card "Jatuh Tempo Terdekat" di sidebar kiri (desktop): SEMBUNYI saat tab Statistik
+    // aktif (redesign statistik tidak memakainya), tampil lagi di tab lain sesuai data.
+    const debtCard = document.getElementById('sidebarNearestDebtCard');
+    if (debtCard) {
+      if (tabName === 'statistik') {
+        debtCard.style.display = 'none';
+      } else {
+        updateSidebarNearestDebt(); // pulihkan visibilitas berdasarkan data utang terbaru
+      }
+    }
+
+    // Card insight (streak + tips) khusus tab Statistik di sidebar kiri
+    const insightCard = document.getElementById('sidebarStatistikInsightCard');
+    if (insightCard) {
+      if (tabName === 'statistik') {
+        insightCard.style.display = 'flex';
+        updateSidebarStatistikInsight_();
+      } else {
+        insightCard.style.display = 'none';
+      }
+    }
+
+    // Panel kanan "Ringkasan": ganti konten per-tab (transaksi <-> statistik).
+    const gTransaksi = document.getElementById('asideGroupTransaksi');
+    const gStatistik = document.getElementById('asideGroupStatistik');
+    if (gTransaksi && gStatistik) {
+      const isStat = (tabName === 'statistik');
+      gTransaksi.classList.toggle('hidden', isStat);
+      gStatistik.classList.toggle('hidden', !isStat);
+      if (isStat && cachedStatistik) renderAsideStatistik_(cachedStatistik);
+    }
+
     // Tampilkan tampilan yang dipilih
     const targetId = views[tabName];
     const activeEl = targetId ? document.getElementById(targetId) : null;
@@ -790,6 +842,8 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       }
     } else if (tabName === 'statistik') {
       loadStatistik();
+      // Pas tinggi area scroll statistik SETELAH reflow (pola sama dgn fitRiwayatListViewport_)
+      setTimeout(fitStatistikViewport_, 0);
     } else if (tabName === 'utang') {
       loadUtang();
     } else if (tabName === 'riwayat') {
@@ -807,6 +861,7 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
    });
 
     updateNavActiveState(tabName);
+    updateDesktopNavStyles_(tabName); // tombol nav sidebar kiri (desktop) ikut berubah hijau
     updateFabAddButton(tabName);
   }
 
@@ -1155,7 +1210,8 @@ function handlePindahSaldoSubmit(event) {
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedDompet = res.dompet; // sinkronkan dgn saldo/timestamp asli dari server
-          if (res.riwayat) cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli
+          if (res.riwayat) cachedRiwayat = res.riwayat;
+          invalidateStatCache_(); // sinkronkan dgn ID/pagination asli
           refreshVisibleUI_();
         } else {
           cachedDompet = snapshotDompet; cachedRiwayat = snapshotRiwayat; // ROLLBACK
@@ -1202,6 +1258,7 @@ function handlePindahSaldoSubmit(event) {
         if (res && res.status === 'success') {
           cachedDompet = res.dompet;
           if (res.riwayat) cachedRiwayat = res.riwayat;
+          invalidateStatCache_();
           refreshVisibleUI_();
           showToast('success', 'Pindah saldo berhasil diperbarui!');
         } else {
@@ -1245,6 +1302,27 @@ function handlePindahSaldoSubmit(event) {
       const iconWrap = activeBtn.querySelector('.nav-icon-wrap');
       if (iconWrap) { iconWrap.classList.remove('nav-icon-inactive'); iconWrap.classList.add('nav-icon-active'); }
     }
+  }
+
+  // ===== SIDEBAR DESKTOP: swap gaya tombol nav kiri sesuai tab aktif =====
+  // Tombol sidebar desktop (#desktopNav*) TIDAK punya class .nav-btn (itu milik bottom-nav
+  // mobile) -> sebelumnya tidak ada mekanisme yg mengubah tampilannya saat pindah tab,
+  // sehingga tombol Statistik tetap "putih" walau tab-nya aktif. Sekarang: tombol aktif =
+  // gradient hijau + teks putih; tombol lain = kartu putih netral (hue clay per tab).
+  function updateDesktopNavStyles_(tabName) {
+    const NAVS = [
+      { tab: 'riwayat', id: 'desktopNavRiwayat', key: 'clay-key-primary' },
+      { tab: 'statistik', id: 'desktopNavStatistik', key: 'clay-key-neutral' },
+      { tab: 'budget', id: 'desktopNavBudget', key: 'clay-key-blue' },
+      { tab: 'utang', id: 'desktopNavUtang', key: 'clay-key-danger' }
+    ];
+    NAVS.forEach(function (n) {
+      const btn = document.getElementById(n.id);
+      if (!btn) return;
+      btn.className = (n.tab === tabName)
+        ? 'clay-key-primary w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 text-white text-sm font-semibold transition-all'
+        : n.key + ' w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-surfaceContainerLowest text-slate-600 text-sm font-semibold hover:bg-slate-50 hover:text-slate-800 transition-all';
+    });
   }
 
   // ==========================================
@@ -2424,10 +2502,163 @@ function openTambahRekeningModal() {
   // ==========================================
   // LOAD & RENDER STATISTIK
   // ==========================================
+  // ===== PANEL KANAN VERSI STATISTIK (prototype/DesktopPrototype-Statistik.html) =====
+  // Diisi murni dari payload getStatistikPeriodeServer (cachedStatistik) — tanpa fetch baru.
+  function kategoriIcon_(nama) {
+    const n = String(nama || '').toLowerCase();
+    if (/makan|kuliner|minum|kopi|food/.test(n)) return 'restaurant';
+    if (/transport|bensin|parkir|ojek|travel|bbm/.test(n)) return 'directions_car';
+    if (/belanja|shop/.test(n)) return 'shopping_bag';
+    if (/tagihan|listrik|air |internet|pulsa|langganan/.test(n)) return 'receipt_long';
+    if (/hiburan|game|film|streaming|musik/.test(n)) return 'sports_esports';
+    if (/kesehatan|obat|medis|rumsakit/.test(n)) return 'medication';
+    if (/pendidikan|sekolah|kursus|buku|kuliah/.test(n)) return 'school';
+    if (/donasi|sedekah|zakat/.test(n)) return 'volunteer_activism';
+    return 'shopping_cart';
+  }
+
+  function renderAsideStatistik_(data) {
+    const d = data || {};
+    const pemasukan = Number(d.pemasukan) || 0;
+    const pengeluaran = Number(d.pengeluaran) || 0;
+
+    // -- Pengeluaran Terbesar --
+    const top = (d.categories && d.categories[0]) || null;
+    const iconEl = document.getElementById('statTopExpIcon');
+    const nameEl = document.getElementById('statTopExpName');
+    const pctEl = document.getElementById('statTopExpPct');
+    const amtEl = document.getElementById('statTopExpAmount');
+    if (top) {
+      if (iconEl) iconEl.textContent = kategoriIcon_(top.kategori);
+      if (nameEl) nameEl.textContent = top.kategori || '-';
+      const pctTxt = pengeluaran > 0 ? Math.round((Number(top.total || 0) / pengeluaran) * 100) : 0;
+      if (pctEl) pctEl.textContent = pctTxt + '% dari total pengeluaran';
+      if (amtEl) amtEl.textContent = 'Rp' + Number(top.total || 0).toLocaleString('id-ID');
+    } else {
+      if (iconEl) iconEl.textContent = 'shopping_cart';
+      if (nameEl) nameEl.textContent = '—';
+      if (pctEl) pctEl.textContent = 'Belum ada data periode ini';
+      if (amtEl) amtEl.textContent = 'Rp0';
+    }
+
+    // -- Rasio Tabungan: sisa pemasukan setelah pengeluaran --
+    const rasio = pemasukan > 0 ? Math.round(((pemasukan - pengeluaran) / pemasukan) * 100) : 0;
+    const nilaiEl = document.getElementById('statRasioNilai');
+    const badgeEl = document.getElementById('statRasioBadge');
+    const barEl = document.getElementById('statRasioBar');
+    if (nilaiEl) nilaiEl.textContent = rasio + '%';
+    if (barEl) barEl.style.width = Math.max(0, Math.min(100, rasio)) + '%';
+    if (badgeEl) {
+      let label = 'Cukup', cls = 'bg-amber-100 text-amber-700';
+      if (rasio >= 20) { label = 'Baik'; cls = 'bg-emerald-100 text-emerald-700'; }
+      else if (rasio < 0) { label = 'Defisit'; cls = 'bg-red-100 text-red-700'; }
+      badgeEl.textContent = label;
+      badgeEl.className = 'text-xs font-medium px-2 py-0.5 rounded-full ' + cls;
+    }
+
+    // -- Statistik Cepat --
+    const items = d.items || [];
+    let days;
+    if (statistikMode === 'tahunan') {
+      const now = new Date();
+      days = (statistikTahun === now.getFullYear())
+        ? Math.max(1, Math.ceil((now - new Date(now.getFullYear(), 0, 1)) / 86400000))
+        : 365;
+    } else {
+      const now = new Date();
+      const daysInMonth = new Date(statistikTahun, statistikBulan + 1, 0).getDate();
+      days = (statistikBulan === now.getMonth() && statistikTahun === now.getFullYear())
+        ? now.getDate() : daysInMonth;
+    }
+    const avgEl = document.getElementById('statAvgHarian');
+    if (avgEl) avgEl.textContent = 'Rp' + Math.round(pengeluaran / Math.max(1, days)).toLocaleString('id-ID');
+    const jmlEl = document.getElementById('statJmlTx');
+    if (jmlEl) jmlEl.textContent = String(items.length);
+    const katSet = new Set();
+    (d.categories || []).forEach(c => katSet.add(c.kategori));
+    (d.kategoriPemasukan || []).forEach(c => katSet.add(c.kategori));
+    const katEl = document.getElementById('statKatAktif');
+    if (katEl) katEl.textContent = String(katSet.size);
+  }
+
+  // ===== SIDEBAR KIRI (tab Statistik): card Streak + Tips Harian =====
+  const TIPS_KEUANGAN = [
+    'Catat pengeluaran segera setelah transaksi terjadi supaya tidak ada yang terlewat.',
+    'Sisihkan minimal 10% pemasukan untuk tabungan di awal bulan, bukan di akhir.',
+    'Bedakan dulu kebutuhan dan keinginan sebelum membeli sesuatu.',
+    'Coba metode 50/30/20: 50% kebutuhan, 30% keinginan, 20% tabungan.',
+    'Review langganan bulanan Anda — matikan yang jarang dipakai.',
+    'Masak di rumah 2x seminggu untuk memangkas pengeluaran makan.',
+    'Siapkan dana darurat idealnya 3x pengeluaran bulanan.',
+    'Bandingkan harga sebelum checkout; gunakan promo dengan bijak.',
+    'Tetapkan limit belanja harian agar pengeluaran mudah dikontrol.',
+    'Evaluasi pengeluaran terbesar Anda setiap akhir pekan.'
+  ];
+
+  // Streak = berapa hari BERURUTAN user mencatat transaksi, dihitung dari tanggal unik
+  // pada cachedStatistik.items (periode aktif). Hari ini belum catat -> mulai dari kemarin.
+  function hitungStreak_(items) {
+    const set = new Set((items || [])
+      .map(it => String(it.tanggalRaw || '').slice(0, 10))
+      .filter(Boolean));
+    if (!set.size) return { streak: 0, last: '' };
+    let last = '';
+    set.forEach(d => { if (d > last) last = d; });
+    const fmt = d => d.toLocaleDateString('en-CA');
+    const cursor = new Date();
+    if (!set.has(fmt(cursor))) {
+      cursor.setDate(cursor.getDate() - 1);
+      if (!set.has(fmt(cursor))) return { streak: 0, last };
+    }
+    let streak = 0;
+    while (set.has(fmt(cursor))) { streak += 1; cursor.setDate(cursor.getDate() - 1); }
+    return { streak, last };
+  }
+
+  function updateSidebarStatistikInsight_() {
+    const items = (cachedStatistik && cachedStatistik.items) || [];
+    const { streak, last } = hitungStreak_(items);
+    const sEl = document.getElementById('statSideStreak');
+    const dEl = document.getElementById('statSideLastDate');
+    const tEl = document.getElementById('statSideTip');
+    if (sEl) sEl.textContent = String(streak);
+    if (dEl) dEl.textContent = last
+      ? 'Catatan terakhir: ' + formatTanggalIndo(new Date(last + 'T00:00:00'))
+      : 'Belum ada catatan pada periode ini';
+    if (tEl) {
+      // TIPS HARIAN dari AI (server menyimpannya seharian penuh -> hanya 1 request/hari).
+      // Gagal / belum ada API key / tidak ada transaksi kemarin -> fallback pool statis.
+      const poolFallback = function () {
+        const now = new Date();
+        const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+        return TIPS_KEUANGAN[doy % TIPS_KEUANGAN.length];
+      };
+      if (tEl.dataset.loading === '1') return; // sedang diminta, jangan dobel
+      tEl.dataset.loading = '1';
+      tEl.textContent = 'Menyiapkan tips hari ini...';
+      google.script.run
+        .withSuccessHandler(function (res) {
+          tEl.dataset.loading = '';
+          tEl.textContent = (res && res.status === 'success' && res.tips)
+            ? res.tips
+            : poolFallback();
+        })
+        .withFailureHandler(function () {
+          tEl.dataset.loading = '';
+          tEl.textContent = poolFallback();
+        })
+        .getTipsHarianServer();
+    }
+  }
+
   function loadStatistik() {
     updatePeriodeLabels_();
-    if (cachedStatistik) {
-      try { renderStatistikUI(cachedStatistik); } catch (e) { showToast('error', 'Gagal menampilkan statistik: ' + e.message); }
+    // CACHE MULTI-SLOT: kombinasi mode/bulan/tahun yang pernah dimuat -> render INSTAN
+    const cacheKey = statistikCacheKey_(statistikMode, statistikBulan, statistikTahun);
+    const hit = statCacheMap_.get(cacheKey);
+    if (hit) {
+      cachedStatistik = hit;
+      try { renderStatistikUI(hit); } catch (e) { showToast('error', 'Gagal menampilkan statistik: ' + e.message); }
       return;
     }
     const container = document.getElementById('statistikContainer');
@@ -2454,12 +2685,15 @@ function openTambahRekeningModal() {
           showToast('error', 'Gagal memuat statistik (payload kosong dari server). Coba muat ulang tab ini.');
           return;
         }
+        statCacheMap_.set(cacheKey, res);
         cachedStatistik = res;
         try {
           renderStatistikUI(res);
         } catch (e) {
           showToast('error', 'Gagal menampilkan statistik: ' + e.message);
         }
+        // Sekali per sesi: hangatkan cache utk Tahunan & bulan sebelumnya
+        prefetchStatistikLain_();
       })
       .withFailureHandler(err => {
         if (container) container.classList.remove('stat-loading');
@@ -2468,17 +2702,102 @@ function openTambahRekeningModal() {
       .getStatistikPeriodeServer(statistikMode, statistikBulan, statistikTahun);
   }
 
+  // Pas tinggi area scroll internal tab Statistik di desktop: container #statistikContainer
+  // diberi max-height = jarak dari tepi atas kontennya sampai dasar viewport (dikurangi
+  // ruang napas bawah) -> konten panjang MENGGULIR DI DALAM kartu-kartunya sendiri tanpa
+  // memicu scroll halaman (pola sama dgn fitUtangViewport_/fitRiwayatListViewport_).
+  // Di mobile (<768px) dibersihkan -> layout alami kembali (halaman scroll normal).
+  function fitStatistikViewport_() {
+    const el = document.getElementById('statistikContainer');
+    if (!el) return;
+    // Ukur hanya saat tab-nya aktif & terlihat (kalau hidden, posisi top tidak valid).
+    const view = document.getElementById('viewStatistik');
+    if (!view || !view.classList.contains('active')) return;
+    if (window.matchMedia('(min-width: 768px)').matches) {
+      const top = el.getBoundingClientRect().top;
+      // FIXED HEIGHT (bukan max-height): frame konten SELALU persis mengisi sisa layar
+      // -> tanpa ruang kosong di bawah & halaman tidak melebihi satu layar; yang
+      // menggulir hanya isi kartu-kartu di dalam container ini.
+      const h = Math.max(240, Math.floor(window.innerHeight - top - 12));
+      el.style.height = h + 'px';
+      el.style.overflowY = 'auto';
+      el.classList.add('panel-scroll');
+    } else {
+      el.style.height = '';
+      el.style.overflowY = '';
+    }
+  }
+
   function setPeriodeMode(mode) {
     statistikMode = mode;
     const lbl = document.getElementById('periodeLabelText');
     const dd = document.getElementById('periodeDropdown');
     if (lbl) lbl.textContent = mode === 'tahunan' ? 'Tahunan' : 'Bulanan';
     if (dd) dd.classList.add('hidden');
-    cachedStatistik = null;
+    // TIDAK me-null cache lagi: kombinasi mode/bulan/tahun yang pernah dimuat
+    // tersimpan di statCacheMap_ -> kembali ke mode sebelumnya langsung instan.
     loadStatistik();
   }
 
+  // PREFETCH belakang layar (sekali per sesi, setelah data pertama tab Statistik siap):
+  // a) rekap TAHUNAN tahun berjalan   b) rekap BULAN SEBELUMNYA (pintar lintas tahun).
+  // Hasil hanya masuk statCacheMap_ tanpa render -> tekan 'Tahunan'/mundur bulan instan.
+  function prefetchStatistikLain_() {
+    if (statPrefetchDone_) return;
+    statPrefetchDone_ = true;
+    const now = new Date();
+    const jobs = [
+      { mode: 'tahunan', b: now.getMonth(), t: now.getFullYear() }
+    ];
+    let pb = statistikBulan - 1, pt = statistikTahun;
+    if (pb < 0) { pb = 11; pt -= 1; }
+    jobs.push({ mode: 'bulanan', b: pb, t: pt });
+
+    let i = 0;
+    const runNext = function () {
+      if (i >= jobs.length) return;
+      const j = jobs[i++];
+      const key = statistikCacheKey_(j.mode, j.b, j.t);
+      if (statCacheMap_.has(key)) { runNext(); return; } // sudah ada, lewati
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res && !statCacheMap_.has(key)) statCacheMap_.set(key, res);
+          runNext(); // lanjut job berikutnya secara bergiliran (hindari burst paralel)
+        })
+        .withFailureHandler(function () { runNext(); })
+        .getStatistikPeriodeServer(j.mode, j.b, j.t);
+    };
+    setTimeout(runNext, 1200); // jeda: biarkan render pertama selesai dulu
+  }
+
+  // ===== BATAS NAVIGASI PERIODE =====
+  // Aturan: TIDAK BOLEH masa depan (bulan/tahun berjalan adalah batas atas),
+  // dan ke belakang dibatasi HANYA 1 tahun dari tahun berjalan (retensi data).
+  function periodeBisa_(dir) {
+    const now = new Date();
+    let b = statistikBulan, t = statistikTahun;
+    if (statistikMode === 'tahunan') { t += dir; }
+    else {
+      b += dir;
+      if (b < 0) { b = 11; t -= 1; } else if (b > 11) { b = 0; t += 1; }
+    }
+    if (t > now.getFullYear()) return false;                                   // masa depan
+    if (statistikMode === 'bulanan' && t === now.getFullYear() && b > now.getMonth()) return false;
+    if (t < now.getFullYear() - 1) return false;                               // lebih tua dr retensi
+    return true;
+  }
+
   function navigatePeriode(dir) {
+    if (!periodeBisa_(dir)) {
+      const now = new Date();
+      const cekDepan = (statistikMode === 'tahunan')
+        ? (statistikTahun + dir > now.getFullYear())
+        : (() => { let b = statistikBulan + dir, t = statistikTahun; if (b < 0) { b = 11; t--; } else if (b > 11) { b = 0; t++; } return t > now.getFullYear() || (t === now.getFullYear() && b > now.getMonth()); })();
+      showToast('warning', cekDepan
+        ? 'Tidak bisa membuka periode yang belum terjadi.'
+        : 'Riwayat hanya tersedia hingga ' + (now.getFullYear() - 1) + '.');
+      return;
+    }
     if (statistikMode === 'tahunan') {
       statistikTahun += dir;
     } else {
@@ -2486,23 +2805,39 @@ function openTambahRekeningModal() {
       if (statistikBulan < 0) { statistikBulan = 11; statistikTahun--; }
       else if (statistikBulan > 11) { statistikBulan = 0; statistikTahun++; }
     }
-    cachedStatistik = null;
+    // Tanpa null-kan cache: kombinasi baru dicek ke statCacheMap_ di loadStatistik()
     loadStatistik();
   }
 
   function updatePeriodeLabels_() {
-    const lbl = document.getElementById('periodeLabelText');
-    const cur = document.getElementById('periodeCurrentLabel');
-    if (lbl) lbl.textContent = statistikMode === 'tahunan' ? 'Tahunan' : 'Bulanan';
-    if (cur) cur.textContent = statistikMode === 'tahunan'
-      ? String(statistikTahun)
-      : (NAMA_BULAN_ID[statistikBulan] + ' ' + statistikTahun);
+    // Label periode kini ada di DUA tempat: pill navigator di header (mobile) &
+    // navigator di period-bar (desktop) -> pakai class .periodeCurrentLabel.
+    document.querySelectorAll('.periodeCurrentLabel').forEach(el => {
+      el.textContent = statistikMode === 'tahunan'
+        ? String(statistikTahun)
+        : (NAMA_BULAN_ID[statistikBulan] + ' ' + statistikTahun);
+    });
     const chartTitle = document.getElementById('trendChartTitle');
     if (chartTitle) chartTitle.textContent = statistikMode === 'tahunan' ? 'Tren Tahun Ini' : 'Tren Bulan Ini';
     const catTitle = document.getElementById('categoryTitle');
     if (catTitle) catTitle.textContent = statistikMode === 'tahunan'
       ? 'Breakdown Kategori (Tahun Ini)'
       : 'Breakdown Kategori (Bulan Ini)';
+    // Chip mode periode (prototype): tandai chip aktif dgn gaya primary
+    const cb = document.getElementById('chipPeriodeBulanan');
+    const ct = document.getElementById('chipPeriodeTahunan');
+    const tahunan = (statistikMode === 'tahunan');
+    if (cb) cb.className = 'clay-chip px-4 h-9 flex items-center text-xs font-semibold transition-colors ' + (!tahunan ? 'clay-key-primary bg-primary text-white' : 'clay-key-neutral bg-surfaceContainerLowest text-textSecondary hover:bg-gray-100');
+    if (ct) ct.className = 'clay-chip px-4 h-9 flex items-center text-xs font-semibold transition-colors ' + (tahunan ? 'clay-key-primary bg-primary text-white' : 'clay-key-neutral bg-surfaceContainerLowest text-textSecondary hover:bg-gray-100');
+    // Chevron navigator: nonaktifkan bila sudah di batas (masa depan / retensi 1 tahun)
+    [['navPrevMobile', -1], ['navNextMobile', 1], ['navPrevDesktop', -1], ['navNextDesktop', 1]].forEach(function (n) {
+      const el = document.getElementById(n[0]);
+      if (!el) return;
+      const ok = periodeBisa_(n[1]);
+      el.disabled = !ok;
+      el.classList.toggle('opacity-40', !ok);
+      el.classList.toggle('pointer-events-none', !ok);
+    });
   }
 
   function escHtml_(s) { const d = document.createElement('div'); d.textContent = String(s == null ? '' : s); return d.innerHTML; }
@@ -2722,17 +3057,19 @@ function openTambahRekeningModal() {
       const el = document.getElementById(elId);
       if (!el) return;
       const r = hitungPersenBanding_(sekarang, sebelumnya);
+      // Kartu ringkasan Statistik kini ber-background GRADIENT (teks putih) -> kelas warna
+      // semantik lama (text-success/text-danger) diganti putih/red-100 agar tetap terbaca.
       if (!r.ada) {
         el.textContent = 'Belum ada data ' + labelPeriodeSebelumnya;
-        el.className = 'text-xs text-slate-500 mt-2';
+        el.className = 'text-[11px] font-medium text-white/70 mt-1';
         return;
       }
       const teksPersen = Math.abs(r.persen).toFixed(1) + '%';
       const bagus = (naikBaik && r.naik) || (!naikBaik && !r.naik);
-      const warna = r.baruMuncul ? 'text-slate-500' : (bagus ? 'text-success' : 'text-danger');
-      const label = r.baruMuncul ? 'Baru' : ((r.naik ? 'Naik ' : 'Turun ') + teksPersen);
+      const warna = bagus ? 'text-white' : 'text-red-100';
+      const label = r.baruMuncul ? 'Baru muncul periode ini' : ((r.naik ? 'Naik ' : 'Turun ') + teksPersen + ' dari periode sebelumnya');
       el.textContent = label;
-      el.className = 'text-xs mt-2 font-semibold ' + warna;
+      el.className = 'text-[11px] font-medium mt-1 flex items-center gap-1 ' + warna;
     }
     renderTrendPersen_('trendPemasukan', pemasukan, pemasukanSebelumnya, true);
     renderTrendPersen_('trendPengeluaran', pengeluaran, pengeluaranSebelumnya, false);
@@ -2754,6 +3091,10 @@ function openTambahRekeningModal() {
         const labels = (trend || []).map(t => t.label);
         const pemasukanData = (trend || []).map(t => t.pemasukan);
         const pengeluaranData = (trend || []).map(t => t.pengeluaran);
+        // Pengeluaran dinilai NEGATIF -> barnya tumbuh KE BAWAH dari garis nol
+        // (pemasukan ke atas, pengeluaran ke bawah, sesuai arahan user).
+        const pengeluaranNeg = pengeluaranData.map(v => -v);
+        const saldoData = pemasukanData.map((v, i) => v - pengeluaranData[i]);
         // Formatter Rupiah singkat utk sumbu-Y & tooltip (mis. Rp 1,2 jt / Rp 850 rb)
         const fmtRupiahSingkat_ = (v) => {
           const n = Number(v) || 0;
@@ -2769,23 +3110,43 @@ function openTambahRekeningModal() {
             labels,
             datasets: [
               {
-                label: 'Masuk',
+                label: 'Pemasukan',
                 data: pemasukanData,
-                backgroundColor: '#10b981',
-                hoverBackgroundColor: '#0d9c6c',
-                borderRadius: 2,
+                backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                borderColor: '#10b981',
+                borderWidth: 1,
+                borderRadius: 4,
                 borderSkipped: false,
-                maxBarThickness: 24,
+                maxBarThickness: 22,
                 order: 2
               },
               {
-                label: 'Keluar',
-                data: pengeluaranData,
-                backgroundColor: '#e53e3e',
-                hoverBackgroundColor: '#c53030',
-                borderRadius: 2,
+                label: 'Pengeluaran',
+                data: pengeluaranNeg,
+                backgroundColor: 'rgba(229, 62, 62, 0.85)',
+                borderColor: '#e53e3e',
+                borderWidth: 1,
+                borderRadius: 4,
                 borderSkipped: false,
-                maxBarThickness: 24,
+                maxBarThickness: 22,
+                order: 2
+              },
+              {
+                // Garis saldo harian overlay (prototype) — BIRU agar beda dari bar hijau/merah
+                label: 'Saldo',
+                data: saldoData,
+                type: 'line',
+                borderColor: '#3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#3B82F6',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                fill: true,
+                tension: 0.35,
+                yAxisID: 'y',
                 order: 1
               }
             ]
@@ -2801,24 +3162,42 @@ function openTambahRekeningModal() {
                 padding: 10,
                 titleFont: { weight: 'bold' },
                 callbacks: {
-                  label: (ctx2) => ` ${ctx2.dataset.label}: Rp ${Number(ctx2.parsed.y || 0).toLocaleString('id-ID')}`
+                  // Judul tooltip kontekstual: bulanan = "5 Agustus 2026",
+                  // tahunan = "Agustus 2026" (label kolom cuma nama pendek bulan)
+                  title: (tooltipItems) => {
+                    if (!tooltipItems.length) return '';
+                    const lbl = String(tooltipItems[0].label);
+                    if (statistikMode === 'tahunan') {
+                      const idx = (trend || []).findIndex(t => t.label === lbl);
+                      return (idx > -1 ? NAMA_BULAN_ID[idx] : lbl) + ' ' + statistikTahun;
+                    }
+                    return lbl + ' ' + NAMA_BULAN_ID[statistikBulan] + ' ' + statistikTahun;
+                  },
+                  label: (ctx2) => {
+                    // Pengeluaran disimpan negatif (bar ke bawah) -> tampilkan ABSOLUTE
+                    const raw = Number(ctx2.parsed.y) || 0;
+                    const v = ctx2.dataset.label === 'Pengeluaran' ? Math.abs(raw) : raw;
+                    return ` ${ctx2.dataset.label}: ${fmtRupiahSingkat_(v)}`;
+                  }
                 }
               }
             },
             scales: {
               x: {
-                stacked: true,
+                stacked: false,
                 grid: { display: false },
                 ticks: { color: '#64748b', font: { size: 11 } }
               },
               y: {
-                stacked: true,
+                stacked: false,
                 beginAtZero: true,
                 grid: { color: 'rgba(148,163,184,.15)' },
                 ticks: {
                   color: '#64748b',
                   font: { size: 11 },
-                  callback: v => fmtRupiahSingkat_(v)
+                  // Sumbu menampung nilai negatif (bar pengeluaran ke bawah) ->
+                  // label tick pakai ABSOLUTE supaya tetap terbaca "Rp 85 rb"
+                  callback: v => fmtRupiahSingkat_(Math.abs(v))
                 }
               }
             }
@@ -2846,6 +3225,12 @@ function openTambahRekeningModal() {
     resetAiRecommendationCard_();
 
     cachedStatistik = data;
+    // Panel kanan versi Statistik (Pengeluaran Terbesar / Rasio Tabungan / Statistik Cepat)
+    renderAsideStatistik_(data);
+    // Ukur ulang tinggi area scroll setelah konten final dirender (chart & bar terisi)
+    fitStatistikViewport_();
+    // Streak di sidebar kiri ikut di-refresh begitu data periode aktif tersedia
+    updateSidebarStatistikInsight_();
   }
 
   // ==========================================
@@ -4430,7 +4815,8 @@ function handleLongPressEnd(event, cardEl) {
           if (meta && res.riwayat && res.riwayat.data) {
             newIds = res.riwayat.data.map(it => String(it.id)).filter(id => !meta.prevIds.has(id));
           }
-          cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server, TANPA toast lagi
+          cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server
+          invalidateStatCache_();
           cachedDompet = res.dompet;
           reconcileCancelledTemps_(newIds); // daftarkan hapus senyap (pending+1) SEBELUM endMutasi
           endMutasiPending_();              // pending masih ≥1 bila ada hapus senyap -> fetch ditahan
@@ -4686,7 +5072,7 @@ function handleLongPressEnd(event, cardEl) {
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; cachedDompet = res.dompet; // sinkron senyap, TANPA toast lagi
-          refreshVisibleUI_();
+          invalidateStatCache_();
         } else {
           cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
           refreshVisibleUI_();
@@ -4727,6 +5113,7 @@ function handleLongPressEnd(event, cardEl) {
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           if (res.riwayat) cachedRiwayat = res.riwayat;
+          invalidateStatCache_();
           if (res.dompet) { cachedDompet = res.dompet; renderDompetUI(cachedDompet); }
           refreshVisibleUI_();
         } else {
@@ -5005,6 +5392,7 @@ function handleLongPressEnd(event, cardEl) {
       .withSuccessHandler(function (res) {
         if (res && res.status === 'success') {
           if (res.riwayat) cachedRiwayat = res.riwayat;
+          invalidateStatCache_();
           if (res.dompet) cachedDompet = res.dompet;
           refreshVisibleUI_(); // render ulang; fetch card masih ditahan (pending=1)
         }

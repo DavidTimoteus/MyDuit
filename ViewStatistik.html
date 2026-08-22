@@ -1,107 +1,116 @@
-<header class="flex items-center justify-between pt-4 md:pt-6 pb-4">
+<!-- ============================================================
+     VIEW STATISTIK — redesign desktop mengikuti prototype/
+     DesktopPrototype-Statistik.html (3 kolom: sidebar kiri shared,
+     main ini, panel kanan shared di ViewTransaksi.html).
+     Header logo+judul = MOBILE ONLY (md:hidden); kontrol periode
+     (chips Bulanan/Tahunan + navigator ‹ label ›) pindah keluar
+     header supaya tetap bisa dipakai di desktop.
+     Semua ID lama dipertahankan agar logika ViewJS tidak rusak:
+     totalPemasukan/totalPengeluaran/totalSaldo, trend*, trendChartTitle,
+     statistikChart, emptyTrend, categoryTitle, categoryBarsIncome,
+     emptyCategoryIncome, categoryBars, emptyCategory, modalKategoriDetail*,
+     periodeCurrentLabel, chipPeriodeBulanan/chipPeriodeTahunan.
+     ============================================================ -->
+
+<!-- HEADER: mobile-only (di desktop judul digantikan sidebar & konten langsung).
+     KANAN: navigator periode ‹ label › gaya pill clay — posisinya senada dgn tombol
+     Filter di header tab Transaksi. -->
+<header class="flex items-center justify-between pt-4 pb-4 md:hidden">
   <div class="flex items-center gap-2.5 min-w-0">
-    <!-- Logo di kiri heading, konsisten dgn tab Transaksi (ViewTransaksi.html) — icon "monitoring"
-         (sama dgn ikon nav Statistik), kunci warna hijau (clay-key-primary). -->
     <div
       class="clay-icon-tile clay-key-primary w-10 h-10 rounded-2xl bg-gradient-to-br from-primary to-emerald-700 flex items-center justify-center text-white shrink-0">
       <span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">monitoring</span>
     </div>
-    <!-- Heading disamakan gaya-nya dgn tab Transaksi (riwayat-heading-neumorphism, tiap huruf
-         dibungkus <span class="neu-letter"> sendiri², lihat ViewCSS.html) — paragraf subtitle
-         di bawah heading DIHAPUS sesuai instruksi. -->
     <h2 class="font-display font-extrabold text-2xl sm:text-[28px] leading-tight riwayat-heading-neumorphism whitespace-nowrap">
       <span class="neu-letter">S</span><span class="neu-letter">t</span><span class="neu-letter">a</span><span class="neu-letter">t</span><span class="neu-letter">i</span><span class="neu-letter">s</span><span class="neu-letter">t</span><span class="neu-letter">i</span><span class="neu-letter">k</span>
     </h2>
   </div>
-  <div class="flex items-center gap-2 shrink-0" style="position:relative;">
-    <button id="btnPeriodeFilter" onclick="togglePeriodeDropdown()" class="clay-chip clay-key-neutral flex items-center gap-2 px-4 py-2 bg-white text-sm font-medium text-slate-700 transition-all h-auto" style="height:auto;">
-      <span class="material-symbols-outlined text-[17px] text-slate-500" style="font-size:17px;">filter_list</span>
-      <span id="periodeLabelText">Bulanan</span>
+
+  <!-- Navigator periode (mobile): pill kecil di kanan header -->
+  <div class="clay-chip clay-key-neutral bg-white flex items-center gap-0.5 px-1 py-1 shrink-0"
+    role="group" aria-label="Navigasi periode">
+    <button id="navPrevMobile" onclick="navigatePeriode(-1)" aria-label="Periode sebelumnya"
+      class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors">
+      <span class="material-symbols-outlined text-[16px] text-slate-600">chevron_left</span>
     </button>
-    <div id="periodeDropdown"
-      class="clay-select-list hidden absolute right-4 mt-1 z-50"
-      style="top:auto;margin-top:8px;width:160px;">
-      <button onclick="setPeriodeMode('bulanan')" class="clay-select-option w-full text-left">Per Bulan</button>
-      <button onclick="setPeriodeMode('tahunan')" class="clay-select-option w-full text-left">Per Tahun</button>
-    </div>
+    <span class="periodeCurrentLabel text-xs font-bold text-slate-800 min-w-[68px] text-center leading-tight">—</span>
+    <button id="navNextMobile" onclick="navigatePeriode(1)" aria-label="Periode berikutnya"
+      class="w-7 h-7 rounded-full flex items-center justify-center hover:bg-slate-100 transition-colors">
+      <span class="material-symbols-outlined text-[16px] text-slate-600">chevron_right</span>
+    </button>
   </div>
 </header>
 
-<!-- Period Navigator -->
-<div class="flex items-center justify-center gap-3 mb-4">
-  <button onclick="navigatePeriode(-1)" class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all h-auto" style="height:32px;width:32px;padding:0;border-radius:999px;">
-    <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_left</span>
-  </button>
-  <span id="periodeCurrentLabel" class="text-sm font-bold text-slate-800 min-w-[140px] text-center">—</span>
-  <button onclick="navigatePeriode(1)" class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all h-auto" style="height:32px;width:32px;padding:0;border-radius:999px;">
-    <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_right</span>
-  </button>
+<!-- PERIODE BAR:
+     Mobile  = hanya chips Bulanan/Tahunan center (navigator sudah pindah ke header).
+     Desktop = satu baris: chips kiri, navigator kanan; pt ekstra karena header
+               mobile-only tidak tampil di web. -->
+<div class="pb-4 md:flex md:items-center md:justify-between md:gap-3 md:pt-5">
+  <div class="flex justify-center gap-2">
+    <button id="chipPeriodeBulanan" onclick="setPeriodeMode('bulanan')"
+      class="clay-chip clay-key-primary bg-primary text-white px-4 h-9 flex items-center text-xs font-semibold transition-colors">Bulanan</button>
+    <button id="chipPeriodeTahunan" onclick="setPeriodeMode('tahunan')"
+      class="clay-chip clay-key-neutral bg-surfaceContainerLowest text-textSecondary px-4 h-9 flex items-center text-xs font-semibold hover:bg-gray-100 transition-colors">Tahunan</button>
+  </div>
+  <div class="hidden md:flex items-center gap-3">
+    <button id="navPrevDesktop" onclick="navigatePeriode(-1)" aria-label="Periode sebelumnya"
+      class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all" style="padding:0;">
+      <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_left</span>
+    </button>
+    <span class="periodeCurrentLabel text-sm font-bold text-slate-800 min-w-[120px] text-center">—</span>
+    <button id="navNextDesktop" onclick="navigatePeriode(1)" aria-label="Periode berikutnya"
+      class="clay-pagination-arrow clay-key-neutral w-8 h-8 flex items-center justify-center rounded-full bg-white transition-all" style="padding:0;">
+      <span class="material-symbols-outlined text-[18px] text-slate-600">chevron_right</span>
+    </button>
+  </div>
 </div>
 
-<div id="statistikContainer" class="space-y-5 pb-20">
-  <!-- Hero Numbers Trio — konsisten dgn resep kartu Transaksi (tx-card-item): kombinasi
-       ".clay .clay-card" (shadow 3-lapis + radius L1) & kunci hue via clay-key-* per jenis
-       (hijau/primary utk Pemasukan & Saldo, merah/danger utk Pengeluaran), ikon dibungkus
-       ".clay-icon-tile" bulat spt avatar kategori di kartu riwayat. -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="clay clay-card clay-key-primary bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
-      <div class="flex items-center justify-between">
-        <div class="min-w-0 flex-1">
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pemasukan</p>
-          <p id="totalPemasukan" class="stat-number text-2xl font-bold text-income mt-1"
-            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
-          <p id="trendPemasukan" class="text-xs text-slate-500 mt-2">—</p>
-        </div>
-        <div class="clay-icon-tile clay-key-primary w-10 h-10 rounded-full bg-success-light flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined text-success text-[22px]">trending_up</span>
-        </div>
+<div id="statistikContainer" class="space-y-5 pb-20 md:pb-4 md:pr-3">
+
+  <!-- ===== SUMMARY CARDS (gradient gaya prototype) ===== -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div class="clay clay-card clay-key-primary bg-gradient-to-br from-emerald-500 to-emerald-700 text-white p-4 rounded-[22px] transition-all hover:-translate-y-0.5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-[18px] opacity-90" style="font-variation-settings:'FILL' 1;">trending_up</span>
+        <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Pemasukan</p>
       </div>
+      <p id="totalPemasukan" class="font-mono font-extrabold text-2xl tracking-tight"
+        style="font-variant-numeric:tabular-nums;">Rp 0</p>
+      <p id="trendPemasukan" class="text-[11px] font-medium opacity-85 mt-1 flex items-center gap-1">—</p>
     </div>
 
-    <div class="clay clay-card clay-key-danger bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
-      <div class="flex items-center justify-between">
-        <div class="min-w-0 flex-1">
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pengeluaran</p>
-          <p id="totalPengeluaran" class="stat-number text-2xl font-bold text-expense mt-1"
-            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
-          <p id="trendPengeluaran" class="text-xs text-slate-500 mt-2">—</p>
-        </div>
-        <div class="clay-icon-tile clay-key-danger w-10 h-10 rounded-full bg-danger-light flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined text-danger text-[22px]">trending_down</span>
-        </div>
+    <div class="clay clay-card clay-key-danger bg-gradient-to-br from-red-500 to-red-700 text-white p-4 rounded-[22px] transition-all hover:-translate-y-0.5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-[18px] opacity-90" style="font-variation-settings:'FILL' 1;">trending_down</span>
+        <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Pengeluaran</p>
       </div>
+      <p id="totalPengeluaran" class="font-mono font-extrabold text-2xl tracking-tight"
+        style="font-variant-numeric:tabular-nums;">Rp 0</p>
+      <p id="trendPengeluaran" class="text-[11px] font-medium opacity-85 mt-1 flex items-center gap-1">—</p>
     </div>
 
-    <div class="clay clay-card clay-key-primary bg-white p-5 stat-card transition-all hover:-translate-y-0.5">
-      <div class="flex items-center justify-between">
-        <div class="min-w-0 flex-1">
-          <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Saldo Bersih</p>
-          <p id="totalSaldo" class="stat-number text-2xl font-bold text-blue-600 mt-1"
-            style="font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums;">Rp 0</p>
-          <p id="trendSaldo" class="text-xs text-slate-500 mt-2">—</p>
-        </div>
-        <div class="clay-icon-tile clay-key-primary w-10 h-10 rounded-full bg-primary-light flex items-center justify-center shrink-0">
-          <span class="material-symbols-outlined text-primary text-[22px]">account_balance_wallet</span>
-        </div>
+    <div class="clay clay-card clay-key-blue bg-gradient-to-br from-blue-500 to-blue-700 text-white p-4 rounded-[22px] transition-all hover:-translate-y-0.5">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="material-symbols-outlined text-[18px] opacity-90" style="font-variation-settings:'FILL' 1;">savings</span>
+        <p class="text-xs font-semibold uppercase tracking-wider opacity-90">Saldo Bersih</p>
       </div>
+      <p id="totalSaldo" class="font-mono font-extrabold text-2xl tracking-tight"
+        style="font-variant-numeric:tabular-nums;">Rp 0</p>
+      <p id="trendSaldo" class="text-[11px] font-medium opacity-85 mt-1 flex items-center gap-1">—</p>
     </div>
   </div>
 
-  <!-- Trend Chart — panel netral (clay-key-neutral) krn isinya dua warna sekaligus
-       (garis Masuk hijau & Keluar merah), sama resep .clay .clay-card spt kartu Transaksi. -->
-  <div class="clay clay-card clay-key-neutral bg-white p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h3 id="trendChartTitle" class="font-bold text-sm text-slate-700">Tren Bulan Ini</h3>
-      <div class="flex items-center gap-3">
-        <span class="flex items-center gap-1.5 text-xs text-slate-500">
-          <span class="w-2.5 h-2.5 rounded-full" style="background:#10b981;"></span>Masuk
-        </span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500">
-          <span class="w-2.5 h-2.5 rounded-full" style="background:#e53e3e;"></span>Keluar
-        </span>
+  <!-- ===== TREND CHART CARD ===== -->
+  <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-4 rounded-[22px]">
+    <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+      <h3 id="trendChartTitle" class="font-bold text-base text-slate-800">Tren Bulan Ini</h3>
+      <div class="flex items-center gap-3 text-xs">
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500"></span> Pemasukan</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500"></span> Pengeluaran</span>
+        <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500"></span> Saldo</span>
       </div>
     </div>
-    <div class="h-72 relative">
+    <div class="h-64 md:h-72 relative">
       <canvas id="statistikChart"></canvas>
       <div id="emptyTrend"
         class="hidden absolute inset-0 flex flex-col items-center justify-center text-center gap-2 text-slate-400">
@@ -111,33 +120,32 @@
     </div>
   </div>
 
-  <!-- Category Breakdown — panel netral senada Trend Chart, tiap baris kategori pakai
-       warna palette sendiri (lihat renderCategoryBars_() di ViewJS.html). Sekarang dua
-       kolom: Pemasukan (kiri) & Pengeluaran (kanan), tiap sisi Top kategori dgn progress
-       bar + persentase terhadap total jenis masing-masing. -->
-  <div class="clay clay-card clay-key-neutral bg-white p-5">
-    <div class="flex items-center justify-between mb-4">
-      <h3 id="categoryTitle" class="font-bold text-sm text-slate-700">Breakdown Kategori</h3>
-      <span class="text-[10px] text-slate-400 hidden sm:inline">Klik 2x kategori utk detail</span>
-    </div>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-      <div>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full" style="background:#10b981;"></span>Pemasukan
-        </p>
-        <div id="categoryBarsIncome" class="space-y-3"></div>
-        <div id="emptyCategoryIncome" class="text-center py-8 text-slate-500 text-sm hidden">
-          Belum ada data pemasukan untuk periode ini.
-        </div>
+  <!-- ===== BREAKDOWN KATEGORI (2 kartu terpisah, prototype) ===== -->
+  <div class="flex items-center justify-between flex-wrap gap-1 px-1">
+    <h3 id="categoryTitle" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Breakdown Kategori</h3>
+    <span class="text-[10px] text-slate-400 hidden sm:inline">Klik 2x kategori utk detail</span>
+  </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 -mt-3">
+    <!-- Pemasukan -->
+    <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-4 rounded-[22px]">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-[18px] text-emerald-600">trending_up</span>
+        <h3 class="font-bold text-sm text-slate-800">Pemasukan per Kategori</h3>
       </div>
-      <div>
-        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-          <span class="w-2.5 h-2.5 rounded-full" style="background:#e53e3e;"></span>Pengeluaran
-        </p>
-        <div id="categoryBars" class="space-y-3"></div>
-        <div id="emptyCategory" class="text-center py-8 text-slate-500 text-sm hidden">
-          Belum ada data pengeluaran untuk periode ini.
-        </div>
+      <div id="categoryBarsIncome" class="space-y-2"></div>
+      <div id="emptyCategoryIncome" class="hidden text-center py-8 text-slate-500 text-sm">
+        Belum ada data pemasukan untuk periode ini.
+      </div>
+    </div>
+    <!-- Pengeluaran -->
+    <div class="clay clay-card clay-key-danger bg-surfaceContainerLowest p-4 rounded-[22px]">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="material-symbols-outlined text-[18px] text-red-600">trending_down</span>
+        <h3 class="font-bold text-sm text-slate-800">Pengeluaran per Kategori</h3>
+      </div>
+      <div id="categoryBars" class="space-y-2"></div>
+      <div id="emptyCategory" class="hidden text-center py-8 text-slate-500 text-sm">
+        Belum ada data pengeluaran untuk periode ini.
       </div>
     </div>
   </div>
@@ -145,10 +153,8 @@
   <!-- MODAL DETAIL TRANSAKSI PER KATEGORI ("card-modal") — dibuka via double click/double
        tap salah satu baris kategori di "Breakdown Kategori" (Pemasukan ATAU Pengeluaran;
        renderCategoryBars_() di ViewJS.html memasang ondblclick per baris). Menampilkan
-       SEMUA transaksi kategori tsb pada periode (bulan/tahun) yang sedang aktif dipilih
-       di filter Statistik. Data diambil dari cachedStatistik.items (sudah dikirim sekalian
-       oleh getStatistikPeriodeServer()), TANPA round-trip server baru — lihat
-       openKategoriDetailModal() di ViewJS.html. -->
+       SEMUA transaksi kategori tsb pada periode aktif dari cachedStatistik.items TANPA
+       round-trip server baru — lihat openKategoriDetailModal() di ViewJS.html. -->
   <div id="modalKategoriDetail"
     class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[999] hidden flex items-center justify-center p-4">
     <div class="clay-sheet clay-key-primary bg-white w-full max-w-md flex flex-col max-h-[85vh]">
@@ -176,7 +182,6 @@
   <div id="aiRecommendation" ondblclick="handleAiRekomendasiTap()"
     class="clay clay-card clay-key-primary overflow-hidden transition-all hover:-translate-y-0.5" style="cursor:pointer;"
     title="Ketuk/klik dua kali untuk memuat rekomendasi AI">
-    <!-- Header gradient -->
     <div class="flex items-center gap-3 px-5 py-4" style="background:linear-gradient(135deg,#2D6A4F 0%,#1B4332 100%);">
       <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
         style="background:rgba(255,255,255,0.15);">
@@ -188,7 +193,6 @@
         </p>
       </div>
     </div>
-    <!-- Body -->
     <div class="bg-white px-5 py-4">
       <div id="aiRecommendationText">
         <div class="flex items-center gap-2 text-sm text-slate-500 py-2">
@@ -201,26 +205,3 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-  function togglePeriodeDropdown() {
-    const dd = document.getElementById('periodeDropdown');
-    const btn = document.getElementById('btnPeriodeFilter');
-    if (!dd || !btn) return;
-    dd.classList.toggle('hidden');
-    if (!dd.classList.contains('hidden')) {
-      const rect = btn.getBoundingClientRect();
-      dd.style.position = 'fixed';
-      dd.style.top = (rect.bottom + 6) + 'px';
-      dd.style.right = (window.innerWidth - rect.right) + 'px';
-      dd.style.left = 'auto';
-      setTimeout(() => {
-        document.addEventListener('click', function handler(e) {
-          if (!dd.contains(e.target) && e.target !== btn) {
-            dd.classList.add('hidden');
-            document.removeEventListener('click', handler);
-          }
-        });
-      }, 10);
-    }
-  }
-</script>

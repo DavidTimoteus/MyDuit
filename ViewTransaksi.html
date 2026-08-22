@@ -47,6 +47,26 @@
           Utang
         </button>
       </nav>
+
+      <!-- Card INSIGHT STATISTIK (khusus tab Statistik, toggle di switchTab()):
+           Streak pencatatan dihitung client-side dari cachedStatistik.items;
+           tips keuangan berganti otomatis tiap hari (pool statis). -->
+      <div id="sidebarStatistikInsightCard" class="clay clay-card clay-key-blue bg-white flex flex-col gap-2 p-4 rounded-[18px] mt-2" style="display:none;">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-primary" style="font-variation-settings:'FILL' 1;">local_fire_department</span>
+          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-500">Streak Pencatatan</p>
+        </div>
+        <div class="flex items-baseline gap-1.5">
+          <span id="statSideStreak" class="font-mono font-extrabold text-xl text-primary">0</span>
+          <span class="text-[11px] font-semibold text-textSecondary">hari beruntun mencatat</span>
+        </div>
+        <p id="statSideLastDate" class="text-[10px] font-medium text-textSecondary">—</p>
+        <div class="h-px bg-slate-200/70"></div>
+        <div class="flex items-start gap-2">
+          <span class="material-symbols-outlined text-[16px] text-amber-500 shrink-0" style="font-variation-settings:'FILL' 1;">tips_and_updates</span>
+          <p id="statSideTip" class="text-[11px] leading-snug text-slate-600">—</p>
+        </div>
+      </div>
       <!-- Card: Utang/Cicilan Jatuh Tempo Terdekat -->
       <div class="clay clay-card clay-key-danger flex flex-col gap-1 p-4 rounded-[18px] mt-2" id="sidebarNearestDebtCard" style="display:none; background-color: #E53E3E;">
         <div class="flex items-center gap-2">
@@ -607,55 +627,133 @@
           </button>
         </div>
         <div class="h-px bg-slate-200/70 mb-3 shrink-0"></div>
-        <div class="flex-1 flex flex-col gap-2 min-h-0">
-          <div class="clay clay-card clay-key-primary bg-gradient-to-br from-primary to-emerald-700 text-white flex flex-col gap-0.5 p-4 rounded-[18px]">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[16px] opacity-90" style="font-variation-settings:'FILL' 1">savings</span>
-              <p class="text-[10px] font-semibold uppercase tracking-wider opacity-90">Total Saldo</p>
+
+        <!-- ===== GRUP KONTEN TAB TRANSAKSI (default tampil) ===== -->
+        <div id="asideGroupTransaksi" class="flex-1 flex flex-col min-h-0">
+          <div class="flex-1 flex flex-col gap-2 min-h-0">
+            <div class="clay clay-card clay-key-primary bg-gradient-to-br from-primary to-emerald-700 text-white flex flex-col gap-0.5 p-4 rounded-[18px]">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px] opacity-90" style="font-variation-settings:'FILL' 1">savings</span>
+                <p class="text-[10px] font-semibold uppercase tracking-wider opacity-90">Total Saldo</p>
+              </div>
+              <p id="summaryTotalSaldo" class="font-mono font-extrabold text-xl tracking-tight mt-0.5">Rp0</p>
+              <p id="summarySaldoBulanIni" class="text-[10px] font-medium opacity-80 mt-0.5 flex items-center gap-1">
+                <span class="material-symbols-outlined text-[12px]">trending_up</span> —
+              </p>
             </div>
-            <p id="summaryTotalSaldo" class="font-mono font-extrabold text-xl tracking-tight mt-0.5">Rp0</p>
-            <p id="summarySaldoBulanIni" class="text-[10px] font-medium opacity-80 mt-0.5 flex items-center gap-1">
-              <span class="material-symbols-outlined text-[12px]">trending_up</span> —
-            </p>
+            <div class="clay clay-card clay-key-danger bg-surfaceContainerLowest flex flex-col gap-0.5 p-4 rounded-[18px]">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-[16px] text-expense" style="font-variation-settings:'FILL' 1">today</span>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
+              </div>
+              <p id="summaryPengeluaranHariIni" class="font-mono font-extrabold text-lg tracking-tight text-expense mt-0.5">Rp0</p>
+              <p id="summaryPengeluaranCount" class="text-[10px] font-medium text-textSecondary">0 transaksi · Hari ini</p>
+            </div>
+            <div id="summaryTopCategoryCard" class="clay clay-card clay-key-primary bg-surfaceContainerLowest flex flex-col gap-0.5 p-4 rounded-[18px]">
+              <div class="flex items-center gap-2">
+                <span id="summaryTopCategoryIcon" class="material-symbols-outlined text-[16px] text-emerald-600" style="font-variation-settings:'FILL' 1">category</span>
+                <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate flex-1">Top Kategori</p>
+                <span id="summaryTopCategoryTypeBadge" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Pemasukan</span>
+              </div>
+              <p id="summaryTopCategoryName" class="font-extrabold text-base tracking-tight text-slate-800 mt-0.5 truncate">-</p>
+              <p id="summaryTopCategoryAmount" class="font-mono font-extrabold text-sm tracking-tight text-emerald-600">Rp0</p>
+            </div>
           </div>
-          <div class="clay clay-card clay-key-danger bg-surfaceContainerLowest flex flex-col gap-0.5 p-4 rounded-[18px]">
-            <div class="flex items-center gap-2">
-              <span class="material-symbols-outlined text-[16px] text-expense" style="font-variation-settings:'FILL' 1">today</span>
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
+          <div class="h-px bg-slate-200/70 my-3 shrink-0"></div>
+          <div class="shrink-0">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">Aksi Cepat</p>
+            <div class="flex flex-col gap-1.5">
+              <button onclick="openTransaksiPreset('Pemasukan')" class="clay-btn clay-key-primary w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-white text-xs font-bold">
+                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">add_circle</span>
+                Tambah Pemasukan
+              </button>
+              <button onclick="openTransaksiPreset('Pengeluaran')" class="clay-btn clay-key-danger w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white text-xs font-bold">
+                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">remove_circle</span>
+                Tambah Pengeluaran
+              </button>
+              <button onclick="openPindahSaldoModal()" class="clay-btn clay-key-blue w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold">
+                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">swap_horiz</span>
+                Pindah Saldo
+              </button>
             </div>
-            <p id="summaryPengeluaranHariIni" class="font-mono font-extrabold text-lg tracking-tight text-expense mt-0.5">Rp0</p>
-            <p id="summaryPengeluaranCount" class="text-[10px] font-medium text-textSecondary">0 transaksi · Hari ini</p>
-          </div>
-          <div id="summaryTopCategoryCard" class="clay clay-card clay-key-primary bg-surfaceContainerLowest flex flex-col gap-0.5 p-4 rounded-[18px]">
-            <div class="flex items-center gap-2">
-              <span id="summaryTopCategoryIcon" class="material-symbols-outlined text-[16px] text-emerald-600" style="font-variation-settings:'FILL' 1">category</span>
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate flex-1">Top Kategori</p>
-              <span id="summaryTopCategoryTypeBadge" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full shrink-0">Pemasukan</span>
-            </div>
-            <p id="summaryTopCategoryName" class="font-extrabold text-base tracking-tight text-slate-800 mt-0.5 truncate">-</p>
-            <p id="summaryTopCategoryAmount" class="font-mono font-extrabold text-sm tracking-tight text-emerald-600">Rp0</p>
           </div>
         </div>
-        <div class="h-px bg-slate-200/70 my-3 shrink-0"></div>
-        <div class="shrink-0">
-          <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">Aksi Cepat</p>
-          <div class="flex flex-col gap-1.5">
-            <button onclick="openTransaksiPreset('Pemasukan')" class="clay-btn clay-key-primary w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-primary to-emerald-700 text-white text-xs font-bold">
-              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">add_circle</span>
-              Tambah Pemasukan
-            </button>
-            <button onclick="openTransaksiPreset('Pengeluaran')" class="clay-btn clay-key-danger w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-red-500 to-red-700 text-white text-xs font-bold">
-              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">remove_circle</span>
-              Tambah Pengeluaran
-            </button>
-            <button onclick="openPindahSaldoModal()" class="clay-btn clay-key-blue w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white text-xs font-bold">
-              <span class="material-symbols-outlined text-[16px]" style="font-variation-settings:'FILL' 1">swap_horiz</span>
-              Pindah Saldo
-            </button>
+
+        <!-- ===== GRUP KONTEN TAB STATISTIK (prototype DesktopPrototype-Statistik) =====
+             Ditampilkan saat tab Statistik aktif (toggle di switchTab() ViewJS.html).
+             Nilai diisi renderAsideStatistik_() dari cachedStatistik — tanpa server baru. -->
+        <!-- TANPA SCROLL: tinggi kartu dipadatkan agar selalu muat di ruang panel;
+             bayangan clay tetap utuh karena tidak ada area overflow yang menggunting. -->
+        <div id="asideGroupStatistik" class="hidden flex flex-1 flex-col justify-center gap-4 min-h-0 px-2 py-3">
+          <!-- Wrapper kedua kartu analitik: gap lebih renggang & tetap ter-center -->
+          <div class="flex flex-col justify-center gap-5">
+
+          <!-- Pengeluaran Terbesar -->
+          <div class="clay clay-card clay-key-danger bg-surfaceContainerLowest p-3 rounded-[22px] shrink-0">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Pengeluaran Terbesar</p>
+            <div class="flex items-center gap-2.5">
+              <div class="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                <span id="statTopExpIcon" class="material-symbols-outlined text-[19px]">shopping_cart</span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p id="statTopExpName" class="font-bold text-sm text-slate-800 truncate">—</p>
+                <p id="statTopExpPct" class="text-[11px] text-textSecondary leading-tight">—</p>
+              </div>
+              <p id="statTopExpAmount" class="font-mono text-xs font-bold text-expense shrink-0">Rp0</p>
+            </div>
           </div>
-    </div>
-  </div>
-</aside>
+
+          <!-- Rasio Tabungan -->
+          <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-3 rounded-[22px] shrink-0">
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Rasio Tabungan</p>
+            <div class="flex items-center justify-between mb-1.5">
+              <span id="statRasioNilai" class="font-mono font-extrabold text-xl text-emerald-600">0%</span>
+              <span id="statRasioBadge" class="text-[11px] font-medium bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">—</span>
+            </div>
+            <div class="h-1.5 w-full rounded-full overflow-hidden"
+              style="background:#EEF2F7;box-shadow:inset 3px 3px 7px rgba(0,0,0,.12), inset -3px -3px 7px rgba(255,255,255,.85);">
+              <div id="statRasioBar" class="h-full rounded-full transition-all"
+                style="width:0%;background:linear-gradient(to right,#34d399,#059669);"></div>
+            </div>
+            <p class="text-[11px] font-medium text-textSecondary mt-1.5">Sisa pemasukan setelah pengeluaran</p>
+          </div>
+          </div>
+
+          <!-- Statistik Cepat -->
+          <div class="h-px bg-slate-200/70 shrink-0"></div>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 px-1 shrink-0">Statistik Cepat</p>
+          <div class="space-y-2">
+            <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest py-2.5 px-3 rounded-[16px] flex items-center justify-between">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-primary shrink-0">
+                  <span class="material-symbols-outlined text-[17px]">calendar_today</span>
+                </div>
+                <span class="text-xs font-semibold text-slate-600 truncate">Rata-rata harian</span>
+              </div>
+              <span id="statAvgHarian" class="font-mono text-xs font-bold text-slate-800 shrink-0">Rp0</span>
+            </div>
+            <div class="clay clay-card clay-key-blue bg-surfaceContainerLowest py-2.5 px-3 rounded-[16px] flex items-center justify-between">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
+                  <span class="material-symbols-outlined text-[18px]">receipt</span>
+                </div>
+                <span class="text-xs font-semibold text-slate-600 truncate">Transaksi periode ini</span>
+              </div>
+              <span id="statJmlTx" class="font-mono text-xs font-bold text-slate-800 shrink-0">0</span>
+            </div>
+            <div class="clay clay-card clay-key-neutral bg-surfaceContainerLowest py-2.5 px-3 rounded-[16px] flex items-center justify-between">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                  <span class="material-symbols-outlined text-[18px]">category</span>
+                </div>
+                <span class="text-xs font-semibold text-slate-600 truncate">Kategori aktif</span>
+              </div>
+              <span id="statKatAktif" class="font-mono text-xs font-bold text-slate-800 shrink-0">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
 
 </div>
 
