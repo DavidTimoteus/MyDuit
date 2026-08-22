@@ -214,6 +214,21 @@
           </div>
         </div>
 
+        <!-- Pertanyaan Rekomendasi AI (muncul saat user menekan tombol Export PDF):
+             toggle apakah laporan menyertakan analisis & saran AI di bagian akhir.
+             Default AKTIF; nilainya dibaca prosesExportPDF() dan dikirim ke generateLaporanPDFServer(). -->
+        <div class="mt-4 p-3 rounded-2xl bg-surface flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <label for="exportPakaiAI" class="block text-sm font-semibold text-textPrimary cursor-pointer">Sertakan Rekomendasi AI</label>
+            <p class="text-xs text-textSecondary mt-0.5">Analisis &amp; saran keuangan otomatis di bagian akhir laporan.</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer shrink-0" aria-label="Sertakan rekomendasi AI">
+            <input type="checkbox" id="exportPakaiAI" checked class="sr-only peer">
+            <span class="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-primary transition-colors"></span>
+            <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow peer-checked:translate-x-4 transition-transform"></span>
+          </label>
+        </div>
+
         <p id="exportInfoText" class="text-xs text-slate-400 mt-3"></p>
       </div>
 

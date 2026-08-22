@@ -5401,11 +5401,16 @@ function handleLongPressEnd(event, cardEl) {
   function prosesExportPDF() {
     const bulan = parseInt(document.getElementById('exportBulan')?.value);
     const tahun = parseInt(document.getElementById('exportTahun')?.value);
+    // Toggle "Sertakan Rekomendasi AI" (default AKTIF bila elemen tidak ditemukan)
+    const aiEl = document.getElementById('exportPakaiAI');
+    const pakaiAI = aiEl ? !!aiEl.checked : true;
     const btn = document.getElementById('btnProsesExport');
     const info = document.getElementById('exportInfoText');
 
     if (btn) btn.disabled = true;
-    if (info) info.textContent = 'Sedang membuat laporan PDF, mohon tunggu...';
+    if (info) info.textContent = pakaiAI
+      ? 'Sedang membuat laporan PDF + rekomendasi AI, mohon tunggu...'
+      : 'Sedang membuat laporan PDF, mohon tunggu...';
 
     if(google.script && google.script.run && google.script.run.generateLaporanPDFServer) {
         google.script.run
@@ -5426,7 +5431,7 @@ function handleLongPressEnd(event, cardEl) {
             if (info) info.textContent = '';
             showToast('error', 'Koneksi error: ' + (err.message || err));
           })
-          .generateLaporanPDFServer(bulan, tahun);
+          .generateLaporanPDFServer(bulan, tahun, pakaiAI);
     } else {
         if (btn) btn.disabled = false;
         if (info) info.textContent = '';
