@@ -75,7 +75,7 @@
     <div class="md:h-full md:overflow-hidden md:pr-2 md:rounded-[28px]">
       <div class="max-w-3xl mx-auto min-h-screen relative px-4 md:max-w-none md:px-6 md:mx-0 md:bg-transparent">
 
-  <header id="pageHeader" class="pt-4 pb-4 viewriwayat-font-circular md:hidden">
+  <header id="pageHeader" class="pt-3 pb-2 viewriwayat-font-circular md:hidden">
 
     <!-- FIX: heading "Transaksi" — font-display + Neomorphism hijau (riwayat-heading-neumorphism, lihat
          ViewCSS.html). Tiap huruf dibungkus <span class="neu-letter"> agar bevel timul jelas.
@@ -229,7 +229,7 @@
 
   <div id="viewRiwayat" class="view-section active viewriwayat-font-circular">
 
-    <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-3 mb-4 mt-4">
+    <div class="clay clay-card clay-key-primary bg-surfaceContainerLowest p-3 mb-4 mt-2 md:mt-4">
       <div class="flex items-center gap-2">
         <div class="relative flex-1 min-w-0">
           <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-textSecondary text-[20px]">search</span>
@@ -252,6 +252,14 @@
           </button>
           <button onclick="toggleBulkSelectMode()" id="btnBulkMode" aria-label="Pilih banyak transaksi" title="Pilih banyak transaksi" class="chip-btn clay-chip clay-key-neutral w-10 h-10 shrink-0 bg-surface text-textSecondary flex items-center justify-center hover:bg-gray-100 hover:text-textPrimary transition-colors">
             <span class="material-symbols-outlined text-[20px]">checklist</span>
+          </button>
+
+          <!-- Filter tanggal (desktop): sejajar dgn search row, di kanan tombol pilih banyak.
+               Mobile pakai #btnOpenFilter di pageHeader. -->
+          <button id="btnOpenFilterDesktop" onclick="openFilterModal()" aria-label="Filter Tanggal"
+            class="chip-btn clay-chip clay-key-primary hidden md:flex items-center gap-1.5 h-10 pl-2.5 pr-3 shrink-0 bg-blue-700 text-white font-medium text-xs transition-colors hover:bg-blue-800">
+            <span class="material-symbols-outlined text-[18px]">tune</span>
+            <span id="filterActiveLabelDesktop">Hari Ini</span>
           </button>
         </div>
       </div>

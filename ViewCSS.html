@@ -735,6 +735,22 @@
     white-space: nowrap;
   }
 
+  /* FIX: tombol Filter tanggal versi desktop (#btnOpenFilterDesktop, ViewTransaksi.html)
+     harus HILANG total di mobile (mobile pakai #btnOpenFilter di pageHeader). Utility
+     "hidden md:flex" dari Tailwind CDN ternyata masih bisa kalah urutan muat di beberapa
+     kondisi -> dipakai rule eksplisit selector ID (spesifisitas tertinggi): default
+     disembunyikan, baru tampil mulai breakpoint md (768px+). */
+  #btnOpenFilterDesktop {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    #btnOpenFilterDesktop {
+      display: inline-flex;
+      align-items: center;
+    }
+  }
+
   /* Sub-tab toggle Budget (Rekening | Budget): tombol aktif tampil "ditekan" via inset
      box-shadow yang dipasang JS (switchBudgetSubTab() di ViewJS.html) — transisi halus
      dibuat lewat CSS ini supaya pergantian efek timbul->tertekan tidak patah-patah. */

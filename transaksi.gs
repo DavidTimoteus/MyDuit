@@ -133,10 +133,14 @@ function getRiwayatKasServer(page, limit, filterParams) {
   }
 }
 
+// FIX INPUT CEPAT: waitLock dipindah ke dalam try (gagal dapat kunci -> pesan error
+// jelas, bukan exception mentah ke client), dan baca berat (rebuild riwayat+dompet)
+// dikeluarkan dari area lock -> kunci hanya ditahan selama validasi+tulis+delta saldo
+// (cepat), sehingga input cepat berturut-turut tidak lagi antre >10 dtk lalu ditolak.
 function simpanTransaksiServer(formData, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
   try {
+    lock.waitLock(10000);
     const jenis = String(formData.jenis || '').trim();
     const nominal = Number(formData.nominal) || 0;
     const sumber = String(formData.sumber || '').trim();
@@ -184,20 +188,23 @@ function simpanTransaksiServer(formData, page, limit, filterParams) {
 
     invalidateTransaksiCache_();
     applyDeltaSaldoAkun_(sumber, jenis.toLowerCase() === 'pengeluaran' ? -nominal : nominal, jenis, id, tglTx);
-
-    const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
-    lock.releaseLock();
+    lock.releaseLock(); // aman walau lock tidak sempat didapat (no-op)
   }
+
+  // DI LUAR lock: rebuild riwayat & dompet (baca fisik sheet setelah cache
+  // di-invalidate) tidak lagi memegang kunci -> eksekusi paralel berikutnya
+  // tidak menunggu lama. Data tetap akurat karena appendRow sudah committed.
+  const riwayat = getRiwayatKasServer(page, limit, filterParams);
+  return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
 }
 
 function updateTransaksiServer(formData, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
   try {
+    lock.waitLock(10000);
     const sheet = getTransaksiSheet_();
     const targetRow = findRowIndexById_(sheet, formData.id, 2, TRANSAKSI_COL.ID);
     if (targetRow === -1) throw new Error('Transaksi tidak ditemukan.');
@@ -254,20 +261,21 @@ function updateTransaksiServer(formData, page, limit, filterParams) {
       applyDeltaSaldoAkun_(sumberLamaID, -deltaLama, 'Update Transaksi (Akun Lama)', formData.id, tglTxUpd);
       applyDeltaSaldoAkun_(akunIDBaru, deltaBaru, 'Update Transaksi (Akun Baru)', formData.id, tglTxUpd);
     }
-
-    const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
     lock.releaseLock();
   }
+
+  // DI LUAR lock — pola sama dengan simpanTransaksiServer() (fix input cepat)
+  const riwayat = getRiwayatKasServer(page, limit, filterParams);
+  return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
 }
 
 function hapusTransaksiServer(id, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
   try {
+    lock.waitLock(10000);
     const sheet = getTransaksiSheet_();
     const targetRow = findRowIndexById_(sheet, id, 2, TRANSAKSI_COL.ID);
     if (targetRow === -1) throw new Error('Transaksi sudah terhapus.');
@@ -292,14 +300,15 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
     } else {
       applyDeltaSaldoAkun_(sumber, -nominal, 'Hapus Transaksi', id, logDate);
     }
-
-    const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
     lock.releaseLock();
   }
+
+  // DI LUAR lock — pola sama dengan simpanTransaksiServer() (fix input cepat)
+  const riwayat = getRiwayatKasServer(page, limit, filterParams);
+  return { status: 'success', riwayat: riwayat, dompet: getDompetServer() };
 }
 
 /**
@@ -309,8 +318,9 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
  */
 function hapusTransaksiMassalServer(ids, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+  let jumlahDihapus = 0;
   try {
+    lock.waitLock(10000);
     let idList = Array.isArray(ids) ? ids : String(ids || '').split(',');
     idList = idList.map(function (s) { return String(s).trim(); }).filter(Boolean);
     if (!idList.length) throw new Error('Tidak ada transaksi yang dipilih.');
@@ -369,24 +379,22 @@ function hapusTransaksiMassalServer(ids, page, limit, filterParams) {
       }
     });
 
-    const riwayat = getRiwayatKasServer(page, limit, filterParams);
-    return {
-      status: 'success',
-      jumlahDihapus: deleted.length,
-      riwayat: riwayat,
-      dompet: getDompetServer()
-    };
+    jumlahDihapus = deleted.length;
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
     lock.releaseLock();
   }
+
+  // DI LUAR lock — pola sama dengan simpanTransaksiServer() (fix input cepat)
+  const riwayat = getRiwayatKasServer(page, limit, filterParams);
+  return { status: 'success', jumlahDihapus: jumlahDihapus, riwayat: riwayat, dompet: getDompetServer() };
 }
 
 function pindahSaldoServer(formData, page, limit, filterParams) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
   try {
+    lock.waitLock(10000);
     const sumber = String(formData.sumberRekening || '').trim();
     const tujuan = String(formData.rekeningTujuan || '').trim();
     const nominal = Number(formData.nominal) || 0;
@@ -416,15 +424,16 @@ function pindahSaldoServer(formData, page, limit, filterParams) {
     invalidateTransaksiCache_();
     applyDeltaSaldoAkun_(sumber, -nominal, 'Pindah Saldo Keluar', id, tanggal);
     applyDeltaSaldoAkun_(tujuan, nominal, 'Pindah Saldo Masuk', id, tanggal);
-
-    const dompet = getDompetServer();
-    const riwayat = (page && limit) ? getRiwayatKasServer(page, limit, filterParams) : null;
-    return { status: 'success', dompet, riwayat };
   } catch (err) {
     return { status: 'error', message: err.message };
   } finally {
     lock.releaseLock();
   }
+
+  // DI LUAR lock — pola sama dengan simpanTransaksiServer() (fix input cepat)
+  const dompet = getDompetServer();
+  const riwayat = (page && limit) ? getRiwayatKasServer(page, limit, filterParams) : null;
+  return { status: 'success', dompet, riwayat };
 }
 
 function updatePindahSaldoServer(formData, page, limit, filterParams) {

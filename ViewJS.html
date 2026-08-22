@@ -32,6 +32,11 @@
   let filterEndDate = '';
 let cachedDompet = null; // JS memory cache Dompet/Budget -> null = belum pernah dimuat / lagi tidak valid
 let cachedRiwayat = null; // JS memory cache Riwayat (page/filter aktif saat ini)
+// FIX INPUT CEPAT: penomoran request mutasi server. Setiap submit mutasi menaikkan counter;
+// respons (sukses/gagal) yang datang dari request yang LEBIH LAMA dari submit terakhir
+// dianggap basi & diabaikan, supaya tidak menimpa cache/entri optimistik milik mutasi terbaru
+// (gejala lama: respons tx1 yg telat menghapus entri sementara tx2 yang baru di-submit).
+let mutasiServerSeq_ = 0;
 let bulkSelectModeActive = false;   // mode seleksi hapus massal aktif?
 const bulkSelectedIds = new Set();  // daftar Transaksi.ID yang dicentang utk hapus massal
 let cachedStatistik = null; // JS memory cache Statistik
@@ -1114,8 +1119,10 @@ function handlePindahSaldoSubmit(event) {
     showToast('success', 'Saldo berhasil dipindahkan!');
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedDompet = res.dompet; // sinkronkan dgn saldo/timestamp asli dari server
           if (res.riwayat) cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli
@@ -1127,6 +1134,7 @@ function handlePindahSaldoSubmit(event) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedDompet = snapshotDompet; cachedRiwayat = snapshotRiwayat; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
@@ -1156,8 +1164,10 @@ function handlePindahSaldoSubmit(event) {
     closePindahSaldoModal();
     showToast('loading', 'Menyimpan perubahan...');
 
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — biarkan toast milik mutasi terbaru
         hideToast();
         if (res && res.status === 'success') {
           cachedDompet = res.dompet;
@@ -1171,7 +1181,7 @@ function handlePindahSaldoSubmit(event) {
         }
       })
       .withFailureHandler(err => {
-        hideToast();
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedDompet = snapshotDompet; cachedRiwayat = snapshotRiwayat;
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
@@ -4317,9 +4327,11 @@ function handleLongPressEnd(event, cardEl) {
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
     const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
+    const mutSeq = ++mutasiServerSeq_; // tanda request TERBARU; respons lebih lama diabaikan
 
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada submit lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server, TANPA toast lagi
           cachedDompet = res.dompet;
@@ -4331,6 +4343,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
@@ -4402,8 +4415,10 @@ function handleLongPressEnd(event, cardEl) {
     refreshVisibleUI_();
     showToast('success', 'Transaksi berhasil disalin & dicatat!');
 
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada submit lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server
           cachedDompet = res.dompet;
@@ -4415,6 +4430,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, salinan dibatalkan: ' + (err.message || err));
@@ -4509,8 +4525,10 @@ function handleLongPressEnd(event, cardEl) {
     showToast('success', 'Transaksi berhasil dihapus!');
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; cachedDompet = res.dompet; // sinkron senyap, TANPA toast lagi
           refreshVisibleUI_();
@@ -4521,6 +4539,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
@@ -4546,8 +4565,10 @@ function handleLongPressEnd(event, cardEl) {
     refreshVisibleUI_();
     showToast('success', 'Transaksi Pindah Saldo berhasil dihapus!');
 
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           if (res.riwayat) cachedRiwayat = res.riwayat;
           if (res.dompet) { cachedDompet = res.dompet; renderDompetUI(cachedDompet); }
@@ -4559,6 +4580,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet;
         refreshVisibleUI_();
         showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
@@ -4640,8 +4662,10 @@ function handleLongPressEnd(event, cardEl) {
     refreshVisibleUI_();
     showToast('success', ids.length + ' transaksi berhasil dihapus!');
 
+    const mutSeq = ++mutasiServerSeq_;
     google.script.run
       .withSuccessHandler(res => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; cachedDompet = res.dompet;
           refreshVisibleUI_();
@@ -4652,6 +4676,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
