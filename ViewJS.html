@@ -37,6 +37,23 @@ let cachedRiwayat = null; // JS memory cache Riwayat (page/filter aktif saat ini
 // dianggap basi & diabaikan, supaya tidak menimpa cache/entri optimistik milik mutasi terbaru
 // (gejala lama: respons tx1 yg telat menghapus entri sementara tx2 yang baru di-submit).
 let mutasiServerSeq_ = 0;
+// FIX CARD REVERT: jumlah mutasi yang masih in-flight. Selama > 0, fetch rekonsiliasi
+// "Pengeluaran Hari Ini" DITUNDA — respons yang membaca data SEBELUM commit tidak boleh
+// menimpa nilai optimistik (gejala lama: card ter-update lalu balik ke nilai lama).
+let mutasiPendingCount_ = 0;
+// Epoch mutasi: naik SETIAP kali beginMutasiPending_ dipanggil. Respons fetch rekonsiliasi
+// yg dikirim SEBELUM bump optimistik terakhir tidak boleh me-reset offset (nilai bump-nya
+// belum tercakup di data yg dibaca server) -> bandingkan epoch saat kirim vs saat respons.
+let mutasiEpoch_ = 0;
+// FIX HAPUS TEMP: entri hasil tambah/salin yg dihapus user SEBELUM simpan selesai.
+// {tempId: snapshot item} -> saat respons simpan datang & menemukan baris nyata yg cocok,
+// baris itu dihapus senyap di server (hapusTransaksiServer/massal).
+const cancelledTempEntries_ = new Map();
+// Identitas deterministik baris baru per mutasi simpan: {mutSeq: {tempId, prevIds:Set}}.
+// prevIds = daftar ID di cache SEBELUM entri temp di-unshift -> baris baru pada respons
+// simpan = ID yg tidak ada di prevIds. JAUH lebih aman daripada mencocokkan konten
+// (hasil salin identik dgn transaksi asalnya, rawan salah cocok).
+const pendingSaveMeta_ = new Map();
 let bulkSelectModeActive = false;   // mode seleksi hapus massal aktif?
 const bulkSelectedIds = new Set();  // daftar Transaksi.ID yang dicentang utk hapus massal
 let cachedStatistik = null; // JS memory cache Statistik
@@ -138,6 +155,15 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
     } else {
       loadRiwayat(1);
     }
+
+    // Card "Pengeluaran Hari Ini" diisi SECEPATNYA dari server (baca langsung database,
+    // tidak tergantung cachedRiwayat/halaman aktif) — tidak menunggu seed 1500ms.
+    // Model otoritatif+offset + epoch guard membuat respons telat aman thd bump optimistik.
+    refreshPengeluaranHariIniFromServer_();
+
+    // Kartu "Jatuh Tempo Terdekat" di sidebar: prefetch data utang SEJAK LOAD supaya
+    // tampil bareng view transaksi (dulu baru muncul setelah user buka menu Utang).
+    prefetchUtangUntukSidebar_();
     
     if (window.__INITIAL_KATEGORI__) {
       populateKategori(window.__INITIAL_KATEGORI__);
@@ -154,6 +180,10 @@ let utangResizeTimer = null; // debounce timer utk reflow ulang saat window di-r
       loadDompetServer(true);
     }
 
+    // Seed awal panel Ringkasan: saldo bulan ini + Top Kategori (via getStatistikPeriodeServer).
+    // PENGELUARAN HARI INI TIDAK dihitung di sini (dulu pakai hitungan halaman-aktif-saja yg
+    // menimpa bump optimistik ~1 dtk setelah salin/hapus cepat) -> sekarang lewat
+    // refreshPengeluaranHariIniFromServer_() yg membaca database langsung (akurat & konsisten).
     setTimeout(loadSummaryData, 1500);
 
     // OPTIMASI: derive dari __INITIAL_DOMPET__ (nama akun) drpd fetch server lagi -
@@ -1795,11 +1825,44 @@ function handlePindahSaldoSubmit(event) {
     if (el) el.textContent = 'Rp ' + Number(total).toLocaleString('id-ID');
   }
 
-  function updateSummaryPengeluaranHariIni(total, count) {
+  // ===== State card "Pengeluaran Hari Ini" — MODEL KEBAL-RACE =====
+  // tampil = otoritatif (nilai terakhir dari server) + offset (akumulasi bump optimistik
+  // tambah/edit/hapus yang belum direkonsiliasi). Respons server SELALU set ulang
+  // otoritatif & reset offset -> tidak ada urutan respons/bump apapun yang bisa
+  // menghasilkan angka salah di tengah jalan (gejala lama: 10->20->hapus=0, benar belakangan).
+  let pengHariIniOtoritatif_ = { total: 0, count: 0 };
+  let pengHariIniOffset_ = { total: 0, count: 0 };
+
+  function isTodayRaw_(tanggalRaw) {
+    if (!tanggalRaw) return false;
+    // tanggalRaw berformat yyyy-MM-dd; en-CA menghasilkan format sama utk tanggal lokal
+    return String(tanggalRaw).slice(0, 10) === new Date().toLocaleDateString('en-CA');
+  }
+
+  function renderPengeluaranHariIni_() {
+    const total = pengHariIniOtoritatif_.total + pengHariIniOffset_.total;
+    const count = pengHariIniOtoritatif_.count + pengHariIniOffset_.count;
     const pengeluaranEl = document.getElementById('summaryPengeluaranHariIni');
-    if (pengeluaranEl) pengeluaranEl.textContent = 'Rp ' + Number(total).toLocaleString('id-ID');
+    if (pengeluaranEl) pengeluaranEl.textContent = 'Rp ' + Math.max(0, total).toLocaleString('id-ID');
     const countEl = document.getElementById('summaryPengeluaranCount');
-    if (countEl) countEl.textContent = count + ' transaksi · Hari ini';
+    if (countEl) countEl.textContent = Math.max(0, count) + ' transaksi · Hari ini';
+  }
+
+  // Dipanggil HANYA oleh nilai otoritatif: respons getPengeluaranHariIniServer / seed awal.
+  // Offset optimistik yang masih menggantung di-reset di sini (nilainya sudah tercakup).
+  function updateSummaryPengeluaranHariIni(total, count) {
+    pengHariIniOtoritatif_.total = Number(total) || 0;
+    pengHariIniOtoritatif_.count = Number(count) || 0;
+    pengHariIniOffset_.total = 0;
+    pengHariIniOffset_.count = 0;
+    renderPengeluaranHariIni_();
+  }
+
+  // Optimistic bump: hanya menggeser offset, TIDAK menyentuh nilai otoritatif.
+  function bumpSummaryPengHariIni_(deltaTotal, deltaCount) {
+    pengHariIniOffset_.total += Number(deltaTotal) || 0;
+    pengHariIniOffset_.count += Number(deltaCount) || 0;
+    renderPengeluaranHariIni_();
   }
 
   function updateSummarySaldoBulanIni(saldo) {
@@ -1929,9 +1992,10 @@ function handlePindahSaldoSubmit(event) {
   }
 
   function loadSummaryData() {
-    const { total: todayExpenses, count: todayExpensesCount } = calculateTodayExpensesFromList();
-    updateSummaryPengeluaranHariIni(todayExpenses, todayExpensesCount);
-    
+    // Pengeluaran hari ini: ambil nilai OTORITATIF dari server (baca langsung database,
+    // bukan hitungan halaman-aktif-saja) — aman terhadap bump optimistik manapun.
+    refreshPengeluaranHariIniFromServer_();
+
     if (cachedStatistik) {
       updateSummarySaldoBulanIni(cachedStatistik.saldo || 0);
       updateSummaryTopCategory(cachedStatistik);
@@ -1939,7 +2003,7 @@ function handlePindahSaldoSubmit(event) {
       const now = new Date();
       const bulan = now.getMonth();
       const tahun = now.getFullYear();
-      
+
       google.script.run
         .withSuccessHandler(function(stat) {
           if (!stat) return;
@@ -2859,6 +2923,18 @@ function openTambahRekeningModal() {
   // ==========================================
   // LOAD & RENDER UTANG & CICILAN
   // ==========================================
+  // PREFETCH UTANG UTK SIDEBAR: kartu "Jatuh Tempo Terdekat" butuh data utang SEJAK LOAD
+  // pertama (bukan menunggu user membuka menu Utang). Ambil senyap di background sekali,
+  // isi cachedUtang -> updateSidebarNearestDebt() bisa tampil bareng view transaksi.
+  // Bonus: loadUtang() berikutnya ketemu cache -> menu Utang terbuka instan.
+  function prefetchUtangUntukSidebar_() {
+    if (cachedUtang) { updateSidebarNearestDebt(); return; }
+    google.script.run
+      .withSuccessHandler(res => { cachedUtang = res; updateSidebarNearestDebt(); })
+      .withFailureHandler(function () { /* diam — card boleh kosong sampai dibuka manual */ })
+      .getUtangServer();
+  }
+
   function loadUtang() {
     if (cachedUtang) { renderUtangUI(cachedUtang); updateSidebarNearestDebt(); return; }
     google.script.run
@@ -4295,20 +4371,23 @@ function handleLongPressEnd(event, cardEl) {
     // ===== SNAPSHOT (utk rollback kalau server gagal) =====
     const snapshotRiwayat = cloneCache_(cachedRiwayat);
     const snapshotDompet = cloneCache_(cachedDompet);
+    // Diff ID utk identifikasi baris baru pada respons simpan (lihat pendingSaveMeta_)
+    const prevIds = new Set((cachedRiwayat && cachedRiwayat.data ? cachedRiwayat.data : []).map(it => String(it.id)));
 
     const nominalNum = Number(formData.nominal) || 0;
-    let sumberLama = null, jenisLama = null, nominalLama = null;
+    let sumberLama = null, jenisLama = null, nominalLama = null, tanggalLamaRaw = null;
 
     if (cachedRiwayat && cachedRiwayat.data) {
       if (isEditMode) {
         const idx = cachedRiwayat.data.findIndex(it => it.id === editId);
         if (idx > -1) {
           const old = cachedRiwayat.data[idx];
-          sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal;
+          sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal; tanggalLamaRaw = old.tanggalRaw;
           cachedRiwayat.data[idx] = { ...old, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum };
         }
       } else {
-        cachedRiwayat.data.unshift({ id: 'temp-' + Date.now(), jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum });
+        var tempIdBaru_ = 'temp-' + Date.now();
+        cachedRiwayat.data.unshift({ id: tempIdBaru_, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum, tanggalRaw: String(formData.tanggal || '') });
       }
     }
 
@@ -4320,6 +4399,15 @@ function handleLongPressEnd(event, cardEl) {
       applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
     }
 
+    // OPTIMISTIC card "Pengeluaran Hari Ini": sesuaikan seketika utk transaksi bertanggal hari ini.
+    // Respons server nanti merekonsiliasi dgn nilai otoritatif (lihat refreshPengeluaranHariIniFromServer_).
+    if (isEditMode && sumberLama !== null) {
+      if (String(jenisLama).toLowerCase() === 'pengeluaran' && isTodayRaw_(tanggalLamaRaw)) bumpSummaryPengHariIni_(-nominalLama, -1);
+      if (String(formData.jenis).toLowerCase() === 'pengeluaran' && isTodayRaw_(formData.tanggal)) bumpSummaryPengHariIni_(nominalNum, 1);
+    } else if (!isEditMode) {
+      if (String(formData.jenis).toLowerCase() === 'pengeluaran' && isTodayRaw_(formData.tanggal)) bumpSummaryPengHariIni_(nominalNum, 1);
+    }
+
     switchTab('riwayat'); // INSTAN, form/modal langsung tertutup
     refreshVisibleUI_();
     // FIX: toast muncul DI SINI (saat cache sudah dimutasi), bukan menunggu server balas
@@ -4328,23 +4416,39 @@ function handleLongPressEnd(event, cardEl) {
     // ===== KIRIM KE SERVER DI BACKGROUND =====
     const serverFunc = isEditMode ? 'updateTransaksiServer' : 'simpanTransaksiServer';
     const mutSeq = ++mutasiServerSeq_; // tanda request TERBARU; respons lebih lama diabaikan
+    pendingSaveMeta_.set(mutSeq, { tempId: isEditMode ? null : tempIdBaru_, prevIds: prevIds });
+    beginMutasiPending_(); // tahan rekonsiliasi card sampai commit selesai
 
     google.script.run
       .withSuccessHandler(res => {
-        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada submit lebih baru
+        const meta = pendingSaveMeta_.get(mutSeq);
+        pendingSaveMeta_.delete(mutSeq);
+        if (mutSeq !== mutasiServerSeq_) { endMutasiPending_(); return; } // respons basi — lepas slot saja
         if (res && res.status === 'success') {
+          // Baris baru = ID pada respons yg tidak ada di snapshot prevIds (deterministik)
+          let newIds = [];
+          if (meta && res.riwayat && res.riwayat.data) {
+            newIds = res.riwayat.data.map(it => String(it.id)).filter(id => !meta.prevIds.has(id));
+          }
           cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server, TANPA toast lagi
           cachedDompet = res.dompet;
+          reconcileCancelledTemps_(newIds); // daftarkan hapus senyap (pending+1) SEBELUM endMutasi
+          endMutasiPending_();              // pending masih ≥1 bila ada hapus senyap -> fetch ditahan
           refreshVisibleUI_();
         } else {
           cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+          purgeCancelledTempsFromCache_();
+          endMutasiPending_();
           refreshVisibleUI_();
           showToast('error', 'Gagal disimpan ke server, perubahan dibatalkan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
+        pendingSaveMeta_.delete(mutSeq);
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+        purgeCancelledTempsFromCache_();
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, perubahan dibatalkan: ' + (err.message || err));
       })
@@ -4403,12 +4507,19 @@ function handleLongPressEnd(event, cardEl) {
 
     const snapshotRiwayat = cloneCache_(cachedRiwayat);
     const snapshotDompet = cloneCache_(cachedDompet);
+    // Diff ID utk identifikasi baris baru pada respons simpan (lihat pendingSaveMeta_)
+    const prevIds = new Set((cachedRiwayat && cachedRiwayat.data ? cachedRiwayat.data : []).map(it => String(it.id)));
     const nominalNum = Number(formData.nominal) || 0;
 
+    var tempIdSalin_ = null;
     if (cachedRiwayat && cachedRiwayat.data) {
-      cachedRiwayat.data.unshift({ id: 'temp-' + Date.now(), jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum });
+      tempIdSalin_ = 'temp-' + Date.now();
+      cachedRiwayat.data.unshift({ id: tempIdSalin_, jenis: formData.jenis, kategori: formData.kategori, sumber: formData.sumber, keterangan: formData.keterangan, nominal: nominalNum, tanggalRaw: String(formData.tanggal || '') });
     }
     applyDeltaCachedDompet_(formData.sumber, hitungDeltaTransaksiClient_(formData.jenis, nominalNum));
+
+    // OPTIMISTIC card "Pengeluaran Hari Ini" (sama seperti handleFormSubmit)
+    if (String(formData.jenis).toLowerCase() === 'pengeluaran' && isTodayRaw_(formData.tanggal)) bumpSummaryPengHariIni_(nominalNum, 1);
 
     closeSalinTransaksiModal();
     switchTab('riwayat'); // tampilkan hasil salinan di daftar Riwayat, INSTAN
@@ -4416,22 +4527,37 @@ function handleLongPressEnd(event, cardEl) {
     showToast('success', 'Transaksi berhasil disalin & dicatat!');
 
     const mutSeq = ++mutasiServerSeq_;
+    pendingSaveMeta_.set(mutSeq, { tempId: tempIdSalin_, prevIds: prevIds });
+    beginMutasiPending_();
     google.script.run
       .withSuccessHandler(res => {
-        if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada submit lebih baru
+        const meta = pendingSaveMeta_.get(mutSeq);
+        pendingSaveMeta_.delete(mutSeq);
+        if (mutSeq !== mutasiServerSeq_) { endMutasiPending_(); return; } // respons basi — lepas slot saja
         if (res && res.status === 'success') {
+          let newIds = [];
+          if (meta && res.riwayat && res.riwayat.data) {
+            newIds = res.riwayat.data.map(it => String(it.id)).filter(id => !meta.prevIds.has(id));
+          }
           cachedRiwayat = res.riwayat; // sinkronkan dgn ID/pagination asli dari server
           cachedDompet = res.dompet;
+          reconcileCancelledTemps_(newIds); // daftarkan hapus senyap (pending+1) SEBELUM endMutasi
+          endMutasiPending_();              // pending masih ≥1 bila ada hapus senyap -> fetch ditahan
           refreshVisibleUI_();
         } else {
           cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+          purgeCancelledTempsFromCache_();
+          endMutasiPending_();
           refreshVisibleUI_();
           showToast('error', 'Gagal disimpan ke server, salinan dibatalkan: ' + (res ? res.message : 'Error'));
         }
       })
       .withFailureHandler(err => {
+        pendingSaveMeta_.delete(mutSeq);
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
+        purgeCancelledTempsFromCache_();
         refreshVisibleUI_();
         showToast('error', 'Koneksi error, salinan dibatalkan: ' + (err.message || err));
       })
@@ -4504,21 +4630,48 @@ function handleLongPressEnd(event, cardEl) {
     const idToDelete = targetRowToDelete;
     closeDeleteModal(); // INSTAN
 
+    // FIX HAPUS TEMP: entri dgn ID "temp-…" belum tersimpan di server (hasil tambah/salin
+    // yg masih in-flight) -> mengirim hapusTransaksiServer('temp-…') pasti gagal "tidak
+    // ditemukan". Cukup batalkan LOKAL: buang dari cache + balikkan efek dompet/card,
+    // lalu catat utk dihapus senyap di server begitu baris nyatanya muncul (reconcile).
+    if (String(idToDelete).indexOf('temp-') === 0) {
+      let removed = null;
+      if (cachedRiwayat && cachedRiwayat.data) {
+        const idx = cachedRiwayat.data.findIndex(it => it.id === idToDelete);
+        if (idx > -1) { removed = cachedRiwayat.data[idx]; cachedRiwayat.data.splice(idx, 1); }
+      }
+      if (removed) {
+        applyDeltaCachedDompet_(removed.sumber, -hitungDeltaTransaksiClient_(removed.jenis, removed.nominal));
+        if (String(removed.jenis).toLowerCase() === 'pengeluaran' && isTodayRaw_(removed.tanggalRaw)) bumpSummaryPengHariIni_(-Number(removed.nominal) || 0, -1);
+        cancelledTempEntries_.set(idToDelete, removed);
+      }
+      refreshVisibleUI_();
+      showToast('success', 'Transaksi berhasil dihapus!');
+      return;
+    }
+
     // ===== SNAPSHOT (utk rollback) =====
    const snapshotRiwayat = cloneCache_(cachedRiwayat);
     const snapshotDompet = cloneCache_(cachedDompet);
 
-    let sumberLama = null, jenisLama = null, nominalLama = null;
+    let sumberLama = null, jenisLama = null, nominalLama = null, tanggalLamaRaw = null;
     if (cachedRiwayat && cachedRiwayat.data) {
       const idx = cachedRiwayat.data.findIndex(it => it.id === idToDelete);
       if (idx > -1) {
         const old = cachedRiwayat.data[idx];
-        sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal;
+        sumberLama = old.sumber; jenisLama = old.jenis; nominalLama = old.nominal; tanggalLamaRaw = old.tanggalRaw;
         cachedRiwayat.data.splice(idx, 1);
       }
     }
+    // GUARD: item tidak ada di cache lokal (mis. sudah dihapus oleh alur lain / respons
+    // reconcile) -> tidak ada yg perlu dikirim ke server. Cukup refresh & keluar, TANPA
+    // dispatch (mencegah error "sudah terhapus" + rollback item hantu).
+    if (sumberLama === null) { refreshVisibleUI_(); return; }
     // Balikkan efek transaksi yg dihapus: Pemasukan -> saldo dikurangi, Pengeluaran -> saldo ditambah
     if (sumberLama !== null) applyDeltaCachedDompet_(sumberLama, -hitungDeltaTransaksiClient_(jenisLama, nominalLama));
+
+    // OPTIMISTIC card "Pengeluaran Hari Ini": kembalikan nominal bila yg dihapus pengeluaran hari ini
+    if (String(jenisLama).toLowerCase() === 'pengeluaran' && isTodayRaw_(tanggalLamaRaw)) bumpSummaryPengHariIni_(-nominalLama, -1);
 
     refreshVisibleUI_(); // ZERO-LATENCY
     // FIX: toast final "berhasil dihapus" langsung di sini (cache sudah terhapus), bukan nunggu server
@@ -4526,8 +4679,10 @@ function handleLongPressEnd(event, cardEl) {
 
     // ===== KIRIM KE SERVER DI BACKGROUND =====
     const mutSeq = ++mutasiServerSeq_;
+    beginMutasiPending_();
     google.script.run
       .withSuccessHandler(res => {
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; cachedDompet = res.dompet; // sinkron senyap, TANPA toast lagi
@@ -4539,6 +4694,7 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
@@ -4652,19 +4808,47 @@ function handleLongPressEnd(event, cardEl) {
     const snapshotRiwayat = cloneCache_(cachedRiwayat);
     const snapshotDompet = cloneCache_(cachedDompet);
 
-    // Optimistic: hapus dari cache lokal dulu (zero-latency)
+    // Optimistic: hapus dari cache lokal dulu (zero-latency), sambil kumpulkan item terhapus
+    const removedItems = [];
     if (cachedRiwayat && cachedRiwayat.data) {
       const set = new Set(ids);
-      cachedRiwayat.data = cachedRiwayat.data.filter(it => !set.has(it.id));
+      cachedRiwayat.data = cachedRiwayat.data.filter(it => {
+        if (!set.has(it.id)) return true;
+        removedItems.push(it);
+        return false;
+      });
     }
+
+    // Entri temp (hasil tambah/salin in-flight) yg ikut dihapus massal: batalkan LOKAL saja
+    // & catat -> baris nyatanya nanti dihapus senyap oleh reconcileCancelledTemps_ saat
+    // respons simpannya datang. Jangan kirim ID temp ke server (pasti "tidak ditemukan").
+    const serverIds = [];
+    removedItems.forEach(it => {
+      if (String(it.id || '').indexOf('temp-') === 0) cancelledTempEntries_.set(it.id, it);
+      else serverIds.push(it.id);
+    });
+
+    // OPTIMISTIC card "Pengeluaran Hari Ini": jumlahkan semua pengeluaran hari ini yg terhapus
+    let bumpTotal = 0, bumpCount = 0;
+    removedItems.forEach(it => {
+      if (String(it.jenis || '').toLowerCase() === 'pengeluaran' && isTodayRaw_(it.tanggalRaw)) {
+        bumpTotal += Number(it.nominal) || 0;
+        bumpCount += 1;
+      }
+    });
+    if (bumpCount > 0) bumpSummaryPengHariIni_(-bumpTotal, -bumpCount);
 
     exitBulkSelectMode();
     refreshVisibleUI_();
     showToast('success', ids.length + ' transaksi berhasil dihapus!');
 
+    if (!serverIds.length) return; // semuanya entri temp -> cukup batalkan lokal, tunggu reconcile
+
     const mutSeq = ++mutasiServerSeq_;
+    beginMutasiPending_();
     google.script.run
       .withSuccessHandler(res => {
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — sudah ada mutasi lebih baru
         if (res && res.status === 'success') {
           cachedRiwayat = res.riwayat; cachedDompet = res.dompet;
@@ -4676,12 +4860,13 @@ function handleLongPressEnd(event, cardEl) {
         }
       })
       .withFailureHandler(err => {
+        endMutasiPending_();
         if (mutSeq !== mutasiServerSeq_) return; // respons basi — jangan rollback state terbaru
         cachedRiwayat = snapshotRiwayat; cachedDompet = snapshotDompet; // ROLLBACK
         refreshVisibleUI_();
         showToast('error', 'Terputus, data dikembalikan: ' + (err.message || err));
       })
-      .hapusTransaksiMassalServer(ids, getRiwayatBatchPage_(), batchFetchLimit, getCurrentFilterParams());
+      .hapusTransaksiMassalServer(serverIds, getRiwayatBatchPage_(), batchFetchLimit, getCurrentFilterParams());
   }
   
 
@@ -4742,7 +4927,101 @@ function handleLongPressEnd(event, cardEl) {
      renderRiwayatResult(cachedRiwayat);
      if (document.getElementById('viewBudget')?.classList.contains('active')) renderDompetUI(cachedDompet);
      updateSidebarNearestDebt();
+     // Update pengeluaran hari ini dari server (query langsung sheet hari ini saja, cepat)
+     refreshPengeluaranHariIniFromServer_();
    }
+
+  // ===== PENDING MUTASI & REKONSILIASI CARD "PENGELUARAN HARI INI" =====
+  // Selama ada mutasi in-flight, fetch rekonsiliasi DITUNDA. endMutasiPending_() memicunya
+  // tepat SETELAH mutasi terakhir selesai -> pembacaan selalu melihat data yang sudah
+  // commit (tidak ada lagi respons basi menimpa nilai optimistik).
+  function beginMutasiPending_() {
+    mutasiPendingCount_ += 1;
+    mutasiEpoch_ += 1; // tandai ada bump/mutasi baru -> respons fetch lama jangan reset offset
+  }
+
+  function endMutasiPending_() {
+    mutasiPendingCount_ = Math.max(0, mutasiPendingCount_ - 1);
+    if (mutasiPendingCount_ === 0) refreshPengeluaranHariIniFromServer_();
+  }
+
+  let pengHariIniReqSeq_ = 0; // penomoran request rekonsiliasi: hanya respons TERBARU yg diterima
+
+  function refreshPengeluaranHariIniFromServer_() {
+    // GUARD: jangan pernah biarkan gagal call ini memutus alur pemanggil refreshVisibleUI_()
+    // (kasus lama: fungsi server belum ada -> TypeError -> request simpan/hapus yg berada
+    // SETELAH refreshVisibleUI_() di handler mutasi ikut tidak terkirim).
+    try {
+      if (typeof google === 'undefined' || !google.script || !google.script.run) return;
+      if (mutasiPendingCount_ > 0) return; // masih ada mutasi in-flight -> tunggu endMutasiPending_
+      const myReq = ++pengHariIniReqSeq_;
+      const epochAtDispatch = mutasiEpoch_; // epoch saat data mulai dibaca di server
+      const runner = google.script.run
+        .withSuccessHandler(function (res) {
+          if (myReq !== pengHariIniReqSeq_) return; // respons basi — sudah ada request lebih baru
+          if (epochAtDispatch !== mutasiEpoch_) return; // ada bump baru SETELAH fetch dikirim ->
+          // nilai bump belum tercakup di pembacaan server; JANGAN reset offset (biarkan
+          // endMutasiPending_ memicu fetch rekonsiliasi berikutnya yg sudah mencakup bump).
+          if (res && res.status === 'success' && typeof res.total === 'number') {
+            // Rekonsiliasi: nilai otoritatif dari server menimpa hasil bump optimistik
+            updateSummaryPengeluaranHariIni(res.total, res.count);
+          }
+        })
+        .withFailureHandler(function () { /* abaikan error, jangan ganggu UX */ });
+      if (typeof runner.getPengeluaranHariIniServer !== 'function') return;
+      runner.getPengeluaranHariIniServer();
+    } catch (e) { /* diam — card summary boleh basi, alur simpan TIDAK boleh putus */ }
+  }
+
+  // FIX HAPUS TEMP v2: baris nyata hasil simpan diidentifikasi via DIFF ID (candidateIds =
+  // ID pada respons simpan yg tidak ada di snapshot prevIds saat submit) — BUKAN pencocokan
+  // konten, karena hasil salin identik dgn transaksi asalnya (rawan salah hapus).
+  // Hapus senyap dibungkus begin/endMutasiPending_ supaya fetch rekonsiliasi card baru
+  // jalan SETELAH baris benar-benar terhapus di server (tidak ada lagi nilai salah lewat).
+  function reconcileCancelledTemps_(candidateIds) {
+    if (!cancelledTempEntries_.size) return;
+    const idsToDelete = (candidateIds || []).filter(function (id) {
+      return id && String(id).indexOf('temp-') !== 0;
+    });
+    if (!idsToDelete.length) return;
+
+    // Satu baris baru per entri temp yang dibatalkan (FIFO), lalu buang dari tampilan lokal
+    const pairs = [];
+    idsToDelete.forEach(function (realId) {
+      if (!cancelledTempEntries_.size) return;
+      const tempId = cancelledTempEntries_.keys().next().value;
+      cancelledTempEntries_.delete(tempId);
+      pairs.push(realId);
+    });
+    if (!pairs.length) return;
+    if (cachedRiwayat && cachedRiwayat.data) {
+      const set = new Set(pairs);
+      cachedRiwayat.data = cachedRiwayat.data.filter(it => !set.has(String(it.id)));
+    }
+
+    beginMutasiPending_(); // tahan fetch rekonsiliasi sampai server selesai menghapus
+    const finish = function () { endMutasiPending_(); };
+    const silentRunner = google.script.run
+      .withSuccessHandler(function (res) {
+        if (res && res.status === 'success') {
+          if (res.riwayat) cachedRiwayat = res.riwayat;
+          if (res.dompet) cachedDompet = res.dompet;
+          refreshVisibleUI_(); // render ulang; fetch card masih ditahan (pending=1)
+        }
+        finish(); // pending 0 -> SATU fetch otoritatif dgn data pasca-hapus
+      })
+      .withFailureHandler(function () { finish(); });
+    if (pairs.length === 1) silentRunner.hapusTransaksiServer(pairs[0], getRiwayatBatchPage_(), batchFetchLimit, getCurrentFilterParams());
+    else silentRunner.hapusTransaksiMassalServer(pairs, getRiwayatBatchPage_(), batchFetchLimit, getCurrentFilterParams());
+  }
+
+  // Bersihkan entri temp yg dibatalkan dari cache setelah ROLLBACK simpan gagal
+  // (barisnya memang tidak pernah ada di server).
+  function purgeCancelledTempsFromCache_() {
+    if (!cancelledTempEntries_.size || !cachedRiwayat || !cachedRiwayat.data) return;
+    cachedRiwayat.data = cachedRiwayat.data.filter(it => !cancelledTempEntries_.has(it.id));
+    cancelledTempEntries_.clear();
+  }
 
   function cloneCache_(obj) {
     return obj ? JSON.parse(JSON.stringify(obj)) : obj;

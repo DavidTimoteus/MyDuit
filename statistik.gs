@@ -295,3 +295,39 @@ function getStatistikServer() {
   const totalUtang = utangList.reduce((a, b) => a + b.total, 0);
   return { stats, totalUtang, totalPemakaian: stats.pemasukan + stats.pengeluaran, utangList };
 }
+
+/**
+ * Total pengeluaran HARI INI saja (query ringkas utk card summary).
+ * FIX INPUT CEPAT: SENGKAJA BYPASS cache 60 dtk (getRawTransaksiCached_) — CacheService
+ * sifatnya eventual-consistent ANTAR eksekusi, jadi eksekusi statistik bisa membaca
+ * snapshot BASI (belum/sebagian melihat baris baru) walau invalidation sudah dipanggil.
+ * Baca langsung ke sheet (strong-consistent) hanya kolom yg dibutuhkan: B..I
+ * [Tanggal, Jenis, KategoriID, AkunID, AkunTujuanID, UtangID, Keterangan, Nominal],
+ * lalu filter tanggal == hari ini (timezone spreadsheet) di memori. Return {total, count}.
+ * Dipanggil client setelah tiap mutasi supaya card ter-update instan tanpa refresh.
+ */
+function getPengeluaranHariIniServer() {
+  try {
+    const sheet = getTransaksiSheet_();
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return { status: 'success', total: 0, count: 0 };
+
+    const values = sheet.getRange(2, 2, lastRow - 1, 8).getValues(); // kolom B..I
+    const tz = sheet.getParent().getSpreadsheetTimeZone();
+    const todayStr = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+
+    let total = 0, count = 0;
+    values.forEach(function (row) {
+      const tgl = parseSheetDate(row[0]); // B: Tanggal
+      if (!tgl) return;
+      if (Utilities.formatDate(tgl, tz, 'yyyy-MM-dd') !== todayStr) return;
+      const jenis = String(row[1] || '').trim().toLowerCase(); // C: Jenis
+      if (jenis === 'pemasukan' || jenis === 'pindah saldo') return;
+      total += Number(row[7]) || 0; // I: Nominal
+      count += 1;
+    });
+    return { status: 'success', total: total, count: count };
+  } catch (err) {
+    return { status: 'error', message: err.message, total: null, count: null };
+  }
+}

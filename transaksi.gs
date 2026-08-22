@@ -278,27 +278,32 @@ function hapusTransaksiServer(id, page, limit, filterParams) {
     lock.waitLock(10000);
     const sheet = getTransaksiSheet_();
     const targetRow = findRowIndexById_(sheet, id, 2, TRANSAKSI_COL.ID);
-    if (targetRow === -1) throw new Error('Transaksi sudah terhapus.');
 
-    const data = sheet.getRange(targetRow, 3, 1, 7).getValues()[0];
-    const jenis = String(data[0]).trim();
-    const sumber = String(data[2]).trim();
-    const nominal = Number(data[6]) || 0;
+    // IDEMPOTENT DELETE: baris memang sudah tiada (balapan hapus ganda / hapus cepat
+    // setelah salin yg barisnya sudah dihapus senyap) -> anggap SUKSES, BUKAN error.
+    // Sebelumnya throw 'Transaksi sudah terhapus.' -> client me-rollback tampilan &
+    // menampilkan lagi item yg sebenarnya sudah hilang (item hantu).
+    if (targetRow !== -1) {
+      const data = sheet.getRange(targetRow, 3, 1, 7).getValues()[0];
+      const jenis = String(data[0]).trim();
+      const sumber = String(data[2]).trim();
+      const nominal = Number(data[6]) || 0;
 
-    const tanggalTx = sheet.getRange(targetRow, TRANSAKSI_COL.TANGGAL, 1, 1).getValue();
-    const logDate = (tanggalTx instanceof Date && !isNaN(tanggalTx.getTime())) ? tanggalTx : new Date();
+      const tanggalTx = sheet.getRange(targetRow, TRANSAKSI_COL.TANGGAL, 1, 1).getValue();
+      const logDate = (tanggalTx instanceof Date && !isNaN(tanggalTx.getTime())) ? tanggalTx : new Date();
 
-    sheet.deleteRow(targetRow);
-    invalidateTransaksiCache_();
+      sheet.deleteRow(targetRow);
+      invalidateTransaksiCache_();
 
-    if (jenis.toLowerCase() === 'pindah saldo') {
-      const akunTujuan = String(data[3] || '').trim();
-      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Pindah Saldo', id, logDate);
-      applyDeltaSaldoAkun_(akunTujuan, -nominal, 'Hapus Pindah Saldo', id, logDate);
-    } else if (jenis.toLowerCase() === 'pengeluaran') {
-      applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Transaksi', id, logDate);
-    } else {
-      applyDeltaSaldoAkun_(sumber, -nominal, 'Hapus Transaksi', id, logDate);
+      if (jenis.toLowerCase() === 'pindah saldo') {
+        const akunTujuan = String(data[3] || '').trim();
+        applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Pindah Saldo', id, logDate);
+        applyDeltaSaldoAkun_(akunTujuan, -nominal, 'Hapus Pindah Saldo', id, logDate);
+      } else if (jenis.toLowerCase() === 'pengeluaran') {
+        applyDeltaSaldoAkun_(sumber, nominal, 'Hapus Transaksi', id, logDate);
+      } else {
+        applyDeltaSaldoAkun_(sumber, -nominal, 'Hapus Transaksi', id, logDate);
+      }
     }
   } catch (err) {
     return { status: 'error', message: err.message };
