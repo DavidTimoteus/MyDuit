@@ -290,24 +290,20 @@ button:active {
 .splash-logo {
   width: 80px;
   height: 80px;
-  border-radius: 28px;
+  border-radius: 24px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  box-shadow:
-    8px 10px 22px rgba(0, 0, 0, 0.26),
-    -4px -4px 12px rgba(255, 255, 255, 0.05),
-    inset -3px -3px 8px rgba(0, 0, 0, 0.22),
-    inset 3px 3px 8px rgba(255, 255, 255, 0.24);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   animation: splash-logo-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 .splash-logo img {
   width: 80px;
   height: 80px;
   object-fit: cover;
-  border-radius: 28px;
+  border-radius: 24px;
   display: block;
 }
 .splash-title {
