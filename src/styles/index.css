@@ -1602,7 +1602,10 @@ button:active {
 /* ===== PAGER UTANG (mobile) =====
    Satu bar terpadu: [<]  · dot · dot  [>]. Rule global `button{padding:0 16px}`
    WAJIB ditimpa (padding:0) supaya dot tidak ikut melebar jadi 32px dan tetap
-   bisa dibedakan mana halaman aktif. */
+   bisa dibedakan mana halaman aktif.
+   Dot aktif memakai ekspansi lebar (pill/kapsul 22px x 8px) dan border-radius
+   penuh (9999px) tanpa transform: scaleX() agar ujungnya tetap melengkung
+   sempurna, proporsional, dan tidak gepeng / terdistorsi. */
 .utang-m-dot {
   padding: 0;
   border: none;
@@ -1611,11 +1614,10 @@ button:active {
   flex: 0 0 auto;
   border-radius: 9999px;
   background-color: var(--color-slate-300, #cbd5e1);
-  transform-origin: left center;
-  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
+  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
 }
 .utang-m-dot--aktif {
-  transform: scaleX(2.75);
+  width: 22px;
   background-color: var(--color-danger);
 }
 .utang-m-dot:not(.utang-m-dot--aktif):hover {
