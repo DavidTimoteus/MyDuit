@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { pindahSaldo } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -38,6 +38,20 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     const dari = akunList.find((a) => a.id === dariId)
     const ke = akunList.find((a) => a.id === keId)
+
+    if (dari) {
+      const saldoDari = Number(dari.saldo) || 0
+      if (saldoDari - n < 0) {
+        window.dispatchEvent(
+          new CustomEvent('myduit:toast', {
+            detail: {
+              type: 'warning',
+              msg: `Perhatian: Saldo ${dari.nama} tidak boleh minus! Sisa saldo saat ini ${formatNominal(saldoDari)}. Periksa kembali debit & kredit rekening Anda.`,
+            },
+          })
+        )
+      }
+    }
 
     // Snapshot agar konsisten setelah modal ditutup.
     const dariIdSnap = dariId

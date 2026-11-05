@@ -23,7 +23,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     setKunciLama(kunci)
     setNama(edit?.nama ?? '')
     setTipe(edit?.tipe ?? TIPE_AKUN[0])
-    setSaldo('')
+    setSaldo(edit?.saldo !== undefined ? formatRibuanInput(String(edit.saldo)) : '')
     setError('')
   }
 
@@ -45,7 +45,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     ;(async () => {
       try {
         if (editSnap) {
-          await updateAkun(uid, editSnap.id, { nama: namaSnap, tipe: tipeSnap })
+          await updateAkun(uid, editSnap.id, { nama: namaSnap, tipe: tipeSnap, saldo: saldoSnap })
         } else {
           await tambahAkun(uid, { nama: namaSnap, tipe: tipeSnap, saldoAwal: saldoSnap })
         }
@@ -82,21 +82,25 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
           options={TIPE_AKUN.map((t) => ({ value: t, label: t }))}
           className="mb-3"
         />
-        {!edit && (
-          <>
-            <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Saldo awal</label>
-            <div className="clay-field mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5">
-              <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
-              <input
-                value={saldo}
-                onChange={(e) => setSaldo(formatRibuanInput(e.target.value))}
-                inputMode="numeric"
-                placeholder="0"
-                className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
-              />
-            </div>
-          </>
+        <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
+          {edit ? 'Koreksi Saldo Rekening' : 'Saldo Awal'}
+        </label>
+        <div className="clay-field mb-1 flex items-center gap-2 rounded-xl px-3 py-2.5">
+          <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
+          <input
+            value={saldo}
+            onChange={(e) => setSaldo(formatRibuanInput(e.target.value))}
+            inputMode="numeric"
+            placeholder="0"
+            className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+          />
+        </div>
+        {edit && (
+          <p className="mb-3 text-[11px] leading-tight text-slate-500">
+            Koreksi ini langsung memperbarui saldo buku rekening agar selaras dengan saldo fisik/m-banking. Riwayat transaksi sebelumnya tetap utuh.
+          </p>
         )}
+        {!edit && <div className="mb-2" />}
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
         <button disabled={saving} className="clay-btn clay-key-blue solid-blue btn-lg w-full text-sm font-extrabold text-white transition-colors disabled:opacity-60">
           <span className="material-symbols-outlined icon-sm">save</span>

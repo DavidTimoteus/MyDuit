@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatRibuanInput, formatRupiah, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatNominal, formatRibuanInput, formatRupiah, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { bayarUtang, simpanUtang } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -199,6 +199,17 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akun) return setError('Pilih rekening sumber.')
     if (n > (utang.sisa || 0)) return setError('Nominal melebihi sisa utang.')
+    const saldoAkun = Number(akun.saldo) || 0
+    if (saldoAkun - n < 0) {
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: {
+            type: 'warning',
+            msg: `Perhatian: Saldo ${akun.nama} tidak boleh minus! Sisa saldo saat ini ${formatNominal(saldoAkun)}. Periksa kembali debit & kredit rekening Anda.`,
+          },
+        })
+      )
+    }
     // Snapshot sebelum modal ditutup
     const utangSnap = utang
     const nSnap = n

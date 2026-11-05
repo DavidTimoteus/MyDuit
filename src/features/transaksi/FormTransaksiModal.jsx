@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { ambilAtauBuatKategori, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -208,6 +208,23 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
 
     const akun = akunList.find((a) => a.id === akunId)
+    if (jenisSnap === 'pengeluaran' && akun) {
+      const saldoSaatIni = Number(akun.saldo) || 0
+      const saldoSetelah = modeSnap === 'edit' && sumberSnap?.akunId === akunId
+        ? saldoSaatIni + (Number(sumberSnap.jumlah) || 0) - n
+        : saldoSaatIni - n
+
+      if (saldoSetelah < 0) {
+        window.dispatchEvent(
+          new CustomEvent('myduit:toast', {
+            detail: {
+              type: 'warning',
+              msg: `Perhatian: Saldo ${akun.nama} tidak boleh minus! Sisa saldo saat ini ${formatNominal(saldoSaatIni)}. Periksa kembali debit & kredit rekening Anda.`,
+            },
+          })
+        )
+      }
+    }
 
     // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
     const jenisSnap = jenis

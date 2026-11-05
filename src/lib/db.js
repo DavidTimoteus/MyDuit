@@ -99,8 +99,17 @@ export async function tambahAkun(uid, { nama, saldoAwal = 0, tipe = 'Rekening Ut
   return ref.id
 }
 
-export async function updateAkun(uid, id, { nama, tipe }) {
-  await updateDoc(akunRef(uid, id), { nama, tipe, updatedAt: serverTimestamp() })
+export async function updateAkun(uid, id, { nama, tipe, saldo }) {
+  const patch = { nama, tipe, updatedAt: serverTimestamp() }
+  if (saldo !== undefined && !Number.isNaN(Number(saldo))) {
+    patch.saldo = Math.round(Number(saldo))
+    patch.mutasiTerakhir = {
+      delta: 0,
+      keterangan: 'Koreksi penyesuaian saldo',
+      at: serverTimestamp(),
+    }
+  }
+  await updateDoc(akunRef(uid, id), patch)
 }
 
 export async function hapusAkun(uid, id) {
