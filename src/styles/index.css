@@ -1966,24 +1966,6 @@ button:active {
    dikorbankan adalah padding chrome — BUKAN potongan pada kartu.
    ============================================================ */
 
-/* Hero "Total Sisa Utang Aktif" (mobile) — beri napas vertikal lebih
-   supaya tidak gepeng (terukur hanya 38px di 320px). */
-.utang-m-hero {
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
-/* Kartu utang mobile: tinggi mengikuti ISI (hug content), tidak melar
-   memenuhi layar. Kalau melar, layar tinggi menyisakan rongga kosong besar. */
-.utang-m-card {
-  align-self: center;
-  overflow-x: clip;
-}
-
-/* Area kartu: boleh menyusut (min-h-0) tapi tidak pernah di bawah 232px,
-   supaya kartu tetap utuh dan tidak terpotong. */
-.utang-m-area { min-height: 232px; overscroll-behavior: contain; }
-
 /* ===== CARD-STACK REKENING (mobile Budget/Rekening) =====
    Dulu: wrapper dikunci `height:225px; overflow:hidden` -> begitu isi kartu
    tumbuh (nama panjang, saldo besar, log mutasi 2 baris) kartu TERDALAM
@@ -2000,87 +1982,6 @@ button:active {
   min-height: 0;
   height: auto;
   touch-action: pan-y;
-}
-
-/* ===== PAGER UTANG (mobile) =====
-   Satu bar terpadu: [<]  · dot · dot  [>]. Rule global `button{padding:0 16px}`
-   WAJIB ditimpa (padding:0) supaya dot tidak ikut melebar jadi 32px dan tetap
-   bisa dibedakan mana halaman aktif.
-   Dot aktif memakai ekspansi lebar (pill/kapsul 22px x 8px) dan border-radius
-   penuh (9999px) tanpa transform: scaleX() agar ujungnya tetap melengkung
-   sempurna, proporsional, dan tidak gepeng / terdistorsi. */
-.utang-m-dot {
-  padding: 0;
-  border: none;
-  width: 8px;
-  height: 8px;
-  flex: 0 0 auto;
-  border-radius: 9999px;
-  background-color: var(--color-slate-300, #cbd5e1);
-  transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.22s ease;
-}
-.utang-m-dot--aktif {
-  width: 22px;
-  background-color: var(--color-danger);
-}
-.utang-m-dot:not(.utang-m-dot--aktif):hover {
-  background-color: var(--color-slate-400, #94a3b8);
-}
-/* Tombol panah: bulat, tetap 40px, jangan kena padding global. */
-.utang-m-pager-btn {
-  padding: 0;
-  height: 40px;
-  min-height: 40px;
-}
-.utang-m-pager-btn:disabled {
-  cursor: default;
-  transform: none;
-}
-
-/* Layar pendek: rapatkan chrome secara bertahap. */
-@media (max-height: 700px) {
-  .utang-m-header { padding-top: 0.5rem; padding-bottom: 0.375rem; }
-  .utang-m-hero { padding-top: 1.25rem; padding-bottom: 1.25rem; margin-bottom: 0.375rem; }
-  .utang-m-hero p:first-child { font-size: 10px; }
-  .utang-m-hero p:last-child { font-size: 1.25rem; }
-  .utang-m-hero-sub { display: none; }
-  /* Kartu diringkas agar SELALU muat di area (tidak terpotong / pager
-     menimpa). Tiles detail disembunyikan lebih awal, body & angka dirapatkan. */
-  .utang-m-body { gap: 0.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
-  .utang-m-sisa { font-size: 26px; }
-  .utang-m-tiles { display: none; }
-  .utang-m-extra { display: none; }
-}
-@media (max-height: 620px) {
-  .utang-m-header { padding-top: 0.375rem; padding-bottom: 0.25rem; }
-  .utang-m-hero { padding-top: 1rem; padding-bottom: 1rem; }
-  .utang-m-hero-nilai { font-size: 22px; }
-  .utang-m-hero p:first-child { display: none; }
-  .utang-m-hero-sub { display: none; }
-  .utang-m-body { gap: 0.4rem; padding-top: 0.4rem; padding-bottom: 0.4rem; }
-  .utang-m-sisa { font-size: 24px; }
-}
-
-/* Layar pendek: kartu dipadatkan supaya tetap MUAT tanpa scroll.
-   Yang dikecilkan: padding kartu, angka sisa, dan kartu detail sekunder.
-   Informasi inti (nama, sisa, progres, jatuh tempo, aksi) tetap utuh. */
-@media (max-height: 700px) {
-  .utang-m-card { padding: 0.75rem 0.875rem 0.75rem 1rem; }
-  .utang-m-body { gap: 0.5rem; padding-top: 0.5rem; padding-bottom: 0.5rem; }
-  .utang-m-sisa { font-size: 26px; }
-}
-@media (max-height: 620px) {
-  .utang-m-card { padding: 0.625rem 0.75rem 0.625rem 0.875rem; }
-  .utang-m-sisa { font-size: 23px; }
-  .utang-m-tiles { display: none; }
-  .utang-m-extra { display: none; }
-}
-
-/* Pager utang mobile: di layar sangat sempit (<=360px) titik halaman
-   dikurangi otomatis supaya baris pager tidak pernah meluber. Titik
-   ke-6 dan ke-7 disembunyikan; label "x / y" tetap menunjukkan posisi. */
-@media (max-width: 360px) {
-  .utang-m-titik > button:nth-child(n+6) { display: none; }
 }
 
 /* ============================================================
@@ -3116,4 +3017,68 @@ button:active {
   }
   [data-theme="neumorphism"] .fab-dial-btn.solid-blue {
     color: #187498 !important;
+  }
+
+  /* ===== DROPDOWNS & SELECT LISTS IN NEUMORPHISM ===== */
+  [data-theme="neumorphism"] .clay-select-list {
+    background-color: #E5E5E5 !important;
+    background: #E5E5E5 !important;
+    border: 1px solid rgba(255, 255, 255, 0.70) !important;
+    border-radius: 20px !important;
+    padding: 6px !important;
+    box-shadow:
+      8px 8px 24px rgba(166, 171, 189, 0.60),
+      -8px -8px 24px rgba(255, 255, 255, 0.90) !important;
+  }
+  [data-theme="neumorphism"] .clay-select-list::-webkit-scrollbar-thumb {
+    background: rgba(166, 171, 189, 0.5) !important;
+    border-radius: 999px !important;
+  }
+  [data-theme="neumorphism"] .clay-select-option {
+    border-radius: 12px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #1E293B !important;
+    padding: 10px 14px !important;
+    transition: all 0.15s ease !important;
+  }
+  [data-theme="neumorphism"] .clay-select-option:hover,
+  [data-theme="neumorphism"] .clay-select-option.is-highlighted {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    color: #0F172A !important;
+    box-shadow:
+      inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.40),
+      inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.80) !important;
+  }
+  [data-theme="neumorphism"] .clay-select-option.is-selected {
+    background-color: #36AE7C !important;
+    color: #FFFFFF !important;
+    font-weight: 800 !important;
+    box-shadow:
+      2px 2px 6px rgba(54, 174, 124, 0.40),
+      -1.5px -1.5px 4px rgba(255, 255, 255, 0.75) !important;
+  }
+
+  /* ===== DATE PICKER INPUT SEAMLESS TRANSPARENCY ===== */
+  .flatpickr-input,
+  input.flatpickr-input,
+  .clay-date-picker-field {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    flex: 1 1 0% !important;
+    min-width: 0 !important;
+    font-family: inherit !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    color: #1E293B !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    caret-color: transparent !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
   }

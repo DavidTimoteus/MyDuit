@@ -84,24 +84,28 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-danger w-full max-w-sm rounded-[24px] p-5">
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
             <span className="material-symbols-outlined text-[#EB5353]">account_balance_wallet</span>
             {edit ? 'Edit Utang' : 'Tambah Utang'}
           </h3>
-          <button type="button" onClick={onClose} className="clay-chip flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200">
+          <button type="button" onClick={onClose} aria-label="Tutup form utang" className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
 
         {/* Segmented Toggle Tipe Utang vs Cicilan */}
-        <div className="mb-3">
-          <div className="clay-segmented-track">
+        <div className="mb-3.5">
+          <div className="neu-inset flex items-center p-1 rounded-2xl bg-[#E5E5E5]">
             <button
               type="button"
               onClick={() => setTipe('Utang')}
-              className={`clay-segment-item ${tipe === 'Utang' ? 'is-active is-expense' : ''}`}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-3 text-xs font-extrabold rounded-xl transition-all duration-200 touch-manipulation ${
+                tipe === 'Utang'
+                  ? 'neu-btn bg-[#E5E5E5] text-[#EB5353] shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+              }`}
             >
               <span className="material-symbols-outlined icon-sm">receipt_long</span>
               Utang
@@ -109,7 +113,11 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
             <button
               type="button"
               onClick={() => setTipe('Cicilan')}
-              className={`clay-segment-item ${tipe === 'Cicilan' ? 'is-active' : ''}`}
+              className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-3 text-xs font-extrabold rounded-xl transition-all duration-200 touch-manipulation ${
+                tipe === 'Cicilan'
+                  ? 'neu-btn bg-[#E5E5E5] text-[#187498] shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900 bg-transparent'
+              }`}
             >
               <span className="material-symbols-outlined icon-sm">calendar_month</span>
               Cicilan
@@ -184,7 +192,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         />
 
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
-        <button type="submit" disabled={saving} className="clay-btn clay-key-danger solid-danger btn-lg w-full text-sm font-extrabold text-white transition-all disabled:opacity-60">
+        <button type="submit" disabled={saving} className="neu-btn-danger solid-danger btn-lg w-full rounded-2xl text-white font-extrabold text-sm active:scale-95 transition-all shadow-md disabled:opacity-60">
           {saving ? 'Menyimpan…' : 'Simpan'}
         </button>
       </form>
@@ -258,37 +266,38 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-danger w-full max-w-sm rounded-[24px] p-5">
+      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-extrabold text-slate-800">{lunasin ? 'Lunasin' : 'Bayar'} — {utang.namaPihak}</h3>
-          <button type="button" onClick={onClose} className="clay-chip flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200">
+          <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{lunasin ? 'Lunasin' : 'Bayar'} — {utang.namaPihak}</h3>
+          <button type="button" onClick={onClose} aria-label="Tutup pembayaran" className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
 
-        <p className="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] font-semibold text-slate-500">
-          Sisa saat ini: <strong className="text-slate-700">{formatRupiah(utang.sisa || 0)}</strong>
-        </p>
+        <div className="neu-inset mb-3.5 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-semibold text-slate-600">
+          <span>Sisa saat ini:</span>
+          <strong className="font-mono text-sm font-black text-slate-800 tabular-nums">{formatRupiah(utang.sisa || 0)}</strong>
+        </div>
 
-        <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nominal bayar</label>
-        <div className="clay-field mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5">
-          <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
+        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nominal bayar</label>
+        <div className="neu-inset mb-3.5 flex items-center gap-2 rounded-xl bg-[#E5E5E5] px-3.5 py-2.5">
+          <span className="font-mono text-base font-extrabold text-slate-500">{simbolUang()}</span>
           <input
             value={jumlah}
             onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
             inputMode="numeric"
             placeholder="0"
-            className="w-full bg-transparent text-lg font-extrabold outline-none placeholder:text-slate-500"
+            className="w-full bg-transparent font-mono text-xl font-black text-slate-900 outline-none tabular-nums placeholder:text-slate-400"
           />
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="mb-3.5 grid grid-cols-2 gap-2.5">
           <div>
-            <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Tanggal</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Tanggal</label>
             <ClayDateInput value={tanggal} onChange={setTanggal} />
           </div>
           <div>
-            <label className="mb-0.5 block text-[11px] font-semibold text-textSecondary">Sumber dana</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Sumber dana</label>
             <ClaySelect
               value={akunId}
               onChange={setAkunId}
@@ -299,25 +308,26 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         </div>
 
         {n > 0 && (
-          <p className="clay-chip mb-3 rounded-[10px] px-3 py-2 text-[11px] font-bold text-primary">
-            Sisa setelah bayar: {formatRupiah(sisaBaru)}{sisaBaru === 0 ? ' — LUNAS ✓' : ''}
-          </p>
+          <div className="neu-inset mb-4 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-bold text-[#36AE7C]">
+            <span>Sisa setelah bayar: {formatRupiah(sisaBaru)}</span>
+            <span>{sisaBaru === 0 ? '— LUNAS ✓' : ''}</span>
+          </div>
         )}
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2.5 pt-1">
           {!lunasin && (
             <button
               type="button"
               onClick={() => setJumlah(formatRibuanInput(String(utang.sisa || 0)))}
-              className="clay-btn-soft py-3 text-xs font-extrabold text-slate-600"
+              className="neu-btn btn-lg rounded-2xl bg-[#E5E5E5] text-slate-700 font-extrabold text-xs transition-all active:scale-95"
             >
               Lunasin ({formatRupiah(utang.sisa || 0)})
             </button>
           )}
           <button
             disabled={saving}
-            className={`clay-btn-primary col-span-1 py-3 text-sm font-extrabold transition-all disabled:opacity-60 ${lunasin ? 'col-span-2' : ''}`}
+            className={`neu-btn-primary solid-primary btn-lg rounded-2xl text-white font-extrabold text-sm transition-all active:scale-95 shadow-md ${lunasin ? 'col-span-2' : ''}`}
           >
             {saving ? 'Menyimpan…' : lunasin ? 'Lunasin Sekarang' : 'Bayar'}
           </button>

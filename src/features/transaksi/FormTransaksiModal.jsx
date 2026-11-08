@@ -459,8 +459,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                   onClick={() => setShowOcrConfig((s) => !s)}
                   title="Pengaturan Engine OCR"
                   aria-label="Pengaturan Engine OCR"
-                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
-                    showOcrConfig ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
+                  className={`neu-btn flex h-7 w-7 items-center justify-center rounded-full bg-[#E5E5E5] transition-all active:scale-95 ${
+                    showOcrConfig ? 'text-[#36AE7C]' : 'text-slate-500 hover:text-slate-800'
                   } ${!scanHasil ? 'ml-auto' : ''}`}
                 >
                   <span className="material-symbols-outlined icon-xs">tune</span>
@@ -469,10 +469,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
               {/* Panel Pengaturan Engine OCR */}
               {showOcrConfig && (
-                <div className="flex flex-col gap-2 rounded-xl bg-slate-100/95 p-2.5 text-[10px] text-slate-700 shadow-inner">
-                  <div className="flex items-center justify-between font-semibold text-slate-800">
+                <div className="neu-card flex flex-col gap-2.5 rounded-2xl bg-[#E5E5E5] p-3.5 text-[11px] text-slate-700 border border-white/60">
+                  <div className="flex items-center justify-between font-bold text-slate-800">
                     <span>Pilihan Engine OCR:</span>
-                    <span className="text-[9px] text-slate-500 font-normal">
+                    <span className="text-[10px] text-slate-500 font-medium">
                       {ocrEnginePref === 'auto'
                         ? (geminiKeyInput ? 'Auto (Gemini AI Prioritas)' : 'Auto (On-Device Cerdas)')
                         : ocrEnginePref === 'gemini'
@@ -482,7 +482,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                             : 'Tesseract (Lokal Offline)'}
                     </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-1">
+                  <div className="neu-inset grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#E5E5E5]">
                     {[
                       { id: 'auto', label: 'Auto Cerdas' },
                       { id: 'gemini', label: 'Gemini AI' },
@@ -496,10 +496,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                           setOcrEnginePref(opt.id)
                           simpanOcrConfig({ engine: opt.id })
                         }}
-                        className={`rounded-md py-1 text-center font-medium transition-all ${
+                        className={`rounded-lg py-1.5 text-center text-[10.5px] font-bold transition-all ${
                           ocrEnginePref === opt.id
-                            ? 'bg-primary text-white shadow-xs'
-                            : 'bg-[#E5E5E5] text-slate-600 hover:bg-slate-300/60'
+                            ? 'neu-btn bg-[#E5E5E5] text-[#36AE7C] shadow-sm font-extrabold'
+                            : 'text-slate-600 hover:text-slate-900 bg-transparent'
                         }`}
                       >
                         {opt.label}
@@ -508,31 +508,31 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                   </div>
 
                   {/* Kunci API Gemini Section */}
-                  <div className="border-t border-slate-200/80 pt-1.5 mt-0.5">
+                  <div className="border-t border-black/5 pt-2 mt-0.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Kunci API Gemini (Akurasi &gt;99%):</span>
+                      <span className="font-bold text-slate-800">Kunci API Gemini (Akurasi &gt;99%):</span>
                       <button
                         type="button"
                         onClick={() => setShowTutorialModal(true)}
-                        className="inline-flex items-center gap-0.5 text-primary hover:underline font-bold text-[9.5px]"
+                        className="inline-flex items-center gap-1 text-[#36AE7C] hover:underline font-bold text-[10px]"
                       >
                         <span className="material-symbols-outlined icon-2xs">help</span>
                         Panduan Kunci Gratis
                       </button>
                     </div>
-                    <div className="mt-1 flex gap-1.5">
+                    <div className="mt-1.5 flex gap-2">
                       <input
                         type="password"
                         placeholder="Tempel API Key AI Studio..."
                         value={geminiKeyInput}
                         onChange={(e) => setGeminiKeyInput(e.target.value)}
-                        className="flex-1 rounded-md border border-slate-300 bg-[#E5E5E5] px-2 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="neu-inset flex-1 rounded-xl bg-[#E5E5E5] px-3 py-1.5 text-[11px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none"
                       />
                       <button
                         type="button"
                         onClick={simpanDanUjiGeminiKey}
                         disabled={geminiTesting}
-                        className="rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold text-white hover:bg-primary-hover disabled:opacity-50"
+                        className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[11px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
                       >
                         {geminiTesting ? '...' : 'Simpan'}
                       </button>
@@ -540,7 +540,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         <button
                           type="button"
                           onClick={hapusKey}
-                          className="rounded-md bg-slate-200 px-2 py-1 text-[10px] font-medium text-slate-700 hover:bg-slate-300"
+                          className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#EB5353] font-extrabold text-[11px] active:scale-95"
                         >
                           Hapus
                         </button>

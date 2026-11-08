@@ -442,19 +442,6 @@ export default function Shell({ user }) {
   const aktif = TABS.find((t) => t.id === tab);
   const mainScrollRef = useRef(null);
 
-  // Mode "pas layar": dipakai tab Utang di mobile. Konten dikunci setinggi
-  // viewport dikurangi bottom-nav dan dilarang scroll — UtangMobile memakai
-  // pager satu kartu per halaman supaya semuanya muat tanpa menggeser layar.
-  const [lebarLayar, setLebarLayar] = useState(
-    typeof window !== "undefined" ? window.innerWidth : 1280,
-  );
-  useEffect(() => {
-    const onResize = () => setLebarLayar(window.innerWidth);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, []);
-  const pasLayar = tab === "utang" && lebarLayar < 1024;
-
   // Info negara + mata uang untuk indikator lokasi di sidebar kiri.
   // Sumber: pilihan manual pengguna (localStorage) > timezone perangkat.
   const [countryInfo, setCountryInfo] = useState(() =>
@@ -656,15 +643,11 @@ export default function Shell({ user }) {
           100dvh - bottom-nav dan TIDAK boleh scroll. Tampilan utang mobile
           memakai pager satu-kartu-per-halaman supaya semua muat. Di luar itu
           (dan di desktop) tetap bisa scroll normal. */}
-      <main
-        className={`flex-1 min-w-0 md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6 ${pasLayar ? "pb-24" : "pb-24"}`}
-      >
-        <div
-          className={`min-w-0 md:h-full md:overflow-y-auto md:pr-2 md:rounded-[28px] ${pasLayar ? "h-full" : ""}`}
-        >
+      <main className="flex-1 min-w-0 pb-24 md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
+        <div className="min-w-0 md:h-full md:overflow-y-auto md:pr-2 md:rounded-[28px]">
           <div
             ref={mainScrollRef}
-            className={`main-scroll max-w-3xl mx-auto relative w-full min-w-0 overflow-x-hidden px-4 md:max-w-none md:px-6 md:mx-0 md:bg-transparent md:h-full md:overflow-y-auto ${pasLayar ? "h-full overflow-y-auto" : "overflow-y-auto"}`}
+            className="main-scroll max-w-3xl mx-auto relative w-full min-w-0 overflow-x-hidden px-4 md:max-w-none md:px-6 md:mx-0 md:bg-transparent md:h-full md:overflow-y-auto overflow-y-auto"
             style={{ touchAction: "pan-y" }}
           >
             {!online && (

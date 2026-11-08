@@ -328,9 +328,9 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
   return (
     <div
       ref={wrapRef}
-      className={`clay-btn clay-btn-secondary w-full field-lg flex items-center gap-2 text-sm font-semibold text-textSecondary transition-colors cursor-pointer`}
+      className="clay-input field-lg flex w-full cursor-pointer items-center gap-2.5 text-sm font-semibold text-slate-800 transition-colors"
     >
-      <span className="material-symbols-outlined icon-md shrink-0 text-primary">calendar_month</span>
+      <span className="material-symbols-outlined icon-md shrink-0 text-[#36AE7C]">calendar_month</span>
       {/* Input asli disembunyikan eksplisit — flatpickr membuat altInput terpisah yang tampil */}
       <input type="text" id={id ? id + '-hidden' : undefined} ref={inputRef} autoComplete="off" placeholder={placeholder} style={{ display: 'none' }} />
     </div>

@@ -427,14 +427,16 @@ export default function UtangView({ user }) {
       />
 
       {hapusTarget && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
-          <div className="clay-card w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
-            <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
-            <p className="mt-2 text-sm font-bold text-slate-800">Hapus “{hapusTarget.namaPihak}”?</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+          <div className="neu-card w-full max-w-xs rounded-3xl bg-[#E5E5E5] p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl neu-inset text-[#EB5353]">
+              <span className="material-symbols-outlined text-3xl">delete</span>
+            </div>
+            <p className="mt-3 text-sm font-extrabold text-slate-800">Hapus “{hapusTarget.namaPihak}”?</p>
             <p className="mt-1 text-xs text-slate-500">Riwayat pembayaran yang sudah tercatat tetap ada.</p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={() => setHapusTarget(null)} className="clay-btn-soft btn-md text-xs font-bold text-slate-600">Batal</button>
-              <button onClick={konfirmHapus} className="clay-btn-danger btn-md text-xs font-bold">Hapus</button>
+            <div className="mt-4 grid grid-cols-2 gap-2.5">
+              <button onClick={() => setHapusTarget(null)} className="neu-btn btn-md text-xs font-bold text-slate-700 bg-[#E5E5E5] rounded-xl active:scale-95">Batal</button>
+              <button onClick={konfirmHapus} className="neu-btn-danger btn-md text-xs font-bold rounded-xl active:scale-95">Hapus</button>
             </div>
           </div>
         </div>

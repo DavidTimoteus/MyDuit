@@ -13,14 +13,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function closeModal(page) {
   await page.evaluate(() => {
-    const btn = document.querySelector('button[aria-label="Tutup"], button[aria-label="Batal"]');
+    const btn = document.querySelector('button[aria-label*="Tutup" i], button[aria-label*="Batal" i], button[aria-label*="Close" i]');
     if (btn) btn.click();
     else {
       const backdrop = document.querySelector('.modal-backdrop-wrap, div[class*="fixed inset-0 z-"]');
       if (backdrop) backdrop.click();
     }
   });
-  await page.waitForFunction(() => !document.querySelector('.clay-sheet'), { timeout: 3000 }).catch(() => {});
+  await page.waitForFunction(() => !document.querySelector('.clay-sheet, form[class*="neu-card"]'), { timeout: 3000 }).catch(() => {});
   await sleep(300);
 }
 
@@ -92,6 +92,15 @@ async function run() {
   await page.waitForFunction(() => document.querySelector('.clay-sheet'), { timeout: 4000 });
   await sleep(500);
   await page.screenshot({ path: path.join(OUT_DIR, '04_modal_catat_transaksi.png') });
+
+  // 5b. Buka Drawer OCR Engine
+  console.log('5b. Capturing Modal Catat Transaksi (OCR Engine Drawer)...');
+  await page.evaluate(() => {
+    const configBtn = Array.from(document.querySelectorAll('button')).find(el => el.title?.includes('OCR') || el.getAttribute('aria-label')?.includes('OCR'));
+    if (configBtn) configBtn.click();
+  });
+  await sleep(400);
+  await page.screenshot({ path: path.join(OUT_DIR, '04b_modal_catat_ocr_drawer.png') });
   await closeModal(page);
 
   // 6. Modal Pindah Saldo
@@ -165,7 +174,7 @@ async function run() {
   await closeModal(page);
 
   // 13. Tab Utang
-  console.log('13. Capturing Tab Utang (Desktop)...');
+  console.log('13. Capturing Tab Utang (Desktop & Mobile)...');
   await page.evaluate(() => {
     const btns = Array.from(document.querySelectorAll('.sidebar-nav-btn, nav button'));
     const b = btns.find(el => el.textContent.includes('Utang'));
@@ -174,14 +183,44 @@ async function run() {
   await sleep(1200);
   await page.screenshot({ path: path.join(OUT_DIR, '12_tab_utang_desktop.png') });
 
+  // Mobile Utang View
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+  await sleep(600);
+  await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('nav button'));
+    const b = btns.find(el => el.textContent.includes('Utang'));
+    if (b) b.click();
+  });
+  await sleep(800);
+  await page.screenshot({ path: path.join(OUT_DIR, '12b_tab_utang_mobile.png') });
+  await page.setViewport({ width: 1440, height: 900, isMobile: false, hasTouch: false });
+  await sleep(600);
+  await page.evaluate(() => {
+    const btns = Array.from(document.querySelectorAll('.sidebar-nav-btn, nav button'));
+    const b = btns.find(el => el.textContent.includes('Utang'));
+    if (b) b.click();
+  });
+  await sleep(600);
+
   // 14. Modal Tambah Utang
   console.log('14. Capturing Modal Tambah Utang...');
   await page.evaluate(() => {
-    window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'add' } }));
+    window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'utang' } }));
   });
-  await page.waitForFunction(() => document.querySelector('.clay-sheet'), { timeout: 4000 });
+  await page.waitForFunction(() => document.querySelector('form[class*="neu-card"], .clay-sheet'), { timeout: 4000 });
   await sleep(500);
   await page.screenshot({ path: path.join(OUT_DIR, '13_modal_tambah_utang.png') });
+  await closeModal(page);
+
+  // 14b. Modal Bayar Utang
+  console.log('14b. Capturing Modal Bayar Utang...');
+  await page.evaluate(() => {
+    const bayarBtn = Array.from(document.querySelectorAll('button')).find(el => el.textContent.trim() === 'Bayar');
+    if (bayarBtn) bayarBtn.click();
+  });
+  await page.waitForFunction(() => document.querySelector('form[class*="neu-card"], .clay-sheet'), { timeout: 4000 });
+  await sleep(500);
+  await page.screenshot({ path: path.join(OUT_DIR, '13b_modal_bayar_utang.png') });
   await closeModal(page);
 
   // 15. Modal Export PDF
@@ -189,7 +228,7 @@ async function run() {
   await page.evaluate(() => {
     window.dispatchEvent(new CustomEvent('myduit:export-pdf'));
   });
-  await page.waitForFunction(() => document.querySelector('.clay-sheet'), { timeout: 4000 });
+  await page.waitForFunction(() => document.querySelector('.clay-sheet, .neu-card'), { timeout: 4000 });
   await sleep(500);
   await page.screenshot({ path: path.join(OUT_DIR, '14_modal_export_pdf.png') });
   await closeModal(page);
@@ -200,7 +239,7 @@ async function run() {
     const avatarBtn = document.querySelector('button[title*="lokasi"], button[aria-label*="lokasi"]');
     if (avatarBtn) avatarBtn.click();
   });
-  await page.waitForFunction(() => document.querySelector('.clay-sheet'), { timeout: 4000 });
+  await page.waitForFunction(() => document.querySelector('.clay-sheet, .neu-card'), { timeout: 4000 });
   await sleep(500);
   await page.screenshot({ path: path.join(OUT_DIR, '15_modal_user_settings.png') });
   await closeModal(page);
