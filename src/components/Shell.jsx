@@ -786,35 +786,33 @@ export default function Shell({ user }) {
 
             {/* Konten modul aktif */}
             <Suspense fallback={<ModulSkeleton />}>
-              <div key={tab} className="tab-pane-transition min-w-0">
-                {tab === "transaksi" ? (
-                  <TransaksiView user={user} />
-                ) : tab === "budget" ? (
-                  <BudgetView user={user} />
-                ) : tab === "utang" ? (
-                  <UtangView user={user} />
-                ) : tab === "statistik" ? (
-                  <StatistikView user={user} />
-                ) : (
-                  <section className="mx-auto mt-6 max-w-3xl px-5">
-                    <h2 className="text-2xl font-extrabold tracking-tight text-slate-800">
-                      {aktif.label}
-                    </h2>
-                    <div className="clay-card-soft mt-4 flex flex-col items-center justify-center px-6 py-16 text-center">
-                      <span className="material-symbols-outlined mb-3 text-5xl text-primary/40">
-                        {aktif.icon}
-                      </span>
-                      <p className="text-sm font-bold text-slate-700">
-                        Modul {aktif.label} menyusul di {aktif.fase}.
-                      </p>
-                      <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
-                        Fondasi offline-first (Auth + Firestore persistence) sudah
-                        siap — konten modul dibangun bertahap sesuai roadmap.
-                      </p>
-                    </div>
-                  </section>
-                )}
-              </div>
+              {tab === "transaksi" ? (
+                <TransaksiView user={user} />
+              ) : tab === "budget" ? (
+                <BudgetView user={user} />
+              ) : tab === "utang" ? (
+                <UtangView user={user} />
+              ) : tab === "statistik" ? (
+                <StatistikView user={user} />
+              ) : (
+                <section className="mx-auto mt-6 max-w-3xl px-5">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-800">
+                    {aktif.label}
+                  </h2>
+                  <div className="clay-card-soft mt-4 flex flex-col items-center justify-center px-6 py-16 text-center">
+                    <span className="material-symbols-outlined mb-3 text-5xl text-primary/40">
+                      {aktif.icon}
+                    </span>
+                    <p className="text-sm font-bold text-slate-700">
+                      Modul {aktif.label} menyusul di {aktif.fase}.
+                    </p>
+                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
+                      Fondasi offline-first (Auth + Firestore persistence) sudah
+                      siap — konten modul dibangun bertahap sesuai roadmap.
+                    </p>
+                  </div>
+                </section>
+              )}
             </Suspense>
           </div>
         </div>
@@ -868,8 +866,8 @@ export default function Shell({ user }) {
                   title="Catat Pemasukan"
                   className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
-                    "--tx": "-58px",
-                    "--ty": "-40px",
+                    "--tx": "-52px",
+                    "--ty": "-34px",
                     transitionDelay: ".02s",
                   }}
                 >
@@ -890,7 +888,7 @@ export default function Shell({ user }) {
                   className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
                     "--tx": "0px",
-                    "--ty": "-78px",
+                    "--ty": "-72px",
                     transitionDelay: ".07s",
                   }}
                 >
@@ -910,8 +908,8 @@ export default function Shell({ user }) {
                   title="Catat Pengeluaran"
                   className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
-                    "--tx": "58px",
-                    "--ty": "-40px",
+                    "--tx": "52px",
+                    "--ty": "-34px",
                     transitionDelay: ".12s",
                   }}
                 >
@@ -975,12 +973,10 @@ export default function Shell({ user }) {
       </nav>
 
       <Suspense fallback={null}>
-        <div key={tab} className="tab-pane-transition hidden xl:block xl:h-full">
-          {tab === "transaksi" && <RightPanel uid={user.uid} />}
-          {tab === "statistik" && <StatistikAsidePanel />}
-          {tab === "budget" && <BudgetAsidePanel />}
-          {tab === "utang" && <UtangAsidePanel />}
-        </div>
+        {tab === "transaksi" && <RightPanel uid={user.uid} />}
+        {tab === "statistik" && <StatistikAsidePanel />}
+        {tab === "budget" && <BudgetAsidePanel />}
+        {tab === "utang" && <UtangAsidePanel />}
       </Suspense>
 
       <Suspense fallback={null}>
