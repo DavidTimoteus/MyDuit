@@ -2777,7 +2777,13 @@ button:active {
      3px  3px 7px rgba(0, 0, 0, 0.14) !important;
 }
 
-/* 4. 3D TACTILE ENGRAVED TYPOGRAPHY FOR HEADERS (HIGH CONTRAST #0F172A) */
+/* 4. 3D TACTILE ENGRAVED & EMBOSSED TYPOGRAPHY ACROSS ALL HEADERS & TEXT (HIGH CONTRAST) */
+[data-theme="neumorphism"] h1,
+[data-theme="neumorphism"] h2,
+[data-theme="neumorphism"] h3,
+[data-theme="neumorphism"] h4,
+[data-theme="neumorphism"] h5,
+[data-theme="neumorphism"] h6,
 [data-theme="neumorphism"] .brand-title,
 [data-theme="neumorphism"] .brand-title-embossed,
 [data-theme="neumorphism"] .headline-saldo,
@@ -2785,20 +2791,62 @@ button:active {
 [data-theme="neumorphism"] .text-embossed,
 [data-theme="neumorphism"] .neu-title,
 [data-theme="neumorphism"] .neu-embossed,
+[data-theme="neumorphism"] .font-display,
 [data-theme="neumorphism"] .clay-sheet h2,
-[data-theme="neumorphism"] .clay-sheet h3 {
+[data-theme="neumorphism"] .clay-sheet h3,
+[data-theme="neumorphism"] .clay-card h2,
+[data-theme="neumorphism"] .clay-card h3,
+[data-theme="neumorphism"] .clay-card h4,
+[data-theme="neumorphism"] .neu-card h2,
+[data-theme="neumorphism"] .neu-card h3,
+[data-theme="neumorphism"] .neu-card h4,
+[data-theme="neumorphism"] label,
+[data-theme="neumorphism"] legend,
+[data-theme="neumorphism"] th {
   color: #0F172A !important;
   font-weight: 800 !important;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
   text-shadow:
     1px  1px 1px rgba(255, 255, 255, 0.95),
    -1px -1px 1px rgba(0, 0, 0, 0.08) !important;
 }
 
+/* 3D Tactile Embossed for General Body Text, List Items & Navigation Labels */
+[data-theme="neumorphism"] p:not(.text-white):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-blue"]):not([class*="text-amber"]):not(.tx-nominal-expense):not(.tx-nominal-income),
+[data-theme="neumorphism"] span:not(.material-symbols-outlined):not([class*="material-symbols"]):not(.text-white):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-blue"]):not([class*="text-amber"]):not(.tx-nominal-expense):not(.tx-nominal-income),
+[data-theme="neumorphism"] li,
+[data-theme="neumorphism"] dt,
+[data-theme="neumorphism"] dd,
+[data-theme="neumorphism"] td,
+[data-theme="neumorphism"] .sidebar-nav-btn,
+[data-theme="neumorphism"] .nav-text,
+[data-theme="neumorphism"] .card-subtext {
+  text-shadow:
+    1px  1px 1px rgba(255, 255, 255, 0.90),
+   -1px -1px 1px rgba(0, 0, 0, 0.06);
+}
+
+/* Explicit exemption: Icons, White Text on Solid Buttons, & Form Controls must stay clean */
+[data-theme="neumorphism"] .material-symbols-outlined,
+[data-theme="neumorphism"] [class*="material-symbols"],
+[data-theme="neumorphism"] .text-white,
+[data-theme="neumorphism"] .solid-primary,
+[data-theme="neumorphism"] .solid-danger,
+[data-theme="neumorphism"] .solid-blue,
+[data-theme="neumorphism"] .clay-fab,
+[data-theme="neumorphism"] input,
+[data-theme="neumorphism"] textarea,
+[data-theme="neumorphism"] select {
+  text-shadow: none !important;
+}
+
 /* Colored Embossed Variations for Theme-Specific Big Numbers / Cards */
 [data-theme="neumorphism"] .brand-title-embossed.embossed-blue,
 [data-theme="neumorphism"] .hero-card.hero-blue .stat-card-val,
-[data-theme="neumorphism"] .hero-card.hero-blue .font-mono {
+[data-theme="neumorphism"] .hero-card.hero-blue .font-mono,
+[data-theme="neumorphism"] .embossed-blue,
+[data-theme="neumorphism"] .text-blue-600,
+[data-theme="neumorphism"] .text-info {
   color: #187498 !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
@@ -2808,7 +2856,11 @@ button:active {
 
 [data-theme="neumorphism"] .brand-title-embossed.embossed-green,
 [data-theme="neumorphism"] .hero-card.hero-primary .stat-card-val,
-[data-theme="neumorphism"] .hero-card.hero-primary .font-mono {
+[data-theme="neumorphism"] .hero-card.hero-primary .font-mono,
+[data-theme="neumorphism"] .embossed-green,
+[data-theme="neumorphism"] .text-emerald-600,
+[data-theme="neumorphism"] .text-primary,
+[data-theme="neumorphism"] .tx-nominal-income {
   color: #36AE7C !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
@@ -2818,8 +2870,23 @@ button:active {
 
 [data-theme="neumorphism"] .brand-title-embossed.embossed-red,
 [data-theme="neumorphism"] .hero-card.hero-danger .stat-card-val,
-[data-theme="neumorphism"] .hero-card.hero-danger .font-mono {
+[data-theme="neumorphism"] .hero-card.hero-danger .font-mono,
+[data-theme="neumorphism"] .embossed-red,
+[data-theme="neumorphism"] .text-red-600,
+[data-theme="neumorphism"] .text-danger,
+[data-theme="neumorphism"] .tx-nominal-expense {
   color: #EB5353 !important;
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.85),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     3px  4px 6px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphism"] .brand-title-embossed.embossed-amber,
+[data-theme="neumorphism"] .embossed-amber,
+[data-theme="neumorphism"] .text-amber-600,
+[data-theme="neumorphism"] .text-warning {
+  color: #D4AF0D !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
