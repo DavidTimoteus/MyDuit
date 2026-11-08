@@ -87,12 +87,12 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
   const bg = isPindahSaldo ? 'bg-blue-50' : isPemasukan ? 'bg-emerald-100' : 'bg-red-50'
   const icon = isPindahSaldo ? 'sync_alt' : isPemasukan ? 'trending_up' : 'trending_down'
   const clayKey = isPindahSaldo ? 'clay-key-blue' : isPemasukan ? 'clay-key-primary' : 'clay-key-danger'
-  // State "revealed" (klik kartu) — tint border+bg per jenis, persis GAS toggleDeleteBtn()
+  // State "revealed" (klik kartu) — pendaran taktil clay per jenis tanpa garis border kasar
   const tintRevealed = isPindahSaldo
-    ? 'border-blue-300 !bg-blue-50'
+    ? 'tx-card-revealed !bg-blue-50/70'
     : isPemasukan
-      ? 'border-emerald-300 !bg-emerald-50'
-      : 'border-red-300 !bg-red-50'
+      ? 'tx-card-revealed !bg-emerald-50/70'
+      : 'tx-card-revealed !bg-red-50/70'
   const dipilih = !!selected?.has(trans.id)
 
   function handleClick() {

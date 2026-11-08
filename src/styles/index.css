@@ -680,6 +680,59 @@ button:active {
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1), -1px -1px 4px rgba(255, 255, 255, 0.9) !important;
 }
 
+/* ===== CLAY SEGMENTED TOGGLE (Bespoke tactile track + illuminated pill) ===== */
+.clay-segmented-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: 20px;
+  background: #edf2ee;
+  box-shadow:
+    inset 2.5px 2.5px 6px rgba(45, 106, 79, 0.12),
+    inset -2.5px -2.5px 6px rgba(255, 255, 255, 0.9);
+}
+.clay-segment-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  touch-action: manipulation;
+  color: var(--color-textSecondary);
+  background: transparent;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring);
+}
+.clay-segment-item:hover:not(.is-active) {
+  color: var(--color-textPrimary);
+}
+.clay-segment-item.is-active.is-expense {
+  background: linear-gradient(145deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
+  color: #ffffff !important;
+  box-shadow:
+    3px 4px 12px rgba(var(--clay-h-danger), 0.35),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.4),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.22) !important;
+}
+.clay-segment-item.is-active.is-income {
+  background: linear-gradient(145deg, #40916c 0%, #2d6a4f 60%, #1b4332 100%);
+  color: #ffffff !important;
+  box-shadow:
+    3px 4px 12px rgba(var(--clay-h-primary), 0.35),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.4),
+    inset -2px -2px 4px rgba(0, 0, 0, 0.22) !important;
+}
+
 /* ===== FAB ===== */
 .clay-fab {
   color: #fff;
@@ -892,7 +945,9 @@ button:active {
       rgba(var(--clay-h), 0.16),
     inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
       rgba(255, 255, 255, 0.9);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .hero-card:hover {
   transform: translateY(-1px);
@@ -904,10 +959,14 @@ button:active {
 .hero-card::before {
   content: '';
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 5px;
-  background-color: rgb(var(--clay-h));
-  box-shadow: 0 1px 3px rgba(var(--clay-h), 0.3);
+  top: 0;
+  right: 0;
+  width: 140px;
+  height: 140px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 100% 0%, rgba(var(--clay-h), 0.16) 0%, transparent 70%);
+  pointer-events: none;
+}
   pointer-events: none;
 }
 .hero-primary { --clay-h: var(--clay-h-primary); }
@@ -1070,6 +1129,12 @@ button:active {
 .tx-card-item:active {
   transform: translateY(0) scale(0.98);
   background-color: rgba(var(--clay-h), 0.08) !important;
+}
+.tx-card-revealed {
+  box-shadow:
+    inset 1.5px 1.5px 4px rgba(255, 255, 255, 0.95),
+    inset -2px -2px 6px rgba(var(--clay-h), 0.16),
+    4px 4px 14px rgba(var(--clay-h), 0.18) !important;
 }
 
 /* ===== MODE SELEKSI HAPUS MASSAL ===== */

@@ -368,9 +368,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
         </div>
 
-        {/* Segmented Clay Toggle: Pengeluaran vs Pemasukan */}
+        {/* Segmented Clay Toggle: Pengeluaran vs Pemasukan (Bespoke tactile track) */}
         <div className="px-4 pt-2.5 pb-1">
-          <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100/90 p-1 shadow-inner">
+          <div className="clay-segmented-track">
             <button
               type="button"
               onClick={() => {
@@ -378,11 +378,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 setError('')
               }}
               aria-pressed={!isPemasukan}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all duration-200 touch-manipulation ${
-                !isPemasukan
-                  ? 'bg-red-500 text-white shadow-[0_2px_8px_rgba(230,57,70,0.35)]'
-                  : 'text-slate-600 hover:text-slate-900 active:scale-98'
-              }`}
+              className={`clay-segment-item ${!isPemasukan ? 'is-active is-expense' : ''}`}
             >
               <span className="material-symbols-outlined icon-sm">trending_down</span>
               Pengeluaran
@@ -394,11 +390,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 setError('')
               }}
               aria-pressed={isPemasukan}
-              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all duration-200 touch-manipulation ${
-                isPemasukan
-                  ? 'bg-emerald-600 text-white shadow-[0_2px_8px_rgba(45,106,79,0.35)]'
-                  : 'text-slate-600 hover:text-slate-900 active:scale-98'
-              }`}
+              className={`clay-segment-item ${isPemasukan ? 'is-active is-income' : ''}`}
             >
               <span className="material-symbols-outlined icon-sm">trending_up</span>
               Pemasukan
