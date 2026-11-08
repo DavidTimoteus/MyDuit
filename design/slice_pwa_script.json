@@ -1,0 +1,5448 @@
+[
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Design System & Clay Tokens",
+      "x": 0,
+      "y": 0,
+      "width": 1600,
+      "height": 1200,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Logo Tile",
+      "x": 60,
+      "y": 60,
+      "width": 52,
+      "height": 52,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit PWA — 3D Claymorphism Design System",
+      "x": 130,
+      "y": 66,
+      "parent": 2,
+      "props": {
+        "fontSize": 26,
+        "fontFamily": "Inter",
+        "fontWeight": 700
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Authoritative Design Tokens & 5-Level Tactile Elevation Matrix (FreeFrontend Standards)",
+      "x": 130,
+      "y": 104,
+      "parent": 2,
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Level 1: Soft Surface",
+      "x": 60,
+      "y": 200,
+      "width": 276,
+      "height": 160,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Level 1: Soft Surface",
+      "x": 80,
+      "y": 230,
+      "parent": 2,
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Chip Netral / Rata-rata",
+      "x": 80,
+      "y": 260,
+      "parent": 2,
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Level 2: Content Card",
+      "x": 356,
+      "y": 200,
+      "width": 276,
+      "height": 160,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Level 2: Content Card",
+      "x": 376,
+      "y": 230,
+      "parent": 2,
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Kartu Transaksi & Rekening",
+      "x": 376,
+      "y": 260,
+      "parent": 2,
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Level 3: Hero Card",
+      "x": 652,
+      "y": 200,
+      "width": 276,
+      "height": 160,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Level 3: Hero Card",
+      "x": 672,
+      "y": 230,
+      "parent": 2,
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Total Saldo & Headline Metrik",
+      "x": 672,
+      "y": 260,
+      "parent": 2,
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Level 4: Interactive CTA",
+      "x": 948,
+      "y": 200,
+      "width": 276,
+      "height": 160,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Level 4: Interactive CTA",
+      "x": 968,
+      "y": 230,
+      "parent": 2,
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Tombol Aksi & Primari",
+      "x": 968,
+      "y": 260,
+      "parent": 2,
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#d1fae5"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Level 5: Central Dome FAB",
+      "x": 1244,
+      "y": 200,
+      "width": 276,
+      "height": 160,
+      "parent": 2,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Level 5: Central Dome FAB",
+      "x": 1264,
+      "y": 230,
+      "parent": 2,
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Floating Action Button 3D",
+      "x": 1264,
+      "y": 260,
+      "parent": 2,
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#d1fae5"
+      }
+    }
+  },
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Desktop — Transaksi Dashboard",
+      "x": 1700,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Sidebar Container",
+      "x": 24,
+      "y": 24,
+      "width": 250,
+      "height": 852,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Brand Icon",
+      "x": 48,
+      "y": 48,
+      "width": 42,
+      "height": 42,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit",
+      "x": 102,
+      "y": 50,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "CATAT · PANTAU · KENDALIKAN",
+      "x": 102,
+      "y": 74,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 9,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Transaksi",
+      "x": 44,
+      "y": 120,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#34d399",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Transaksi",
+      "x": 88,
+      "y": 134,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Statistik",
+      "x": 44,
+      "y": 176,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik",
+      "x": 88,
+      "y": 190,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Budget",
+      "x": 44,
+      "y": 232,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Budget",
+      "x": 88,
+      "y": 246,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Utang",
+      "x": 44,
+      "y": 288,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Utang",
+      "x": 88,
+      "y": 302,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Profile Avatar",
+      "x": 44,
+      "y": 810,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#cbd5e1"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "David Timothy",
+      "x": 90,
+      "y": 812,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "ID Indonesia · Rp",
+      "x": 90,
+      "y": 830,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Panel Container",
+      "x": 1084,
+      "y": 24,
+      "width": 332,
+      "height": 852,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Ringkasan",
+      "x": 1108,
+      "y": 48,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "PDF Pill",
+      "x": 1360,
+      "y": 44,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#fff1f2"
+          }
+        ],
+        "cornerRadius": 10
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PDF",
+      "x": 1368,
+      "y": 55,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#e11d48"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Hero Total Saldo",
+      "x": 1108,
+      "y": 96,
+      "width": 284,
+      "height": 110,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 20
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "TOTAL SALDO",
+      "x": 1128,
+      "y": 116,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#a7f3d0"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 1.694.446",
+      "x": 1128,
+      "y": 138,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-Rp252.377 bulan ini",
+      "x": 1128,
+      "y": 174,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#d1fae5"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Pengeluaran",
+      "x": 1108,
+      "y": 222,
+      "width": 284,
+      "height": 90,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PENGELUARAN HARI INI",
+      "x": 1128,
+      "y": 240,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 0",
+      "x": 1128,
+      "y": 260,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 22,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Top Kategori",
+      "x": 1108,
+      "y": 326,
+      "width": 284,
+      "height": 90,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "TOP KATEGORI",
+      "x": 1128,
+      "y": 344,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pembayaran",
+      "x": 1128,
+      "y": 366,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 18,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 303.020",
+      "x": 1280,
+      "y": 368,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "AKSI CEPAT",
+      "x": 1108,
+      "y": 690,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn + Tambah Pemasukan",
+      "x": 1108,
+      "y": 714,
+      "width": 284,
+      "height": 44,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+ Tambah Pemasukan",
+      "x": 1160,
+      "y": 727,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn - Tambah Pengeluaran",
+      "x": 1108,
+      "y": 766,
+      "width": 284,
+      "height": 44,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#dc2626"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "- Tambah Pengeluaran",
+      "x": 1160,
+      "y": 779,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn ↔ Pindah Saldo",
+      "x": 1108,
+      "y": 818,
+      "width": 284,
+      "height": 44,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#2563eb"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "↔ Pindah Saldo",
+      "x": 1160,
+      "y": 831,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Search Bar",
+      "x": 298,
+      "y": 24,
+      "width": 320,
+      "height": 48,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "🔍  Cari transaksi...",
+      "x": 316,
+      "y": 38,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Filter Button Pill",
+      "x": 880,
+      "y": 24,
+      "width": 178,
+      "height": 48,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#3b82f6"
+          }
+        ],
+        "cornerRadius": 16
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Semua Transaksi",
+      "x": 914,
+      "y": 38,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spinjam November",
+      "x": 298,
+      "y": 140,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 155,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spinjam November",
+      "x": 368,
+      "y": 156,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Kemarin · Lainnya · Dompet",
+      "x": 368,
+      "y": 178,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+Rp 230.000",
+      "x": 930,
+      "y": 164,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#10b981"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Bayar cicilan Spinjam",
+      "x": 298,
+      "y": 222,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 237,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bayar cicilan Spinjam",
+      "x": 368,
+      "y": 238,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Kemarin · Pembayaran · Dompet",
+      "x": 368,
+      "y": 260,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-Rp 229.689",
+      "x": 930,
+      "y": 246,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spinjam",
+      "x": 298,
+      "y": 304,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 319,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spinjam",
+      "x": 368,
+      "y": 320,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Kemarin · Pindah Saldo · Krom → Seabank",
+      "x": 368,
+      "y": 342,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 201.877",
+      "x": 930,
+      "y": 328,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#3b82f6"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Pindah Saldo",
+      "x": 298,
+      "y": 386,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 401,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pindah Saldo",
+      "x": 368,
+      "y": 402,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Kemarin · Pindah Saldo · Seabank → Dompet",
+      "x": 368,
+      "y": 424,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 30.000",
+      "x": 930,
+      "y": 410,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#3b82f6"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Pindah Saldo",
+      "x": 298,
+      "y": 468,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 483,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pindah Saldo",
+      "x": 368,
+      "y": 484,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "6 Nov · Pindah Saldo · Seabank → Krom",
+      "x": 368,
+      "y": 506,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 231.022",
+      "x": 930,
+      "y": 492,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#3b82f6"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Sabun Mandi 400ml + Tisu",
+      "x": 298,
+      "y": 550,
+      "width": 760,
+      "height": 70,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Icon Badge",
+      "x": 314,
+      "y": 565,
+      "width": 40,
+      "height": 40,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Sabun Mandi 400ml + Tisu",
+      "x": 368,
+      "y": 566,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "5 Nov · Online Shop",
+      "x": 368,
+      "y": 588,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-Rp 31.357",
+      "x": 930,
+      "y": 574,
+      "parent": {
+        "$step": 19
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Desktop — Statistik View",
+      "x": 3240,
+      "y": 0,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Sidebar Container",
+      "x": 24,
+      "y": 24,
+      "width": 250,
+      "height": 852,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Brand Icon",
+      "x": 48,
+      "y": 48,
+      "width": 42,
+      "height": 42,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit",
+      "x": 102,
+      "y": 50,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "CATAT · PANTAU · KENDALIKAN",
+      "x": 102,
+      "y": 74,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 9,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Transaksi",
+      "x": 44,
+      "y": 120,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Transaksi",
+      "x": 88,
+      "y": 134,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Statistik",
+      "x": 44,
+      "y": 176,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#34d399",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik",
+      "x": 88,
+      "y": 190,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Budget",
+      "x": 44,
+      "y": 232,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Budget",
+      "x": 88,
+      "y": 246,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Utang",
+      "x": 44,
+      "y": 288,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Utang",
+      "x": 88,
+      "y": 302,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Profile Avatar",
+      "x": 44,
+      "y": 810,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#cbd5e1"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "David Timothy",
+      "x": 90,
+      "y": 812,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "ID Indonesia · Rp",
+      "x": 90,
+      "y": 830,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Panel Container",
+      "x": 1084,
+      "y": 24,
+      "width": 332,
+      "height": 852,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik Cepat",
+      "x": 1108,
+      "y": 48,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "PDF Pill",
+      "x": 1360,
+      "y": 44,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#fff1f2"
+          }
+        ],
+        "cornerRadius": 10
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PDF",
+      "x": 1368,
+      "y": 55,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#e11d48"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Terbesar",
+      "x": 1108,
+      "y": 96,
+      "width": 284,
+      "height": 84,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PENGELUARAN TERBESAR",
+      "x": 1124,
+      "y": 110,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pembayaran (63%)",
+      "x": 1124,
+      "y": 130,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 15,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 303.020",
+      "x": 1290,
+      "y": 130,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Rasio",
+      "x": 1108,
+      "y": 194,
+      "width": 284,
+      "height": 90,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "RASIO TABUNGAN",
+      "x": 1124,
+      "y": 210,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-110%",
+      "x": 1124,
+      "y": 232,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 22,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#10b981"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Pill Boros",
+      "x": 1320,
+      "y": 232,
+      "width": 56,
+      "height": 24,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#dcfce7"
+          }
+        ],
+        "cornerRadius": 8
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Boros",
+      "x": 1332,
+      "y": 238,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#15803d"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Pola",
+      "x": 1108,
+      "y": 298,
+      "width": 284,
+      "height": 120,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "POLA PENGELUARAN",
+      "x": 1124,
+      "y": 314,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Hari aktif catat: 6 / 30",
+      "x": 1124,
+      "y": 336,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rata-rata / hari aktif: Rp80.396",
+      "x": 1124,
+      "y": 358,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Hari paling boros: Rp229.689",
+      "x": 1124,
+      "y": 380,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Rata2",
+      "x": 1108,
+      "y": 790,
+      "width": 284,
+      "height": 60,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 16
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rata-rata harian",
+      "x": 1124,
+      "y": 812,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 16.079",
+      "x": 1290,
+      "y": 812,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Segment Switcher",
+      "x": 298,
+      "y": 24,
+      "width": 180,
+      "height": 44,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bulanan    Tahunan",
+      "x": 326,
+      "y": 38,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card PEMASUKAN",
+      "x": 298,
+      "y": 90,
+      "width": 244,
+      "height": 120,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PEMASUKAN",
+      "x": 318,
+      "y": 110,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 230.000",
+      "x": 318,
+      "y": 136,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-73% vs bulan lalu",
+      "x": 318,
+      "y": 172,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#10b981"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card PENGELUARAN",
+      "x": 556,
+      "y": 90,
+      "width": 244,
+      "height": 120,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PENGELUARAN",
+      "x": 576,
+      "y": 110,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 482.377",
+      "x": 576,
+      "y": 136,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-75% vs bulan lalu",
+      "x": 576,
+      "y": 172,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card SALDO BERSIH",
+      "x": 814,
+      "y": 90,
+      "width": 244,
+      "height": 120,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SALDO BERSIH",
+      "x": 834,
+      "y": 110,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp -252.377",
+      "x": 834,
+      "y": 136,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-77% vs bulan lalu",
+      "x": 834,
+      "y": 172,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#3b82f6"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Tren Bulan Ini Card",
+      "x": 298,
+      "y": 236,
+      "width": 760,
+      "height": 480,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 26,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Tren Bulan Ini",
+      "x": 326,
+      "y": 264,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 18,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "● Pemasukan   ● Pengeluaran   ● Saldo",
+      "x": 820,
+      "y": 266,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Chart Axis X",
+      "x": 340,
+      "y": 500,
+      "width": 680,
+      "height": 2,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#e2e8f0"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "1     3     5     7     9    11    13    15    17    19    21    23    25    27    29",
+      "x": 340,
+      "y": 520,
+      "parent": {
+        "$step": 91
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Desktop — Budget & Rekening",
+      "x": 1700,
+      "y": 1000,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Sidebar Container",
+      "x": 24,
+      "y": 24,
+      "width": 250,
+      "height": 852,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Brand Icon",
+      "x": 48,
+      "y": 48,
+      "width": 42,
+      "height": 42,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit",
+      "x": 102,
+      "y": 50,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "CATAT · PANTAU · KENDALIKAN",
+      "x": 102,
+      "y": 74,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 9,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Transaksi",
+      "x": 44,
+      "y": 120,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Transaksi",
+      "x": 88,
+      "y": 134,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Statistik",
+      "x": 44,
+      "y": 176,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik",
+      "x": 88,
+      "y": 190,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Budget",
+      "x": 44,
+      "y": 232,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#34d399",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Budget",
+      "x": 88,
+      "y": 246,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Utang",
+      "x": 44,
+      "y": 288,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Utang",
+      "x": 88,
+      "y": 302,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Profile Avatar",
+      "x": 44,
+      "y": 810,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#cbd5e1"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "David Timothy",
+      "x": 90,
+      "y": 812,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "ID Indonesia · Rp",
+      "x": 90,
+      "y": 830,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Panel Container",
+      "x": 1084,
+      "y": 24,
+      "width": 332,
+      "height": 852,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik Budget",
+      "x": 1108,
+      "y": 48,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "PDF Pill",
+      "x": 1360,
+      "y": 44,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#fff1f2"
+          }
+        ],
+        "cornerRadius": 10
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PDF",
+      "x": 1368,
+      "y": 55,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#e11d48"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Hero Budget",
+      "x": 1108,
+      "y": 96,
+      "width": 284,
+      "height": 110,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#1d4ed8"
+          }
+        ],
+        "cornerRadius": 20
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SISA BUDGET",
+      "x": 1128,
+      "y": 116,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#93c5fd"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "- Rp482.377",
+      "x": 1128,
+      "y": 138,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Terlampaui Rp482.377",
+      "x": 1128,
+      "y": 174,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#bfdbfe"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Burn Rate",
+      "x": 1108,
+      "y": 222,
+      "width": 284,
+      "height": 80,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "HARI TERSISA: 23",
+      "x": 1128,
+      "y": 242,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "BURN / HARI: Rp60.297",
+      "x": 1128,
+      "y": 266,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ef4444"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Tambah Budget",
+      "x": 1108,
+      "y": 800,
+      "width": 284,
+      "height": 48,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#3b82f6"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+ Buat Budget Baru",
+      "x": 1176,
+      "y": 816,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Hero Total Semua Saldo",
+      "x": 298,
+      "y": 90,
+      "width": 760,
+      "height": 120,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 24,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "TOTAL SEMUA SALDO",
+      "x": 326,
+      "y": 114,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 1.694.446",
+      "x": 326,
+      "y": 140,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 28,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pemasukan: Rp230.000  |  Pengeluaran: Rp482.377",
+      "x": 720,
+      "y": 146,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Dompet",
+      "x": 298,
+      "y": 236,
+      "width": 372,
+      "height": 144,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Dompet",
+      "x": 322,
+      "y": 260,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Type Badge",
+      "x": 578,
+      "y": 256,
+      "width": 68,
+      "height": 24,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 8
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Cash",
+      "x": 592,
+      "y": 262,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp820.974",
+      "x": 322,
+      "y": 296,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+Rp230.000 Transaksi Lainnya",
+      "x": 322,
+      "y": 338,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Seabank / Shopee",
+      "x": 686,
+      "y": 236,
+      "width": 372,
+      "height": 144,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Seabank / Shopee",
+      "x": 710,
+      "y": 260,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Type Badge",
+      "x": 966,
+      "y": 256,
+      "width": 68,
+      "height": 24,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 8
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "E-Wallet",
+      "x": 980,
+      "y": 262,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-Rp1.351.195",
+      "x": 710,
+      "y": 296,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Pindah saldo dari Krom",
+      "x": 710,
+      "y": 338,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Go-Pay",
+      "x": 298,
+      "y": 400,
+      "width": 372,
+      "height": 144,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Go-Pay",
+      "x": 322,
+      "y": 424,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Type Badge",
+      "x": 578,
+      "y": 420,
+      "width": 68,
+      "height": 24,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 8
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "E-Wallet",
+      "x": 592,
+      "y": 426,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp80.000",
+      "x": 322,
+      "y": 460,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+Rp10.000 Transaksi Bonus",
+      "x": 322,
+      "y": 502,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card OVO",
+      "x": 686,
+      "y": 400,
+      "width": 372,
+      "height": 144,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "OVO",
+      "x": 710,
+      "y": 424,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Type Badge",
+      "x": 966,
+      "y": 420,
+      "width": 68,
+      "height": 24,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f1f5f9"
+          }
+        ],
+        "cornerRadius": 8
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "E-Wallet",
+      "x": 980,
+      "y": 426,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp48.000",
+      "x": 710,
+      "y": 460,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "-Rp12.000 Pengeluaran",
+      "x": 710,
+      "y": 502,
+      "parent": {
+        "$step": 147
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Desktop — Utang & Cicilan",
+      "x": 3240,
+      "y": 1000,
+      "width": 1440,
+      "height": 900,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Sidebar Container",
+      "x": 24,
+      "y": 24,
+      "width": 250,
+      "height": 852,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Brand Icon",
+      "x": 48,
+      "y": 48,
+      "width": 42,
+      "height": 42,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit",
+      "x": 102,
+      "y": 50,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "CATAT · PANTAU · KENDALIKAN",
+      "x": 102,
+      "y": 74,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 9,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Transaksi",
+      "x": 44,
+      "y": 120,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Transaksi",
+      "x": 88,
+      "y": 134,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Statistik",
+      "x": 44,
+      "y": 176,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Statistik",
+      "x": 88,
+      "y": 190,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Budget",
+      "x": 44,
+      "y": 232,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#ffffff",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Budget",
+      "x": 88,
+      "y": 246,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 600,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Nav Utang",
+      "x": 44,
+      "y": 288,
+      "width": 210,
+      "height": 46,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 16,
+        "stroke": "#34d399",
+        "strokeWeight": 1
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Utang",
+      "x": 88,
+      "y": 302,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 14,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Profile Avatar",
+      "x": 44,
+      "y": 810,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#cbd5e1"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "David Timothy",
+      "x": 90,
+      "y": 812,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "ID Indonesia · Rp",
+      "x": 90,
+      "y": 830,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Panel Container",
+      "x": 1084,
+      "y": 24,
+      "width": 332,
+      "height": 852,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Ringkasan Utang",
+      "x": 1108,
+      "y": 48,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "PDF Pill",
+      "x": 1360,
+      "y": 44,
+      "width": 36,
+      "height": 36,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#fff1f2"
+          }
+        ],
+        "cornerRadius": 10
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PDF",
+      "x": 1368,
+      "y": 55,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#e11d48"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Progres",
+      "x": 1108,
+      "y": 96,
+      "width": 284,
+      "height": 110,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#064e3b"
+          }
+        ],
+        "cornerRadius": 20
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Ring Circle",
+      "x": 1128,
+      "y": 116,
+      "width": 64,
+      "height": 64,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 32
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "79%",
+      "x": 1144,
+      "y": 138,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "PROGRES PELUNASAN",
+      "x": 1204,
+      "y": 122,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 10,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#a7f3d0"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp965.234",
+      "x": 1204,
+      "y": 140,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 18,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "dari Rp4.687.014",
+      "x": 1204,
+      "y": 164,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#d1fae5"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Aside Card Jatuh Tempo",
+      "x": 1108,
+      "y": 222,
+      "width": 284,
+      "height": 140,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#f8faf9"
+          }
+        ],
+        "cornerRadius": 18
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "JATUH TEMPO TERDEKAT",
+      "x": 1124,
+      "y": 238,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "● Spaylater (26h): Rp23.239",
+      "x": 1124,
+      "y": 262,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "● Spaylater (57h): Rp23.239",
+      "x": 1124,
+      "y": 288,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "● Spinjam (150h): Rp918.756",
+      "x": 1124,
+      "y": 314,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Tambah Utang",
+      "x": 1108,
+      "y": 790,
+      "width": 136,
+      "height": 48,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#dc2626"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+ Utang",
+      "x": 1150,
+      "y": 806,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Tambah Cicilan",
+      "x": 1256,
+      "y": 790,
+      "width": 136,
+      "height": 48,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#b91c1c"
+          }
+        ],
+        "cornerRadius": 14
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+ Cicilan",
+      "x": 1294,
+      "y": 806,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card TOTAL UTANG",
+      "x": 298,
+      "y": 24,
+      "width": 244,
+      "height": 100,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "TOTAL UTANG",
+      "x": 318,
+      "y": 42,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp965.234",
+      "x": 318,
+      "y": 62,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "3 aktif",
+      "x": 318,
+      "y": 92,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card LUNAS",
+      "x": 556,
+      "y": 24,
+      "width": 244,
+      "height": 100,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "LUNAS",
+      "x": 576,
+      "y": 42,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp2.573.335",
+      "x": 576,
+      "y": 62,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "4 item lunas",
+      "x": 576,
+      "y": 92,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card CICILAN AKTIF",
+      "x": 814,
+      "y": 24,
+      "width": 244,
+      "height": 100,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "CICILAN AKTIF",
+      "x": 834,
+      "y": 42,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "1",
+      "x": 834,
+      "y": 62,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 20,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp229.689/bln",
+      "x": 834,
+      "y": 92,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spaylater",
+      "x": 298,
+      "y": 144,
+      "width": 372,
+      "height": 156,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spaylater",
+      "x": 318,
+      "y": 164,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SISA UTANG",
+      "x": 318,
+      "y": 192,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 10,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp23.239",
+      "x": 318,
+      "y": 212,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Jatuh tempo 4 Des (26 hari lagi)",
+      "x": 318,
+      "y": 260,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Bayar",
+      "x": 574,
+      "y": 208,
+      "width": 76,
+      "height": 38,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 12
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bayar",
+      "x": 594,
+      "y": 218,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spaylater",
+      "x": 686,
+      "y": 144,
+      "width": 372,
+      "height": 156,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spaylater",
+      "x": 706,
+      "y": 164,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SISA UTANG",
+      "x": 706,
+      "y": 192,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 10,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp23.239",
+      "x": 706,
+      "y": 212,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Jatuh tempo 4 Jan (57 hari lagi)",
+      "x": 706,
+      "y": 260,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Bayar",
+      "x": 962,
+      "y": 208,
+      "width": 76,
+      "height": 38,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 12
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bayar",
+      "x": 982,
+      "y": 218,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spinjam",
+      "x": 298,
+      "y": 320,
+      "width": 372,
+      "height": 156,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spinjam",
+      "x": 318,
+      "y": 340,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SISA UTANG",
+      "x": 318,
+      "y": 368,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 10,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp918.756",
+      "x": 318,
+      "y": 388,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Cicilan Rp229.689/bln",
+      "x": 318,
+      "y": 436,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Bayar",
+      "x": 574,
+      "y": 384,
+      "width": 76,
+      "height": 38,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 12
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bayar",
+      "x": 594,
+      "y": 394,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Card Spaylater",
+      "x": 686,
+      "y": 320,
+      "width": 372,
+      "height": 156,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22,
+        "stroke": "#ffffff",
+        "strokeWeight": 1.5
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Spaylater",
+      "x": 706,
+      "y": 340,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 16,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "SISA UTANG",
+      "x": 706,
+      "y": 368,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 10,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp0",
+      "x": 706,
+      "y": 388,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Sudah lunas",
+      "x": 706,
+      "y": 436,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 12,
+        "fontFamily": "Inter",
+        "fill": "#64748b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Btn Bayar",
+      "x": 962,
+      "y": 384,
+      "width": 76,
+      "height": 38,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#047857"
+          }
+        ],
+        "cornerRadius": 12
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Bayar",
+      "x": 982,
+      "y": 394,
+      "parent": {
+        "$step": 204
+      },
+      "props": {
+        "fontSize": 13,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  },
+  {
+    "command": "frame.create",
+    "params": {
+      "name": "Mobile — Transaksi & FAB View",
+      "x": 4780,
+      "y": 0,
+      "width": 390,
+      "height": 844,
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#eef3f1"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Mobile Header Bar",
+      "x": 16,
+      "y": 44,
+      "width": 358,
+      "height": 60,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 20
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "MyDuit",
+      "x": 72,
+      "y": 60,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fontSize": 18,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Mobile Hero Total Saldo",
+      "x": 16,
+      "y": 118,
+      "width": 358,
+      "height": 100,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 22
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "TOTAL SALDO",
+      "x": 36,
+      "y": 136,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fontSize": 11,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#94a3b8"
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "Rp 1.694.446",
+      "x": 36,
+      "y": 156,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fontSize": 24,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#1e293b"
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Mobile Bottom Dock",
+      "x": 16,
+      "y": 750,
+      "width": 358,
+      "height": 64,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#ffffff"
+          }
+        ],
+        "cornerRadius": 24
+      }
+    }
+  },
+  {
+    "command": "shape.rectangle",
+    "params": {
+      "name": "Central 3D FAB",
+      "x": 167,
+      "y": 724,
+      "width": 56,
+      "height": 56,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fills": [
+          {
+            "type": "solid",
+            "color": "#10b981"
+          }
+        ],
+        "cornerRadius": 28,
+        "stroke": "#ffffff",
+        "strokeWeight": 3
+      }
+    }
+  },
+  {
+    "command": "text.create",
+    "params": {
+      "text": "+",
+      "x": 186,
+      "y": 732,
+      "parent": {
+        "$step": 279
+      },
+      "props": {
+        "fontSize": 28,
+        "fontFamily": "Inter",
+        "fontWeight": 700,
+        "fill": "#ffffff"
+      }
+    }
+  }
+]
