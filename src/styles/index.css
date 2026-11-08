@@ -972,8 +972,6 @@ button:active {
   background: radial-gradient(circle at 100% 0%, rgba(var(--clay-h), 0.16) 0%, transparent 70%);
   pointer-events: none;
 }
-  pointer-events: none;
-}
 .hero-primary { --clay-h: var(--clay-h-primary); }
 .hero-danger  { --clay-h: var(--clay-h-danger); }
 .hero-blue    { --clay-h: var(--clay-h-blue); }

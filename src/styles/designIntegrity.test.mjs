@@ -46,5 +46,21 @@ cek('css: .tx-card-item bebas dari content-visibility auto (mencegah scrollbar l
 const tanpaSheetPopJump = !fileCss.includes('animation: claySheetIn')
 cek('css: .clay-sheet stabil tanpa scale/pop animation yang memicu jitter', tanpaSheetPopJump)
 
+// 6. Periksa index.css: Bebas dari kurva overshoot liar 1.56 (mencegah wobble kartun pada aksi utilitas)
+const tanpaOvershootWobble = !fileCss.includes('1.56')
+cek('css: bebas dari kurva overshoot liar 1.56 (mencegah wobble pada tombol & kartu utilitas)', tanpaOvershootWobble)
+
+// 7. Periksa index.css: Sistem motion physics terdefinisi (--motion-ease-spring dan durasi sinkron)
+const motionPhysicsTerdefinisi = fileCss.includes('--motion-ease-spring') && fileCss.includes('--motion-dur-fast')
+cek('css: sistem motion physics terdefinisi (--motion-ease-spring dan durasi sinkron)', motionPhysicsTerdefinisi)
+
+// 8. Periksa FormTransaksiModal.jsx: Menggunakan .clay-segmented-track taktil, bebas dari tombol template bg-red-500
+const segmentedTrackTaktil = fileFormModal.includes('clay-segmented-track') && !fileFormModal.includes('bg-red-500 text-white shadow-')
+cek('modal transaksi: memakai .clay-segmented-track taktil (bebas dari template button bg-red-500)', segmentedTrackTaktil)
+
+// 9. Periksa TransaksiView.jsx: Bebas dari kelas generik bg-blue-700 shadow-md di toolbar
+const toolbarBebasGenericShadow = !fileTransaksiView.includes('bg-blue-700 text-white shadow-md')
+cek('toolbar TransaksiView: chip filter memakai token solid-blue (bebas dari bg-blue-700 shadow-md generik)', toolbarBebasGenericShadow)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
