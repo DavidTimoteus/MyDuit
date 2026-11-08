@@ -57,3 +57,4 @@ figcraft.connect.json
 dogfood_*.mjs
 *.cmd
 *.bat
+design/
