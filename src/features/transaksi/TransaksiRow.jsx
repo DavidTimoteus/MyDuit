@@ -142,11 +142,11 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
             e.stopPropagation()
             onDelete?.(trans)
           }}
-          className={`delete-btn-action shrink-0 ml-2 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 active:scale-90 text-white items-center justify-center transition-all touch-manipulation ${
+          className={`delete-btn-action neu-btn shrink-0 ml-2 h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 items-center justify-center transition-all touch-manipulation ${
             deleteOpen ? 'flex' : 'hidden'
           }`}
         >
-          <span className="material-symbols-outlined icon-lg">delete</span>
+          <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
         </button>
       )}
     </div>

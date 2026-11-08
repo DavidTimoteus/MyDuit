@@ -156,27 +156,30 @@ export default function RightPanel({ uid }) {
           {/* Aksi Cepat */}
           <div className="shrink-0">
             <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Aksi Cepat</p>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-2">
               <button
+                type="button"
                 onClick={() => aksi('pemasukan')}
-                className="clay-btn clay-key-primary solid-primary btn-lg w-full text-white"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
               >
-                <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-                Tambah Pemasukan
+                <span className="material-symbols-outlined icon-md text-[#36AE7C]" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
+                <span>Tambah Pemasukan</span>
               </button>
               <button
+                type="button"
                 onClick={() => aksi('pengeluaran')}
-                className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
               >
-                <span className="material-symbols-outlined icon-sm text-expenseText" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
-                Tambah Pengeluaran
+                <span className="material-symbols-outlined icon-md text-[#EB5353]" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
+                <span>Tambah Pengeluaran</span>
               </button>
               <button
+                type="button"
                 onClick={() => aksi('pindah-saldo')}
-                className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
               >
-                <span className="material-symbols-outlined icon-sm text-blue-600" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
-                Pindah Saldo
+                <span className="material-symbols-outlined icon-md text-[#187498]" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
+                <span>Pindah Saldo</span>
               </button>
             </div>
           </div>

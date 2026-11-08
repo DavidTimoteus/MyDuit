@@ -210,7 +210,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       // user untuk menambah (bukan diam-diam menebak).
       setSumberSaran(null)
       if (hasil.sumberBayar?.nama) {
-        const cocok = akunList.find((a) => a.nama.toLowerCase().includes(hasil.sumberBayar.nama.toLowerCase()))
+        const cocok = (akunList || []).find((a) => (a?.nama ?? "").toLowerCase().includes(String(hasil.sumberBayar?.nama ?? "").toLowerCase()))
         if (cocok) {
           setAkunId(cocok.id)
         } else {
@@ -223,7 +223,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       if (hasil.total && hasil.total > 0) bagian.push(`Total ${formatRibuanInput(String(hasil.total))}.`)
       if (hasil.kategoriNama) bagian.push(`Kategori disarankan: ${hasil.kategoriNama}.`)
       if (hasil.keterangan) bagian.push(`Keterangan: ${hasil.keterangan}.`)
-      if (hasil.sumberBayar?.nama && !akunList.some((a) => a.nama.toLowerCase().includes(hasil.sumberBayar.nama.toLowerCase())))
+      if (hasil.sumberBayar?.nama && !(akunList || []).some((a) => (a?.nama ?? "").toLowerCase().includes(String(hasil.sumberBayar.nama).toLowerCase())))
         bagian.push(`Rekening ${hasil.sumberBayar.nama} belum ada — bisa ditambah di bawah.`)
       if (hasil.bayarTunai) bagian.push('Dibayar tunai, jadi tidak perlu pilih rekening? Tetap pilih rekening yang dipakai Receive.')
 
@@ -305,9 +305,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     ;(async () => {
       try {
         // Boundary: kategori bebas-ketik WAJIB jadi dokumen kategori resmi.
+        const targetKat = String(namaKatSnap ?? '').trim().toLowerCase()
         const kat =
-          kategoriList.find((k) => k.nama.toLowerCase() === namaKatSnap.toLowerCase() && k.jenis === jenisSnap) ??
-          kategoriList.find((k) => k.nama.toLowerCase() === namaKatSnap.toLowerCase())
+          (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat && k?.jenis === jenisSnap) ??
+          (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat)
         let kategoriId = kat?.id ?? ''
         if (!kategoriId) kategoriId = await ambilAtauBuatKategori(uid, namaKatSnap, jenisSnap)
         const data = {
@@ -755,16 +756,16 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               // mode edit/salin, jika kategori sumber tidak masuk filter (mis.
               // data legacy jenis berbeda), tetap sertakan agar tidak hilang opsi.
               options={(() => {
-                const sesuaiJenis = kategoriList.filter((k) => k.jenis === jenis)
+                const sesuaiJenis = (kategoriList || []).filter((k) => k && k.jenis === jenis && k.nama)
                 if ((mode === 'edit' || mode === 'salin') && sumber?.kategoriId) {
                   const ada = sesuaiJenis.some((k) => k.id === sumber.kategoriId)
                   if (!ada) {
-                    const sumberKat = kategoriList.find((k) => k.id === sumber.kategoriId)
-                    if (sumberKat) return [{ value: sumberKat.id, label: sumberKat.nama + ' (lama)' }, ...sesuaiJenis]
+                    const sumberKat = (kategoriList || []).find((k) => k?.id === sumber.kategoriId)
+                    if (sumberKat?.nama) return [{ value: sumberKat.id, label: sumberKat.nama + ' (lama)' }, ...sesuaiJenis]
                   }
                 }
                 return sesuaiJenis
-              })().map((k) => ({ value: k.id, label: k.nama }))}
+              })().map((k) => ({ value: k.id, label: String(k?.nama ?? '') }))}
             />
           </div>
 

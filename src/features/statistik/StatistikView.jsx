@@ -434,20 +434,45 @@ export default function StatistikView({ user }) {
         ? window.__MYDUIT_LOCALE__ || "id-ID"
         : "id-ID";
 
-    // Gradient vertikal kanvas untuk Pemasukan, Pengeluaran & Saldo (Image 2 Neumorphic Spline + Capsule Chart)
+    // Reverse Engineering Neumorphism Chart (Image 2: Soft Capsule Pillar Slots + Smooth Wave Spline)
     const gradIn = ctx.createLinearGradient(0, 0, 0, 260);
-    gradIn.addColorStop(0, "rgba(78, 197, 147, 0.95)");
-    gradIn.addColorStop(1, "rgba(54, 174, 124, 0.70)");
+    gradIn.addColorStop(0, "rgba(78, 197, 147, 0.98)");
+    gradIn.addColorStop(1, "rgba(54, 174, 124, 0.75)");
 
     const gradOut = ctx.createLinearGradient(0, 0, 0, 260);
-    gradOut.addColorStop(0, "rgba(243, 130, 130, 0.95)");
-    gradOut.addColorStop(1, "rgba(235, 83, 83, 0.70)");
+    gradOut.addColorStop(0, "rgba(243, 130, 130, 0.98)");
+    gradOut.addColorStop(1, "rgba(235, 83, 83, 0.75)");
 
     const gradSaldo = ctx.createLinearGradient(0, 0, 0, 280);
-    gradSaldo.addColorStop(0, "rgba(24, 116, 152, 0.22)");
+    gradSaldo.addColorStop(0, "rgba(24, 116, 152, 0.20)");
     gradSaldo.addColorStop(1, "rgba(24, 116, 152, 0.00)");
 
+    // Plugin menggambar slot kapsul Neumorphic di belakang setiap batang
+    const neumorphicTrackPlugin = {
+      id: "neumorphicTrack",
+      beforeDatasetsDraw(chart) {
+        const { ctx: c, chartArea, scales: { x } } = chart;
+        if (!chartArea || !x) return;
+        c.save();
+        const count = x.ticks.length;
+        const topY = chartArea.top;
+        const h = chartArea.height;
+        for (let i = 0; i < count; i++) {
+          const xPos = x.getPixelForTick(i);
+          const barW = Math.min(24, (chartArea.width / Math.max(1, count)) * 0.75);
+          c.fillStyle = "rgba(0, 0, 0, 0.025)";
+          if (typeof c.roundRect === "function") {
+            c.beginPath();
+            c.roundRect(xPos - barW / 2, topY, barW, h, 10);
+            c.fill();
+          }
+        }
+        c.restore();
+      },
+    };
+
     chartInst.current = new Chart(ctx, {
+      plugins: [neumorphicTrackPlugin],
       data: {
         labels: tren.labels,
         datasets: [
@@ -535,8 +560,8 @@ export default function StatistikView({ user }) {
             grid: { display: false },
             border: { display: false },
             ticks: {
-              color: "#94a3b8",
-              font: { size: 10 },
+              color: "#64748B",
+              font: { size: 10, weight: "600" },
               autoSkip: false,
               maxRotation: 0,
               padding: 8,
@@ -551,8 +576,8 @@ export default function StatistikView({ user }) {
             grid: { color: "rgba(0, 0, 0, 0.04)" },
             border: { display: false },
             ticks: {
-              color: "#94a3b8",
-              font: { size: 10 },
+              color: "#64748B",
+              font: { size: 10, weight: "600" },
               maxTicksLimit: 6,
               padding: 6,
               callback: (v) =>
@@ -724,12 +749,12 @@ export default function StatistikView({ user }) {
 
         {/* Periode bar — segmented (Bulanan|Tahunan) + stepper */}
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <div className="clay-segmented-track flex items-center p-1">
+          <div className="neu-inset flex items-center p-1 rounded-2xl bg-[#E5E5E5]">
             <button
               type="button"
               onClick={() => setMode("bulanan")}
-              className={`clay-segment-item flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none touch-manipulation ${
-                mode === "bulanan" ? "is-active" : ""
+              className={`flex flex-1 items-center justify-center py-2 px-4 text-xs font-extrabold rounded-xl transition-all duration-200 md:flex-none touch-manipulation ${
+                mode === "bulanan" ? "neu-btn bg-[#E5E5E5] text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
               }`}
             >
               Bulanan
@@ -737,8 +762,8 @@ export default function StatistikView({ user }) {
             <button
               type="button"
               onClick={() => setMode("tahunan")}
-              className={`clay-segment-item flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none touch-manipulation ${
-                mode === "tahunan" ? "is-active" : ""
+              className={`flex flex-1 items-center justify-center py-2 px-4 text-xs font-extrabold rounded-xl transition-all duration-200 md:flex-none touch-manipulation ${
+                mode === "tahunan" ? "neu-btn bg-[#E5E5E5] text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
               }`}
             >
               Tahunan
@@ -785,7 +810,7 @@ export default function StatistikView({ user }) {
             pct={pctIn}
             banding={labelBanding}
             cls="hero-primary"
-            aksenCls="text-primary"
+            aksenCls="text-[#36AE7C]"
           />
           <SummaryCard
             icon="trending_down"
@@ -794,7 +819,7 @@ export default function StatistikView({ user }) {
             pct={pctOut}
             banding={labelBanding}
             cls="hero-danger"
-            aksenCls="text-danger"
+            aksenCls="text-[#EB5353]"
           />
           <SummaryCard
             icon="savings"
@@ -803,7 +828,7 @@ export default function StatistikView({ user }) {
             pct={pctSaldo}
             banding={labelBanding}
             cls="hero-blue"
-            aksenCls="text-info"
+            aksenCls="text-[#187498]"
           />
         </div>
 
@@ -946,28 +971,29 @@ export default function StatistikView({ user }) {
           onClick={() => setDetail(null)}
         >
           <div
-            className="clay-sheet clay-key-primary flex max-h-[85vh] w-full max-w-md flex-col"
+            className="neu-card flex max-h-[85vh] w-full max-w-md flex-col rounded-3xl bg-[#E5E5E5] p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex min-w-0 shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3 pt-5">
+            <div className="flex min-w-0 shrink-0 items-start justify-between gap-3 border-b border-black/5 pb-3">
               <div className="min-w-0">
-                <h3 className="truncate text-base font-bold text-slate-800">
+                <h3 className="truncate text-base font-extrabold text-slate-800 tracking-tight">
                   {detail.kategori}
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="mt-0.5 text-xs font-semibold text-slate-500">
                   {detail.labelPeriode}
                 </p>
               </div>
               <button
                 onClick={() => setDetail(null)}
-                className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:text-slate-600"
+                aria-label="Tutup detail kategori"
+                className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 transition-colors hover:text-slate-900 active:scale-95"
               >
-                <span className="material-symbols-outlined icon-lg">close</span>
+                <span className="material-symbols-outlined icon-md">close</span>
               </button>
             </div>
-            <div className="flex-1 space-y-1 overflow-y-auto px-5 py-3">
+            <div className="flex-1 space-y-1.5 overflow-y-auto py-3">
               {detail.items.length === 0 ? (
-                <p className="py-6 text-center text-sm text-slate-500">
+                <p className="py-6 text-center text-sm font-semibold text-slate-500">
                   Belum ada transaksi.
                 </p>
               ) : (
@@ -976,18 +1002,18 @@ export default function StatistikView({ user }) {
                   return (
                     <div
                       key={t.id}
-                      className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2 transition-all hover:bg-black/[0.03] hover:shadow-[inset_1.5px_1.5px_4px_rgba(0,0,0,0.06),inset_-1.5px_-1.5px_4px_rgba(255,255,255,0.70)]"
+                      className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2.5 transition-all hover:bg-black/[0.03]"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-slate-800">
+                        <p className="truncate text-sm font-bold text-slate-800">
                           {t.catatan || t.kategoriNama || detail.kategori}
                         </p>
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-[11px] font-semibold text-slate-500">
                           {ak?.nama || "Tunai"} · {t.tanggal}
                         </p>
                       </div>
                       <p
-                        className={`shrink-0 font-mono text-sm font-bold ${detail.jenis === "pemasukan" ? "text-incomeText" : "text-expenseText"}`}
+                        className={`shrink-0 font-mono text-sm font-extrabold ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
                       >
                         {detail.jenis === "pemasukan" ? "+" : "−"}
                         {simbolUang()}
@@ -998,13 +1024,13 @@ export default function StatistikView({ user }) {
                 })
               )}
             </div>
-            <div className="flex shrink-0 items-center justify-between rounded-b-2xl border-t border-slate-100 bg-slate-50 px-5 py-3">
-              <span className="text-xs font-semibold text-slate-500">
-                Total{" "}
-                {detail.jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran"}
+            {/* Total Footer - Neumorphic Inset Well (No ugly white background) */}
+            <div className="neu-inset mt-2 flex shrink-0 items-center justify-between rounded-2xl bg-[#E5E5E5] px-4 py-3">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">
+                Total {detail.jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran"}
               </span>
               <span
-                className={`text-sm font-bold ${detail.jenis === "pemasukan" ? "text-incomeText" : "text-expenseText"}`}
+                className={`font-mono text-base font-black tabular-nums ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
               >
                 {formatRupiah(detail.total || 0)}
               </span>
@@ -1035,7 +1061,7 @@ function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
           {label}
         </p>
       </div>
-      <p className="font-mono text-lg font-extrabold tracking-tight text-slate-900 tabular-nums sm:text-xl lg:text-2xl">
+      <p className={`font-mono text-lg font-black tracking-tight tabular-nums sm:text-xl lg:text-2xl ${aksenCls}`}>
         {simbolUang()} {formatNominal(value || 0)}
       </p>
       <p

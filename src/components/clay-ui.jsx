@@ -172,7 +172,7 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
   useDismiss(open, () => setOpen(false), listRef, wrapRef)
 
   const kw = String(value ?? '').trim().toLowerCase()
-  const matches = kw ? options.filter((o) => o.label.toLowerCase().includes(kw)) : options
+  const matches = kw ? options.filter((o) => String(o?.label ?? "").toLowerCase().includes(kw)) : options
 
   // Scroll mengikuti highlight keyboard (sama dgn ClaySelect)
   useEffect(() => {

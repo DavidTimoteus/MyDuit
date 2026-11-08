@@ -3,7 +3,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import InstallButton from "./InstallButton.jsx";
 import ModulSkeleton from "./ModulSkeleton.jsx";
 import UserMenuSheet from "./UserMenuSheet.jsx";
-import { THEMES, EVENT_THEME, temaAktif, setTema } from "../lib/theme.js";
+// Theme locked to Neumorphism
 import { getFirebase } from "../lib/firebase.js";
 import {
   detectCountryInfo,
@@ -435,13 +435,7 @@ export default function Shell({ user }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [lokasiOpen, setLokasiOpen] = useState(false);
-  const [tema, setTemaState] = useState(temaAktif);
-
-  useEffect(() => {
-    const onTheme = (e) => setTemaState(e.detail?.tema || temaAktif());
-    window.addEventListener(EVENT_THEME, onTheme);
-    return () => window.removeEventListener(EVENT_THEME, onTheme);
-  }, []);
+  
   const [fabDial, setFabDial] = useState(false);
   useEffect(() => { setFabDial(false); }, [tab]);
   const [filterLabel, setFilterLabel] = useState("Hari Ini");
@@ -630,27 +624,16 @@ export default function Shell({ user }) {
               </div>
             </div>
 
-            {/* Quick Controls Row: Theme, Backup, Logout */}
+            {/* Quick Controls Row: Backup, Logout */}
             <div className="mt-2.5 flex items-center justify-between gap-2 px-1">
-              <button
-                type="button"
-                onClick={() => {
-                  const next = tema === THEMES.NEUMORPHISM ? THEMES.CLAYMORPHISM : THEMES.NEUMORPHISM;
-                  setTema(next);
-                }}
-                title={`Gaya Desain: ${tema === THEMES.NEUMORPHISM ? 'Neumorphism (Modern)' : 'Claymorphism (Klasik)'} - Klik untuk ganti`}
-                className="neu-btn flex flex-1 items-center justify-center gap-1.5 h-8 rounded-xl bg-[#E5E5E5] text-[11px] font-bold text-slate-600 hover:text-slate-900 active:scale-95"
-              >
-                <span className="material-symbols-outlined icon-sm">palette</span>
-                <span>{tema === THEMES.NEUMORPHISM ? 'Neu' : 'Clay'}</span>
-              </button>
               <button
                 type="button"
                 onClick={() => setBackupOpen(true)}
                 title="Backup & Restore Data"
-                className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95"
+                className="neu-btn flex flex-1 items-center justify-center gap-1.5 h-8 rounded-xl bg-[#E5E5E5] text-[11px] font-bold text-slate-600 hover:text-slate-900 active:scale-95"
               >
                 <span className="material-symbols-outlined icon-sm">backup</span>
+                <span>Backup</span>
               </button>
               <button
                 type="button"
