@@ -111,6 +111,16 @@ textarea:focus-visible,
 
   --clay-bg: #f8faf9;
 
+  /* ===== UNIFIED MOTION PHYSICS TOKENS (Emil Kowalski + Jakub Krehel) ===== */
+  --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Deselerasi mulus tanpa bounce overshoot */
+  --motion-ease-press:  cubic-bezier(0.25, 1, 0.5, 1);    /* Resistensi taktil tombol ditekan */
+  --motion-ease-out:    cubic-bezier(0, 0, 0.2, 1);       /* Transisi keluar */
+  --motion-ease-in:     cubic-bezier(0.4, 0, 1, 1);       /* Transisi tutup cepat */
+
+  --motion-dur-instant: 120ms;                            /* Micro-toggle & ikon */
+  --motion-dur-fast:    180ms;                            /* Tombol, chip, kartu hover/touch */
+  --motion-dur-normal:  240ms;                            /* Modal, sheet, dropdown */
+
   /* ===== ICON SIZE TOKENS (skala tetap — larang ukuran acak) ===== */
   --icon-2xs: 12px;
   --icon-xs: 14px;
@@ -233,16 +243,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Global button hover/active — sama persis GAS (ViewCSS.html:461) */
+/* Global button hover/active — fisika responsif sinkron */
 button {
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
-/* Base ukuran tombol (GAS ViewCSS.html gobal button rule): tinggi pre-set 48px +
-   padding 0 16px supaya CTA tanpa token ukuran TIDAK lonjong kesamping (tinggi
-   mengikuti konten pendek + w-full). Dikalahkan utility Tailwind min-h-* (icon
-   chips 32/36px) & token .btn-sm/.btn-md/.btn-lg (spesifisitas class > elemen). */
-button,
 .btn {
   height: 48px;
   padding: 0 16px;
@@ -252,7 +257,7 @@ button:hover {
   transform: translateY(-1px);
 }
 button:active {
-  transform: scale(0.96);
+  transform: scale(0.97) translateY(1px);
 }
 
 /* ===== SPLASH SCREEN (loading ala mobile) =====
@@ -297,7 +302,7 @@ button:active {
   justify-content: center;
   background: transparent;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  animation: splash-logo-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: splash-logo-pop 0.6s var(--motion-ease-spring) both;
 }
 .splash-logo img {
   width: 80px;
@@ -405,8 +410,9 @@ button:active {
     inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
       rgba(255, 255, 255, 0.75);
   transition:
-    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.18s ease;
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 
 /* State: TEKAN -> inset aprofund, outset hilang (meneceb ke dalam). */
@@ -440,7 +446,10 @@ button:active {
     inset -2px -2px 6px rgba(var(--clay-h, var(--clay-h-neutral)), 0.05);
   border: 1px solid rgba(255, 255, 255, 0.65);
   overflow-x: clip;
-  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 
 /* Kartu lembut (empty state, info) */
@@ -487,7 +496,10 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h, var(--clay-h-primary)), 0.22);
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-btn:hover { transform: translateY(-1px); }
 .clay-btn:active {
@@ -508,7 +520,10 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h), 0.22);
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-btn-primary:hover { transform: translateY(-1px); }
 .clay-btn-primary:active {
@@ -529,7 +544,10 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h), 0.22);
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-btn-danger:hover { transform: translateY(-1px); }
 .clay-btn-danger:active {
@@ -549,7 +567,10 @@ button:active {
     -4px -4px 12px rgba(255, 255, 255, 0.6),
     inset 2px 2px 4px rgba(255, 255, 255, 0.5),
     inset -2px -2px 5px rgba(var(--clay-h, var(--clay-h-neutral)), 0.10);
-  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-btn-soft:active,
 .clay-btn-secondary:active {
@@ -607,7 +628,10 @@ button:active {
       rgba(var(--clay-h, var(--clay-h-primary)), 0.16),
     inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
       rgba(255, 255, 255, 0.55);
-  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
   touch-action: manipulation;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -767,7 +791,9 @@ button:active {
     -3px -3px 9px rgba(255, 255, 255, 0.65),
     inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.45),
     inset -2px -2px 5px rgba(var(--clay-h, var(--clay-h-primary)), 0.16);
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
 
 /* ===== INPUT / INSET ===== */
@@ -1026,7 +1052,10 @@ button:active {
 /* ===== KARTU TRANSAKSI (hover angkat di pointer halus; tekan = tint per hue) ===== */
 .tx-card-item {
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring);
   touch-action: manipulation;
 }
 @media (hover: hover) and (pointer: fine) {
@@ -1061,12 +1090,12 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.55),
     inset 2px 2px 4px rgba(255, 255, 255, 0.4),
     inset -3px -3px 7px rgba(var(--clay-h), 0.3);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-  animation: deleteBtnIn 0.16s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
+  animation: deleteBtnIn var(--motion-dur-fast) var(--motion-ease-spring) both;
   touch-action: manipulation;
 }
 @keyframes deleteBtnIn {
-  from { opacity: 0; transform: scale(0.75); }
+  from { opacity: 0; transform: scale(0.85); }
   to { opacity: 1; transform: scale(1); }
 }
 .delete-btn-action:active {
@@ -1218,7 +1247,7 @@ button:active {
   pointer-events: none;
   z-index: 30;
   touch-action: manipulation;
-  transition: transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease;
+  transition: transform var(--motion-dur-normal) var(--motion-ease-spring), opacity var(--motion-dur-fast) var(--motion-ease-out);
 }
 .fab-speed-dial.open .fab-dial-btn {
   transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1);
@@ -1231,7 +1260,7 @@ button:active {
 .fab-icon-open { transform: rotate(45deg); }
 
 .clay-pop {
-  animation: clayPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: clayPop var(--motion-dur-normal) var(--motion-ease-spring) both;
 }
 }
 
@@ -1258,13 +1287,13 @@ button:active {
 }
 
 @keyframes clayPop {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes clayDropdownIn {
-  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 
