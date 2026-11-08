@@ -98,27 +98,67 @@ export default function TransaksiView({ user }) {
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
   const pageItems = tampil.slice((page - 1) * PER_HALAMAN, page * PER_HALAMAN)
 
+  const [slideDir, setSlideDir] = useState(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
+
   function prevPage() {
-    if (page > 1) setPage((p) => p - 1)
+    if (page > 1) {
+      setSlideDir('prev')
+      setPage((p) => p - 1)
+    }
   }
 
   // Gesture swipe horizontal untuk navigasi halaman transaksi di mobile
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)
+  const isHorizontalSwipe = useRef(false)
 
   function handleTouchStart(e) {
     if (!e.touches || e.touches.length !== 1) return
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
+    isHorizontalSwipe.current = false
+    setIsDragging(true)
+  }
+
+  function handleTouchMove(e) {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    const diffX = currentX - touchStartX.current
+    const diffY = currentY - touchStartY.current
+
+    if (!isHorizontalSwipe.current) {
+      if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+        isHorizontalSwipe.current = true
+      } else if (Math.abs(diffY) > 10) {
+        touchStartX.current = null
+        touchStartY.current = null
+        setDragOffset(0)
+        setIsDragging(false)
+        return
+      }
+    }
+
+    if (isHorizontalSwipe.current) {
+      setDragOffset(diffX * 0.35)
+    }
   }
 
   function handleTouchEnd(e) {
-    if (touchStartX.current === null || touchStartY.current === null) return
+    if (touchStartX.current === null || touchStartY.current === null) {
+      setDragOffset(0)
+      setIsDragging(false)
+      return
+    }
     const touch = e.changedTouches[0]
     const diffX = touch.clientX - touchStartX.current
     const diffY = touch.clientY - touchStartY.current
     touchStartX.current = null
     touchStartY.current = null
+    setDragOffset(0)
+    setIsDragging(false)
 
     if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
       if (diffX < 0) {
@@ -130,8 +170,12 @@ export default function TransaksiView({ user }) {
   }
 
   async function nextPage() {
-    if (page < totalPages) return setPage(page + 1)
+    if (page < totalPages) {
+      setSlideDir('next')
+      return setPage(page + 1)
+    }
     if (hasMore && !loadingMore) {
+      setSlideDir('next')
       await muatLagi()
       setPage(page + 1)
     }
@@ -405,10 +449,22 @@ async function konfirmHapus() {
           </div>
         ) : (
           <div
-            className="-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar"
+            key={`tx-page-${page}`}
+            className={`-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar ${
+              slideDir === 'next'
+                ? 'page-transition-next'
+                : slideDir === 'prev'
+                  ? 'page-transition-prev'
+                  : ''
+            }`}
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ touchAction: 'pan-y' }}
+            style={{
+              touchAction: 'pan-y',
+              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
+              transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
           >
             {pageItems.map((t) => (
               <TransaksiRow
