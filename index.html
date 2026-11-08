@@ -55,9 +55,7 @@
   <body>
     <div id="root">
       <!--
-        Inline loading placeholder — ditampilkan saat cold start PWA di HP,
-        sebelum bundel React selesai dieksekusi. Mencegah jarring white flash.
-        React akan mount dan menggantikan seluruh konten ini secara otomatis.
+        Inline placeholder — kanvas bersih Neumorphism #E5E5E5 saat cold start
       -->
       <style>
         #root-placeholder {
@@ -66,7 +64,8 @@
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(160deg, #1b4332 0%, #2d6a4f 55%, #40916c 100%);
+          background-color: #E5E5E5;
+          background: #E5E5E5;
           font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
           z-index: 1;
         }
@@ -78,43 +77,48 @@
           text-align: center;
           padding: 36px 32px;
           border-radius: 32px;
-          background: rgba(255, 255, 255, 0.08);
+          background-color: #E5E5E5;
+          background: #E5E5E5;
           box-shadow:
-            8px 10px 24px rgba(0, 0, 0, 0.16),
-            -6px -6px 18px rgba(255, 255, 255, 0.05),
-            inset 2px 2px 4px rgba(255, 255, 255, 0.12),
-            inset -2px -2px 6px rgba(0, 0, 0, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.16);
+            -8px -8px 20px rgba(255, 255, 255, 0.85),
+             8px  8px 20px rgba(0, 0, 0, 0.16);
         }
         #root-placeholder-logo {
           width: 80px;
           height: 80px;
-          border-radius: 24px;
+          border-radius: 28px;
           overflow: hidden;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: transparent;
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+          background-color: #E5E5E5;
+          background: #E5E5E5;
+          box-shadow:
+            -6px -6px 16px rgba(255, 255, 255, 0.90),
+             6px  6px 16px rgba(0, 0, 0, 0.16);
         }
         #root-placeholder-logo img {
           width: 80px;
           height: 80px;
           object-fit: cover;
-          border-radius: 24px;
+          border-radius: 28px;
           display: block;
         }
         #root-placeholder-title {
           font-size: 30px;
           font-weight: 800;
-          color: #ffffff;
+          color: #0F172A;
           letter-spacing: -0.02em;
           margin: 0;
+          text-shadow:
+            -1px -1px 2px rgba(255, 255, 255, 0.90),
+             2px  2px 3px rgba(0, 0, 0, 0.22),
+             4px  4px 6px rgba(0, 0, 0, 0.12);
         }
         #root-placeholder-tagline {
           font-size: 13px;
           font-weight: 700;
-          color: #e2e8f0;
+          color: #36AE7C;
           letter-spacing: 0.06em;
           text-transform: uppercase;
           margin: 0;
@@ -128,7 +132,7 @@
           width: 7px;
           height: 7px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.7);
+          background: #36AE7C;
           opacity: 0.35;
           animation: ph-dot-pulse 1.2s ease-in-out infinite;
         }
