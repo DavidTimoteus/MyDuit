@@ -119,7 +119,7 @@ function NavIkona({ t, active, onClick }) {
       onClick={onClick}
       aria-label={t.label}
       aria-current={active ? "page" : undefined}
-      className={`nav-item group relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-0 transition-colors ${
+      className={`nav-item group relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-0 transition-all active:scale-95 touch-manipulation ${
         active ? activeColor : "text-textSecondary"
       }`}
     >
@@ -786,33 +786,35 @@ export default function Shell({ user }) {
 
             {/* Konten modul aktif */}
             <Suspense fallback={<ModulSkeleton />}>
-              {tab === "transaksi" ? (
-                <TransaksiView user={user} />
-              ) : tab === "budget" ? (
-                <BudgetView user={user} />
-              ) : tab === "utang" ? (
-                <UtangView user={user} />
-              ) : tab === "statistik" ? (
-                <StatistikView user={user} />
-              ) : (
-                <section className="mx-auto mt-6 max-w-3xl px-5">
-                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-800">
-                    {aktif.label}
-                  </h2>
-                  <div className="clay-card-soft mt-4 flex flex-col items-center justify-center px-6 py-16 text-center">
-                    <span className="material-symbols-outlined mb-3 text-5xl text-primary/40">
-                      {aktif.icon}
-                    </span>
-                    <p className="text-sm font-bold text-slate-700">
-                      Modul {aktif.label} menyusul di {aktif.fase}.
-                    </p>
-                    <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
-                      Fondasi offline-first (Auth + Firestore persistence) sudah
-                      siap — konten modul dibangun bertahap sesuai roadmap.
-                    </p>
-                  </div>
-                </section>
-              )}
+              <div key={tab} className="tab-pane-transition min-w-0">
+                {tab === "transaksi" ? (
+                  <TransaksiView user={user} />
+                ) : tab === "budget" ? (
+                  <BudgetView user={user} />
+                ) : tab === "utang" ? (
+                  <UtangView user={user} />
+                ) : tab === "statistik" ? (
+                  <StatistikView user={user} />
+                ) : (
+                  <section className="mx-auto mt-6 max-w-3xl px-5">
+                    <h2 className="text-2xl font-extrabold tracking-tight text-slate-800">
+                      {aktif.label}
+                    </h2>
+                    <div className="clay-card-soft mt-4 flex flex-col items-center justify-center px-6 py-16 text-center">
+                      <span className="material-symbols-outlined mb-3 text-5xl text-primary/40">
+                        {aktif.icon}
+                      </span>
+                      <p className="text-sm font-bold text-slate-700">
+                        Modul {aktif.label} menyusul di {aktif.fase}.
+                      </p>
+                      <p className="mt-1 max-w-xs text-xs leading-relaxed text-slate-500">
+                        Fondasi offline-first (Auth + Firestore persistence) sudah
+                        siap — konten modul dibangun bertahap sesuai roadmap.
+                      </p>
+                    </div>
+                  </section>
+                )}
+              </div>
             </Suspense>
           </div>
         </div>
@@ -940,7 +942,7 @@ export default function Shell({ user }) {
                     ? "Tambah Utang"
                     : "Quick Add Transaksi"
               }
-              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white transition-all duration-200 ${
+              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white transition-all duration-200 active:scale-95 touch-manipulation ${
                 tab === "budget"
                   ? "clay-key-blue bg-blue-600"
                   : tab === "utang"
@@ -973,10 +975,12 @@ export default function Shell({ user }) {
       </nav>
 
       <Suspense fallback={null}>
-        {tab === "transaksi" && <RightPanel uid={user.uid} />}
-        {tab === "statistik" && <StatistikAsidePanel />}
-        {tab === "budget" && <BudgetAsidePanel />}
-        {tab === "utang" && <UtangAsidePanel />}
+        <div key={tab} className="tab-pane-transition hidden xl:block xl:h-full">
+          {tab === "transaksi" && <RightPanel uid={user.uid} />}
+          {tab === "statistik" && <StatistikAsidePanel />}
+          {tab === "budget" && <BudgetAsidePanel />}
+          {tab === "utang" && <UtangAsidePanel />}
+        </div>
       </Suspense>
 
       <Suspense fallback={null}>
