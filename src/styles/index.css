@@ -474,6 +474,8 @@ button:active {
     0 2px 8px rgba(var(--clay-h, var(--clay-h-primary)), 0.12),
     inset 2px 2px 6px rgba(255, 255, 255, 0.55),
     inset -3px -3px 10px rgba(var(--clay-h, var(--clay-h-primary)), 0.08);
+  animation: claySheetIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
 /* ===== BUTTONS ===== */
@@ -607,9 +609,22 @@ button:active {
       rgba(var(--clay-h, var(--clay-h-primary)), 0.16),
     inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
       rgba(255, 255, 255, 0.55);
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  touch-action: manipulation;
+}
+@media (hover: hover) and (pointer: fine) {
+  .clay-chip:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      calc(var(--clay-r) + 1px) calc(var(--clay-r) + 1px) calc(var(--clay-blur) + 2px) rgba(var(--clay-h, var(--clay-h-primary)), 0.26),
+      inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
+        rgba(var(--clay-h, var(--clay-h-primary)), 0.16),
+      inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
+        rgba(255, 255, 255, 0.55);
+  }
 }
 .clay-chip:active {
-  transform: scale(0.92);
+  transform: scale(0.96) translateY(0);
   box-shadow:
     inset 2px 2px 6px rgba(0, 0, 0, 0.2),
     inset -2px -2px 6px rgba(255, 255, 255, 0.3);
@@ -967,7 +982,9 @@ button:active {
     3px 3px 8px rgba(var(--clay-h-primary), 0.18),
     -3px -3px 8px rgba(255, 255, 255, 0.7),
     0 10px 24px rgba(var(--clay-h-primary), 0.16);
+  transform-origin: top center;
   animation: clayDropdownIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 .clay-select-list::-webkit-scrollbar {
   width: 6px;
@@ -1011,10 +1028,19 @@ button:active {
 /* ===== KARTU TRANSAKSI (hover angkat di pointer halus; tekan = tint per hue) ===== */
 .tx-card-item {
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease, background-color 0.15s ease;
+  transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.16s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
+  touch-action: manipulation;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 76px;
 }
 @media (hover: hover) and (pointer: fine) {
-  .tx-card-item:hover { transform: translateY(-2px); }
+  .tx-card-item:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      10px 10px 24px rgba(var(--clay-h, var(--clay-h-neutral)), 0.14),
+      -8px -8px 20px rgba(255, 255, 255, 0.98),
+      inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9);
+  }
 }
 .tx-card-item:active {
   transform: translateY(0) scale(0.98);
@@ -1237,6 +1263,33 @@ button:active {
 @keyframes clayDropdownIn {
   from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes claySheetIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tabPaneIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tab-pane-transition {
+  animation: tabPaneIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
 }
 
 /* ---------------------------------------------------------------
