@@ -469,7 +469,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
               {/* Panel Pengaturan Engine OCR */}
               {showOcrConfig && (
-                <div className="neu-card flex flex-col gap-2.5 rounded-2xl bg-[#E5E5E5] p-3.5 text-[11px] text-slate-700 border border-white/60">
+                <div className="accordion-slide-down neu-card flex flex-col gap-2.5 rounded-2xl bg-[#E5E5E5] p-3.5 text-[11px] text-slate-700 border border-white/60">
                   <div className="flex items-center justify-between font-bold text-slate-800">
                     <span>Pilihan Engine OCR:</span>
                     <span className="text-[10px] text-slate-500 font-medium">
