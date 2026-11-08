@@ -44,7 +44,7 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Hallmark Floor: Focus-visible instan dengan cincin neon (Product UI Styleguide #00CFCC) */
+/* Hallmark Floor: Focus-visible instan dengan Cincin Zamrud Luminous (#2d6a4f harmonis dgn brand) */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -53,9 +53,9 @@ textarea:focus-visible,
 .clay-btn:focus-visible,
 .clay-chip:focus-visible,
 .clay-card:focus-visible {
-  outline: 2px solid #00CFCC;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(0, 207, 204, 0.45) !important;
+  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.35) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -113,16 +113,16 @@ textarea:focus-visible,
   /* Kanvas tanah liat hangat (Product UI Styleguide) */
   --clay-bg: #f0f3f0;
 
-  /* ===== 3D CLAYMORPHISM EXTRUSION TOKENS (Product UI Styleguide) ===== */
+  /* ===== 3D CLAYMORPHISM EXTRUSION TOKENS (Product UI Styleguide & Michal Malewicz) ===== */
   --clay-lip-btn-primary: #1b4332;
   --clay-lip-btn-danger:  #991b1b;
   --clay-lip-btn-blue:    #1e3a8a;
-  --clay-lip-btn-neutral: #cbd5e1;
-  --clay-lip-card:        rgba(195, 208, 200, 0.85);
-  --clay-lip-card-raised: rgba(180, 195, 185, 0.90);
-  --clay-lip-chip:        rgba(190, 204, 196, 0.85);
-  --clay-focus-ring:      0 0 0 3px rgba(0, 207, 204, 0.45);
-  --clay-focus-glow:      0 0 14px rgba(0, 207, 204, 0.45);
+  --clay-lip-btn-neutral: rgba(0, 0, 0, 0.12);
+  --clay-lip-card:        rgba(0, 0, 0, 0.09);
+  --clay-lip-card-raised: rgba(0, 0, 0, 0.14);
+  --clay-lip-chip:        rgba(0, 0, 0, 0.10);
+  --clay-focus-ring:      0 0 0 3px rgba(45, 106, 79, 0.35);
+  --clay-focus-glow:      0 0 12px rgba(45, 106, 79, 0.28);
 
   /* ===== UNIFIED MOTION PHYSICS TOKENS (Emil Kowalski + Jakub Krehel) ===== */
   --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Deselerasi mulus tanpa bounce overshoot */
@@ -453,10 +453,10 @@ button:active {
   background-color: var(--color-surfaceContainerLowest);
   background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
   box-shadow:
-    0 3.5px 0 var(--clay-lip-card),
     0 10px 24px -4px rgba(0, 0, 0, 0.06),
-    inset 1.5px 1.5px 2px rgba(255, 255, 255, 0.95),
-    inset -2px -2px 6px rgba(0, 0, 0, 0.04);
+    inset 3px 3px 6px rgba(255, 255, 255, 0.90),
+    inset -3px -3px 8px rgba(0, 0, 0, 0.04),
+    0 3.5px 0 var(--clay-lip-card);
   border: 1px solid rgba(255, 255, 255, 0.85);
   overflow-x: clip;
   transition:
@@ -496,11 +496,11 @@ button:active {
   background: linear-gradient(180deg, #ffffff 0%, #f5f8f6 100%);
   border: 1px solid rgba(255, 255, 255, 0.90);
   box-shadow:
-    0 8px 0 var(--clay-lip-card-raised),
     0 28px 56px -10px rgba(0, 0, 0, 0.18),
     0 4px 12px rgba(0, 0, 0, 0.08),
-    inset 2px 2px 3px rgba(255, 255, 255, 0.95),
-    inset -2px -2px 6px rgba(0, 0, 0, 0.05);
+    inset 3px 3px 6px rgba(255, 255, 255, 0.95),
+    inset -3px -3px 8px rgba(0, 0, 0, 0.05),
+    0 8px 0 var(--clay-lip-card-raised);
 }
 
 /* ===== BUTTONS (3D Extruded Shelf - Product UI Styleguide) ===== */
@@ -938,7 +938,7 @@ button:active {
   box-shadow:
     inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.06),
     inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.90),
-    0 0 0 3px rgba(0, 207, 204, 0.45) !important;
+    var(--clay-focus-ring) !important;
 }
 
 /* ===== RADIO BUTTON (clay raised / inset) ===== */
@@ -1087,7 +1087,7 @@ button:active {
   box-shadow:
     inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.06),
     inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.90),
-    0 0 0 3px rgba(0, 207, 204, 0.45) !important;
+    var(--clay-focus-ring) !important;
 }
 
 /* ===== FIELD TANGGAL (flatpickr) bergaya TOMBOL ===== */

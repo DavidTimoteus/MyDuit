@@ -73,9 +73,9 @@ const tokenEkstrusi3DTerdefinisi =
   fileCss.includes('--clay-lip-chip')
 cek('css: token ekstrusi 3D claymorphism (--clay-lip-*) terdefinisi di :root', tokenEkstrusi3DTerdefinisi)
 
-// 12. Periksa index.css: Cincin fokus neon styleguide (#00CFCC) terdefinisi pada focus-visible
-const cincinFokusNeon = fileCss.includes('#00CFCC') && fileCss.includes('rgba(0, 207, 204')
-cek('css: cincin fokus neon styleguide (#00CFCC) terpasang pada focus-visible', cincinFokusNeon)
+// 12. Periksa index.css: Cincin fokus zamrud luminous terdefinisi pada focus-visible
+const cincinFokusZamrud = fileCss.includes('rgba(45, 106, 79, 0.35)') && fileCss.includes('--clay-focus-ring')
+cek('css: cincin fokus zamrud luminous terpasang pada focus-visible', cincinFokusZamrud)
 
 // 13. Periksa index.css: Sumur galian input (excavated trench) terpasang pada .clay-field & .clay-input
 const sumurGalianInput =
