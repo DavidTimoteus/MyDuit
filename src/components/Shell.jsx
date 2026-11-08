@@ -46,28 +46,6 @@ const TABS = [
   { id: "utang", label: "Utang", icon: "handshake", fase: "Fase 3" },
 ];
 
-// Tema sidebar mengikuti tab aktif (sama persis GAS: Budget=biru, Utang=merah, lainnya=hijau)
-function sidebarTheme(tab) {
-  if (tab === "budget") return { panel: "clay-key-blue", logo: "bg-blue-600" };
-  if (tab === "utang") return { panel: "clay-key-danger", logo: "bg-red-600" };
-  return { panel: "clay-key-primary", logo: "bg-primary" };
-}
-
-// clay-key saat tombol TIDAK aktif (identitas tiap menu)
-const NAV_BASE_KEY = {
-  transaksi: "clay-key-primary",
-  statistik: "clay-key-neutral",
-  budget: "clay-key-blue",
-  utang: "clay-key-danger",
-};
-
-// class saat tombol AKTIF: gradient + shadow mengikuti tema tab
-function navActiveClass(id) {
-  if (id === "budget") return "clay-key-blue bg-blue-600 text-white";
-  if (id === "utang") return "clay-key-danger bg-red-600 text-white";
-  return "clay-key-primary bg-primary text-white";
-}
-
 function Avatar({ user, size = "h-9 w-9 text-sm" }) {
   if (user.photoURL) {
     return (
@@ -100,19 +78,7 @@ function dispatchAksi(type) {
 }
 
 function NavIkona({ t, active, onClick }) {
-  let activeColor = "text-primary";
-  let activeKey = "clay-key-primary";
-  if (t.id === "budget") {
-    activeColor = "text-blue-700";
-    activeKey = "clay-key-blue";
-  } else if (t.id === "utang") {
-    activeColor = "text-danger";
-    activeKey = "clay-key-danger";
-  }
-
-  // Bottom nav sebelumnya HANYA ikon tanpa label → tab aktif sulit dikenali dan
-  // secara aksesibilitas ikon saja tidak cukup jelas. Sekarang: label teks selalu
-  // tampil, ikon terisi (FILL 1) + pil inset saat aktif, dan titik indikator.
+  // Bottom nav mobile: label teks selalu tampil, ikon terisi (FILL 1) + pil inset saat aktif
   return (
     <button
       type="button"
@@ -120,11 +86,11 @@ function NavIkona({ t, active, onClick }) {
       aria-label={t.label}
       aria-current={active ? "page" : undefined}
       className={`nav-item group relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-0 transition-all active:scale-95 touch-manipulation ${
-        active ? activeColor : "text-textSecondary"
+        active ? "text-primary" : "text-textSecondary"
       }`}
     >
       <span
-        className={`nav-icon-wrap ${active ? `nav-icon-active ${activeKey}` : "nav-icon-inactive"}`}
+        className={`nav-icon-wrap ${active ? "nav-icon-active" : "nav-icon-inactive"}`}
       >
         <span
           className="material-symbols-outlined icon-lg"
@@ -575,11 +541,11 @@ export default function Shell({ user }) {
       {/* ===== SIDEBAR DESKTOP ===== */}
       <aside className="hidden md:flex md:shrink-0 md:grow-0 md:w-[240px] md:min-w-[240px] md:max-w-[240px] xl:w-[260px] xl:min-w-[260px] xl:max-w-[260px] 2xl:w-[300px] 2xl:min-w-[300px] 2xl:max-w-[300px] md:h-full md:p-4 md:pr-2 md:gap-4">
         <div
-          className={`clay ${sidebarTheme(tab).panel} bg-surfaceContainerLowest flex flex-col h-full w-full min-w-0 overflow-y-auto hide-scrollbar rounded-[28px] p-4 xl:p-5`}
+          className="clay clay-key-neutral bg-surfaceContainerLowest flex flex-col h-full w-full min-w-0 overflow-y-auto hide-scrollbar rounded-[28px] p-4 xl:p-5"
         >
           <div className="flex items-center gap-3 px-1 pb-4 pt-1">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-2xl ${sidebarTheme(tab).logo} text-white shadow-sm shrink-0`}
+              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-primary text-white shadow-md shadow-emerald-900/20 shrink-0"
             >
               <span
                 className="material-symbols-outlined icon-lg"
@@ -606,13 +572,13 @@ export default function Shell({ user }) {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`clay-btn ${active ? navActiveClass(t.id) : `${NAV_BASE_KEY[t.id]} text-slate-600 hover:text-slate-800`} flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition-all`}
+                  className={`sidebar-nav-btn ${active ? "is-active" : ""} flex w-full items-center gap-3 px-4 py-3 text-sm font-bold`}
                 >
                   <span
                     className="material-symbols-outlined icon-lg"
                     style={{
                       fontVariationSettings: active
-                        ? '"FILL" 1'
+                        ? '"FILL" 1, "wght" 600'
                         : '"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24',
                     }}
                   >
