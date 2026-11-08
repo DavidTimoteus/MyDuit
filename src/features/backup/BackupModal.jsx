@@ -110,7 +110,7 @@ export default function BackupModal({ open, onClose, uid }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-t-[28px] bg-white p-5 shadow-2xl md:rounded-[28px]">
+      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral w-full max-w-sm p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800">Backup & Pulihkan</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
@@ -139,7 +139,7 @@ export default function BackupModal({ open, onClose, uid }) {
         <button
           onClick={() => fileRef.current?.click()}
           disabled={loading}
-          className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700 hover:bg-slate-200 disabled:opacity-60"
+          className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700 disabled:opacity-60"
         >
           <span className="material-symbols-outlined icon-md">upload</span>
           Pilih Berkas Backup

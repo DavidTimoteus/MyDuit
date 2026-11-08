@@ -85,7 +85,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
         <div className="flex shrink-0 gap-3 border-t border-gray-100 px-5 py-4">
           <button
             onClick={onClose}
-            className="clay-btn-secondary clay-btn btn-md flex-1 bg-surface text-textSecondary transition-colors hover:bg-gray-200"
+            className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary transition-colors"
           >
             Batal
           </button>

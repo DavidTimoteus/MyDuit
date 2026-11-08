@@ -422,7 +422,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
                 key={code}
                 type="button"
                 onClick={() => pilih(code)}
-                className={`clay-btn ${pilihan ? "clay-key-primary bg-primary text-white" : "clay-key-neutral bg-white text-slate-700 hover:bg-slate-50"} btn-lg flex w-full items-center gap-3`}
+                className={`clay-btn ${pilihan ? "clay-key-primary solid-primary text-white" : "clay-key-neutral text-slate-700"} btn-lg flex w-full items-center gap-3`}
               >
                 <span className="text-base leading-none">{n.bendera}</span>
                 <span className="min-w-0 flex-1 truncate text-left">
@@ -606,7 +606,7 @@ export default function Shell({ user }) {
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id)}
-                  className={`clay-btn ${active ? navActiveClass(t.id) : `${NAV_BASE_KEY[t.id]} bg-surfaceContainerLowest text-slate-600 hover:bg-slate-50 hover:text-slate-800`} flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition-all`}
+                  className={`clay-btn ${active ? navActiveClass(t.id) : `${NAV_BASE_KEY[t.id]} text-slate-600 hover:text-slate-800`} flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold transition-all`}
                 >
                   <span
                     className="material-symbols-outlined icon-lg"
@@ -856,7 +856,6 @@ export default function Shell({ user }) {
               <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
                 <button
                   type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setFabDial(false);
@@ -864,7 +863,7 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Catat Pemasukan"
                   title="Catat Pemasukan"
-                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
+                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
                   style={{
                     "--tx": "-52px",
                     "--ty": "-34px",
@@ -877,7 +876,6 @@ export default function Shell({ user }) {
                 </button>
                 <button
                   type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setFabDial(false);
@@ -885,7 +883,7 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Pindah Saldo"
                   title="Pindah Saldo"
-                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
                   style={{
                     "--tx": "0px",
                     "--ty": "-72px",
@@ -898,7 +896,6 @@ export default function Shell({ user }) {
                 </button>
                 <button
                   type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
                     setFabDial(false);
@@ -906,7 +903,7 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Catat Pengeluaran"
                   title="Catat Pengeluaran"
-                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
+                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
                   style={{
                     "--tx": "52px",
                     "--ty": "-34px",

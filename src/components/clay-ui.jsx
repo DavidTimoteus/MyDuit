@@ -63,7 +63,7 @@ function useDismiss(open, close, listRef, triggerRef) {
 }
 
 const TRIGGER_BASE =
-  'clay-input field-lg w-full bg-surface text-sm focus:outline-none transition-colors cursor-pointer'
+  'clay-input field-lg w-full text-sm focus:outline-none transition-colors cursor-pointer'
 
 // ===== Dropdown clay — pengganti popup native <select> =====
 export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih', className = '', ...rest }) {
@@ -328,7 +328,7 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
   return (
     <div
       ref={wrapRef}
-      className={`clay-btn clay-btn-secondary w-full field-lg flex items-center gap-2 text-sm font-semibold text-textSecondary bg-surface hover:bg-gray-100 transition-colors cursor-pointer`}
+      className={`clay-btn clay-btn-secondary w-full field-lg flex items-center gap-2 text-sm font-semibold text-textSecondary transition-colors cursor-pointer`}
     >
       <span className="material-symbols-outlined icon-md shrink-0 text-primary">calendar_month</span>
       {/* Input asli disembunyikan eksplisit — flatpickr membuat altInput terpisah yang tampil */}
