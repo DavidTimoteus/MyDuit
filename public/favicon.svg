@@ -1,179 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <!-- Background squircle gradient: signature emerald forest green -->
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1B4332"/>
-      <stop offset="55%" stop-color="#2D6A4F"/>
-      <stop offset="100%" stop-color="#40916C"/>
+    <!-- Neumorphic Drop Shadows -->
+    <filter id="neuRaised" x="-20%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="-14" dy="-14" stdDeviation="16" flood-color="#FFFFFF" flood-opacity="0.95"/>
+      <feDropShadow dx="14" dy="14" stdDeviation="18" flood-color="#A6ABBD" flood-opacity="0.65"/>
+    </filter>
+
+    <filter id="neuInset" x="-20%" y="-20%" width="140%" height="140%">
+      <feOffset dx="6" dy="6"/>
+      <feGaussianBlur stdDeviation="7" result="offset-blur"/>
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
+      <feFlood flood-color="#0D2750" flood-opacity="0.18" result="color"/>
+      <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
+      <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
+    </filter>
+
+    <filter id="mintGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#36AE7C" flood-opacity="0.45"/>
+    </filter>
+
+    <linearGradient id="mintGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4ECCA3"/>
+      <stop offset="50%" stop-color="#36AE7C"/>
+      <stop offset="100%" stop-color="#268B60"/>
     </linearGradient>
 
-    <!-- Wallet body gradient: coklat leather modern -->
-    <linearGradient id="walletGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#7C4B2A"/>
-      <stop offset="50%" stop-color="#5C3318"/>
-      <stop offset="100%" stop-color="#3E2010"/>
-    </linearGradient>
-
-    <!-- Wallet highlight (inner light top-left) -->
-    <linearGradient id="walletHighlight" x1="0%" y1="0%" x2="80%" y2="80%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.28)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </linearGradient>
-
-    <!-- Koin emas gradient -->
-    <radialGradient id="coinGrad" cx="38%" cy="32%" r="62%">
-      <stop offset="0%" stop-color="#FEF3C7"/>
-      <stop offset="30%" stop-color="#FBBF24"/>
-      <stop offset="70%" stop-color="#F59E0B"/>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF3B0"/>
+      <stop offset="40%" stop-color="#FBBF24"/>
       <stop offset="100%" stop-color="#D97706"/>
-    </radialGradient>
-
-    <!-- Koin specular shine -->
-    <radialGradient id="coinShine" cx="30%" cy="25%" r="45%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.7)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </radialGradient>
-
-    <!-- Claymorphism drop-shadow filter (outset) -->
-    <filter id="clayShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="14" stdDeviation="22" flood-color="#1E3A8A" flood-opacity="0.45"/>
-    </filter>
-
-    <!-- Soft glow for coin -->
-    <filter id="coinGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#F59E0B" flood-opacity="0.6"/>
-    </filter>
-
-    <!-- Inner bevel highlight -->
-    <filter id="innerBevel">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="8" result="blur"/>
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
-    </filter>
-
-    <!-- Clip for squircle background -->
-    <clipPath id="squircleClip">
-      <rect width="512" height="512" rx="150" ry="150"/>
-    </clipPath>
+    </linearGradient>
   </defs>
 
-  <!-- === LAYER 1: Background squircle dengan claymorphism 3-shadow === -->
-  <rect width="512" height="512" rx="150" ry="150" fill="url(#bgGrad)"/>
+  <!-- Canvas Background -->
+  <rect width="512" height="512" rx="128" fill="#E5E5E5"/>
 
-  <!-- Inset highlight atas-kiri (clay inset terang) -->
-  <rect width="512" height="512" rx="150" ry="150"
-        fill="none"
-        stroke="rgba(255,255,255,0.22)"
-        stroke-width="32"
-        stroke-dashoffset="0"
-        clip-path="url(#squircleClip)"/>
+  <!-- Raised Neumorphic Squircle -->
+  <rect x="56" y="56" width="400" height="400" rx="96" fill="#E5E5E5" filter="url(#neuRaised)"/>
 
-  <!-- Soft inner glow top-left on bg -->
-  <ellipse cx="160" cy="140" rx="200" ry="160"
-           fill="rgba(255,255,255,0.07)"/>
+  <!-- Sunken Circular Center Well -->
+  <circle cx="256" cy="260" r="148" fill="#E5E5E5" filter="url(#neuInset)"/>
 
-  <!-- === LAYER 2: Wallet body (dompet kulit 3D tactile) === -->
-  <!-- Wallet shadow/clay outset -->
-  <g filter="url(#clayShadow)">
-    <!-- Wallet main body -->
-    <rect x="80" y="180" width="340" height="240" rx="36" ry="36"
-          fill="url(#walletGrad)"/>
+  <!-- Gold Coin Floating In -->
+  <g filter="url(#mintGlow)">
+    <circle cx="256" cy="180" r="38" fill="url(#goldGrad)" stroke="#B45309" stroke-width="2"/>
+    <circle cx="256" cy="180" r="28" fill="none" stroke="#FEF3C7" stroke-width="2.5" stroke-dasharray="4 2"/>
+    <!-- Currency sign on coin -->
+    <path d="M256 168 v24 M250 174 h12 M250 186 h12" stroke="#78350F" stroke-width="3" stroke-linecap="round"/>
   </g>
 
-  <!-- Wallet inner dark inset (clay inset gelap kanan-bawah) -->
-  <rect x="80" y="180" width="340" height="240" rx="36" ry="36"
-        fill="none"
-        stroke="rgba(0,0,0,0.28)"
-        stroke-width="12"
-        clip-path="url(#squircleClip)"/>
-
-  <!-- Wallet inner highlight (clay inset terang kiri-atas) -->
-  <rect x="80" y="180" width="340" height="240" rx="36" ry="36"
-        fill="url(#walletHighlight)"/>
-
-  <!-- Wallet clasp / flap line -->
-  <line x1="80" y1="278" x2="420" y2="278"
-        stroke="rgba(0,0,0,0.25)" stroke-width="5" stroke-linecap="round"/>
-  <line x1="80" y1="274" x2="420" y2="274"
-        stroke="rgba(255,255,255,0.12)" stroke-width="3" stroke-linecap="round"/>
-
-  <!-- Card slot visible in wallet -->
-  <rect x="108" y="300" width="120" height="72" rx="12" ry="12"
-        fill="rgba(0,0,0,0.18)"/>
-  <rect x="108" y="300" width="120" height="18" rx="8" ry="8"
-        fill="rgba(255,255,255,0.08)"/>
-
-  <!-- Card magnetic stripe simulation -->
-  <rect x="118" y="355" width="100" height="8" rx="3"
-        fill="rgba(0,0,0,0.3)"/>
-
-  <!-- Wallet stitching detail (top edge) -->
-  <rect x="100" y="192" width="300" height="4" rx="2"
-        fill="rgba(255,255,255,0.08)"/>
-
-  <!-- === LAYER 3: Koin emas berkilau 3D (menyembul dari dompet) === -->
-  <g filter="url(#coinGlow)">
-    <!-- Coin shadow base -->
-    <ellipse cx="356" cy="222" rx="90" ry="90"
-             fill="rgba(217,119,6,0.35)" transform="translate(6,12)"/>
-
-    <!-- Coin body -->
-    <circle cx="356" cy="210" r="90"
-            fill="url(#coinGrad)"/>
-
-    <!-- Coin rim (edge bevel) -->
-    <circle cx="356" cy="210" r="90"
-            fill="none"
-            stroke="#D97706"
-            stroke-width="6"/>
-    <circle cx="356" cy="210" r="84"
-            fill="none"
-            stroke="rgba(254,243,199,0.5)"
-            stroke-width="3"/>
-
-    <!-- Coin inner ring -->
-    <circle cx="356" cy="210" r="68"
-            fill="none"
-            stroke="rgba(217,119,6,0.5)"
-            stroke-width="4"/>
-
-    <!-- Coin specular reflection -->
-    <circle cx="356" cy="210" r="90"
-            fill="url(#coinShine)"/>
-
-    <!-- Rp symbol on coin -->
-    <text x="356" y="225"
-          font-family="'Segoe UI', Arial, sans-serif"
-          font-size="72"
-          font-weight="900"
-          fill="#92400E"
-          text-anchor="middle"
-          dominant-baseline="central"
-          opacity="0.75">Rp</text>
-
-    <!-- Coin text highlight overlay -->
-    <text x="354" y="222"
-          font-family="'Segoe UI', Arial, sans-serif"
-          font-size="72"
-          font-weight="900"
-          fill="rgba(254,243,199,0.35)"
-          text-anchor="middle"
-          dominant-baseline="central">Rp</text>
-  </g>
-
-  <!-- === LAYER 4: Glints / sparkle kecil (aksen premium) === -->
-  <!-- Sparkle kiri atas -->
-  <g transform="translate(138,128)" opacity="0.9">
-    <polygon points="0,-14 3.5,-3.5 14,0 3.5,3.5 0,14 -3.5,3.5 -14,0 -3.5,-3.5"
-             fill="#FEF3C7"/>
-  </g>
-  <!-- Sparkle kecil kanan -->
-  <g transform="translate(458,320)" opacity="0.7">
-    <polygon points="0,-8 2,-2 8,0 2,2 0,8 -2,2 -8,0 -2,-2"
-             fill="#FBBF24"/>
-  </g>
-  <!-- Sparkle tiny -->
-  <g transform="translate(96,370)" opacity="0.5">
-    <polygon points="0,-5 1.25,-1.25 5,0 1.25,1.25 0,5 -1.25,1.25 -5,0 -1.25,-1.25"
-             fill="#93C5FD"/>
+  <!-- 3D Mint Teal Wallet / Piggy Emblem -->
+  <g filter="url(#mintGlow)">
+    <!-- Wallet Main Flap -->
+    <path d="M150 240 C150 215, 170 200, 200 200 L312 200 C342 200, 362 215, 362 240 L362 320 C362 345, 342 360, 312 360 L200 360 C170 360, 150 345, 150 320 Z" 
+          fill="url(#mintGrad)"/>
+    <!-- Wallet Inner Highlight -->
+    <path d="M156 242 C156 220, 174 206, 202 206 L310 206 C338 206, 356 220, 356 242" 
+          fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="4" stroke-linecap="round"/>
+    <!-- Clasp Pocket -->
+    <rect x="290" y="258" width="76" height="44" rx="14" fill="#268B60" stroke="#1E704D" stroke-width="2"/>
+    <!-- Clasp Button -->
+    <circle cx="340" cy="280" r="10" fill="url(#goldGrad)"/>
+    <circle cx="340" cy="280" r="4" fill="#78350F"/>
+    <!-- Coin Slot Opening -->
+    <rect x="220" y="214" width="72" height="8" rx="4" fill="#1B4D36"/>
   </g>
 </svg>

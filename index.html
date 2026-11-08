@@ -55,7 +55,7 @@
   <body>
     <div id="root">
       <!--
-        Inline placeholder — kanvas bersih Neumorphism #E5E5E5 saat cold start
+        Inline placeholder — kanvas bersih Neumorphism #E5E5E5 saat cold start (seamless ke Splash.jsx)
       -->
       <style>
         #root-placeholder {
@@ -67,21 +67,15 @@
           background-color: #E5E5E5;
           background: #E5E5E5;
           font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
-          z-index: 1;
+          z-index: 99999;
         }
-        #root-placeholder-card {
+        #root-placeholder-inner {
           display: flex;
           flex-direction: column;
           align-items: center;
           gap: 14px;
           text-align: center;
-          padding: 36px 32px;
-          border-radius: 32px;
-          background-color: #E5E5E5;
-          background: #E5E5E5;
-          box-shadow:
-            -8px -8px 20px rgba(255, 255, 255, 0.85),
-             8px  8px 20px rgba(0, 0, 0, 0.16);
+          padding: 24px;
         }
         #root-placeholder-logo {
           width: 80px;
@@ -94,18 +88,18 @@
           background-color: #E5E5E5;
           background: #E5E5E5;
           box-shadow:
-            -6px -6px 16px rgba(255, 255, 255, 0.90),
-             6px  6px 16px rgba(0, 0, 0, 0.16);
+            -8px -8px 20px rgba(255, 255, 255, 0.85),
+             8px  8px 20px rgba(0, 0, 0, 0.16);
         }
         #root-placeholder-logo img {
           width: 80px;
           height: 80px;
           object-fit: cover;
-          border-radius: 28px;
+          border-radius: 24px;
           display: block;
         }
         #root-placeholder-title {
-          font-size: 30px;
+          font-size: 34px;
           font-weight: 800;
           color: #0F172A;
           letter-spacing: -0.02em;
@@ -119,8 +113,13 @@
           font-size: 13px;
           font-weight: 700;
           color: #36AE7C;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          margin: 0;
+        }
+        #root-placeholder-sub {
+          font-size: 12px;
+          font-weight: 500;
+          color: #64748B;
           margin: 0;
         }
         #root-placeholder-dots {
@@ -138,20 +137,22 @@
         }
         #root-placeholder-dots span:nth-child(2) { animation-delay: 0.2s; }
         #root-placeholder-dots span:nth-child(3) { animation-delay: 0.4s; }
+        #root-placeholder-dots span:nth-child(4) { animation-delay: 0.6s; }
         @keyframes ph-dot-pulse {
           0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
           40%            { opacity: 1;   transform: scale(1.15); }
         }
       </style>
       <div id="root-placeholder" aria-hidden="true">
-        <div id="root-placeholder-card">
+        <div id="root-placeholder-inner">
           <div id="root-placeholder-logo">
             <img src="/favicon.svg" alt="MyDuit logo" width="80" height="80" />
           </div>
           <p id="root-placeholder-title">MyDuit</p>
           <p id="root-placeholder-tagline">Catat. Pantau. Kendalikan.</p>
+          <p id="root-placeholder-sub">Pemasukan dan pengeluaranmu dalam satu tempat.</p>
           <div id="root-placeholder-dots" aria-hidden="true">
-            <span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
           </div>
         </div>
       </div>
