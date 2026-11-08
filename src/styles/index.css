@@ -3036,15 +3036,15 @@ button:active {
   /* ===== FLATPICKR NEUMORPHIC THEME ===== */
   [data-theme="neumorphism"] .flatpickr-calendar,
   .flatpickr-calendar {
-    width: 326px !important;
-    max-width: 326px !important;
+    width: 312px !important;
+    max-width: 312px !important;
     background: #E5E5E5 !important;
     border: none !important;
     border-radius: 24px !important;
     box-shadow:
       8px 8px 20px rgba(166, 171, 189, 0.55),
       -8px -8px 20px rgba(255, 255, 255, 0.85) !important;
-    padding: 14px 10px !important;
+    padding: 12px 8px !important;
     font-family: inherit !important;
     color: #1E293B !important;
     box-sizing: border-box !important;
@@ -3056,32 +3056,45 @@ button:active {
   .flatpickr-calendar::after {
     display: none !important;
   }
+
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months,
+  .flatpickr-calendar .flatpickr-months,
   .flatpickr-months {
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
+    justify-content: space-between !important;
     position: relative !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
     height: 38px !important;
+    padding: 0 4px !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-month,
+  .flatpickr-calendar .flatpickr-months .flatpickr-month,
   .flatpickr-months .flatpickr-month {
-    flex: 1 !important;
+    flex: 1 1 auto !important;
     height: 38px !important;
     display: flex !important;
+    flex-direction: row !important;
     align-items: center !important;
     justify-content: center !important;
     color: #0F172A !important;
     fill: #0F172A !important;
     overflow: visible !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month,
+  .flatpickr-calendar .flatpickr-current-month,
   .flatpickr-current-month {
     position: static !important;
     width: auto !important;
     display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 6px !important;
+    gap: 8px !important;
     padding: 0 !important;
-    height: 36px !important;
+    height: 38px !important;
     font-size: 15px !important;
     font-weight: 800 !important;
     color: #0F172A !important;
@@ -3089,9 +3102,19 @@ button:active {
     left: auto !important;
     right: auto !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .cur-month,
+  .flatpickr-calendar .flatpickr-current-month .cur-month,
   .flatpickr-current-month .cur-month {
+    display: inline-block !important;
     font-weight: 800 !important;
+    font-size: 15px !important;
+    color: #0F172A !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months,
+  .flatpickr-calendar .flatpickr-current-month .flatpickr-monthDropdown-months,
   .flatpickr-current-month .flatpickr-monthDropdown-months {
     display: inline-block !important;
     width: auto !important;
@@ -3100,24 +3123,51 @@ button:active {
     color: #0F172A !important;
     cursor: pointer !important;
     appearance: none !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     padding: 2px 4px !important;
     margin: 0 !important;
+    white-space: nowrap !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .numInputWrapper,
+  .flatpickr-calendar .flatpickr-current-month .numInputWrapper,
   .flatpickr-current-month .numInputWrapper {
     display: inline-flex !important;
     align-items: center !important;
-    width: 58px !important;
+    width: 48px !important;
+    flex-shrink: 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .numInputWrapper input.cur-year,
+  .flatpickr-calendar .flatpickr-current-month .numInputWrapper input.cur-year,
   .flatpickr-current-month .numInputWrapper input.cur-year {
+    display: inline-block !important;
     font-size: 15px !important;
     font-weight: 800 !important;
     color: #0F172A !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .numInputWrapper span.arrowUp,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-current-month .numInputWrapper span.arrowDown,
+  .flatpickr-calendar .flatpickr-current-month .numInputWrapper span.arrowUp,
+  .flatpickr-calendar .flatpickr-current-month .numInputWrapper span.arrowDown {
+    display: none !important;
+  }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-prev-month,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-next-month,
+  .flatpickr-calendar .flatpickr-months .flatpickr-prev-month,
+  .flatpickr-calendar .flatpickr-months .flatpickr-next-month,
   .flatpickr-months .flatpickr-prev-month,
   .flatpickr-months .flatpickr-next-month {
-    top: 3px !important;
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
     width: 32px !important;
     height: 32px !important;
     border-radius: 9999px !important;
@@ -3128,46 +3178,75 @@ button:active {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
     transition: all 0.15s ease !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-prev-month:hover,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-next-month:hover,
   .flatpickr-months .flatpickr-prev-month:hover,
   .flatpickr-months .flatpickr-next-month:hover {
     box-shadow:
       inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.5),
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.8) !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-prev-month svg,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-next-month svg,
   .flatpickr-months .flatpickr-prev-month svg,
   .flatpickr-months .flatpickr-next-month svg {
     width: 14px !important;
     height: 14px !important;
     fill: #475569 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-innerContainer,
+  .flatpickr-calendar .flatpickr-innerContainer,
   .flatpickr-innerContainer {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-rContainer,
+  .flatpickr-calendar .flatpickr-rContainer,
   .flatpickr-rContainer {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-weekdays,
+  .flatpickr-calendar .flatpickr-weekdays,
   .flatpickr-weekdays {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     height: 32px !important;
     overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 0 4px 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-weekdaycontainer,
+  .flatpickr-calendar .flatpickr-weekdaycontainer,
   .flatpickr-weekdaycontainer {
     display: grid !important;
     grid-template-columns: repeat(7, 1fr) !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     text-align: center !important;
     align-items: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar span.flatpickr-weekday,
+  .flatpickr-calendar span.flatpickr-weekday,
   span.flatpickr-weekday {
     display: flex !important;
     align-items: center !important;
@@ -3179,22 +3258,33 @@ button:active {
     text-transform: uppercase !important;
     letter-spacing: 0.04em !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-days,
+  .flatpickr-calendar .flatpickr-days,
   .flatpickr-days {
     display: block !important;
     width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .dayContainer,
+  .flatpickr-calendar .dayContainer,
   .dayContainer {
     display: grid !important;
     grid-template-columns: repeat(7, 1fr) !important;
     width: 100% !important;
-    min-width: 100% !important;
+    min-width: 0 !important;
     max-width: 100% !important;
     box-sizing: border-box !important;
     padding: 0 !important;
+    margin: 0 !important;
     justify-items: center !important;
     align-items: center !important;
+    transform: none !important;
   }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day,
+  .flatpickr-calendar .flatpickr-day,
   .flatpickr-day {
     display: flex !important;
     align-items: center !important;
@@ -3204,20 +3294,22 @@ button:active {
     border-radius: 12px !important;
     border: 1px solid transparent !important;
     line-height: 36px !important;
-    width: 38px !important;
+    width: 36px !important;
     height: 36px !important;
-    max-width: 38px !important;
+    max-width: 36px !important;
     margin: 2px 0 !important;
     transition: all 0.15s ease !important;
   }
-  .flatpickr-day:hover {
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day:hover,
+  .flatpickr-calendar .flatpickr-day:hover {
     background: #E5E5E5 !important;
     border-color: transparent !important;
     box-shadow:
       inset 2px 2px 4px rgba(166, 171, 189, 0.5),
       inset -2px -2px 4px rgba(255, 255, 255, 0.8) !important;
   }
-  .flatpickr-day.today {
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.today,
+  .flatpickr-calendar .flatpickr-day.today {
     border-color: #36AE7C !important;
     background: #E5E5E5 !important;
     color: #36AE7C !important;
@@ -3225,12 +3317,18 @@ button:active {
       inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.35),
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.75) !important;
   }
-  .flatpickr-day.selected,
-  .flatpickr-day.selected:hover,
-  .flatpickr-day.startRange,
-  .flatpickr-day.startRange:hover,
-  .flatpickr-day.endRange,
-  .flatpickr-day.endRange:hover {
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.selected,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.selected:hover,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.startRange,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.startRange:hover,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.endRange,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.endRange:hover,
+  .flatpickr-calendar .flatpickr-day.selected,
+  .flatpickr-calendar .flatpickr-day.selected:hover,
+  .flatpickr-calendar .flatpickr-day.startRange,
+  .flatpickr-calendar .flatpickr-day.startRange:hover,
+  .flatpickr-calendar .flatpickr-day.endRange,
+  .flatpickr-calendar .flatpickr-day.endRange:hover {
     background: #36AE7C !important;
     border-color: #36AE7C !important;
     color: #FFFFFF !important;
@@ -3239,13 +3337,15 @@ button:active {
       3px 3px 8px rgba(54, 174, 124, 0.45),
       -2px -2px 6px rgba(255, 255, 255, 0.8) !important;
   }
-  .flatpickr-day.prevMonthDay,
-  .flatpickr-day.nextMonthDay {
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.prevMonthDay,
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.nextMonthDay,
+  .flatpickr-calendar .flatpickr-day.prevMonthDay,
+  .flatpickr-calendar .flatpickr-day.nextMonthDay {
     color: #94A3B8 !important;
     opacity: 0.45 !important;
   }
 
-  /* ===== NEUMORPHIC FAB SPEED DIAL & DOME ===== */
+    /* ===== NEUMORPHIC FAB SPEED DIAL & DOME ===== */
   [data-theme="neumorphism"] .fab-dial-btn {
     background-color: #E5E5E5 !important;
     border: none !important;
@@ -3337,28 +3437,38 @@ button:active {
   }
 
   /* ===== DATE PICKER & NESTED CAPSULE INPUT SEAMLESS TRANSPARENCY ===== */
-  [data-theme="neumorphism"] .flatpickr-input,
-  [data-theme="neumorphism"] input.flatpickr-input,
-  [data-theme="neumorphism"] input.clay-date-picker-field,
-  [data-theme="neumorphism"] .clay-date-picker-field,
-  [data-theme="neumorphism"] .clay-field input,
   [data-theme="neumorphism"] .clay-input input,
+  [data-theme="neumorphism"] .clay-field input,
+  [data-theme="neumorphism"] .field-md input,
+  [data-theme="neumorphism"] .field-lg input,
   [data-theme="neumorphism"] .neu-inset input,
   [data-theme="neumorphism"] .neu-well input,
-  [data-theme="neumorphism"] input.bg-transparent,
-  [data-theme="neumorphism"] .bg-transparent input,
+  [data-theme="neumorphism"] input.clay-date-picker-field,
+  [data-theme="neumorphism"] .clay-date-picker-field,
+  [data-theme="neumorphism"] input.flatpickr-input,
+  [data-theme="neumorphism"] .flatpickr-input,
   [data-theme="neumorphism"] .flatpickr-current-month select,
   [data-theme="neumorphism"] .flatpickr-current-month input,
   [data-theme="neumorphism"] .flatpickr-current-month .numInputWrapper input,
   [data-theme="neumorphism"] .flatpickr-monthDropdown-months,
-  .flatpickr-input,
+  [data-theme="neumorphism"] input.bg-transparent,
+  [data-theme="neumorphism"] .bg-transparent input,
+  .clay-input input,
+  .clay-field input,
+  .field-md input,
+  .field-lg input,
+  .neu-inset input,
+  .neu-well input,
+  input.clay-date-picker-field,
+  .clay-date-picker-field,
   input.flatpickr-input,
-  .clay-date-picker-field {
+  .flatpickr-input {
     background: transparent !important;
     background-color: transparent !important;
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
+    -webkit-box-shadow: none !important;
     border-radius: 0 !important;
     width: 100% !important;
     flex: 1 1 0% !important;
@@ -3372,18 +3482,36 @@ button:active {
     appearance: none !important;
   }
 
-  [data-theme="neumorphism"] .clay-field input:focus,
   [data-theme="neumorphism"] .clay-input input:focus,
+  [data-theme="neumorphism"] .clay-field input:focus,
+  [data-theme="neumorphism"] .field-md input:focus,
+  [data-theme="neumorphism"] .field-lg input:focus,
   [data-theme="neumorphism"] .neu-inset input:focus,
   [data-theme="neumorphism"] .neu-well input:focus,
+  [data-theme="neumorphism"] input.clay-date-picker-field:focus,
+  [data-theme="neumorphism"] .clay-date-picker-field:focus,
+  [data-theme="neumorphism"] input.flatpickr-input:focus,
+  [data-theme="neumorphism"] .flatpickr-input:focus,
   [data-theme="neumorphism"] input.bg-transparent:focus,
   [data-theme="neumorphism"] .flatpickr-current-month select:focus,
   [data-theme="neumorphism"] .flatpickr-current-month input:focus,
-  [data-theme="neumorphism"] .flatpickr-monthDropdown-months:focus {
+  [data-theme="neumorphism"] .flatpickr-monthDropdown-months:focus,
+  .clay-input input:focus,
+  .clay-field input:focus,
+  .field-md input:focus,
+  .field-lg input:focus,
+  .neu-inset input:focus,
+  .neu-well input:focus,
+  input.clay-date-picker-field:focus,
+  .clay-date-picker-field:focus,
+  input.flatpickr-input:focus,
+  .flatpickr-input:focus {
     background: transparent !important;
     background-color: transparent !important;
     box-shadow: none !important;
+    -webkit-box-shadow: none !important;
     outline: none !important;
+    border: none !important;
   }
 
 /* ===== RIWAYAT MUTASI REKENING NEUMORPHIC THEME ===== */

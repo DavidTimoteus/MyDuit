@@ -1,7 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import flatpickr from 'flatpickr'
-import 'flatpickr/dist/flatpickr.min.css'
 import { calculatePopupPos } from './popupPos.js'
 
 export { calculatePopupPos }
@@ -273,6 +272,7 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
       mode: range ? 'range' : 'single',
       dateFormat: 'Y-m-d',
       altInput: true,
+      altInputClass: 'clay-date-picker-field bg-transparent !bg-transparent outline-none border-none shadow-none',
       altFormat: 'd/m/Y',
       allowInput: false,
       disableMobile: true,
@@ -296,6 +296,10 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
       fp.altInput.readOnly = true
       fp.altInput.classList.add('clay-date-picker-field', 'bg-transparent', '!bg-transparent')
       fp.altInput.style.backgroundColor = 'transparent'
+      fp.altInput.style.border = 'none'
+      fp.altInput.style.outline = 'none'
+      fp.altInput.style.boxShadow = 'none'
+      fp.altInput.style.webkitBoxShadow = 'none'
       if (accent) fp.altInput.classList.add('clay-date-picker-field--accent')
       // flatpickr membuat input alternatif (yang terlihat & difokus). Pindahkan
       // id ke elemen itu supaya <label htmlFor> benar-benar mengarah ke field

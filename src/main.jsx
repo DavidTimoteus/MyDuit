@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import 'flatpickr/dist/flatpickr.min.css'
 import './styles/index.css'
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
