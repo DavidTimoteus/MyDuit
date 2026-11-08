@@ -146,8 +146,7 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
                 onMouseEnter={() => !o.disabled && setHl(i)}
                 onPointerDown={(e) => {
                   if (o.disabled) return
-                  e.preventDefault()
-                  choose(i)
+                  if (e.pointerType === 'mouse') e.preventDefault()
                 }}
                 onClick={() => choose(i)}
               >
@@ -228,9 +227,7 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
                   className={`clay-select-option ${o.label === value ? 'is-selected' : ''} ${i === hl ? 'is-highlighted' : ''}`}
                   onMouseEnter={() => setHl(i)}
                   onPointerDown={(e) => {
-                    e.preventDefault()
-                    onChange(o.label)
-                    setOpen(false)
+                    if (e.pointerType === 'mouse') e.preventDefault()
                   }}
                   onClick={() => {
                     onChange(o.label)
