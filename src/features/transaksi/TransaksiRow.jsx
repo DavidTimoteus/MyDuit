@@ -136,11 +136,13 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
       </div>
       {!bulkMode && (
         <button
+          type="button"
+          aria-label="Hapus transaksi"
           onClick={(e) => {
             e.stopPropagation()
             onDelete?.(trans)
           }}
-          className={`delete-btn-action shrink-0 ml-2 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 text-white items-center justify-center transition-all ${
+          className={`delete-btn-action shrink-0 ml-2 w-9 h-9 rounded-full bg-red-500 hover:bg-red-600 active:scale-90 text-white items-center justify-center transition-all touch-manipulation ${
             deleteOpen ? 'flex' : 'hidden'
           }`}
         >
