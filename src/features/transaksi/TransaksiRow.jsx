@@ -109,7 +109,7 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
       } ${!bulkMode && deleteOpen ? tintRevealed : ''}`}
     >
       {bulkMode && (
-        <span className="bulk-check w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0">
+        <span className="bulk-check w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all">
           <span className="material-symbols-outlined icon-xs text-white">check</span>
         </span>
       )}

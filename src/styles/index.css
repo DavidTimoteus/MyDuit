@@ -3477,3 +3477,46 @@ button:active {
     1px  1px 1px rgba(255, 255, 255, 0.95),
    -1px -1px 1px rgba(0, 0, 0, 0.08) !important;
 }
+
+/* ===== BULK SELECTION & CHECKMARK NEUMORPHIC THEME ===== */
+.bulk-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 9999px;
+  background-color: #E5E5E5;
+  box-shadow:
+    inset 2px 2px 4px rgba(13, 39, 80, 0.14),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.bulk-check .material-symbols-outlined {
+  display: none;
+  font-size: 14px;
+  font-weight: 800;
+  color: #FFFFFF;
+}
+.bulk-selectable.bulk-selected .bulk-check {
+  border: none !important;
+  background-color: #36AE7C !important;
+  box-shadow:
+    2px 2px 6px rgba(54, 174, 124, 0.45),
+    -1px -1px 3px rgba(255, 255, 255, 0.8),
+    inset 1px 1px 2px rgba(255, 255, 255, 0.40) !important;
+}
+.bulk-selectable.bulk-selected .bulk-check .material-symbols-outlined {
+  display: inline-block !important;
+}
+
+[data-theme="neumorphism"] .bulk-selectable {
+  border: 1.5px solid transparent !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-theme="neumorphism"] .bulk-selectable.bulk-selected {
+  border: 1.5px solid rgba(54, 174, 124, 0.50) !important;
+  box-shadow:
+    -5px -5px 14px rgba(255, 255, 255, 0.85),
+     5px  5px 14px rgba(0, 0, 0, 0.12),
+    inset 0 0 0 1px rgba(54, 174, 124, 0.20) !important;
+  transform: scale(0.995);
+}
