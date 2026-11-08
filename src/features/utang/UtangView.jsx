@@ -107,71 +107,63 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
   const lunas = t.status === 'Lunas' || (t.sisa || 0) <= 0
   const terbayar = Math.max(0, (t.total || 0) - (t.sisa || 0))
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
-  // BUG LAMA: utang yang sudah LUNAS tetap dihitung telat karena selisihHari
-  // dijalankan tanpa memandang status → muncul "Terlambat 61 hari" di kartu lunas.
-  // Jatuh tempo hanya relevan untuk utang yang belum lunas.
   const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
   const jatuh = lunas ? { teks: 'Sudah lunas', cls: 'text-slate-500' } : infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
-  const clayKey = lunas ? 'clay-key-primary' : terlambat ? 'clay-key-danger' : 'clay-key-neutral'
-  // Warna aksen kiri sebagai penanda status utama (satu sinyal kuat, bukan
-  // tumpukan badge). Terlambat=merah, mendekati=amber, aktif=netral, lunas=hijau.
-  const aksen = lunas ? 'bg-primary' : terlambat ? 'bg-red-500' : mendekati ? 'bg-amber-500' : 'bg-slate-300'
+
   const labelStatus = lunas ? 'Lunas' : terlambat ? 'Terlambat' : mendekati ? 'Segera' : 'Aktif'
-  const warnaStatus = lunas
-    ? 'bg-emerald-50 text-emerald-700'
+  const badgeCls = lunas
+    ? 'text-[#36AE7C] bg-emerald-50'
     : terlambat
-      ? 'bg-red-50 text-red-700'
+      ? 'text-[#EB5353] bg-red-50'
       : mendekati
-        ? 'bg-amber-50 text-amber-700'
-        : 'bg-slate-100 text-slate-600'
+        ? 'text-[#D4AF0D] bg-amber-50'
+        : 'text-[#187498] bg-blue-50'
 
   return (
-    <div className={`clay-card ${clayKey} relative overflow-hidden p-4 pl-5`}>
-      {/* Bar aksen status di tepi kiri — sinyal visual utama kartu. */}
-      <span className={`absolute inset-y-0 left-0 w-1.5 ${aksen}`} aria-hidden="true" />
-
-      {/* Baris atas: nama + status + aksi */}
+    <div className="neu-card rounded-2xl p-4.5 bg-[#E5E5E5] relative transition-all">
+      {/* Baris atas: nama + badge + aksi */}
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[15px] font-bold leading-snug text-slate-800" title={t.namaPihak}>{t.namaPihak}</p>
-          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${warnaStatus}`}>{labelStatus}</span>
-            <p className="truncate text-[11px] font-medium text-slate-500">
+          <p className="truncate text-[15px] font-extrabold leading-snug text-slate-800" title={t.namaPihak}>{t.namaPihak}</p>
+          <div className="mt-1 flex items-center gap-2 flex-wrap">
+            <span className={`neu-chip px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeCls}`}>{labelStatus}</span>
+            <span className="truncate text-[11px] font-semibold text-slate-500">
               {t.tipe}
               {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
-            </p>
+            </span>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1 pt-0.5">
-          <button onClick={onEdit} aria-label="Edit utang" className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
+        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+          <button onClick={onEdit} aria-label="Edit utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
             <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
-          <button onClick={onHapus} aria-label="Hapus utang" className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
+          <button onClick={onHapus} aria-label="Hapus utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
             <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
         </div>
       </div>
 
       {/* Fokus utama: sisa utang */}
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
+      <div className="mt-3.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="min-w-0 shrink-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Sisa utang</p>
-          <p className={`whitespace-nowrap text-2xl font-extrabold leading-none tracking-tight tabular-nums ${lunas ? 'text-incomeText' : 'text-slate-900'}`}>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa utang</p>
+          <p className={`whitespace-nowrap font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
             {formatRupiah(t.sisa || 0)}
           </p>
-          <p className="mt-1 whitespace-nowrap text-[11px] font-medium text-slate-500">dari {formatRupiah(t.total || 0)}</p>
+          <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-slate-500">dari {formatRupiah(t.total || 0)}</p>
         </div>
         {!lunas && (
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={onLunasin} className="neu-btn btn-sm min-h-10 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold transition-all active:scale-95">Lunasin</button>
-            <button onClick={onBayar} className="clay-btn clay-key-primary solid-primary btn-sm min-h-10 px-4 rounded-xl text-white font-bold transition-all active:scale-95">Bayar</button>
+            <button onClick={onLunasin} className="neu-btn h-9 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-all active:scale-95">Lunasin</button>
+            <button onClick={onBayar} className="neu-btn-primary solid-primary h-9 px-4 rounded-xl text-white font-bold text-xs transition-all active:scale-95">Bayar</button>
           </div>
         )}
       </div>
 
       {/* Progres + jatuh tempo */}
+
       <div className="mt-3">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
           <div className={`h-full rounded-full transition-all ${lunas ? 'bg-primary' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
@@ -369,21 +361,24 @@ export default function UtangView({ user }) {
 
       {/* Filter desktop + mobile */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id)}
-            className={`clay-chip h-9 px-4 text-xs font-semibold transition-colors ${
-              filter === f.id
-                ? f.id === 'terlambat'
-                  ? 'clay-chip-active-danger'
-                  : 'clay-chip solid-primary text-white'
-                : 'clay-key-neutral text-textSecondary hover:bg-slate-100 hover:text-slate-800'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const active = filter === f.id
+          return (
+            <button
+              key={f.id}
+              onClick={() => setFilter(f.id)}
+              className={`h-8.5 px-3.5 text-xs font-bold rounded-xl transition-all ${
+                active
+                  ? f.id === 'terlambat'
+                    ? 'neu-well text-[#EB5353]'
+                    : 'neu-well text-[#36AE7C]'
+                  : 'neu-btn bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95'
+              }`}
+            >
+              {f.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Daftar utang (desktop): 2 kolom. Tampilan mobile ada di

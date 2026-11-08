@@ -682,7 +682,7 @@ button:active {
     0 8px 18px rgba(0, 0, 0, 0.06),
     inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98);
 }
-.sidebar-nav-btn.is-active {
+[data-theme="claymorphism"] .sidebar-nav-btn.is-active {
   background: linear-gradient(180deg, #4EC593 0%, #36AE7C 60%, #2B8C63 100%) !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.40) !important;
@@ -693,19 +693,60 @@ button:active {
     inset 0 -1.5px 2px rgba(0, 0, 0, 0.20) !important;
   transform: translateY(0);
 }
-.sidebar-nav-btn.is-active:hover {
+[data-theme="claymorphism"] .sidebar-nav-btn.is-active:hover {
   transform: translateY(-1px);
   box-shadow:
     0 5px 0 #047857,
     0 12px 24px rgba(16, 185, 129, 0.35),
     inset 0 1.5px 2px rgba(255, 255, 255, 0.65) !important;
 }
-.sidebar-nav-btn.is-active:active {
+[data-theme="claymorphism"] .sidebar-nav-btn.is-active:active {
   transform: translateY(2.5px);
   box-shadow:
     0 1px 0 #047857,
     0 3px 6px rgba(16, 185, 129, 0.20),
     inset 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* Default / Neumorphism Sidebar Nav Buttons (matching Image 4) */
+[data-theme="neumorphism"] .sidebar-nav-btn {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  color: #64748B !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+[data-theme="neumorphism"] .sidebar-nav-btn:hover:not(.is-active) {
+  background: #E5E5E5 !important;
+  color: #0F172A !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.90),
+     3px  3px 8px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-1px) !important;
+}
+[data-theme="neumorphism"] .sidebar-nav-btn:active {
+  transform: scale(0.98) !important;
+  box-shadow:
+    inset -2px -2px 5px rgba(255, 255, 255, 0.85),
+    inset  2px  2px 5px rgba(0, 0, 0, 0.16) !important;
+}
+[data-theme="neumorphism"] .sidebar-nav-btn.is-active {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #36AE7C !important;
+  border-radius: 16px !important;
+  box-shadow:
+    inset -3px -3px 6px rgba(255, 255, 255, 0.95),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+  transform: translateY(0) !important;
+}
+[data-theme="neumorphism"] .sidebar-nav-btn.is-active:hover {
+  box-shadow:
+    inset -3.5px -3.5px 7px rgba(255, 255, 255, 0.98),
+    inset  3.5px  3.5px 7px rgba(13, 39, 80, 0.22) !important;
 }
 
 /* ===== BUTTON CETAK PDF (referensi Image 2) =====
@@ -2392,6 +2433,7 @@ button:active {
 
 
 
+@layer components {
 /* ==========================================================================
    GAYA NEUMORPHISM MODERN (PURE NEUMORPHISM SOFT UI #E5E5E5)
    --------------------------------------------------------------------------
@@ -2570,11 +2612,13 @@ button:active {
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active {
-  background: #E5E5E5 !important;
-  color: #187498 !important;
+  background-color: #E5E5E5 !important;
+  color: #0F172A !important;
+  font-weight: 800 !important;
   box-shadow:
-    -3px -3px 8px rgba(255, 255, 255, 0.90),
-     3px  3px 8px rgba(0, 0, 0, 0.14) !important;
+    inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.92),
+    inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18) !important;
+  border-radius: 9999px !important;
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active.is-expense {
@@ -2637,14 +2681,23 @@ button:active {
 }
 
 /* Sidebar Nav Buttons */
+/* Sidebar Nav Buttons: Flush when inactive, Sunken Inset Trench when active (matching Image 4) */
 [data-theme="neumorphism"] .sidebar-nav-btn {
-  background-color: #E5E5E5 !important;
+  background: transparent !important;
   background-image: none !important;
   border: none !important;
-  color: #334155 !important;
+  color: #64748B !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+  transition: all 180ms ease !important;
+}
+
+[data-theme="neumorphism"] .sidebar-nav-btn:hover:not(.is-active) {
+  background: #E5E5E5 !important;
+  color: #0F172A !important;
   box-shadow:
-    -5px -5px 12px rgba(255, 255, 255, 0.80),
-     5px  5px 12px rgba(0, 0, 0, 0.14) !important;
+    -3px -3px 8px rgba(255, 255, 255, 0.85),
+     3px  3px 8px rgba(0, 0, 0, 0.10) !important;
 }
 
 [data-theme="neumorphism"] .sidebar-nav-btn.is-active {
@@ -2653,26 +2706,38 @@ button:active {
   border: none !important;
   color: #36AE7C !important;
   box-shadow:
-    inset -4px -4px 8px rgba(255, 255, 255, 0.85),
-    inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
+    inset -3px -3px 6px rgba(255, 255, 255, 0.90),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+  border-radius: 16px !important;
 }
 
 /* Mobile Bottom Dock */
+[data-theme="neumorphism"] .clay-nav,
 [data-theme="neumorphism"] .bottom-bar,
 [data-theme="neumorphism"] nav.fixed.bottom-0 {
   background-color: #E5E5E5 !important;
+  background: #E5E5E5 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-top: none !important;
   box-shadow:
-    -8px -8px 20px rgba(255, 255, 255, 0.80),
-     8px  8px 20px rgba(0, 0, 0, 0.16) !important;
+    -6px -6px 18px rgba(255, 255, 255, 0.85),
+     6px  6px 18px rgba(0, 0, 0, 0.16) !important;
 }
 
+[data-theme="neumorphism"] .nav-icon-wrap.nav-icon-active,
 [data-theme="neumorphism"] .nav-icon-wrap.is-active {
   background-color: #E5E5E5 !important;
   color: #36AE7C !important;
   box-shadow:
-    inset -3px -3px 6px rgba(255, 255, 255, 0.85),
-    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+    inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90),
+    inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18) !important;
+}
+
+[data-theme="neumorphism"] .nav-icon-wrap.nav-icon-inactive {
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #64748B !important;
 }
 
 /* Central Dome FAB & Speed Dial Buttons */
@@ -2722,7 +2787,7 @@ button:active {
      3px  3px 7px rgba(0, 0, 0, 0.14) !important;
 }
 
-/* 4. 3D EMBOSSED RELIEF TYPOGRAPHY FOR HEADERS (MATCHING "FREE UI kit") */
+/* 4. 3D TACTILE ENGRAVED TYPOGRAPHY FOR HEADERS (HIGH CONTRAST #0F172A) */
 [data-theme="neumorphism"] .brand-title,
 [data-theme="neumorphism"] .brand-title-embossed,
 [data-theme="neumorphism"] .headline-saldo,
@@ -2732,14 +2797,12 @@ button:active {
 [data-theme="neumorphism"] .neu-embossed,
 [data-theme="neumorphism"] .clay-sheet h2,
 [data-theme="neumorphism"] .clay-sheet h3 {
-  color: #EBEEF2 !important;
+  color: #0F172A !important;
   font-weight: 800 !important;
   letter-spacing: -0.02em;
   text-shadow:
-    -2px -2px 3px rgba(255, 255, 255, 1.0),
-    -1px -1px 1px rgba(255, 255, 255, 0.90),
-     2px  2px 3px rgba(163, 177, 198, 0.60),
-     4px  5px 8px rgba(13, 39, 80, 0.22) !important;
+    1px  1px 1px rgba(255, 255, 255, 0.95),
+   -1px -1px 1px rgba(0, 0, 0, 0.08) !important;
 }
 
 /* Colored Embossed Variations for Theme-Specific Big Numbers / Cards */
@@ -2864,4 +2927,47 @@ button:active {
   --clay-h-neutral: 100, 116, 139;
   --clay-h-blue: 31, 84, 200;
   --clay-h-info: 29, 78, 216;
+}
+
+/* Right Aside Panels & Cards in Neumorphism */
+[data-theme="neumorphism"] aside .clay.clay-key-neutral,
+[data-theme="neumorphism"] aside .bg-surfaceContainerLowest {
+  background-color: #E5E5E5 !important;
+  box-shadow:
+    -6px -6px 16px rgba(255, 255, 255, 0.80),
+     6px  6px 16px rgba(0, 0, 0, 0.12) !important;
+  border: none !important;
+}
+
+[data-theme="neumorphism"] aside .clay-card.clay-key-neutral {
+  background-color: #E5E5E5 !important;
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.85),
+     4px  4px 10px rgba(0, 0, 0, 0.10) !important;
+  border: none !important;
+}
+
+/* Category Breakdown Hover: Soft Inset Depth (No harsh white wash) */
+[data-theme="neumorphism"] .kategori-breakdown-row:hover,
+[data-theme="neumorphism"] .kategori-item-hover:hover {
+  background-color: rgba(0, 0, 0, 0.03) !important;
+  box-shadow:
+    inset  2px  2px 4px rgba(0, 0, 0, 0.08),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.70) !important;
+}
+
+/* All buttons & clickable tiles sink IN into the surface when pressed (matching user feedback) */
+[data-theme="neumorphism"] button:active,
+[data-theme="neumorphism"] .neu-btn:active,
+[data-theme="neumorphism"] .clay-btn:active,
+[data-theme="neumorphism"] .clay-chip:active,
+[data-theme="neumorphism"] .pdf-action-btn:active,
+[data-theme="neumorphism"] .sidebar-nav-btn:active,
+[data-theme="neumorphism"] aside button:active {
+  transform: scale(0.98) !important;
+  box-shadow:
+    inset  2.5px  2.5px 5px rgba(0, 0, 0, 0.22),
+    inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.70) !important;
+}
+
 }

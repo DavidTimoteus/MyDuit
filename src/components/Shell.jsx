@@ -602,14 +602,14 @@ export default function Shell({ user }) {
           {tab === "budget" && <SidebarInsightBudget />}
           {tab === "utang" && <SidebarInsightUtang />}
 
-          <div className="mt-3 shrink-0 border-t border-gray-100 pt-3">
-            <div className="flex items-center gap-2.5 px-1">
+          <div className="mt-3 shrink-0 border-t border-slate-300/40 pt-3">
+            <div className="flex items-center gap-3 px-1">
               <button
                 type="button"
                 onClick={() => setLokasiOpen(true)}
                 title="Ubah lokasi & mata uang"
                 aria-label="Ubah lokasi & mata uang"
-                className="shrink-0 rounded-full transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                className="shrink-0 rounded-full transition-transform hover:scale-105"
               >
                 <Avatar user={user} />
               </button>
@@ -617,17 +617,21 @@ export default function Shell({ user }) {
                 <p className="truncate text-xs font-bold text-slate-800">
                   {user.displayName ?? "Pengguna"}
                 </p>
-                <p className="truncate text-[10px] text-textSecondary">
+                <p className="truncate text-[10px] text-slate-500">
                   {user.email}
                 </p>
                 <button
                   type="button"
                   onClick={() => setLokasiOpen(true)}
-                  className="mt-0.5 block max-w-full truncate rounded-md text-left text-[9px] text-textSecondary hover:text-slate-600"
+                  className="mt-0.5 block max-w-full truncate rounded-md text-left text-[9px] font-semibold text-slate-500 hover:text-slate-700"
                 >
                   {countryFlag} {countryNama} · {currencySymbol}
                 </button>
               </div>
+            </div>
+
+            {/* Quick Controls Row: Theme, Backup, Logout */}
+            <div className="mt-2.5 flex items-center justify-between gap-2 px-1">
               <button
                 type="button"
                 onClick={() => {
@@ -635,29 +639,26 @@ export default function Shell({ user }) {
                   setTema(next);
                 }}
                 title={`Gaya Desain: ${tema === THEMES.NEUMORPHISM ? 'Neumorphism (Modern)' : 'Claymorphism (Klasik)'} - Klik untuk ganti`}
-                className="clay-chip flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200"
+                className="neu-btn flex flex-1 items-center justify-center gap-1.5 h-8 rounded-xl bg-[#E5E5E5] text-[11px] font-bold text-slate-600 hover:text-slate-900 active:scale-95"
               >
-                <span className="material-symbols-outlined icon-md">
-                  palette
-                </span>
+                <span className="material-symbols-outlined icon-sm">palette</span>
+                <span>{tema === THEMES.NEUMORPHISM ? 'Neu' : 'Clay'}</span>
               </button>
               <button
+                type="button"
                 onClick={() => setBackupOpen(true)}
-                title="Backup"
-                className="clay-chip flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200"
+                title="Backup & Restore Data"
+                className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95"
               >
-                <span className="material-symbols-outlined icon-md">
-                  backup
-                </span>
+                <span className="material-symbols-outlined icon-sm">backup</span>
               </button>
               <button
+                type="button"
                 onClick={keluar}
                 title="Keluar"
-                className="clay-chip clay-key-danger flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:!bg-red-50 hover:!text-red-500"
+                className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-95"
               >
-                <span className="material-symbols-outlined icon-md">
-                  logout
-                </span>
+                <span className="material-symbols-outlined icon-sm">logout</span>
               </button>
             </div>
           </div>

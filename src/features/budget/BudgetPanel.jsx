@@ -34,13 +34,15 @@ export default function BudgetPanel({
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {budgets.length === 0 ? (
-          <div className="clay-card-soft col-span-full flex flex-col items-center px-6 py-12 text-center rounded-2xl bg-[#E5E5E5]">
-            <span className="material-symbols-outlined mb-3 text-5xl text-blue-400/50" style={{ fontVariationSettings: "'FILL' 0" }}>savings</span>
-            <p className="text-sm font-bold text-slate-700">Belum ada budget untuk periode ini</p>
-            <p className="mt-1 text-xs text-slate-500">Tekan tombol + di bawah untuk membatasi pengeluaran.</p>
+          <div className="col-span-full flex flex-col items-center justify-center p-8 text-center neu-card rounded-2xl bg-[#E5E5E5] w-full my-4">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl neu-inset bg-[#E5E5E5] text-[#187498]">
+              <span className="material-symbols-outlined icon-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>savings</span>
+            </div>
+            <p className="text-sm font-bold text-slate-800">Belum ada budget untuk periode ini</p>
+            <p className="mt-1 text-xs text-slate-500 max-w-sm">Tekan tombol di bawah untuk membatasi pengeluaran kategori.</p>
             <button
               onClick={() => setModal({ open: true, edit: null })}
-              className="clay-btn clay-key-blue solid-blue mt-4 px-4 py-2.5 text-xs font-semibold text-white"
+              className="neu-btn-primary solid-blue mt-4 h-9 px-4 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
             >
               + Tambah Budget
             </button>
@@ -53,50 +55,53 @@ export default function BudgetPanel({
             // anggaran (mis. 118%) batang meluber keluar container. Dibatasi 100%.
             const lebarBar = Math.min(100, Math.max(0, b.persen))
             const status = b.lewat ? 'lewat' : b.persen >= 80 ? 'waspada' : 'aman'
-            const warnaBar = status === 'lewat' ? 'bg-red-500' : status === 'waspada' ? 'bg-amber-500' : 'bg-blue-500'
-            const warnaTeks = status === 'lewat' ? 'text-red-600' : status === 'waspada' ? 'text-amber-600' : 'text-blue-700'
             const ikonStatus = status === 'lewat' ? 'error' : status === 'waspada' ? 'warning' : 'check_circle'
             const labelStatus = status === 'lewat' ? 'Lewat' : status === 'waspada' ? 'Waspada' : 'Aman'
+            const badgeCls = status === 'lewat'
+              ? 'text-[#EB5353] bg-red-50'
+              : status === 'waspada'
+                ? 'text-[#D4AF0D] bg-amber-50'
+                : 'text-[#187498] bg-blue-50'
+            const barFill = status === 'lewat' ? 'bg-[#EB5353]' : status === 'waspada' ? 'bg-[#D4AF0D]' : 'bg-[#187498]'
             return (
-              <div key={b.id} className="clay-card rounded-[24px] relative overflow-hidden p-4 pl-5">
-                <span className={`absolute inset-y-0 left-0 w-1.5 ${warnaBar}`} aria-hidden="true" />
+              <div key={b.id} className="neu-card rounded-2xl p-4.5 bg-[#E5E5E5] relative transition-all">
                 <div className="flex min-w-0 items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-bold leading-snug text-slate-800" title={kategoriNama}>{kategoriNama}</p>
-                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${warnaTeks} ${status === 'lewat' ? 'bg-red-50' : status === 'waspada' ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                    <p className="truncate text-[15px] font-extrabold leading-snug text-slate-800" title={kategoriNama}>{kategoriNama}</p>
+                    <div className="mt-1 flex items-center gap-2 flex-wrap">
+                      <span className={`neu-chip inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${badgeCls}`}>
                         <span className="material-symbols-outlined icon-2xs">{ikonStatus}</span>
                         {labelStatus}
                       </span>
-                      <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Limit {formatRupiah(b.limitNominal)}</span>
+                      <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">Limit {formatRupiah(b.limitNominal)}</span>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 pt-0.5">
-                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={`Edit budget ${kategoriNama}`} className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
+                  <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={`Edit budget ${kategoriNama}`} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
                       <span className="material-symbols-outlined icon-xs">edit</span>
                     </button>
-                    <button onClick={() => setHapusTarget(b)} aria-label={`Hapus budget ${kategoriNama}`} className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
+                    <button onClick={() => setHapusTarget(b)} aria-label={`Hapus budget ${kategoriNama}`} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
                       <span className="material-symbols-outlined icon-xs">delete</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <p className={`text-[26px] font-extrabold leading-none tracking-tight ${sisa < 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                  <p className={`font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${sisa < 0 ? 'text-[#EB5353]' : 'text-slate-800'}`}>
                     {sisa < 0 ? formatRupiah(-sisa) : formatRupiah(sisa)}
                   </p>
-                  <p className="mt-1 text-[11px] font-medium text-slate-500">
+                  <p className="mt-1 text-[11px] font-semibold text-slate-500">
                     {sisa < 0 ? 'melebihi limit' : 'sisa dari limit'}
                   </p>
                 </div>
 
                 <div className="mt-3">
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div className={`h-full rounded-full transition-all ${warnaBar}`} style={{ width: `${lebarBar}%` }} />
+                  <div className="neu-inset h-2 w-full overflow-hidden rounded-full bg-[#E5E5E5]">
+                    <div className={`h-full rounded-full transition-all ${barFill}`} style={{ width: `${lebarBar}%` }} />
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
-                    <span className="font-medium text-slate-500">Terpakai {formatRupiah(b.terpakai)}</span>
-                    <span className={`font-extrabold ${warnaTeks}`}>{b.lewat ? `+${b.persen - 100}%` : `${b.persen}%`}</span>
+                    <span className="font-semibold text-slate-500">Terpakai {formatRupiah(b.terpakai)}</span>
+                    <span className={`font-mono font-black ${status === 'lewat' ? 'text-[#EB5353]' : status === 'waspada' ? 'text-[#D4AF0D]' : 'text-[#187498]'}`}>{b.lewat ? `+${b.persen - 100}%` : `${b.persen}%`}</span>
                   </div>
                 </div>
               </div>

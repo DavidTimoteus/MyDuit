@@ -39,6 +39,20 @@ function logMutasi(m) {
   return { teks, warna }
 }
 
+function getAkunVisual(tipe) {
+  const t = (tipe || '').toLowerCase()
+  if (t.includes('dompet') || t.includes('tunai') || t.includes('cash')) {
+    return { icon: 'payments', bgCls: 'text-[#D4AF0D]' }
+  }
+  if (t.includes('ewallet') || t.includes('e-wallet') || t.includes('gopay') || t.includes('ovo') || t.includes('dana') || t.includes('shopee')) {
+    return { icon: 'smartphone', bgCls: 'text-[#36AE7C]' }
+  }
+  if (t.includes('investasi') || t.includes('saham') || t.includes('kripto') || t.includes('reksadana')) {
+    return { icon: 'trending_up', bgCls: 'text-[#187498]' }
+  }
+  return { icon: 'account_balance', bgCls: 'text-[#187498]' }
+}
+
 export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
   const { akunList, kategoriList } = useAkunKategori(uid)
   const katById = useMemo(() => Object.fromEntries(kategoriList.map((k) => [k.id, k.nama])), [kategoriList])
@@ -294,8 +308,10 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     {/* Header Kartu — Ikon bank kecil bulat biru + nama + badge tipe + aksi */}
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-8 h-8 rounded-xl bg-[#E5E5E5] shadow-[-2px_-2px_5px_rgba(255,255,255,0.9),2px_2px_5px_rgba(0,0,0,0.14)] flex items-center justify-center shrink-0 text-[#187498]">
-                          <span className="material-symbols-outlined text-blue-700 icon-xs">account_balance</span>
+                        <div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] shrink-0">
+                          <span className={`material-symbols-outlined icon-xs ${getAkunVisual(a.tipe).bgCls}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                            {getAkunVisual(a.tipe).icon}
+                          </span>
                         </div>
                         <span className="font-bold text-base text-slate-800 truncate">{a.nama}</span>
                       </div>
@@ -336,7 +352,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     {/* Saldo Akhir */}
                     <div className="mb-2">
                       <p className="text-xs text-slate-500">Saldo Akhir</p>
-                      <p className={`font-mono text-xl font-black ${negatif ? 'text-[#EB5353]' : 'text-slate-900'} brand-title-embossed`}>
+                      <p className={`font-mono text-xl font-black ${negatif ? 'text-[#EB5353]' : 'text-slate-900'}`}>
                         {formatRupiah(a.saldo)}
                       </p>
                     </div>
@@ -378,60 +394,66 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         )}
       </div>
 
-      {/* ===== DESKTOP ONLY: GRID LIST ===== */}
-      <div className="hidden md:grid gap-3 mt-4 lg:grid-cols-2">
+      {/* ===== DESKTOP ONLY: REFINED NEUMORPHIC GRID LIST ===== */}
+      <div className="hidden md:grid gap-3.5 mt-4 lg:grid-cols-2">
         {akunList.map((a) => {
           const negatif = (Number(a.saldo) || 0) < 0
           const log = a.mutasiTerakhir ? logMutasi(a.mutasiTerakhir) : null
+          const visual = getAkunVisual(a.tipe)
           return (
             <div
               key={a.id}
-              className={`clay clay-card bg-surfaceContainerLowest p-4 rounded-[22px] transition-all duration-200 ${
-                negatif ? 'clay-key-danger' : 'clay-key-blue'
-              }`}
+              className="neu-card rounded-2xl p-4 bg-[#E5E5E5] transition-all duration-200 hover:shadow-[-6px_-6px_14px_rgba(255,255,255,0.9),6px_6px_16px_rgba(0,0,0,0.14)]"
             >
-              <div className="flex items-start justify-between gap-2 mb-2.5">
+              <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-blue-700 icon-sm">account_balance</span>
+                  <div className="clay-icon-tile flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5]">
+                    <span className={`material-symbols-outlined icon-md ${visual.bgCls}`} style={{ fontVariationSettings: "'FILL' 1" }}>
+                      {visual.icon}
+                    </span>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-base text-slate-800 truncate" title={a.nama}>{a.nama}</p>
                     {a.tipe && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium inline-block mt-0.5">
+                      <span className="neu-inset text-[10px] px-2.5 py-0.5 rounded-full bg-[#E5E5E5] font-bold text-slate-600 inline-block mt-0.5">
                         {a.tipe}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setRiwayatId(a.id)}
                     aria-label={`Detail perubahan ${a.nama}`}
-                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                    title="Detail mutasi"
+                    className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-500 hover:text-slate-800 active:scale-95 transition-all"
                   >
                     <span className="material-symbols-outlined icon-xs">history</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setModal({ open: true, edit: a })}
-                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Edit rekening"
+                    title="Edit rekening"
+                    className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-500 hover:text-slate-800 active:scale-95 transition-all"
                   >
                     <span className="material-symbols-outlined icon-xs">edit</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setHapusTarget(a)}
-                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500"
+                    aria-label="Hapus rekening"
+                    title="Hapus rekening"
+                    className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-500 hover:text-[#EB5353] active:scale-95 transition-all"
                   >
                     <span className="material-symbols-outlined icon-xs">delete</span>
                   </button>
                 </div>
               </div>
-              <div className="mb-2">
-                <p className="text-xs text-slate-500">Saldo Akhir</p>
-                <p className={`font-mono text-lg font-bold ${negatif ? 'text-expenseText' : 'text-slate-800'}`}>
+              <div className="mb-2.5">
+                <p className="text-xs font-semibold text-slate-500">Saldo Akhir</p>
+                <p className={`font-mono text-xl font-extrabold tracking-tight ${negatif ? 'text-[#EB5353]' : 'text-slate-800'}`}>
                   {formatRupiah(a.saldo)}
                 </p>
               </div>
@@ -440,13 +462,15 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                 type="button"
                 onClick={() => setRiwayatId(a.id)}
                 aria-label={`Lihat detail perubahan ${a.nama}`}
-                className="block w-full rounded-lg bg-slate-50 px-2.5 py-2 text-left transition-colors hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="neu-well block w-full rounded-xl bg-[#E5E5E5] p-2.5 text-left transition-all active:scale-[0.99] focus:outline-none"
               >
-                <span className="block text-xs font-semibold text-slate-500 mb-0.5">Perubahan Terakhir</span>
-                <span className={`flex items-center justify-between gap-2 text-xs font-mono ${log ? log.warna : 'text-slate-500'}`}>
-                  <span className="truncate">{log ? log.teks : 'Belum ada riwayat'}</span>
-                  <span className="material-symbols-outlined icon-xs shrink-0 text-blue-600/70">history</span>
-                </span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Perubahan Terakhir</span>
+                  <span className="material-symbols-outlined icon-2xs text-slate-400">history</span>
+                </div>
+                <div className={`text-xs font-mono font-bold truncate ${log ? log.warna : 'text-slate-400'}`}>
+                  {log ? log.teks : 'Belum ada riwayat'}
+                </div>
               </button>
             </div>
           )

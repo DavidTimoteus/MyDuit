@@ -434,10 +434,18 @@ export default function StatistikView({ user }) {
         ? window.__MYDUIT_LOCALE__ || "id-ID"
         : "id-ID";
 
-    // Gradient vertikal untuk area Saldo (dibuat dari kanvas).
-    const grad = ctx.createLinearGradient(0, 0, 0, 300);
-    grad.addColorStop(0, "rgba(24,116,152,.28)");
-    grad.addColorStop(1, "rgba(24,116,152,.02)");
+    // Gradient vertikal kanvas untuk Pemasukan, Pengeluaran & Saldo (Image 2 Neumorphic Spline + Capsule Chart)
+    const gradIn = ctx.createLinearGradient(0, 0, 0, 260);
+    gradIn.addColorStop(0, "rgba(78, 197, 147, 0.95)");
+    gradIn.addColorStop(1, "rgba(54, 174, 124, 0.70)");
+
+    const gradOut = ctx.createLinearGradient(0, 0, 0, 260);
+    gradOut.addColorStop(0, "rgba(243, 130, 130, 0.95)");
+    gradOut.addColorStop(1, "rgba(235, 83, 83, 0.70)");
+
+    const gradSaldo = ctx.createLinearGradient(0, 0, 0, 280);
+    gradSaldo.addColorStop(0, "rgba(24, 116, 152, 0.22)");
+    gradSaldo.addColorStop(1, "rgba(24, 116, 152, 0.00)");
 
     chartInst.current = new Chart(ctx, {
       data: {
@@ -447,22 +455,26 @@ export default function StatistikView({ user }) {
             type: "bar",
             label: "Pemasukan",
             data: tren.dataIn,
-            backgroundColor: "rgba(54,174,124,.75)",
-            hoverBackgroundColor: "rgba(54,174,124,.95)",
-            borderRadius: 6,
+            backgroundColor: gradIn,
+            hoverBackgroundColor: "rgba(54, 174, 124, 1.0)",
+            borderRadius: 12,
             borderSkipped: false,
             maxBarThickness: 16,
+            barPercentage: 0.8,
+            categoryPercentage: 0.7,
             order: 2,
           },
           {
             type: "bar",
             label: "Pengeluaran",
-            data: tren.dataOut.map((v) => -v),
-            backgroundColor: "rgba(235,83,83,.75)",
-            hoverBackgroundColor: "rgba(235,83,83,.95)",
-            borderRadius: 6,
+            data: tren.dataOut,
+            backgroundColor: gradOut,
+            hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
+            borderRadius: 12,
             borderSkipped: false,
             maxBarThickness: 16,
+            barPercentage: 0.8,
+            categoryPercentage: 0.7,
             order: 2,
           },
           {
@@ -470,15 +482,15 @@ export default function StatistikView({ user }) {
             label: "Saldo",
             data: tren.dataSaldo,
             borderColor: "#187498",
-            backgroundColor: grad,
+            backgroundColor: gradSaldo,
             fill: true,
-            tension: 0.4,
-            borderWidth: 2.5,
-            pointRadius: mode === "bulanan" ? 0 : 3,
-            pointHoverRadius: 5,
-            pointBackgroundColor: "#187498",
-            pointBorderColor: "#fff",
-            pointBorderWidth: 2,
+            tension: 0.45,
+            borderWidth: 3,
+            pointRadius: 4.5,
+            pointHoverRadius: 7,
+            pointBackgroundColor: "#FFFFFF",
+            pointBorderColor: "#187498",
+            pointBorderWidth: 2.5,
             order: 1,
           },
         ],
@@ -795,14 +807,14 @@ export default function StatistikView({ user }) {
           />
         </div>
 
-        {/* TREND CHART */}
-        <div className="clay-lvl-2 clay-card rounded-[22px] bg-surfaceContainerLowest p-4">
+        {/* TREND CHART (Image 2 Reference Style) */}
+        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-base font-bold text-slate-800">{trendTitle}</h3>
-            <div className="flex items-center gap-3 text-xs">
-              <LegendDot color="bg-emerald-500" label="Pemasukan" />
-              <LegendDot color="bg-red-500" label="Pengeluaran" />
-              <LegendDot color="bg-blue-500" label="Saldo" />
+            <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{trendTitle}</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <LegendDot color="bg-[#36AE7C]" label="Pemasukan" />
+              <LegendDot color="bg-[#EB5353]" label="Pengeluaran" />
+              <LegendDot color="bg-[#187498]" label="Saldo" />
             </div>
           </div>
           <div className="neu-well relative rounded-2xl p-3 h-64 md:h-72">
@@ -964,7 +976,7 @@ export default function StatistikView({ user }) {
                   return (
                     <div
                       key={t.id}
-                      className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2 hover:bg-slate-50"
+                      className="flex min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-2 transition-all hover:bg-black/[0.03] hover:shadow-[inset_1.5px_1.5px_4px_rgba(0,0,0,0.06),inset_-1.5px_-1.5px_4px_rgba(255,255,255,0.70)]"
                     >
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-800">
@@ -1004,16 +1016,14 @@ export default function StatistikView({ user }) {
   );
 }
 
-function SummaryCard({ icon, label, value, pct, cls, aksenCls, banding }) {
+function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
   // pct null = tidak ada data pembanding (periode sebelumnya kosong) — jangan
   // menampilkan persen palsu "+100%", ganti teks netral.
   const positif = (pct ?? 0) >= 0;
   const iconTrend =
     pct === null ? "trending_flat" : positif ? "trending_up" : "trending_down";
   return (
-    <div
-      className={`clay-lvl-3 hero-card ${cls} p-4`}
-    >
+    <div className="neu-card rounded-2xl bg-[#E5E5E5] p-4">
       <div className="mb-2 flex items-center gap-2">
         <span
           className={`material-symbols-outlined icon-md ${aksenCls}`}
@@ -1042,8 +1052,8 @@ function SummaryCard({ icon, label, value, pct, cls, aksenCls, banding }) {
 
 function LegendDot({ color, label }) {
   return (
-    <span className="flex items-center gap-1">
-      <span className={`h-3 w-3 rounded-full ${color}`}></span>
+    <span className="neu-chip flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-slate-700 bg-[#E5E5E5]">
+      <span className={`h-2.5 w-2.5 rounded-full ${color}`}></span>
       {label}
     </span>
   );
@@ -1061,7 +1071,7 @@ function KategoriCard({
   const empty = items.length === 0;
   const max = Math.max(1, ...items.map((i) => i.total));
   return (
-    <div className="clay clay-card clay-key-primary rounded-[22px] bg-surfaceContainerLowest p-4">
+    <div className="neu-card rounded-[22px] bg-[#E5E5E5] p-4">
       <div className="mb-3 flex items-center gap-2">
         <span className={`material-symbols-outlined icon-md ${iconColor}`}>
           {icon}
@@ -1088,7 +1098,7 @@ function KategoriCard({
                 key={it.id}
                 onClick={() => onDblClick(jenis, it)}
                 onDoubleClick={() => onDblClick(jenis, it)}
-                className="cursor-pointer rounded-xl px-2.5 py-1.5 transition-all active:scale-[0.98] active:bg-blue-50/80 hover:bg-slate-50 select-none touch-manipulation"
+                className="cursor-pointer rounded-xl px-2.5 py-2 transition-all hover:bg-black/[0.03] hover:shadow-[inset_2px_2px_4px_rgba(0,0,0,0.08),inset_-2px_-2px_4px_rgba(255,255,255,0.70)] active:scale-[0.98] active:shadow-[inset_3px_3px_6px_rgba(0,0,0,0.12),inset_-3px_-3px_6px_rgba(255,255,255,0.85)] select-none touch-manipulation"
                 title="Ketuk kategori untuk melihat rincian transaksi"
               >
                 <div className="flex min-w-0 items-center justify-between text-[11px] font-semibold">

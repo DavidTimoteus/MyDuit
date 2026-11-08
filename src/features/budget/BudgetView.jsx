@@ -238,7 +238,7 @@ export default function BudgetView({ user }) {
             type="button"
             onClick={() => setSub('rekening')}
             aria-pressed={sub === 'rekening'}
-            className={`clay-segment-item ${sub === 'rekening' ? 'is-active is-income' : ''}`}
+            className={`clay-segment-item ${sub === 'rekening' ? 'is-active' : ''}`}
           >
             <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'rekening' ? "'FILL' 1" : "'FILL' 0" }}>account_balance</span>
             Rekening
@@ -247,7 +247,7 @@ export default function BudgetView({ user }) {
             type="button"
             onClick={() => setSub('budget')}
             aria-pressed={sub === 'budget'}
-            className={`clay-segment-item ${sub === 'budget' ? 'is-active is-income' : ''}`}
+            className={`clay-segment-item ${sub === 'budget' ? 'is-active' : ''}`}
           >
             <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'budget' ? "'FILL' 1" : "'FILL' 0" }}>savings</span>
             Budget
