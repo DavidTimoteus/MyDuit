@@ -503,99 +503,137 @@ button:active {
     inset -3px -3px 10px rgba(var(--clay-h, var(--clay-h-primary)), 0.08);
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS (3D Extruded Shelf - Product UI Styleguide) ===== */
 .clay-btn {
   border-radius: var(--clay-r-button);
-  /* Bidang default tombol clay (varian .solid-* & .clay-btn-primary/danger
-     menimpanya lewat spesifisitas). Tanpa ini tombol netral transparan. */
   background-color: var(--color-surfaceContainerLowest);
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7f5 100%);
+  color: var(--color-textPrimary);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    5px 5px 14px rgba(var(--clay-h, var(--clay-h-primary)), 0.32),
-    -5px -5px 14px rgba(255, 255, 255, 0.5),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
-    inset -3px -3px 7px rgba(var(--clay-h, var(--clay-h-primary)), 0.22);
+    0 3.5px 0 var(--clay-lip-btn-neutral),
+    0 8px 16px rgba(0, 0, 0, 0.06),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.9),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.06);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
-.clay-btn:hover { transform: translateY(-1px); }
-.clay-btn:active {
-  transform: scale(0.97) translateY(1px);
+.clay-btn:hover {
+  transform: translateY(-1px);
   box-shadow:
-    inset 3px 3px 8px rgba(0, 0, 0, 0.22),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.3);
+    0 4.5px 0 var(--clay-lip-btn-neutral),
+    0 10px 20px rgba(0, 0, 0, 0.08),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.06);
+}
+.clay-btn:active {
+  transform: translateY(2.5px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-neutral),
+    0 2px 4px rgba(0, 0, 0, 0.06),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
 .clay-btn-primary {
   --clay-h: var(--clay-h-primary);
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
+  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 60%, #245841 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    5px 5px 14px rgba(var(--clay-h), 0.32),
-    -5px -5px 14px rgba(255, 255, 255, 0.5),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
-    inset -3px -3px 7px rgba(var(--clay-h), 0.22);
+    0 4px 0 var(--clay-lip-btn-primary),
+    0 8px 18px rgba(var(--clay-h), 0.32),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
-.clay-btn-primary:hover { transform: translateY(-1px); }
-.clay-btn-primary:active {
-  transform: scale(0.97) translateY(1px);
+.clay-btn-primary:hover {
+  transform: translateY(-1px);
   box-shadow:
-    inset 3px 3px 8px rgba(0, 0, 0, 0.28),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.25);
+    0 5px 0 var(--clay-lip-btn-primary),
+    0 12px 22px rgba(var(--clay-h), 0.36),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
+}
+.clay-btn-primary:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-primary),
+    0 2px 5px rgba(var(--clay-h), 0.24),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
 .clay-btn-danger {
   --clay-h: var(--clay-h-danger);
   background-color: #c62828;
-  background-image: linear-gradient(145deg, #ef5350 0%, #e53e3e 55%, #b71c1c 100%);
+  background-image: linear-gradient(180deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    5px 5px 14px rgba(var(--clay-h), 0.32),
-    -5px -5px 14px rgba(255, 255, 255, 0.5),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
-    inset -3px -3px 7px rgba(var(--clay-h), 0.22);
+    0 4px 0 var(--clay-lip-btn-danger),
+    0 8px 18px rgba(var(--clay-h), 0.32),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
-.clay-btn-danger:hover { transform: translateY(-1px); }
-.clay-btn-danger:active {
-  transform: scale(0.97) translateY(1px);
+.clay-btn-danger:hover {
+  transform: translateY(-1px);
   box-shadow:
-    inset 3px 3px 8px rgba(0, 0, 0, 0.28),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.25);
+    0 5px 0 var(--clay-lip-btn-danger),
+    0 12px 22px rgba(var(--clay-h), 0.36),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
+}
+.clay-btn-danger:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-danger),
+    0 2px 5px rgba(var(--clay-h), 0.24),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 
 .clay-btn-soft,
 .clay-btn-secondary {
   border-radius: var(--clay-r-button);
-  background-color: #f8faf9;
+  background-color: #f0f3f0;
+  background: linear-gradient(180deg, #ffffff 0%, #edf2ee 100%);
   color: #475569;
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    4px 4px 12px rgba(var(--clay-h, var(--clay-h-neutral)), 0.18),
-    -4px -4px 12px rgba(255, 255, 255, 0.6),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.5),
-    inset -2px -2px 5px rgba(var(--clay-h, var(--clay-h-neutral)), 0.10);
+    0 3px 0 var(--clay-lip-btn-neutral),
+    0 6px 14px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.05);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
+.clay-btn-soft:hover,
+.clay-btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 4px 0 var(--clay-lip-btn-neutral),
+    0 8px 16px rgba(0, 0, 0, 0.07),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.95);
+}
 .clay-btn-soft:active,
 .clay-btn-secondary:active {
-  transform: scale(0.97) translateY(1px);
+  transform: translateY(2px);
   box-shadow:
-    inset 2px 2px 6px rgba(var(--clay-h), 0.25),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.5);
+    0 1px 0 var(--clay-lip-btn-neutral),
+    0 2px 4px rgba(0, 0, 0, 0.05),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* ===== BUTTON CETAK PDF (referensi Image 2) =====
@@ -631,21 +669,17 @@ button:active {
     inset -2px -2px 6px rgba(255, 255, 255, 0.7);
 }
 
-/* ===== CHIPS ===== */
+/* ===== CHIPS (3D Extruded Pill - Product UI Styleguide) ===== */
 .clay-chip {
-  --clay-r: 4px;
-  --clay-blur: 9px;
-  /* FIX BUG: .clay-chip tidak punya border-radius -> semua chip yang tidak
-     menambah utility rounded-* tampil PERSEGI LANCIP (keluhan utama).
-     Default sekarang pill + bidang putih. */
   border-radius: var(--clay-r-chip);
   background-color: var(--color-surfaceContainerLowest);
+  background: linear-gradient(180deg, #ffffff 0%, #f3f6f4 100%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h, var(--clay-h-primary)), 0.22),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(var(--clay-h, var(--clay-h-primary)), 0.16),
-    inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
-      rgba(255, 255, 255, 0.55);
+    0 2.5px 0 var(--clay-lip-chip),
+    0 4px 10px rgba(0, 0, 0, 0.05),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.9),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.05);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
@@ -656,18 +690,17 @@ button:active {
   .clay-chip:hover {
     transform: translateY(-1px);
     box-shadow:
-      calc(var(--clay-r) + 1px) calc(var(--clay-r) + 1px) calc(var(--clay-blur) + 2px) rgba(var(--clay-h, var(--clay-h-primary)), 0.26),
-      inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-        rgba(var(--clay-h, var(--clay-h-primary)), 0.16),
-      inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
-        rgba(255, 255, 255, 0.55);
+      0 3.5px 0 var(--clay-lip-chip),
+      0 6px 14px rgba(0, 0, 0, 0.07),
+      inset 0 1px 1.5px rgba(255, 255, 255, 0.95);
   }
 }
 .clay-chip:active {
-  transform: scale(0.96) translateY(0);
+  transform: translateY(2px);
   box-shadow:
-    inset 2px 2px 6px rgba(0, 0, 0, 0.2),
-    inset -2px -2px 6px rgba(255, 255, 255, 0.3);
+    0 0.5px 0 var(--clay-lip-chip),
+    0 2px 4px rgba(0, 0, 0, 0.04),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* Filter chips — radius 8px (not full pill) */
@@ -751,23 +784,32 @@ button:active {
     inset -2px -2px 4px rgba(0, 0, 0, 0.22) !important;
 }
 
-/* ===== FAB ===== */
+/* ===== FAB (3D Physical Clay Dome) ===== */
 .clay-fab {
   color: #fff;
   border-radius: 999px;
-  border: 4px solid #ffffff;
+  border: 3.5px solid #ffffff;
   box-shadow:
-    0 12px 22px rgba(var(--clay-h, var(--clay-h-primary)), 0.40),
-    0 4px 10px rgba(var(--clay-h, var(--clay-h-primary)), 0.28),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.35),
-    inset -3px -3px 7px rgba(0, 0, 0, 0.18);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+    0 5px 0 var(--clay-lip-btn-primary),
+    0 14px 26px rgba(var(--clay-h, var(--clay-h-primary)), 0.38),
+    inset 0 2px 3px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.24);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
+}
+.clay-fab:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 6.5px 0 var(--clay-lip-btn-primary),
+    0 18px 30px rgba(var(--clay-h, var(--clay-h-primary)), 0.42),
+    inset 0 2px 3px rgba(255, 255, 255, 0.50),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.24);
 }
 .clay-fab:active {
-  transform: scale(0.94);
+  transform: translateY(3.5px) scale(0.96);
   box-shadow:
-    inset 3px 3px 8px rgba(0, 0, 0, 0.28),
-    inset -3px -3px 8px rgba(255, 255, 255, 0.25);
+    0 1.5px 0 var(--clay-lip-btn-primary),
+    0 4px 8px rgba(var(--clay-h, var(--clay-h-primary)), 0.28),
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.35);
 }
 
 /* Sub-tab toggle Budget/Statistik (Rekening | Budget atau Bulanan | Tahunan):
@@ -867,24 +909,25 @@ button:active {
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
 
-/* ===== INPUT / INSET ===== */
+/* ===== INPUT / INSET (Sumur Galian / Excavated Trench - Product UI Styleguide) ===== */
 .clay-field,
 .clay-inset {
-  background: #eef3ef;
+  background: #ebf0ec !important;
   border-radius: var(--clay-r-input);
   box-shadow:
-    inset 3px 3px 7px rgba(43, 80, 64, 0.14),
-    inset -3px -3px 7px rgba(255, 255, 255, 0.85);
+    inset 3px 3px 6px rgba(0, 0, 0, 0.10),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95);
   border: none;
   outline: none;
-  transition: box-shadow 0.2s ease;
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-spring), background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-field:focus,
 .clay-inset:focus {
+  background: #ffffff !important;
   box-shadow:
-    inset 3px 3px 7px rgba(43, 80, 64, 0.14),
-    inset -3px -3px 7px rgba(255, 255, 255, 0.85),
-    0 0 0 2px rgba(45, 106, 79, 0.30);
+    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.06),
+    inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.90),
+    0 0 0 3px rgba(0, 207, 204, 0.45) !important;
 }
 
 /* ===== RADIO BUTTON (clay raised / inset) ===== */
@@ -1021,22 +1064,22 @@ button:active {
 .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ===== INPUT CLAY (sumur inset — persis GAS .clay-input) ===== */
+/* ===== INPUT CLAY (Sumur Galian Inset - Product UI Styleguide) ===== */
 .clay-input {
   border-radius: var(--clay-r-input) !important;
   border-color: transparent !important;
+  background: #ebf0ec !important;
   box-shadow:
-    inset 2px 2px 5px rgba(var(--clay-h-neutral), 0.12),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.9);
-  background: #f1f5f9 !important;
-  transition: transform 0.2s ease, opacity 0.2s ease;
+    inset 3px 3px 6px rgba(0, 0, 0, 0.10),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.95);
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-spring), background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 .clay-input:focus {
   background: #ffffff !important;
   box-shadow:
-    inset 1px 1px 3px rgba(var(--clay-h-primary), 0.15),
-    inset -1px -1px 3px rgba(255, 255, 255, 0.9),
-    0 0 0 3px rgba(45, 106, 79, 0.15);
+    inset 1.5px 1.5px 3px rgba(0, 0, 0, 0.06),
+    inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.90),
+    0 0 0 3px rgba(0, 207, 204, 0.45) !important;
 }
 
 /* ===== FIELD TANGGAL (flatpickr) bergaya TOMBOL ===== */
@@ -1434,51 +1477,87 @@ button:active {
    Setiap class tetap punya 3 shadow: 1 outset + 2 inset.
    ============================================================ */
 
-/* Tombol solid */
+/* Tombol solid (3D Extruded Shelf) */
 .clay-btn.solid-primary {
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
+  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 60%, #1b4332 100%);
   color: #ffffff;
-  --clay-r: 5px;
-  --clay-blur: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.34),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.22),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.30);
+    0 4px 0 var(--clay-lip-btn-primary),
+    0 8px 18px rgba(var(--clay-h-primary), 0.32),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
-.clay-btn.solid-primary:hover { background-color: #35795a; }
+.clay-btn.solid-primary:hover {
+  background-color: #35795a;
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 var(--clay-lip-btn-primary),
+    0 12px 22px rgba(var(--clay-h-primary), 0.36),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40);
+}
+.clay-btn.solid-primary:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-primary),
+    0 2px 5px rgba(var(--clay-h-primary), 0.24),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
 
 .clay-btn.solid-danger {
   background-color: #c62828;
-  background-image: linear-gradient(145deg, #ef5350 0%, #e53e3e 55%, #b71c1c 100%);
+  background-image: linear-gradient(180deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
   color: #ffffff;
-  --clay-r: 5px;
-  --clay-blur: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.34),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.24),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.28);
+    0 4px 0 var(--clay-lip-btn-danger),
+    0 8px 18px rgba(var(--clay-h-danger), 0.32),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
-.clay-btn.solid-danger:hover { background-color: #d32f2f; }
+.clay-btn.solid-danger:hover {
+  background-color: #d32f2f;
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 var(--clay-lip-btn-danger),
+    0 12px 22px rgba(var(--clay-h-danger), 0.36),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40);
+}
+.clay-btn.solid-danger:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-danger),
+    0 2px 5px rgba(var(--clay-h-danger), 0.24),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
 
 .clay-btn.solid-blue {
   background-color: #1d4ed8;
-  background-image: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+  background-image: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
   color: #ffffff;
-  --clay-r: 5px;
-  --clay-blur: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.34),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.26),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.30);
+    0 4px 0 var(--clay-lip-btn-blue),
+    0 8px 18px rgba(var(--clay-h-blue), 0.32),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
-.clay-btn.solid-blue:hover { background-color: #2563eb; }
+.clay-btn.solid-blue:hover {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 var(--clay-lip-btn-blue),
+    0 12px 22px rgba(var(--clay-h-blue), 0.36),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40);
+}
+.clay-btn.solid-blue:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 1px 0 var(--clay-lip-btn-blue),
+    0 2px 5px rgba(var(--clay-h-blue), 0.24),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
 
 /* Kartu solid (untuk panel ringkasan) */
 .clay-card.solid-primary {
@@ -1562,72 +1641,122 @@ button:active {
       rgba(255, 255, 255, 0.28);
 }
 
-/* FAB solid */
+/* FAB solid (3D Physical Clay Dome) */
 .clay-fab.solid-primary {
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
-  --clay-r: 7px;
-  --clay-blur: 18px;
+  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
+  border: 3.5px solid #ffffff;
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.40),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.26),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.28);
+    0 5px 0 var(--clay-lip-btn-primary),
+    0 14px 26px rgba(var(--clay-h-primary), 0.38),
+    inset 0 2px 3px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.24);
 }
-.clay-fab.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
-  --clay-r: 7px;
-  --clay-blur: 18px;
+.clay-fab.solid-primary:hover {
+  transform: translateY(-1.5px);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.40),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.28),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.28);
+    0 6.5px 0 var(--clay-lip-btn-primary),
+    0 18px 30px rgba(var(--clay-h-primary), 0.42),
+    inset 0 2px 3px rgba(255, 255, 255, 0.50);
 }
-.clay-fab.solid-danger {
-  background-color: #c62828;
-  background-image: linear-gradient(145deg, #ef5350 0%, #e53e3e 55%, #b71c1c 100%);
-  --clay-r: 7px;
-  --clay-blur: 18px;
+.clay-fab.solid-primary:active {
+  transform: translateY(3.5px) scale(0.96);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.40),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.28),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.26);
+    0 1.5px 0 var(--clay-lip-btn-primary),
+    0 4px 8px rgba(var(--clay-h-primary), 0.28),
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.35);
 }
 
-/* Chip solid */
+.clay-fab.solid-blue {
+  background-color: #1d4ed8;
+  background-image: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+  border: 3.5px solid #ffffff;
+  box-shadow:
+    0 5px 0 var(--clay-lip-btn-blue),
+    0 14px 26px rgba(var(--clay-h-blue), 0.38),
+    inset 0 2px 3px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.24);
+}
+.clay-fab.solid-blue:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 6.5px 0 var(--clay-lip-btn-blue),
+    0 18px 30px rgba(var(--clay-h-blue), 0.42),
+    inset 0 2px 3px rgba(255, 255, 255, 0.50);
+}
+.clay-fab.solid-blue:active {
+  transform: translateY(3.5px) scale(0.96);
+  box-shadow:
+    0 1.5px 0 var(--clay-lip-btn-blue),
+    0 4px 8px rgba(var(--clay-h-blue), 0.28),
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.35);
+}
+
+.clay-fab.solid-danger {
+  background-color: #c62828;
+  background-image: linear-gradient(180deg, #ef5350 0%, #e53e3e 55%, #b71c1c 100%);
+  border: 3.5px solid #ffffff;
+  box-shadow:
+    0 5px 0 var(--clay-lip-btn-danger),
+    0 14px 26px rgba(var(--clay-h-danger), 0.38),
+    inset 0 2px 3px rgba(255, 255, 255, 0.45),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.24);
+}
+.clay-fab.solid-danger:hover {
+  transform: translateY(-1.5px);
+  box-shadow:
+    0 6.5px 0 var(--clay-lip-btn-danger),
+    0 18px 30px rgba(var(--clay-h-danger), 0.42),
+    inset 0 2px 3px rgba(255, 255, 255, 0.50);
+}
+.clay-fab.solid-danger:active {
+  transform: translateY(3.5px) scale(0.96);
+  box-shadow:
+    0 1.5px 0 var(--clay-lip-btn-danger),
+    0 4px 8px rgba(var(--clay-h-danger), 0.28),
+    inset 0 2.5px 5px rgba(0, 0, 0, 0.35);
+}
+
+/* Chip solid (3D Extruded Pill) */
 .clay-chip-active-danger {
   --clay-h: var(--clay-h-danger);
   background-color: #c62828;
-  background-image: linear-gradient(145deg, #ef5350 0%, #c62828 100%);
+  background-image: linear-gradient(180deg, #ef5350 0%, #c62828 100%);
   color: #ffffff;
-  --clay-r: 4px;
-  --clay-blur: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.30),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.20),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.26);
+    0 2.5px 0 var(--clay-lip-btn-danger),
+    0 4px 10px rgba(var(--clay-h-danger), 0.30),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.40),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.20);
+}
+.clay-chip-active-danger:hover { transform: translateY(-1px); }
+.clay-chip-active-danger:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0.5px 0 var(--clay-lip-btn-danger),
+    0 1px 3px rgba(var(--clay-h-danger), 0.20),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.30);
 }
 
 .clay-chip.solid-primary {
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 100%);
+  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 100%);
   color: #ffffff;
-  --clay-r: 4px;
-  --clay-blur: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.30),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.20),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.26);
+    0 2.5px 0 var(--clay-lip-btn-primary),
+    0 4px 10px rgba(var(--clay-h-primary), 0.30),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.40),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.20);
+}
+.clay-chip.solid-primary:hover { transform: translateY(-1px); }
+.clay-chip.solid-primary:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0.5px 0 var(--clay-lip-btn-primary),
+    0 1px 3px rgba(var(--clay-h-primary), 0.20),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.30);
 }
 
 /* FIX BUG: chip filter aktif di RiwayatMutasiModal memakai
@@ -1637,24 +1766,25 @@ button:active {
    putih di atasnya tetap >= 4.7:1. */
 .clay-chip.solid-blue {
   background-color: #1d4ed8;
-  background-image: linear-gradient(145deg, #2563eb 0%, #1d4ed8 65%, #1e3a8a 100%);
+  background-image: linear-gradient(180deg, #2563eb 0%, #1d4ed8 65%, #1e3a8a 100%);
   color: #ffffff;
-  --clay-r: 4px;
-  --clay-blur: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.30),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(0, 0, 0, 0.22),
-    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.30);
+    0 2.5px 0 var(--clay-lip-btn-blue),
+    0 4px 10px rgba(var(--clay-h-blue), 0.30),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.40),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.22);
 }
-.clay-chip.solid-blue:hover { filter: brightness(1.06); }
+.clay-chip.solid-blue:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
 .clay-chip.solid-blue:active {
+  transform: translateY(2px);
   box-shadow:
-    inset calc(var(--clay-r) * 0.8) calc(var(--clay-r) * 0.8) var(--clay-blur)
-      rgba(0, 0, 0, 0.34),
-    inset calc(var(--clay-r) * -0.5) calc(var(--clay-r) * -0.5) var(--clay-blur)
-      rgba(255, 255, 255, 0.26);
+    0 0.5px 0 var(--clay-lip-btn-blue),
+    0 1px 3px rgba(var(--clay-h-blue), 0.20),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.30);
 }
 
 /* ============================================================
