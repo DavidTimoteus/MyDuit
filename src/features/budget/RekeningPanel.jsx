@@ -33,9 +33,9 @@ function logMutasi(m) {
   const tglJam = tanggalJam(m?.at)
   const teks = `${tglJam ? tglJam + ' — ' : ''}${ket}: ${tanda}${formatRupiah(Math.abs(delta))}`
   let warna = 'text-slate-600'
-  if (/pindah/i.test(ket)) warna = 'text-blue-700 font-bold'
-  else if (delta < 0) warna = 'text-red-700 font-bold'
-  else if (delta > 0) warna = 'text-green-700 font-bold'
+  if (/pindah/i.test(ket)) warna = 'text-[#187498] font-bold'
+  else if (delta < 0) warna = 'text-[#EB5353] font-bold'
+  else if (delta > 0) warna = 'text-[#36AE7C] font-bold'
   return { teks, warna }
 }
 
@@ -369,7 +369,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                       {log ? (
                         <>
                           <span className={`block text-xs ${log.warna} font-mono truncate`}>{log.teks}</span>
-                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-blue-700/80 font-medium">
+                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-[#187498]/90 font-medium">
                             <span className="flex items-center gap-0.5 truncate"><span className="material-symbols-outlined icon-2xs">touch_app</span>Ketuk riwayat</span>
                             <span className="flex items-center gap-0.5 shrink-0 text-slate-400"><span className="material-symbols-outlined icon-2xs">swipe</span>Geser kartu</span>
                           </div>
@@ -377,7 +377,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                       ) : (
                         <>
                           <span className="block text-[10px] text-slate-500">Belum ada riwayat</span>
-                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-blue-700/80 font-medium">
+                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-[#187498]/90 font-medium">
                             <span className="flex items-center gap-0.5 truncate"><span className="material-symbols-outlined icon-2xs">history</span>Ketuk utk lihat detail rekening</span>
                             <span className="flex items-center gap-0.5 shrink-0 text-slate-400"><span className="material-symbols-outlined icon-2xs">swipe</span>Geser kartu</span>
                           </div>

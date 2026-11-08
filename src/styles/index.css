@@ -3385,3 +3385,84 @@ button:active {
     box-shadow: none !important;
     outline: none !important;
   }
+
+/* ===== RIWAYAT MUTASI REKENING NEUMORPHIC THEME ===== */
+[data-theme="neumorphism"] .mutasi-sheet {
+  background-color: #E5E5E5 !important;
+  background: #E5E5E5 !important;
+}
+[data-theme="neumorphism"] .mutasi-identitas {
+  background: #E5E5E5 !important;
+  background-image: none !important;
+  color: #36AE7C !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.85),
+     5px  5px 12px rgba(0, 0, 0, 0.16) !important;
+}
+[data-theme="neumorphism"] .mutasi-hero {
+  background: #E5E5E5 !important;
+  background-image: none !important;
+  color: #0F172A !important;
+  box-shadow:
+    -6px -6px 16px rgba(255, 255, 255, 0.85),
+     6px  6px 16px rgba(0, 0, 0, 0.16) !important;
+}
+[data-theme="neumorphism"] .mutasi-hero__label {
+  color: #64748B !important;
+}
+[data-theme="neumorphism"] .mutasi-hero__tipe {
+  background: #E5E5E5 !important;
+  color: #187498 !important;
+  box-shadow:
+    inset -2px -2px 5px rgba(255, 255, 255, 0.85),
+    inset  2px  2px 5px rgba(13, 39, 80, 0.14) !important;
+}
+[data-theme="neumorphism"] .mutasi-hero__saldo {
+  color: #0F172A !important;
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.90),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     3px  4px 6px rgba(0, 0, 0, 0.14) !important;
+}
+[data-theme="neumorphism"] .mutasi-tab {
+  background: #E5E5E5 !important;
+  background-image: none !important;
+  color: #64748B !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.85),
+     3px  3px 8px rgba(0, 0, 0, 0.14) !important;
+}
+[data-theme="neumorphism"] .mutasi-tab.is-aktif {
+  background: #E5E5E5 !important;
+  background-image: none !important;
+  color: #36AE7C !important;
+  font-weight: 800 !important;
+  box-shadow:
+    inset -3px -3px 7px rgba(255, 255, 255, 0.85),
+    inset  3px  3px 7px rgba(13, 39, 80, 0.14) !important;
+}
+[data-theme="neumorphism"] .mutasi-item {
+  background: #E5E5E5 !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.7),
+     3px  3px 8px rgba(0, 0, 0, 0.1) !important;
+}
+[data-theme="neumorphism"] .mutasi-item__nominal.is-masuk {
+  color: #36AE7C !important;
+}
+[data-theme="neumorphism"] .mutasi-item__nominal.is-keluar {
+  color: #EB5353 !important;
+}
+[data-theme="neumorphism"] .mutasi-badge.is-transfer {
+  background-color: rgba(24, 116, 152, 0.12) !important;
+  color: #187498 !important;
+}
+[data-theme="neumorphism"] .mutasi-badge.is-masuk {
+  background-color: rgba(54, 174, 124, 0.12) !important;
+  color: #36AE7C !important;
+}
+[data-theme="neumorphism"] .mutasi-badge.is-keluar {
+  background-color: rgba(235, 83, 83, 0.12) !important;
+  color: #EB5353 !important;
+}
