@@ -104,12 +104,12 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
     <div
       onClick={handleClick}
       onDoubleClick={bulkMode ? undefined : onEdit}
-      className={`tx-card-item clay clay-card ${clayKey} relative bg-white p-4 flex items-center justify-between gap-3 transition-all cursor-pointer select-none ${
+      className={`tx-card-item clay clay-card ${clayKey} relative p-4 flex items-center justify-between gap-3 transition-all cursor-pointer select-none ${
         bulkMode ? `bulk-selectable ${dipilih ? 'bulk-selected' : ''}` : ''
       } ${!bulkMode && deleteOpen ? tintRevealed : ''}`}
     >
       {bulkMode && (
-        <span className="bulk-check w-6 h-6 rounded-full border-2 border-slate-300 bg-white flex items-center justify-center shrink-0">
+        <span className="bulk-check w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0">
           <span className="material-symbols-outlined icon-xs text-white">check</span>
         </span>
       )}

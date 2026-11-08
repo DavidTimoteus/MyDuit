@@ -494,7 +494,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         className={`rounded-md py-1 text-center font-medium transition-all ${
                           ocrEnginePref === opt.id
                             ? 'bg-primary text-white shadow-xs'
-                            : 'bg-white text-slate-600 hover:bg-slate-200'
+                            : 'bg-[#E5E5E5] text-slate-600 hover:bg-slate-300/60'
                         }`}
                       >
                         {opt.label}
@@ -521,7 +521,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         placeholder="Tempel API Key AI Studio..."
                         value={geminiKeyInput}
                         onChange={(e) => setGeminiKeyInput(e.target.value)}
-                        className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                        className="flex-1 rounded-md border border-slate-300 bg-[#E5E5E5] px-2 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
                       />
                       <button
                         type="button"
@@ -807,7 +807,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           onClick={() => setShowTutorialModal(false)}
         >
           <div
-            className="clay-sheet clay-key-neutral flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-xl"
+            className="clay-sheet clay-key-neutral flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">

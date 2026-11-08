@@ -194,7 +194,7 @@ async function konfirmHapus() {
                         relative">
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
           {/* Kartu pencarian & filter */}
-          <div className="clay clay-card clay-key-neutral w-full rounded-[22px] bg-white/90 p-2.5 sm:p-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] border border-white/60">
+          <div className="clay clay-card clay-key-neutral w-full rounded-[22px] p-2.5 sm:p-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <div className="relative min-w-0 flex-1">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 icon-lg text-textSecondary pointer-events-none select-none">search</span>
@@ -212,8 +212,8 @@ async function konfirmHapus() {
                     aria-label="Hapus pencarian"
                     className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-all active:scale-90 active:bg-slate-200/60 hover:bg-red-100 hover:text-red-500 touch-manipulation"
                     style={{
-                      background: '#ffffff',
-                      boxShadow: '2px 2px 5px rgba(100,116,139,.25), -2px -2px 5px rgba(255,255,255,.9), inset 1px 1px 2px rgba(255,255,255,.6)',
+                      background: 'var(--color-surface, #E5E5E5)',
+                      boxShadow: '-3px -3px 8px rgba(255,255,255,.8), 3px 3px 8px rgba(0,0,0,.14)',
                     }}
                   >
                     <span className="material-symbols-outlined icon-xs">close</span>
@@ -232,7 +232,7 @@ async function konfirmHapus() {
                       className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                         jenis === j.id
                           ? 'clay-key-primary solid-primary text-white'
-                          : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
+                          : 'clay-key-neutral bg-surface text-textSecondary hover:bg-slate-200/60 hover:text-slate-800'
                       }`}
                     >
                       <span className="material-symbols-outlined icon-md">{j.icon}</span>
@@ -246,7 +246,7 @@ async function konfirmHapus() {
                   className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                     bulkMode
                       ? 'clay-key-primary solid-primary text-white'
-                      : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
+                      : 'clay-key-neutral bg-surface text-textSecondary hover:bg-slate-200/60 hover:text-slate-800'
                   }`}
                 >
                   <span className="material-symbols-outlined icon-md">checklist</span>
@@ -271,9 +271,9 @@ async function konfirmHapus() {
             aria-label="Catat Transaksi"
             className="hidden h-14 shrink-0 items-center gap-1.5 rounded-[22px] px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-95 md:flex xl:hidden"
             style={{
-              background: jenis === 'pemasukan' ? '#2d6a4f' : '#1e293b',
+              background: jenis === 'pemasukan' ? '#36AE7C' : '#1E293B',
               boxShadow:
-                '3px 3px 9px rgba(0,0,0,.15), -3px -3px 9px rgba(255,255,255,.6), inset 1px 1px 3px rgba(255,255,255,.4)',
+                '-4px -4px 10px rgba(255,255,255,.7), 4px 4px 10px rgba(0,0,0,.15)',
             }}
           >
             <span className="material-symbols-outlined shrink-0 icon-md">add_circle</span>
@@ -385,7 +385,7 @@ async function konfirmHapus() {
       {/* BAR AKSI HAPUS MASSAL — persis GAS #bulkActionBar */}
       {bulkMode && (
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[9999] px-4 md:bottom-16">
-          <div className="clay-sheet clay-key-danger pointer-events-auto mx-auto flex w-full max-w-md items-center gap-3 bg-white p-3 shadow-xl">
+          <div className="clay-sheet clay-key-danger pointer-events-auto mx-auto flex w-full max-w-md items-center gap-3 p-3">
             <span className="shrink-0 text-sm font-bold text-slate-800">{selected.size} dipilih</span>
             <div className="flex-1"></div>
             <button

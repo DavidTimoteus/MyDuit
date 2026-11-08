@@ -1,45 +1,65 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #10b981;
-  --color-primary-dark: #059669;
-  --color-primary-light: #34d399;
-  --color-surface: #f4f7f6;
-  --color-income: #10b981;
-  --color-expense: #e53e3e;
-  /* Varian TEKS. Token income/expense di atas tetap untuk FILL (chart, badge,
-     ikon besar) karena sudah jadi identitas visual. Tapi sebagai warna teks di
-     kartu putih keduanya GAGAL WCAG AA:
-        income  #10b981 = 2.54:1
-        expense #e53e3e = 4.13:1
-     Nilai di bawah diukur >= 4.5:1 di #ffffff DAN di surface #f4f7f6.
-     Gunakan `text-incomeText` / `text-expenseText` untuk angka & label. */
-  --color-incomeText: #047857;   /* 5.48:1 di putih */
-  --color-expenseText: #b3261e;  /* 6.54:1 di putih */
+  /* Standarisasi 4-Warna Pure Neumorphism (EB5353, F9D923, 36AE7C, 187498) */
+  --color-primary: #36AE7C;
+  --color-primary-dark: #2B8C63;
+  --color-primary-light: #4EC593;
+  --color-surface: #E5E5E5;
+  --color-income: #36AE7C;
+  --color-expense: #EB5353;
+  --color-incomeText: #26805B;
+  --color-expenseText: #C73838;
 
-  /* Token semantik yang DIPAKAI di JSX tapi sebelumnya belum didefinisikan.
-     Tailwind v4 hanya membuat utility untuk token yang ada di @theme; class
-     seperti `text-danger` yang tak punya token TIDAK PERNAH digenerate, jadi
-     elemen diam-diam jatuh ke warna bawaan (hitam). Gejalanya: ikon nav "Utang"
-     tampil hitam saat aktif, padahal harus merah. Lengkapi di sini agar
-     `text-danger` / `bg-danger` dst benar-benar menghasilkan CSS. */
-  --color-danger: #b3261e;
-  --color-danger-light: #fdecea;
-  --color-warning: #b45309;
-  --color-warning-light: #fef3c7;
-  --color-info: #1d4ed8;
-  --color-info-light: #e0e7ff;
-  --color-success: #2d6a4f;
-  --color-success-light: #e7f2ec;
-  /* Alias tekstual yang dipakai JSX (text-textPrimary/Secondary) */
-  --color-textPrimary: #1e293b;
-  /* Token sekunder WAJIB ada. 61 elemen memakai `text-textSecondary`;
-     tanpa token ini utility-nya tidak terbentuk dan teks jatuh ke
-     slate-400 default (kontras 2.63:1 di putih — white-on-white).
-     Nilai di bawah diukur: 4.76:1 di #ffffff, 4.53:1 di #f4f7f6. */
+  --color-danger: #EB5353;
+  --color-danger-light: #FDEDED;
+  --color-warning: #D4AF0D;
+  --color-warning-light: #FEF9D9;
+  --color-info: #187498;
+  --color-info-light: #E2F1F8;
+  --color-success: #36AE7C;
+  --color-success-light: #E8F7F0;
+
+  --color-textPrimary: #1E293B;
   --color-textSecondary: #475569;
-  --color-surfaceContainerLowest: #ffffff;
-  --color-surfaceContainerLow: #f4f7f6;
+  --color-surfaceContainerLowest: #E5E5E5;
+  --color-surfaceContainerLow: #E5E5E5;
+
+  /* Pemetaan Utilitas Tailwind emerald, red, blue, amber ke Palet Terstandarisasi */
+  --color-emerald-50: #E8F7F0;
+  --color-emerald-100: #D1EFE2;
+  --color-emerald-200: #A8E1C7;
+  --color-emerald-400: #4EC593;
+  --color-emerald-500: #36AE7C;
+  --color-emerald-600: #2B8C63;
+  --color-emerald-700: #237452;
+  --color-emerald-800: #1B5C41;
+
+  --color-red-50: #FDEDED;
+  --color-red-100: #FBDCDC;
+  --color-red-200: #F7B8B8;
+  --color-red-400: #F38282;
+  --color-red-500: #EB5353;
+  --color-red-600: #C73838;
+  --color-red-700: #A82E2E;
+  --color-red-800: #8A2525;
+
+  --color-blue-50: #E2F1F8;
+  --color-blue-100: #C5E4F1;
+  --color-blue-200: #8EC8E2;
+  --color-blue-400: #4B9EBF;
+  --color-blue-500: #187498;
+  --color-blue-600: #187498;
+  --color-blue-700: #125773;
+  --color-blue-800: #0C3C50;
+
+  --color-amber-50: #FEFCE8;
+  --color-amber-100: #FEF9C3;
+  --color-amber-200: #FEF08A;
+  --color-amber-400: #FACC15;
+  --color-amber-500: #F9D923;
+  --color-amber-600: #D4AF0D;
+  --color-amber-700: #A18206;
 
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
@@ -116,7 +136,7 @@ textarea:focus-visible,
   /* ===== 3D CLAYMORPHISM EXTRUSION TOKENS (Product UI Styleguide & Michal Malewicz) ===== */
   --clay-lip-btn-primary: #047857;
   --clay-lip-btn-danger:  #991b1b;
-  --clay-lip-btn-blue:    #1e3a8a;
+  --clay-lip-btn-blue:    #0C3C50;
   --clay-lip-btn-neutral: rgba(0, 0, 0, 0.12);
   --clay-lip-card:        rgba(0, 0, 0, 0.08);
   --clay-lip-card-raised: rgba(0, 0, 0, 0.12);
@@ -536,8 +556,8 @@ button:active {
 .clay-btn-primary,
 .clay-btn.solid-primary {
   --clay-h: var(--clay-h-primary);
-  background-color: #10b981;
-  background-image: linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%);
+  background-color: #36AE7C;
+  background-image: linear-gradient(180deg, #4EC593 0%, #36AE7C 60%, #2B8C63 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -571,8 +591,8 @@ button:active {
 
 .clay-btn-danger {
   --clay-h: var(--clay-h-danger);
-  background-color: #c62828;
-  background-image: linear-gradient(180deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
+  background-color: #EB5353;
+  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -663,7 +683,7 @@ button:active {
     inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98);
 }
 .sidebar-nav-btn.is-active {
-  background: linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%) !important;
+  background: linear-gradient(180deg, #4EC593 0%, #36AE7C 60%, #2B8C63 100%) !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.40) !important;
   box-shadow:
@@ -820,7 +840,7 @@ button:active {
   color: var(--color-textPrimary);
 }
 .clay-segment-item.is-active.is-expense {
-  background: linear-gradient(180deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
+  background: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
   color: #ffffff !important;
   box-shadow:
     0 3px 0 var(--clay-lip-btn-danger),
@@ -1249,10 +1269,10 @@ button:active {
 /* ===== MODE SELEKSI HAPUS MASSAL ===== */
 .bulk-selectable { border: 2px solid transparent; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .bulk-selectable.bulk-selected {
-  border-color: #1d4ed8;
+  border-color: #187498;
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.18);
 }
-.bulk-selectable.bulk-selected .bulk-check { border-color: #1d4ed8; background-color: #1d4ed8; }
+.bulk-selectable.bulk-selected .bulk-check { border-color: #187498; background-color: #187498; }
 .bulk-check .material-symbols-outlined { display: none; }
 .bulk-selectable.bulk-selected .bulk-check .material-symbols-outlined { display: inline-block; }
 
@@ -1556,8 +1576,8 @@ button:active {
 }
 
 .clay-btn.solid-danger {
-  background-color: #c62828;
-  background-image: linear-gradient(180deg, #ef5350 0%, #d32f2f 60%, #b71c1c 100%);
+  background-color: #EB5353;
+  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1567,7 +1587,7 @@ button:active {
     inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
 .clay-btn.solid-danger:hover {
-  background-color: #d32f2f;
+  background-color: #EB5353;
   transform: translateY(-1px);
   box-shadow:
     0 5px 0 var(--clay-lip-btn-danger),
@@ -1583,8 +1603,8 @@ button:active {
 }
 
 .clay-btn.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
+  background-color: #187498;
+  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 60%, #125773 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1594,7 +1614,7 @@ button:active {
     inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
 .clay-btn.solid-blue:hover {
-  background-color: #2563eb;
+  background-color: #187498;
   transform: translateY(-1px);
   box-shadow:
     0 5px 0 var(--clay-lip-btn-blue),
@@ -1637,8 +1657,8 @@ button:active {
       rgba(255, 255, 255, 0.22);
 }
 .clay-card.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
+  background-color: #187498;
+  background-image: linear-gradient(145deg, #4B9EBF 0%, #187498 60%, #125773 100%);
   color: #ffffff;
   --clay-r: 8px;
   --clay-blur: 18px;
@@ -1678,8 +1698,8 @@ button:active {
       rgba(255, 255, 255, 0.28);
 }
 .clay-icon-tile.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(145deg, #3b82f6 0%, #1d4ed8 100%);
+  background-color: #187498;
+  background-image: linear-gradient(145deg, #4B9EBF 0%, #187498 100%);
   color: #ffffff;
   --clay-r: 5px;
   --clay-blur: 12px;
@@ -1718,8 +1738,8 @@ button:active {
 }
 
 .clay-fab.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 55%, #1e3a8a 100%);
+  background-color: #187498;
+  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 55%, #125773 100%);
   border: 3.5px solid #ffffff;
   box-shadow:
     0 5px 0 var(--clay-lip-btn-blue),
@@ -1743,8 +1763,8 @@ button:active {
 }
 
 .clay-fab.solid-danger {
-  background-color: #c62828;
-  background-image: linear-gradient(180deg, #ef5350 0%, #e53e3e 55%, #b71c1c 100%);
+  background-color: #EB5353;
+  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 55%, #C73838 100%);
   border: 3.5px solid #ffffff;
   box-shadow:
     0 5px 0 var(--clay-lip-btn-danger),
@@ -1770,8 +1790,8 @@ button:active {
 /* Chip solid (3D Extruded Pill) */
 .clay-chip-active-danger {
   --clay-h: var(--clay-h-danger);
-  background-color: #c62828;
-  background-image: linear-gradient(180deg, #ef5350 0%, #c62828 100%);
+  background-color: #EB5353;
+  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1790,8 +1810,8 @@ button:active {
 }
 
 .clay-chip.solid-primary {
-  background-color: #10b981;
-  background-image: linear-gradient(180deg, #34d399 0%, #10b981 100%);
+  background-color: #36AE7C;
+  background-image: linear-gradient(180deg, #4EC593 0%, #36AE7C 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
@@ -1812,11 +1832,11 @@ button:active {
 /* FIX BUG: chip filter aktif di RiwayatMutasiModal memakai
    `clay-chip ... solid-blue text-white` tetapi varian biru TIDAK PERNAH
    ada -> background tetap putih, teks putih -> tulisan filter hilang
-   (kontras 1.0). Titik terang gradient dijaga gelap (#2563eb) supaya
+   (kontras 1.0). Titik terang gradient dijaga gelap (#187498) supaya
    putih di atasnya tetap >= 4.7:1. */
 .clay-chip.solid-blue {
-  background-color: #1d4ed8;
-  background-image: linear-gradient(180deg, #2563eb 0%, #1d4ed8 65%, #1e3a8a 100%);
+  background-color: #187498;
+  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 65%, #125773 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1868,7 +1888,7 @@ button:active {
 .clay-key-info {
   --clay-h: var(--clay-h-info);
   background-color: #eff6ff;
-  color: #1e3a8a;
+  color: #0C3C50;
   box-shadow:
     4px 4px 12px rgba(var(--clay-h), 0.16),
     inset 2px 2px 5px rgba(255, 255, 255, 0.85),
@@ -1880,7 +1900,7 @@ button:active {
   --clay-h: var(--clay-h-blue);
   border-radius: var(--clay-r-button);
   background-color: #dbeafe;
-  color: #1d4ed8;
+  color: #187498;
   box-shadow:
     4px 4px 12px rgba(var(--clay-h), 0.22),
     -3px -3px 10px rgba(255, 255, 255, 0.7),
@@ -2372,6 +2392,7 @@ button:active {
 }
 
 
+
 /* ==========================================================================
    GAYA NEUMORPHISM MODERN (PURE NEUMORPHISM SOFT UI #E5E5E5)
    --------------------------------------------------------------------------
@@ -2386,7 +2407,7 @@ button:active {
      - Dual-directional soft lighting:
          Raised: -8px -8px 20px rgba(255,255,255,0.75), 8px 8px 20px rgba(0,0,0,0.16)
          Sunken: inset -4px -4px 8px rgba(255,255,255,0.80), inset 4px 4px 8px rgba(13,39,80,0.16)
-         Embossed Text: -3px -3px 6px rgba(255,255,255,0.95), 4px 4px 8px rgba(13,39,80,0.24)
+         Embossed Text: -1px -1px 2px rgba(255,255,255,0.90), 2px 2px 3px rgba(0,0,0,0.22), 4px 4px 6px rgba(0,0,0,0.12)
    ========================================================================== */
 
 [data-theme="neumorphism"] {
@@ -2427,9 +2448,14 @@ button:active {
   color: #1E293B;
 }
 
-/* Card & Sheet Neumorphic */
+/* 1. ARCHETYPE 2: RAISED DROP SHADOW (Cards, Sheets, Modals, Buttons) */
 [data-theme="neumorphism"] .clay,
 [data-theme="neumorphism"] .clay-card,
+[data-theme="neumorphism"] .clay-sheet,
+[data-theme="neumorphism"] .mutasi-sheet,
+[data-theme="neumorphism"] .tx-card-item,
+[data-theme="neumorphism"] .neu-card,
+[data-theme="neumorphism"] .neu-sheet,
 [data-theme="neumorphism"] .clay-lvl-2,
 [data-theme="neumorphism"] .clay-lvl-3 {
   background-color: #E5E5E5 !important;
@@ -2440,18 +2466,14 @@ button:active {
      8px  8px 20px rgba(0, 0, 0, 0.16) !important;
 }
 
-/* Modals & Bottom Sheets */
-[data-theme="neumorphism"] .clay-sheet,
-[data-theme="neumorphism"] .mutasi-sheet {
-  background-color: #E5E5E5 !important;
-  background-image: none !important;
-  border: none !important;
+/* Modals & Bottom Sheets (Level 5 Elevation) */
+[data-theme="neumorphism"] .clay-sheet {
   box-shadow:
     -14px -14px 32px rgba(255, 255, 255, 0.80),
      14px  14px 32px rgba(0, 0, 0, 0.22) !important;
 }
 
-/* Sub-card & Soft Surface (Level 1) */
+/* Sub-card & Soft Surface (Level 1 Elevation) */
 [data-theme="neumorphism"] .clay-lvl-1,
 [data-theme="neumorphism"] .clay-card-soft {
   background-color: #E5E5E5 !important;
@@ -2462,47 +2484,14 @@ button:active {
      5px  5px 12px rgba(0, 0, 0, 0.13) !important;
 }
 
-/* Neumorphic Buttons */
-[data-theme="neumorphism"] .clay-btn {
-  background-color: #E5E5E5 !important;
-  background-image: none !important;
-  border: none !important;
-  color: #1E293B !important;
-  box-shadow:
-    -5px -5px 12px rgba(255, 255, 255, 0.80),
-     5px  5px 12px rgba(0, 0, 0, 0.15) !important;
-}
-[data-theme="neumorphism"] .clay-btn:active,
-[data-theme="neumorphism"] .clay-btn.is-active,
-[data-theme="neumorphism"] .btn-pressed {
-  box-shadow:
-    inset -4px -4px 8px rgba(255, 255, 255, 0.80),
-    inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
-  transform: translateY(1px) !important;
-}
-
-/* Neumorphic Chips & Filter Pills */
-[data-theme="neumorphism"] .clay-chip {
-  background-color: #E5E5E5 !important;
-  background-image: none !important;
-  border: none !important;
-  color: #334155 !important;
-  box-shadow:
-    -4px -4px 10px rgba(255, 255, 255, 0.80),
-     4px  4px 10px rgba(0, 0, 0, 0.14) !important;
-}
-[data-theme="neumorphism"] .clay-chip:active,
-[data-theme="neumorphism"] .clay-chip.is-active {
-  box-shadow:
-    inset -3px -3px 6px rgba(255, 255, 255, 0.80),
-    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
-}
-
-/* Sunken Form Fields */
+/* 2. ARCHETYPE 1: SUNKEN INNER SHADOW (Inputs, Sunken Wells, Active/Pressed) */
 [data-theme="neumorphism"] .clay-field,
 [data-theme="neumorphism"] .clay-input,
 [data-theme="neumorphism"] .field-md,
 [data-theme="neumorphism"] .field-lg,
+[data-theme="neumorphism"] .neu-inset,
+[data-theme="neumorphism"] .neu-well,
+[data-theme="neumorphism"] .clay-segmented-track,
 [data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-theme="neumorphism"] select,
 [data-theme="neumorphism"] textarea {
@@ -2513,6 +2502,7 @@ button:active {
     inset -4px -4px 8px rgba(255, 255, 255, 0.80),
     inset  4px  4px 8px rgba(13, 39, 80, 0.16) !important;
 }
+
 [data-theme="neumorphism"] input:focus,
 [data-theme="neumorphism"] select:focus,
 [data-theme="neumorphism"] textarea:focus {
@@ -2520,6 +2510,49 @@ button:active {
   box-shadow:
     inset -4px -4px 8px rgba(255, 255, 255, 0.90),
     inset  4px  4px 8px rgba(54, 174, 124, 0.35) !important;
+}
+
+/* 3. NEUMORPHIC BUTTONS & PRESS STATES */
+[data-theme="neumorphism"] .clay-btn,
+[data-theme="neumorphism"] .neu-btn {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #1E293B !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.80),
+     5px  5px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+[data-theme="neumorphism"] .clay-btn:active,
+[data-theme="neumorphism"] .clay-btn.is-active,
+[data-theme="neumorphism"] .btn-pressed,
+[data-theme="neumorphism"] .neu-btn:active {
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.80),
+    inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
+  transform: translateY(1px) !important;
+}
+
+/* Neumorphic Chips & Filter Pills */
+[data-theme="neumorphism"] .clay-chip,
+[data-theme="neumorphism"] .chip-btn,
+[data-theme="neumorphism"] .neu-chip {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #334155 !important;
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.80),
+     4px  4px 10px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphism"] .clay-chip:active,
+[data-theme="neumorphism"] .clay-chip.is-active,
+[data-theme="neumorphism"] .chip-btn:active {
+  box-shadow:
+    inset -3px -3px 6px rgba(255, 255, 255, 0.80),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
 }
 
 /* Sidebar Nav Buttons */
@@ -2532,6 +2565,7 @@ button:active {
     -5px -5px 12px rgba(255, 255, 255, 0.80),
      5px  5px 12px rgba(0, 0, 0, 0.14) !important;
 }
+
 [data-theme="neumorphism"] .sidebar-nav-btn.is-active {
   background-color: #E5E5E5 !important;
   background-image: none !important;
@@ -2551,6 +2585,7 @@ button:active {
     -8px -8px 20px rgba(255, 255, 255, 0.80),
      8px  8px 20px rgba(0, 0, 0, 0.16) !important;
 }
+
 [data-theme="neumorphism"] .nav-icon-wrap.is-active {
   background-color: #E5E5E5 !important;
   color: #36AE7C !important;
@@ -2568,6 +2603,7 @@ button:active {
     -6px -6px 14px rgba(255, 255, 255, 0.60),
      7px  7px 18px rgba(46, 151, 107, 0.40) !important;
 }
+
 [data-theme="neumorphism"] .clay-fab:active {
   box-shadow:
     inset -2px -2px 5px rgba(255, 255, 255, 0.40),
@@ -2584,38 +2620,84 @@ button:active {
      3px  3px 7px rgba(0, 0, 0, 0.14) !important;
 }
 
-/* 3D Embossed Typography for Headers */
-[data-theme="neumorphism"] .text-embossed,
+/* 4. 3D EMBOSSED RELIEF TYPOGRAPHY FOR HEADERS (MATCHING "FREE UI kit") */
+[data-theme="neumorphism"] h1,
+[data-theme="neumorphism"] h2,
+[data-theme="neumorphism"] h3,
+[data-theme="neumorphism"] .brand-title,
 [data-theme="neumorphism"] .brand-title-embossed,
-[data-theme="neumorphism"] .headline-saldo {
+[data-theme="neumorphism"] .headline-saldo,
+[data-theme="neumorphism"] .stat-card-val,
+[data-theme="neumorphism"] .total-saldo,
+[data-theme="neumorphism"] .text-embossed,
+[data-theme="neumorphism"] .neu-title {
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.90),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     4px  4px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="neumorphism"] .neu-embossed {
   color: #E5E5E5 !important;
   text-shadow:
-    -3px -3px 6px rgba(255, 255, 255, 0.95),
-     4px  4px 8px rgba(13, 39, 80, 0.24) !important;
+    -1px -1px 2px rgba(255, 255, 255, 0.90),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     4px  4px 6px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Color Variants on Neumorphic Action Buttons */
 [data-theme="neumorphism"] .clay-btn.clay-key-primary,
-[data-theme="neumorphism"] .btn-primary {
+[data-theme="neumorphism"] .btn-primary,
+[data-theme="neumorphism"] .solid-primary {
   background-color: #36AE7C !important;
+  background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
      6px  6px 14px rgba(43, 140, 99, 0.40) !important;
 }
+
 [data-theme="neumorphism"] .clay-btn.clay-key-danger,
-[data-theme="neumorphism"] .btn-danger {
+[data-theme="neumorphism"] .btn-danger,
+[data-theme="neumorphism"] .solid-danger {
   background-color: #EB5353 !important;
+  background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
      6px  6px 14px rgba(235, 83, 83, 0.38) !important;
 }
+
 [data-theme="neumorphism"] .clay-btn.clay-key-blue,
-[data-theme="neumorphism"] .btn-blue {
+[data-theme="neumorphism"] .btn-blue,
+[data-theme="neumorphism"] .solid-blue {
   background-color: #187498 !important;
+  background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
      6px  6px 14px rgba(24, 116, 152, 0.38) !important;
+}
+
+/* Global Card & Sheet background overrides to ensure ZERO white bleed */
+[data-theme="neumorphism"] .bg-white,
+[data-theme="neumorphism"] .bg-white\/90,
+[data-theme="neumorphism"] .bg-white\/80,
+[data-theme="neumorphism"] .bg-surface,
+[data-theme="neumorphism"] .bg-surfaceContainerLowest,
+[data-theme="neumorphism"] .bg-surfaceContainerLow {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border-color: transparent !important;
+}
+
+/* 5. GAYA LAMA CLAYMORPHISM (ISOLATED LEGACY THEME) */
+[data-theme="claymorphism"] {
+  --clay-bg: #f0f3f0;
+  --clay-h-primary: 16, 185, 129;
+  --clay-h-danger: 195, 53, 53;
+  --clay-h-amber: 208, 134, 9;
+  --clay-h-neutral: 100, 116, 139;
+  --clay-h-blue: 31, 84, 200;
+  --clay-h-info: 29, 78, 216;
 }

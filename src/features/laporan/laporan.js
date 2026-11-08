@@ -20,16 +20,16 @@ const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).pad
 // yang baik dibaca seperti dokumen, bukan poster — jadi hindari blok warna
 // jenuh dan banyak aksen berbeda.
 const C = {
-  aksen: [30, 64, 52],      // hijau tua tenang untuk wordmark & judul section
+  aksen: [54, 174, 124],      // hijau tua tenang untuk wordmark & judul section
   tinta: [24, 30, 38],      // teks utama
   redup: [112, 122, 134],   // label & teks sekunder
   garis: [219, 224, 230],   // garis pemisah tipis
   track: [232, 236, 240],   // rel batang data
   kepalaTabel: [243, 245, 247], // latar baris kepala tabel
-  hijauTeks: [21, 128, 92],
-  merah: [200, 46, 46],
-  biru: [37, 84, 190],
-  amber: [176, 88, 16],
+  hijauTeks: [54, 174, 124],
+  merah: [235, 83, 83],
+  biru: [24, 116, 152],
+  amber: [249, 217, 35],
   putih: [255, 255, 255],
 }
 

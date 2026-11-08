@@ -156,7 +156,7 @@ function SidebarInsightStatistik() {
   return (
     <div
       id="sidebarStatistikInsightCard"
-      className="clay clay-card clay-key-blue bg-white mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex items-center gap-2">
         <span
@@ -217,7 +217,7 @@ function SidebarInsightBudget() {
   return (
     <div
       id="sidebarBudgetInsightCard"
-      className="clay clay-card clay-key-blue bg-white mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex min-w-0 items-center gap-2">
         <span
@@ -297,7 +297,7 @@ function SidebarInsightUtang() {
   return (
     <div
       id="sidebarUtangInfoCard"
-      className="clay clay-card clay-key-danger bg-white mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="clay clay-card clay-key-danger mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex items-center gap-2">
         <span
@@ -359,7 +359,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
       onClick={onClose}
     >
       <div
-        className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden bg-white sm:max-w-sm"
+        className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">

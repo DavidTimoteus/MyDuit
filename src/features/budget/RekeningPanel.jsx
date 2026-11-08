@@ -275,7 +275,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                 key={a.id}
                 className={`rekening-stack-card clay clay-card ${
                   negatif ? 'clay-key-danger' : 'clay-key-blue'
-                } ${delta === 0 ? 'relative' : 'absolute'} inset-x-1.5 top-1.5 rounded-[22px] bg-white p-3.5 select-none min-h-[195px]`}
+                } ${delta === 0 ? 'relative' : 'absolute'} inset-x-1.5 top-1.5 rounded-[22px] bg-[#E5E5E5] p-3.5 select-none min-h-[195px]`}
                 style={{
                   transform,
                   opacity,
@@ -285,7 +285,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                   transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease',
                   boxShadow:
                     delta === 0
-                      ? '0 10px 25px -5px rgba(29, 78, 216, 0.16), 0 8px 10px -6px rgba(29, 78, 216, 0.1)'
+                      ? '-5px -5px 12px rgba(255, 255, 255, 0.75), 6px 6px 14px rgba(24, 116, 152, 0.20)'
                       : '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
                 }}
               >

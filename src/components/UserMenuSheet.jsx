@@ -75,7 +75,7 @@ export default function UserMenuSheet({
 
       <div
         ref={sheetRef}
-        className="clay clay-sheet clay-key-neutral absolute inset-x-0 bottom-0 flex flex-col gap-2 rounded-b-none rounded-t-[28px] bg-white px-4 pb-6 pt-3"
+        className="clay clay-sheet clay-key-neutral absolute inset-x-0 bottom-0 flex flex-col gap-2 rounded-b-none rounded-t-[28px] px-4 pb-6 pt-3"
       >
         {/* Gagang tarik */}
         <div className="mx-auto mb-1 h-1.5 w-11 rounded-full bg-slate-300" aria-hidden="true" />

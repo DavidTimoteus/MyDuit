@@ -58,7 +58,7 @@ export default function BudgetPanel({
             const ikonStatus = status === 'lewat' ? 'error' : status === 'waspada' ? 'warning' : 'check_circle'
             const labelStatus = status === 'lewat' ? 'Lewat' : status === 'waspada' ? 'Waspada' : 'Aman'
             return (
-              <div key={b.id} className="clay-card bg-white rounded-[24px] border border-white/60 relative overflow-hidden p-4 pl-5">
+              <div key={b.id} className="clay-card rounded-[24px] relative overflow-hidden p-4 pl-5">
                 <span className={`absolute inset-y-0 left-0 w-1.5 ${warnaBar}`} aria-hidden="true" />
                 <div className="flex min-w-0 items-start justify-between gap-2">
                   <div className="min-w-0">

@@ -12,7 +12,7 @@ import { initTema } from './lib/theme.js'
 function LayarSetup(error) {
   return (
     <div className="min-h-full flex items-center justify-center bg-surface p-6">
-      <div className="max-w-md rounded-3xl bg-white p-8 text-center shadow">
+      <div className="clay-card max-w-md rounded-3xl p-8 text-center">
         <h1 className="text-lg font-extrabold text-slate-800">Konfigurasi belum lengkap</h1>
         <p className="mt-2 text-sm leading-relaxed text-slate-500">{error}</p>
       </div>

@@ -430,8 +430,8 @@ export default function StatistikView({ user }) {
 
     // Gradient vertikal untuk area Saldo (dibuat dari kanvas).
     const grad = ctx.createLinearGradient(0, 0, 0, 300);
-    grad.addColorStop(0, "rgba(29,78,216,.28)");
-    grad.addColorStop(1, "rgba(29,78,216,.02)");
+    grad.addColorStop(0, "rgba(24,116,152,.28)");
+    grad.addColorStop(1, "rgba(24,116,152,.02)");
 
     chartInst.current = new Chart(ctx, {
       data: {
@@ -441,8 +441,8 @@ export default function StatistikView({ user }) {
             type: "bar",
             label: "Pemasukan",
             data: tren.dataIn,
-            backgroundColor: "rgba(16,185,129,.72)",
-            hoverBackgroundColor: "rgba(16,185,129,.95)",
+            backgroundColor: "rgba(54,174,124,.75)",
+            hoverBackgroundColor: "rgba(54,174,124,.95)",
             borderRadius: 6,
             borderSkipped: false,
             maxBarThickness: 16,
@@ -452,8 +452,8 @@ export default function StatistikView({ user }) {
             type: "bar",
             label: "Pengeluaran",
             data: tren.dataOut.map((v) => -v),
-            backgroundColor: "rgba(229,62,62,.72)",
-            hoverBackgroundColor: "rgba(229,62,62,.95)",
+            backgroundColor: "rgba(235,83,83,.75)",
+            hoverBackgroundColor: "rgba(235,83,83,.95)",
             borderRadius: 6,
             borderSkipped: false,
             maxBarThickness: 16,
@@ -463,14 +463,14 @@ export default function StatistikView({ user }) {
             type: "line",
             label: "Saldo",
             data: tren.dataSaldo,
-            borderColor: "#1d4ed8",
+            borderColor: "#187498",
             backgroundColor: grad,
             fill: true,
             tension: 0.4,
             borderWidth: 2.5,
             pointRadius: mode === "bulanan" ? 0 : 3,
             pointHoverRadius: 5,
-            pointBackgroundColor: "#1d4ed8",
+            pointBackgroundColor: "#187498",
             pointBorderColor: "#fff",
             pointBorderWidth: 2,
             order: 1,
@@ -729,7 +729,7 @@ export default function StatistikView({ user }) {
               onClick={() => navigate(-1)}
               disabled={!bisaMundur}
               aria-label="Periode sebelumnya"
-              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white"
+              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
                 chevron_left
@@ -742,7 +742,7 @@ export default function StatistikView({ user }) {
               onClick={() => navigate(1)}
               disabled={!bisaMaju}
               aria-label="Periode berikutnya"
-              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white"
+              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
                 chevron_right
@@ -889,7 +889,7 @@ export default function StatistikView({ user }) {
               </p>
             </div>
           </div>
-          <ul className="divide-y divide-slate-100 bg-white">
+          <ul className="divide-y divide-slate-200/60">
             {saran.map((s_, idx) => (
               <li key={idx} className="flex gap-3 px-5 py-3">
                 <span
@@ -932,7 +932,7 @@ export default function StatistikView({ user }) {
           onClick={() => setDetail(null)}
         >
           <div
-            className="clay-sheet clay-key-primary flex max-h-[85vh] w-full max-w-md flex-col bg-white"
+            className="clay-sheet clay-key-primary flex max-h-[85vh] w-full max-w-md flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex min-w-0 shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 pb-3 pt-5">

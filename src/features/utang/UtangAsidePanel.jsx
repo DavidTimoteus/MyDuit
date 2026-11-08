@@ -66,7 +66,7 @@ export default function UtangAsidePanel() {
                 cy="32"
                 r="27"
                 fill="none"
-                stroke="#10b981"
+                stroke="#36AE7C"
                 strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={C}

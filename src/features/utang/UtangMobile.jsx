@@ -111,7 +111,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
 
   return (
-    <div className="clay-card bg-white rounded-[24px] border border-white/60 relative flex w-full flex-1 flex-col overflow-hidden p-4 pl-5">
+    <div className="clay-card rounded-[24px] relative flex w-full flex-1 flex-col overflow-hidden p-4 pl-5">
       <span className={`absolute inset-y-0 left-0 w-1.5 ${st.aksen}`} aria-hidden="true" />
 
       <div className="flex min-w-0 shrink-0 items-start justify-between gap-2">
@@ -286,7 +286,7 @@ style={{ height: `calc(100dvh - ${TINGGI_NAV}px)`, touchAction: 'pan-y' }}    >
       {/* Hero ringkas — dua baris saja (label + nominal). Jumlah aktif sudah
           ada di badge header, dan jatuh tempo terdekat ada di kartu, jadi
           tidak diulang di sini: menghemat tinggi agar kartu tetap utuh. */}
-      <div className="rounded-xl bg-white/80 border border-white/20 shadow-md p-6">
+      <div className="rounded-xl bg-[#E5E5E5] neu-inset p-6">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Total Sisa Utang Aktif</p>
         <p className="utang-m-hero-nilai mt-1 font-mono text-[28px] font-extrabold leading-none tracking-tight text-slate-900 tabular-nums">
           {formatRupiah(ringkasan.totalSisa)}

@@ -108,7 +108,7 @@ export default function ToastHost() {
           return (
             <div
               key={t.id}
-              className={`${g.wrap} pointer-events-auto flex w-full items-start gap-3 bg-white px-3.5 py-3`}
+              className={`${g.wrap} pointer-events-auto flex w-full items-start gap-3 px-3.5 py-3`}
             >
               <span className={`${g.tile} flex h-9 w-9 shrink-0 items-center justify-center`}>
                 <span className="material-symbols-outlined icon-md">{g.icon}</span>
