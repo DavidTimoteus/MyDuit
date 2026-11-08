@@ -62,5 +62,38 @@ cek('modal transaksi: memakai .clay-segmented-track taktil (bebas dari template 
 const toolbarBebasGenericShadow = !fileTransaksiView.includes('bg-blue-700 text-white shadow-md')
 cek('toolbar TransaksiView: chip filter memakai token solid-blue (bebas dari bg-blue-700 shadow-md generik)', toolbarBebasGenericShadow)
 
+// 10. Periksa index.css: Kanvas tanah liat hangat styleguide (--clay-bg: #f0f3f0) terdefinisi
+const kanvasClayHangat = fileCss.includes('--clay-bg: #f0f3f0;')
+cek('css: kanvas tanah liat hangat styleguide (--clay-bg: #f0f3f0) terdefinisi', kanvasClayHangat)
+
+// 11. Periksa index.css: Token ekstrusi 3D claymorphism terdefinisi di :root
+const tokenEkstrusi3DTerdefinisi =
+  fileCss.includes('--clay-lip-btn-primary') &&
+  fileCss.includes('--clay-lip-card') &&
+  fileCss.includes('--clay-lip-chip')
+cek('css: token ekstrusi 3D claymorphism (--clay-lip-*) terdefinisi di :root', tokenEkstrusi3DTerdefinisi)
+
+// 12. Periksa index.css: Cincin fokus neon styleguide (#00CFCC) terdefinisi pada focus-visible
+const cincinFokusNeon = fileCss.includes('#00CFCC') && fileCss.includes('rgba(0, 207, 204')
+cek('css: cincin fokus neon styleguide (#00CFCC) terpasang pada focus-visible', cincinFokusNeon)
+
+// 13. Periksa index.css: Sumur galian input (excavated trench) terpasang pada .clay-field & .clay-input
+const sumurGalianInput =
+  fileCss.includes('inset 3px 3px 6px rgba(0, 0, 0, 0.10)') &&
+  fileCss.includes('inset -2px -2px 5px rgba(255, 255, 255, 0.95)')
+cek('css: sumur galian input (excavated trench) terpasang pada .clay-field & .clay-input', sumurGalianInput)
+
+// 14. Periksa index.css: Tombol 3D extruded shelf terpasang pada .clay-btn-primary
+const tombol3DExtrudedShelf =
+  fileCss.includes('0 4px 0 var(--clay-lip-btn-primary)') &&
+  fileCss.includes('0 1px 0 var(--clay-lip-btn-primary)')
+cek('css: tombol 3D extruded shelf dan kompresi tekan terpasang pada tombol aksi', tombol3DExtrudedShelf)
+
+// 15. Periksa index.css: FAB dome 3D extruded shelf terpasang pada .clay-fab
+const fab3DDomeShelf =
+  fileCss.includes('0 5px 0 var(--clay-lip-btn-primary)') &&
+  fileCss.includes('0 1.5px 0 var(--clay-lip-btn-primary)')
+cek('css: FAB central dome 3D extruded shelf terpasang pada .clay-fab', fab3DDomeShelf)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
