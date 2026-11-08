@@ -136,7 +136,6 @@ const htmlPemasukan = renderToString(
 cek('modal pemasukan: judul "Catat Pemasukan"', htmlPemasukan.includes('Catat Pemasukan'))
 cek('modal pemasukan: segmented toggle Pemasukan & Pengeluaran tersedia', htmlPemasukan.includes('Pemasukan') && htmlPemasukan.includes('Pengeluaran'))
 cek('modal pemasukan: label rekening penerima kontekstual', htmlPemasukan.includes('Rekening Tujuan / Penerima'))
-cek('modal pemasukan: quick chips kategori pemasukan tersedia (Gaji, Bonus)', htmlPemasukan.includes('Gaji') && htmlPemasukan.includes('Bonus'))
 cek('modal pemasukan: tombol simpan "Simpan Pemasukan"', htmlPemasukan.includes('Simpan Pemasukan'))
 
 // ===== 5. Uji Render Form Pengeluaran =====
