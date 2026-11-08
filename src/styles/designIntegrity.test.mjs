@@ -106,5 +106,19 @@ const posCatatan = fileFormModal.indexOf('id="tx-catatan"')
 const heroNominalDiAtas = posJumlah > -1 && posJumlah < posKategori && posJumlah < posCatatan
 cek('modal transaksi: input nominal diposisikan sebagai hero di puncak form (di atas kategori & catatan)', heroNominalDiAtas)
 
+// 18. Periksa index.css & Shell.jsx: Sidebar nav memakai .sidebar-nav-btn dan bebas dari bug ghost button
+const fileShellUpdated = readFileSync(join(root, 'src/components/Shell.jsx'), 'utf8')
+const sidebarNavTaktil = fileCss.includes('.sidebar-nav-btn.is-active') && fileShellUpdated.includes('sidebar-nav-btn') && !fileShellUpdated.includes('navActiveClass')
+cek('shell: navigasi sidebar memakai .sidebar-nav-btn 3D taktil (bebas dari bug ghost button putih-di-atas-putih)', sidebarNavTaktil)
+
+// 19. Periksa Shell.jsx: Identitas brand MyDuit konsisten (bebas dari penukar logo sidebarTheme bunglon)
+const brandMyDuitKonsisten = !fileShellUpdated.includes('sidebarTheme(tab)') && fileShellUpdated.includes('from-emerald-600 to-primary')
+cek('shell: identitas logo MyDuit konsisten zamrud (bebas dari chameleon sidebarTheme per-tab)', brandMyDuitKonsisten)
+
+// 20. Periksa UtangView.jsx: Filter "Semua" tidak menggunakan clay-chip-active-danger
+const fileUtangView = readFileSync(join(root, 'src/features/utang/UtangView.jsx'), 'utf8')
+const filterSemuaTenang = !fileUtangView.includes("filter === f.id ? 'clay-chip-active-danger'")
+cek('utang: filter aktif umum memakai palet tenang (danger hanya untuk terlambat)', filterSemuaTenang)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
