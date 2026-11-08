@@ -95,5 +95,16 @@ const fab3DDomeShelf =
   fileCss.includes('0 1.5px 0 var(--clay-lip-btn-primary)')
 cek('css: FAB central dome 3D extruded shelf terpasang pada .clay-fab', fab3DDomeShelf)
 
+// 16. Periksa Shell.jsx: Tombol FAB speed dial bebas dari utilitas penimpa shadow-md
+const speedDialTanpaShadowMd = !fileShell.includes('fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md')
+cek('shell: speed-dial FAB bebas dari utility shadow-md yang menimpa kubah clay 3D', speedDialTanpaShadowMd)
+
+// 17. Periksa FormTransaksiModal.jsx: Hero nominal berada di atas kategori & catatan
+const posJumlah = fileFormModal.indexOf('id="tx-jumlah"')
+const posKategori = fileFormModal.indexOf('id="tx-kategori"')
+const posCatatan = fileFormModal.indexOf('id="tx-catatan"')
+const heroNominalDiAtas = posJumlah > -1 && posJumlah < posKategori && posJumlah < posCatatan
+cek('modal transaksi: input nominal diposisikan sebagai hero di puncak form (di atas kategori & catatan)', heroNominalDiAtas)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
