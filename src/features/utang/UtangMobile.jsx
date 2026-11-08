@@ -243,10 +243,15 @@ export default function UtangMobile({
   onHapus,
 }) {
   const [halaman, setHalaman] = useState(0)
+  const [slideDir, setSlideDir] = useState(null)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
 
   // Reset ke halaman 0 bila filter berubah
   useEffect(() => {
     setHalaman(0)
+    setSlideDir(null)
+    setDragOffset(0)
   }, [filter])
 
   const total = terurut.length
@@ -254,22 +259,62 @@ export default function UtangMobile({
   const kartuAktif = terurut[idx]
 
   function pindah(baru) {
-    if (baru < 0 || baru >= total) return
+    if (baru < 0 || baru >= total || baru === idx) return
+    setSlideDir(baru > idx ? 'next' : 'prev')
     setHalaman(baru)
   }
 
-  const touchStartX = useRef(0)
-  const touchStartY = useRef(0)
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
+  const isHorizontalSwipe = useRef(false)
 
   function handleTouchStart(e) {
+    if (!e.touches || e.touches.length !== 1) return
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
+    isHorizontalSwipe.current = false
+    setIsDragging(true)
+  }
+
+  function handleTouchMove(e) {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const currentX = e.touches[0].clientX
+    const currentY = e.touches[0].clientY
+    const diffX = currentX - touchStartX.current
+    const diffY = currentY - touchStartY.current
+
+    if (!isHorizontalSwipe.current) {
+      if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+        isHorizontalSwipe.current = true
+      } else if (Math.abs(diffY) > 10) {
+        touchStartX.current = null
+        touchStartY.current = null
+        setDragOffset(0)
+        setIsDragging(false)
+        return
+      }
+    }
+
+    if (isHorizontalSwipe.current) {
+      setDragOffset(diffX * 0.4)
+    }
   }
 
   function handleTouchEnd(e) {
-    const diffX = e.changedTouches[0].clientX - touchStartX.current
-    const diffY = e.changedTouches[0].clientY - touchStartY.current
-    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+    if (touchStartX.current === null || touchStartY.current === null) {
+      setDragOffset(0)
+      setIsDragging(false)
+      return
+    }
+    const touch = e.changedTouches[0]
+    const diffX = touch.clientX - touchStartX.current
+    const diffY = touch.clientY - touchStartY.current
+    touchStartX.current = null
+    touchStartY.current = null
+    setDragOffset(0)
+    setIsDragging(false)
+
+    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
       if (diffX < 0) {
         pindah(idx + 1)
       } else {
@@ -372,10 +417,22 @@ export default function UtangMobile({
       ) : (
         <div className="pt-1 flex flex-col gap-3">
           <div
+            key={`utang-card-${kartuAktif?.id || idx}`}
             onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{ touchAction: 'pan-y' }}
-            className="w-full transition-all duration-200"
+            style={{
+              touchAction: 'pan-y',
+              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
+              transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+            className={`w-full ${
+              slideDir === 'next'
+                ? 'page-transition-next'
+                : slideDir === 'prev'
+                  ? 'page-transition-prev'
+                  : ''
+            }`}
           >
             <KartuUtangMobile
               key={kartuAktif.id}
