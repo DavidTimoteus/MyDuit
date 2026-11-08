@@ -856,15 +856,18 @@ export default function Shell({ user }) {
               <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
                 <button
                   type="button"
-                  onClick={() => {
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setFabDial(false);
                     dispatchAksi("pemasukan");
                   }}
                   aria-label="Catat Pemasukan"
-                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white"
+                  title="Catat Pemasukan"
+                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
-                    "--tx": "-52px",
-                    "--ty": "-34px",
+                    "--tx": "-58px",
+                    "--ty": "-40px",
                     transitionDelay: ".02s",
                   }}
                 >
@@ -874,15 +877,18 @@ export default function Shell({ user }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setFabDial(false);
                     dispatchAksi("pindah-saldo");
                   }}
                   aria-label="Pindah Saldo"
-                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white"
+                  title="Pindah Saldo"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
                     "--tx": "0px",
-                    "--ty": "-72px",
+                    "--ty": "-78px",
                     transitionDelay: ".07s",
                   }}
                 >
@@ -892,15 +898,18 @@ export default function Shell({ user }) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setFabDial(false);
                     dispatchAksi("pengeluaran");
                   }}
                   aria-label="Catat Pengeluaran"
-                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white"
+                  title="Catat Pengeluaran"
+                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white shadow-md touch-manipulation"
                   style={{
-                    "--tx": "52px",
-                    "--ty": "-34px",
+                    "--tx": "58px",
+                    "--ty": "-40px",
                     transitionDelay: ".12s",
                   }}
                 >

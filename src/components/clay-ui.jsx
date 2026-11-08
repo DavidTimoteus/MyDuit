@@ -9,8 +9,18 @@ function usePopupList(open, triggerRef) {
   const [pos, setPos] = useState(null)
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return
-    const r = triggerRef.current.getBoundingClientRect()
-    setPos({ left: r.left, top: r.bottom + 6, width: r.width })
+    const update = () => {
+      if (!triggerRef.current) return
+      const r = triggerRef.current.getBoundingClientRect()
+      setPos({ left: r.left, top: r.bottom + 6, width: r.width })
+    }
+    update()
+    window.addEventListener('resize', update)
+    window.addEventListener('scroll', update, true)
+    return () => {
+      window.removeEventListener('resize', update)
+      window.removeEventListener('scroll', update, true)
+    }
   }, [open, triggerRef])
   return pos
 }
@@ -18,22 +28,30 @@ function usePopupList(open, triggerRef) {
 function useDismiss(open, close, listRef, triggerRef) {
   useEffect(() => {
     if (!open) return
-    const onClick = (e) => {
+    const onPointerDown = (e) => {
       if (listRef.current?.contains(e.target) || triggerRef.current?.contains(e.target)) return
       close()
     }
     const onScroll = (e) => {
       if (listRef.current?.contains(e.target)) return
+      // Di mobile: jika input di dalam trigger sedang fokus, browser sering melakukan auto-scroll
+      // untuk memastikan input berada di atas keyboard. Jangan menutup popup karena auto-scroll ini.
+      if (triggerRef.current && triggerRef.current.contains(document.activeElement)) return
       close()
     }
     const onKey = (e) => e.key === 'Escape' && close()
-    const onResize = () => close()
-    document.addEventListener('click', onClick)
+    const onResize = () => {
+      // Di perangkat mobile, kemunculan/penutupan soft-keyboard memicu event resize window.
+      // Jika input sedang aktif/fokus, abaikan resize agar popup kategori tidak tertutup seketika.
+      if (triggerRef.current && triggerRef.current.contains(document.activeElement)) return
+      close()
+    }
+    document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('scroll', onScroll, true)
     document.addEventListener('keydown', onKey)
     window.addEventListener('resize', onResize)
     return () => {
-      document.removeEventListener('click', onClick)
+      document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('scroll', onScroll, true)
       document.removeEventListener('keydown', onKey)
       window.removeEventListener('resize', onResize)
@@ -123,6 +141,11 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
                 aria-disabled={o.disabled || undefined}
                 className={`clay-select-option ${o.disabled ? 'is-disabled' : ''} ${o.value === value ? 'is-selected' : ''} ${i === hl ? 'is-highlighted' : ''}`}
                 onMouseEnter={() => !o.disabled && setHl(i)}
+                onPointerDown={(e) => {
+                  if (o.disabled) return
+                  e.preventDefault()
+                  choose(i)
+                }}
                 onClick={() => choose(i)}
               >
                 {o.label}
@@ -201,6 +224,11 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
                   key={o.value}
                   className={`clay-select-option ${o.label === value ? 'is-selected' : ''} ${i === hl ? 'is-highlighted' : ''}`}
                   onMouseEnter={() => setHl(i)}
+                  onPointerDown={(e) => {
+                    e.preventDefault()
+                    onChange(o.label)
+                    setOpen(false)
+                  }}
                   onClick={() => {
                     onChange(o.label)
                     setOpen(false)

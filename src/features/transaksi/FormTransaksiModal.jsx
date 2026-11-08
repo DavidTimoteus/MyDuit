@@ -93,6 +93,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, sumber?.id, sumber?.preset])
 
+  // Sinkronisasi defensif akunId jika akunList baru selesai termuat setelah modal terbuka
+  useEffect(() => {
+    if (open && !akunId && akunList.length > 0) {
+      setAkunId(akunList[0].id)
+    }
+  }, [open, akunId, akunList])
+
   if (!open) return null
 
   // ===== Handler OCR Scan Struk =====
@@ -741,6 +748,29 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 return sesuaiJenis
               })().map((k) => ({ value: k.id, label: k.nama }))}
             />
+
+            {/* Quick Category Chips: Akses cepat 1-tap pada mobile tanpa membuka keyboard */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {(isPemasukan
+                ? ['Gaji', 'Bonus', 'Hadiah', 'Penjualan', 'Lainnya']
+                : ['Makanan', 'Transportasi', 'Belanja', 'Tagihan', 'Lainnya']
+              ).map((namaKategori) => (
+                <button
+                  key={namaKategori}
+                  type="button"
+                  onClick={() => setKategoriNama(namaKategori)}
+                  className={`clay-chip inline-flex h-7 items-center rounded-full px-2.5 text-[11px] font-semibold transition-all active:scale-95 touch-manipulation ${
+                    kategoriNama.toLowerCase() === namaKategori.toLowerCase()
+                      ? isPemasukan
+                        ? 'clay-key-primary bg-emerald-600 text-white shadow-sm'
+                        : 'clay-key-danger bg-red-600 text-white shadow-sm'
+                      : 'clay-key-neutral bg-surface text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {namaKategori}
+                </button>
+              ))}
+            </div>
           </div>
 
           {akunList.length === 0 && (

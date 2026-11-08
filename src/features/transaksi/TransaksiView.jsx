@@ -270,18 +270,18 @@ async function konfirmHapus() {
             <span className="truncate">{filterLabel(chip, rentang)}</span>
           </button>
 
-          {/* Tombol Catat Transaksi di tablet/desktop medium (768px-1279px) saat panel kanan & FAB tersembunyi */}
+          {/* Tombol Catat Transaksi di mobile & tablet/desktop medium saat panel kanan tersembunyi */}
           <button
             onClick={() => bukaForm('add', { preset: jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran' })}
-            aria-label="Catat Transaksi"
-            className="hidden h-14 shrink-0 items-center gap-1.5 rounded-[22px] px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-95 md:flex xl:hidden"
+            aria-label={jenis === 'pemasukan' ? 'Tambah Pemasukan' : 'Catat Transaksi'}
+            className="flex h-11 sm:h-14 shrink-0 items-center gap-1.5 rounded-[18px] sm:rounded-[22px] px-3 sm:px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-95 xl:hidden touch-manipulation"
             style={{
               background: jenis === 'pemasukan' ? '#2d6a4f' : '#1e293b',
               boxShadow:
                 '3px 3px 9px rgba(0,0,0,.15), -3px -3px 9px rgba(255,255,255,.6), inset 1px 1px 3px rgba(255,255,255,.4)',
             }}
           >
-            <span className="material-symbols-outlined shrink-0 icon-md">add_circle</span>
+            <span className="material-symbols-outlined shrink-0 icon-sm sm:icon-md">add_circle</span>
             <span className="truncate">{jenis === 'pemasukan' ? 'Tambah Pemasukan' : 'Catat Transaksi'}</span>
           </button>
         </div>
