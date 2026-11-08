@@ -473,6 +473,11 @@ button:active {
     inset -2px -2px 6px rgba(var(--clay-h), 0.14);
 }
 
+/* ===== MODAL BACKDROP & CHOREOGRAPHY ===== */
+.modal-backdrop-wrap {
+  animation: modalBackdropFadeIn var(--motion-dur-normal) var(--motion-ease-spring) both;
+}
+
 /* ===== SHEET / MODAL ===== */
 .clay-sheet {
   border-radius: var(--clay-r-card);
@@ -1330,6 +1335,11 @@ button:active {
 }
 
 /* ---------- Keyframes: wajib top-level agar tidak ikut ter-layer ---------- */
+
+@keyframes modalBackdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
 
 @keyframes splash-logo-pop {
   from { transform: scale(0.6) rotate(-8deg); opacity: 0; }

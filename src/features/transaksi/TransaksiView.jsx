@@ -231,8 +231,8 @@ async function konfirmHapus() {
                       title={j.title}
                       className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                         jenis === j.id
-                          ? 'clay-key-blue bg-blue-700 text-white shadow-md'
-                          : 'clay-key-neutral bg-surface text-textSecondary hover:bg-gray-100 hover:text-slate-800'
+                          ? 'clay-key-blue solid-blue text-white'
+                          : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
                       }`}
                     >
                       <span className="material-symbols-outlined icon-md">{j.icon}</span>
@@ -245,8 +245,8 @@ async function konfirmHapus() {
                   title="Pilih banyak transaksi"
                   className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                     bulkMode
-                      ? 'clay-key-blue bg-blue-700 text-white shadow-md'
-                      : 'clay-key-neutral bg-surface text-textSecondary hover:bg-gray-100 hover:text-slate-800'
+                      ? 'clay-key-blue solid-blue text-white'
+                      : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
                   }`}
                 >
                   <span className="material-symbols-outlined icon-md">checklist</span>
@@ -447,7 +447,7 @@ async function konfirmHapus() {
 
       {/* Modal konfirmasi hapus tunggal — persis GAS #deleteModal */}
       {hapusTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setHapusTarget(null)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">warning</span>
             <h3 className="mb-2 text-lg font-bold text-slate-800">Hapus Transaksi?</h3>
@@ -473,7 +473,7 @@ async function konfirmHapus() {
 
       {/* Modal konfirmasi hapus massal — persis GAS #bulkDeleteModal */}
       {bulkHapusOpen && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm" onClick={() => setBulkHapusOpen(false)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setBulkHapusOpen(false)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">delete</span>
             <h3 className="mb-2 text-lg font-bold text-slate-800">Hapus {selected.size} Transaksi?</h3>
