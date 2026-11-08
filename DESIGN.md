@@ -1,83 +1,82 @@
 # DESIGN: MyDuit PWA Design System (Claymorphism & Responsive Engine)
 
-> **Status:** Authoritative Specification  
-> **Filosofi Visual:** Tactile Claymorphism (Soft Inner & Outer Shadows, Organic Radius, Depth-Driven Interaction)  
-> **Aksesibilitas:** WCAG 2.1 AA Compliant (Kontras Teks >= 4.5:1, Target Sentuh >= 44x44px)
+> **Status:** Authoritative Specification (Rev. 3 - Claymorphism Tactile Standard)  
+> **Filosofi Visual:** Tactile 3D Claymorphism (Soft Inset Highlights, Organic Radius, 3D Extruded Lip Shelf, Depth-Driven Interaction)  
+> **Aksesibilitas:** WCAG 2.1 AA Compliant (Kontras Teks >= 4.5:1, Target Sentuh Mobile >= 44x44px)
 
 ---
 
-## 1. Fondasi Token Desain (3-Tier Token Architecture)
+## 1. Fondasi Token Desain & Identitas Brand (Sovereign Brand Authority)
 
-### A. Primitive Tokens (Warna & Cahaya)
-- **Primary Brand (Emerald Green):**
-  - `--color-primary`: `#2d6a4f`
+### A. Identitas Brand Terpadu (Anti-Chameleon Directive)
+- **Brand Utama (Signature Forest Emerald & Mint Clay):**
+  - `--color-primary`: `#2d6a4f` (Forest Emerald)
+  - `--color-primary-hover`: `#1b4332`
   - `--clay-h-primary`: `45, 106, 79`
-  - Gradien Aktif: `linear-gradient(145deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%)`
-- **Danger (Coral Crimson - Pengeluaran/Utang):**
-  - `--color-danger`: `#e63946`
-  - `--clay-h-danger`: `230, 57, 70`
-- **Blue (Azure Accent - Budget/Rekening):**
-  - `--color-blue`: `#1d3557`
-  - `--clay-h-blue`: `29, 53, 87`
-- **Neutral (Slate Grey):**
-  - Text Primary: `#1e293b` (Slate-800)
-  - Text Secondary: `#64748b` (Slate-500)
-  - Canvas Surface: `#f4f7f6`
+  - Gradien Aktif Primer: `linear-gradient(180deg, #3d8b67 0%, #2d6a4f 60%, #1b4332 100%)`
+  - Lip Shelf Ekstrusi 3D: `--clay-lip-btn-primary: #143527` (Tinggi 4px saat resting, 1px saat active)
+  - **Invarian Brand:** Logo aplikasi MyDuit dan panel navigasi sidebar bersifat permanen menggunakan palet identitas primer. DILARANG KERAS mengubah logo atau aura glow sidebar menjadi merah/biru saat berpindah menu (anti-bunglon).
 
-### B. Semantic Tokens (Makna Data)
-- **Teks Pemasukan:** `.text-incomeText` (`#1b4332`) — Rasio kontras 7.2:1 di atas putih/surface.
-- **Teks Pengeluaran:** `.text-expenseText` (`#991b1b`) — Rasio kontras 6.4:1 di atas putih/surface.
-- **Teks Bantuan / Keterangan:** `.text-textSecondary` (`#475569`) — Rasio kontras 5.1:1 (Lolos AA).
-
-### C. Component Tokens (Clay Anatomy & Spring Dynamics)
-- **Border Radius:**
-  - Card: `var(--clay-r-card, 26px)`
-  - Card Small / Hero: `var(--clay-r-card-sm, 22px)`
-  - Input & Trigger: `var(--clay-r-input, 18px)`
-  - Icon Tile: `var(--clay-r-icon, 20px)` (Squircle)
-  - Pill / Chip: `9999px` (Full Rounded)
-- **Bayangan Clay Multi-Lapis:**
-  - Card Outset: `8px 8px 20px rgba(var(--clay-h), 0.09), -6px -6px 16px rgba(255,255,255,0.98)`
-  - Card Specular Rim: `inset 1.5px 1.5px 3px rgba(255,255,255,0.9), inset -2px -2px 6px rgba(var(--clay-h), 0.05)`
-  - Surface Fill: `linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(246,250,248,0.92) 100%)`
-  - Border: `1px solid rgba(255, 255, 255, 0.65)`
-- **Spring Micro-Interactions (Emil Kowalski / Jakub Krehel Physics):**
-  - Easing Curve Release / Pop: `cubic-bezier(0.34, 1.56, 0.64, 1)` (180ms - 200ms)
-  - Easing Curve Smooth Damping: `cubic-bezier(0.16, 1, 0.3, 1)`
-  - Button Active State: `transform: scale(0.97) translateY(1px);` dengan inset resistance
-- **Tabular Numeric Matrix:**
-  - Font: `font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' on, 'lnum' on; letter-spacing: -0.02em;`
-- **Aturan Sintaks Warna Hue:**
-  - Nilai `--clay-h-*` adalah *RGB triplet* (contoh: `38, 90, 67`). Penggunaan pada warna CSS wajib dibungkus `rgb(var(--clay-h))` atau `rgba(var(--clay-h), <alpha>)`. Dilarang menggunakan `background-color: var(--clay-h);` tanpa wrapper fungsi warna.
+### B. Palet Semantik & Fungsional (Matte Clay, Anti-Candy Plastic)
+- **Danger / Alert (Coral Crimson - Hanya untuk Peringatan & Jatuh Tempo Terlambat):**
+  - `--color-danger`: `#c62828`
+  - `--clay-h-danger`: `195, 53, 53`
+  - Lip Shelf: `--clay-lip-btn-danger: #991b1b`
+- **Blue Accent (Azure / Transfer Saldo):**
+  - `--color-blue`: `#1d4ed8`
+  - `--clay-h-blue`: `29, 78, 216`
+  - Lip Shelf: `--clay-lip-btn-blue: #1e3a8a`
+- **Neutral Clay Surface (Warm Matte Clay Canvas):**
+  - Kanvas Aplikasi: `--clay-bg: #f0f3f0`
+  - Permukaan Kartu: `--color-surfaceContainerLowest: #ffffff`
+  - Lip Shelf Netral: `--clay-lip-card: rgba(0, 0, 0, 0.09)`
+  - Lip Shelf Tombol Netral: `--clay-lip-btn-neutral: rgba(0, 0, 0, 0.12)`
+  - Text Primary: `#1e293b` (Slate-800, kontras > 10:1)
+  - Text Secondary: `#475569` (Slate-600, kontras > 5:1)
 
 ---
 
-## 2. Tata Letak Responsif & Breakpoint Rules
+## 2. Kontrak Komponen 3D Claymorphism
 
-### A. 3-Column Responsive Engine (Desktop >= 1024px)
-- **Kolom Kiri (Navigasi & Profil):** Lebar 260px–280px tetap.
-- **Kolom Tengah (Feed Konten Utama):** `flex-1 min-w-0 max-w-3xl`, scrollable independen dengan scrollbar tipis estetik.
-- **Kolom Kanan (Aside Panel Kontekstual):** Lebar 340px–380px, berisi form cepat atau ringkasan rekening/kategori.
+### A. Navigasi Sidebar Desktop (`.sidebar-nav-btn`)
+- **Tujuan Arsitektur:** Menjamin status aktif memiliki visibilitas 100% dan mengeliminasi total bug teks putih di atas putih (*ghost button*).
+- **Aturan Implementasi:**
+  - Status Non-Aktif: Menggunakan `.sidebar-nav-btn` dengan latar putih gradien lembut, teks dan ikon `#334155`, serta lip shelf netral 3.5px.
+  - Status Aktif: Menggunakan modifier `.is-active` yang mengunci `background: linear-gradient(180deg, #3d8b67 0%, #2d6a4f 60%, #1b4332 100%) !important;` dan `color: #ffffff !important;` dengan shelf lip `#143527` 4px dan bayangan 3D `0 10px 20px rgba(45, 106, 79, 0.38)`.
+  - **Larangan Keras:** Dilarang menggunakan kombinasi kelas utility `clay-btn bg-primary text-white` atau `bg-blue-600 text-white` pada sidebar nav karena utility `bg-*` akan tertimpa gradien `.clay-btn`.
 
-### B. Mobile Layout (Lebar < 1024px)
-- **Shell Konten:**
-  - Padding bawah wajib: `pb-24` (agar konten paling bawah tidak tertutup navigasi).
-  - Wrapper konten: `min-h-[calc(100dvh-76px)]` dengan `overflow-y-auto` dan `touch-action: pan-y`.
-  - Mencegah scroll lockup: Dilarang memasang `overflow-hidden` di parent `main` saat mobile.
-- **Bottom Navigation Bar (5 Kolom Simetris):**
-  - Tinggi tetap: `76px` dengan `fixed inset-x-0 bottom-0 z-50`.
-  - Pembagian grid: `grid grid-cols-5` (2 Tab Kiri | FAB Tengah | 2 Tab Kanan).
-  - Nav-item: padding horizontal minimal (`px-0.5` s/d `px-0` pada layar sempit) agar label tidak terpotong.
-- **FAB Notch & Speed Dial:**
-  - Tombol aksi utama berada di tengah (`-mt-10`), dipusatkan oleh kolom ke-3.
-  - `#navShell` menggunakan `overflow-x: clip` untuk menampung animasi speed dial tanpa memicu scroll horizontal pada dokumen.
+### B. Hierarki Tombol & Aksi Cepat (*Panel Action Hierarchy*)
+- **Prinsip:** 1 Aksi Utama (*Tactile Primary Clay*) + Aksi Sekunder (*Neutral Soft Clay*).
+- **Larangan Penumpukan Permen (Traffic Light Candy Stack):** Dilarang menumpuk 3 tombol solid jenuh tinggi (Hijau, Merah, Biru) secara berdampingan.
+  - Aksi utama (misal "Tambah Transaksi" / "Pemasukan"): Gunakan `.clay-btn.solid-primary`.
+  - Aksi sekunder (misal "Tambah Pengeluaran" & "Pindah Saldo"): Gunakan `.clay-btn.clay-btn-secondary` dengan teks slate dan ikon berwarna tajam.
+
+### C. Semantik Filter Chip & Tab
+- **Status Aktif Standar ("Semua", "Aktif", "Lunas"):** Menggunakan pil zamrud brand primer (`.clay-chip.solid-primary`), bukan merah darurat.
+- **Status Bahaya ("Terlambat"):** HANYA filter terlambat atau peringatan jatuh tempo yang diizinkan menggunakan `.clay-chip-active-danger`.
 
 ---
 
-## 3. Aturan Pencegahan "Shape Overload" & Clipping
-1. **Aturan Hug Content untuk Kartu:**
-   - Dilarang keras memaksa `h-full` pada kartu mobile. Kartu wajib mengikuti isi kontent (`align-self: center`, `height: auto`).
-2. **Kedalaman Tumpukan (*Card Stack*):**
-   - Wrapper `.rekening-stack-wrap` wajib `overflow: visible` dan memiliki `padding-bottom: 30px` untuk menampung efek layer `translateY(12px / 24px)`.
-3. **Pill & Chip Integrity:**
-   - Seluruh elemen berlabel pill (`.clay-chip`, `.stat-pill-tab`, `.mutasi-tab`) memiliki styling dasar mandiri dengan radius penuh, sehingga tidak pernah berubah menjadi kotak bersudut lancip saat status non-aktif.
+## 3. Standar Tata Letak & Responsivitas Mobile
+
+### A. Bottom Navigation Bar Mobile (`#navShell`)
+- Tinggi tetap: `76px` dengan `fixed inset-x-0 bottom-0 z-50`.
+- Grid 5 kolom simetris dengan Central FAB notch di kolom ke-3.
+- **Indikator Aktif Mobile:** Menggunakan pil inset bercahaya mint luminous (`.nav-icon-wrap.nav-icon-active`) dengan `background: rgba(45, 106, 79, 0.12)` dan bayangan galian inset lembut, bukan bulatan abu-abu mati.
+- Label teks nav: Selalu menggunakan warna primer brand (`text-primary`) saat aktif, font-extrabold 11px.
+
+### B. Trek Segmen Kontrol Taktil (`.clay-segmented-track`)
+- Seluruh pengubah mode sub-tab (Pengeluaran vs Pemasukan, Rekening vs Budget, Bulanan vs Tahunan) WAJIB menggunakan struktur `.clay-segmented-track` dan `.clay-segment-item`.
+- Dilarang membuat wrapper ad-hoc flat `shadow-md` yang tidak seragam.
+
+### C. Modal & Formulir Transaksi
+- Input Nominal (`#tx-jumlah`) WAJIB berada di **Puncak Formulir** sebagai Hero Input (`text-xl font-black font-mono` dengan galian inset `.clay-input`).
+- Tidak boleh tertutup virtual keyboard saat perangkat mobile membuka form.
+- Tombol aksi simpan berada dalam viewport yang mudah dijangkau.
+
+---
+
+## 4. Matriks Aksesibilitas & Fisika Gerak (*Motion Dynamics*)
+- **Kurva Spring:** `cubic-bezier(0.16, 1, 0.3, 1)` untuk deselerasi halus tanpa overshoot liar.
+- **Kompresi Tombol Tekan:** `transform: translateY(2.5px);` saat `:active` dengan shelf berkurang menjadi 1px (mereplikasi tuts mekanikal fisik).
+- **Fokus Keyboard:** Cincin Zamrud Luminous (`outline: 2px solid var(--color-primary); box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.35) !important;`).
