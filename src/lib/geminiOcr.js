@@ -94,7 +94,7 @@ export async function ujiKoneksiGemini(apiKey) {
     return { ok: false, message: 'Kunci API kosong. Silakan masukkan kunci API Anda.' }
   }
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent?key=${key}`
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent`
   try {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 7000)
@@ -102,7 +102,10 @@ export async function ujiKoneksiGemini(apiKey) {
     const res = await fetch(endpoint, {
       method: 'POST',
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-goog-api-key': key,
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: 'Balas dengan kata "OK" saja jika kunci aktif.' }] }],
       }),
@@ -190,7 +193,7 @@ Aturan Ekstraksi:
   let lastError = null
 
   for (const model of models) {
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 12000)
 
@@ -199,7 +202,10 @@ Aturan Ekstraksi:
       const res = await fetch(endpoint, {
         method: 'POST',
         signal: controller.signal,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': key,
+        },
         body: JSON.stringify(payload),
       })
       clearTimeout(timer)
