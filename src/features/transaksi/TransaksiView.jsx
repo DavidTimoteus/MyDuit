@@ -203,7 +203,7 @@ async function konfirmHapus() {
                   onChange={(e) => setKeyword(e.target.value)}
                   placeholder="Cari transaksi..."
                   type="text"
-                  className="clay-input w-full border-none bg-surface py-2.5 pl-10 pr-10 text-base sm:text-sm outline-none transition-all placeholder:text-textSecondary focus:bg-white focus:ring-1 focus:ring-primary rounded-[16px] touch-manipulation"
+                  className="clay-input w-full border-none py-2.5 pl-10 pr-10 text-base sm:text-sm transition-all placeholder:text-textSecondary rounded-[16px] touch-manipulation"
                 />
                 {keyword && (
                   <button
@@ -231,7 +231,7 @@ async function konfirmHapus() {
                       title={j.title}
                       className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                         jenis === j.id
-                          ? 'clay-key-blue solid-blue text-white'
+                          ? 'clay-key-primary solid-primary text-white'
                           : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
                       }`}
                     >
@@ -245,7 +245,7 @@ async function konfirmHapus() {
                   title="Pilih banyak transaksi"
                   className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
                     bulkMode
-                      ? 'clay-key-blue solid-blue text-white'
+                      ? 'clay-key-primary solid-primary text-white'
                       : 'clay-key-neutral bg-surface text-textSecondary hover:bg-white hover:text-slate-800'
                   }`}
                 >
@@ -255,18 +255,13 @@ async function konfirmHapus() {
             </div>
           </div>
 
-          {/* Kartu 2: filter tanggal (desktop) — shadow clay blue manual, radius 22px */}
+          {/* Kartu 2: filter tanggal (desktop) — tombol sekunder clay taktil */}
           <button
             onClick={() => setFilterOpen(true)}
             aria-label="Filter Tanggal"
-            className="hidden h-14 max-w-[170px] shrink-0 items-center gap-1.5 rounded-[22px] pl-2.5 pr-3 text-xs font-medium text-white transition-colors hover:bg-blue-800 md:flex"
-            style={{
-              background: '#1d4ed8',
-              boxShadow:
-                '3px 3px 9px rgba(31,84,200,.25), -3px -3px 9px rgba(255,255,255,.6), inset 1px 1px 3px rgba(255,255,255,.5), inset -2px -2px 4px rgba(31,84,200,.12)',
-            }}
+            className="hidden h-14 max-w-[170px] shrink-0 items-center gap-1.5 rounded-[22px] px-3.5 text-xs font-bold clay-btn clay-btn-secondary text-slate-700 md:flex"
           >
-            <span className="material-symbols-outlined shrink-0 icon-md">tune</span>
+            <span className="material-symbols-outlined shrink-0 icon-md text-primary">tune</span>
             <span className="truncate">{filterLabel(chip, rentang)}</span>
           </button>
 

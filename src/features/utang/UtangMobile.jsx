@@ -316,7 +316,9 @@ style={{ height: `calc(100dvh - ${TINGGI_NAV}px)`, touchAction: 'pan-y' }}    >
             aria-pressed={filter === f.id}
             className={`clay-chip h-9 shrink-0 px-3.5 text-xs font-semibold transition-colors ${
               filter === f.id
-                ? 'clay-chip-active-danger'
+                ? f.id === 'terlambat'
+                  ? 'clay-chip-active-danger'
+                  : 'clay-chip solid-primary text-white'
                 : 'clay-key-neutral text-textSecondary'
             }`}
           >

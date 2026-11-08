@@ -221,42 +221,38 @@ export default function BudgetView({ user }) {
   // Sub-tab Budget: navigator + hero Total Budget + daftar budget
   return (
     <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-10">
-      {/* Header mobile (md:hidden) — logo savings biru + judul "Rekening" (persis GAS ViewBudget.html) */}
-      <header className="flex items-center gap-2 pt-3 pb-4 md:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white">
+      {/* Header mobile (md:hidden) — logo savings emerald + judul */}
+      <header className="flex items-center gap-2.5 pt-3 pb-4 md:hidden">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-primary text-white shadow-sm">
           <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
         </div>
-        <h2 className="font-display font-extrabold text-2xl sm:icon-2xl leading-tight tracking-tight text-blue-950">
+        <h2 className="font-display font-extrabold text-2xl sm:icon-2xl leading-tight tracking-tight text-slate-800">
           {sub === 'budget' ? 'Budget' : 'Rekening'}
         </h2>
       </header>
 
-      {/* Sub-tab toggle pill (Rekening | Budget) — High-end Tactile Neumorphism */}
-      <div className="mb-5 flex items-center gap-1.5 rounded-xl bg-white/80 p-2.5 shadow-md">
-        <button
-          onClick={() => setSub('rekening')}
-          aria-pressed={sub === 'rekening'}
-          className={`budget-subtab-btn flex flex-1 items-center justify-center gap-2 rounded-[9999px] py-2.5 text-xs font-bold transition-all duration-200 ${
-            sub === 'rekening'
-              ? 'bg-white text-blue-700 shadow-[3px_3px_8px_rgba(0,0,0,0.12),_-2px_-2px_6px_rgba(255,255,255,0.9)]'
-              : 'text-textSecondary hover:text-textPrimary active:scale-98'
-          }`}
-        >
-          <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: sub === 'rekening' ? "'FILL' 1" : "'FILL' 0" }}>account_balance</span>
-          Rekening
-        </button>
-        <button
-          onClick={() => setSub('budget')}
-          aria-pressed={sub === 'budget'}
-          className={`budget-subtab-btn flex flex-1 items-center justify-center gap-2 rounded-[9999px] py-2.5 text-xs font-bold transition-all duration-200 ${
-            sub === 'budget'
-              ? 'bg-white text-blue-700 shadow-[3px_3px_8px_rgba(0,0,0,0.12),_-2px_-2px_6px_rgba(255,255,255,0.9)]'
-              : 'text-textSecondary hover:text-textPrimary active:scale-98'
-          }`}
-        >
-          <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: sub === 'budget' ? "'FILL' 1" : "'FILL' 0" }}>savings</span>
-          Budget
-        </button>
+      {/* Sub-tab toggle pill (Rekening | Budget) — Tactile Segmented Track */}
+      <div className="mb-5 px-1">
+        <div className="clay-segmented-track">
+          <button
+            type="button"
+            onClick={() => setSub('rekening')}
+            aria-pressed={sub === 'rekening'}
+            className={`clay-segment-item ${sub === 'rekening' ? 'is-active is-income' : ''}`}
+          >
+            <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'rekening' ? "'FILL' 1" : "'FILL' 0" }}>account_balance</span>
+            Rekening
+          </button>
+          <button
+            type="button"
+            onClick={() => setSub('budget')}
+            aria-pressed={sub === 'budget'}
+            className={`clay-segment-item ${sub === 'budget' ? 'is-active is-income' : ''}`}
+          >
+            <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'budget' ? "'FILL' 1" : "'FILL' 0" }}>savings</span>
+            Budget
+          </button>
+        </div>
       </div>
 
       {sub === 'rekening' ? (

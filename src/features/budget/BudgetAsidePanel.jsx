@@ -120,17 +120,17 @@ export default function BudgetAsidePanel() {
           <div className="mt-2 grid grid-cols-2 gap-1.5">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:budget-add-rekening'))}
-              className="clay-btn clay-key-blue solid-blue btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
+              className="clay-btn clay-btn-secondary btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-slate-700"
             >
-              <span className="material-symbols-outlined icon-sm">account_balance</span>
+              <span className="material-symbols-outlined icon-sm text-blue-600">account_balance</span>
               Rekening
             </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:budget-add-budget'))}
-              className="clay-btn clay-key-blue solid-blue btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
+              className="clay-btn clay-key-primary solid-primary btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm">add</span>
-              Budget
+              + Budget
             </button>
           </div>
         </div>

@@ -148,16 +148,16 @@ export default function RightPanel({ uid }) {
               </button>
               <button
                 onClick={() => aksi('pengeluaran')}
-                className="clay-btn clay-key-danger solid-danger btn-lg w-full text-white"
+                className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700"
               >
-                <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
+                <span className="material-symbols-outlined icon-sm text-expenseText" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
                 Tambah Pengeluaran
               </button>
               <button
                 onClick={() => aksi('pindah-saldo')}
-                className="clay-btn clay-key-blue solid-blue btn-lg w-full text-white"
+                className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700"
               >
-                <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
+                <span className="material-symbols-outlined icon-sm text-blue-600" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
                 Pindah Saldo
               </button>
             </div>

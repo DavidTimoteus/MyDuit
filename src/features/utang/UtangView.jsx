@@ -368,7 +368,9 @@ export default function UtangView({ user }) {
             onClick={() => setFilter(f.id)}
             className={`clay-chip h-9 px-4 text-xs font-semibold transition-colors ${
               filter === f.id
-                ? 'clay-chip-active-danger'
+                ? f.id === 'terlambat'
+                  ? 'clay-chip-active-danger'
+                  : 'clay-chip solid-primary text-white'
                 : 'clay-key-neutral text-textSecondary hover:bg-slate-100 hover:text-slate-800'
             }`}
           >
