@@ -223,10 +223,10 @@ export default function BudgetView({ user }) {
     <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-20">
       {/* Header mobile (md:hidden) — logo savings emerald + judul */}
       <header className="flex items-center gap-2.5 pt-3 pb-4 md:hidden">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-primary text-white shadow-sm">
-          <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+        <div className="clay-icon-tile clay-key-primary solid-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
+          <span className="material-symbols-outlined icon-lg" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
         </div>
-        <h2 className="font-display font-extrabold text-2xl sm:icon-2xl leading-tight tracking-tight text-slate-800">
+        <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">
           {sub === 'budget' ? 'Budget' : 'Rekening'}
         </h2>
       </header>
