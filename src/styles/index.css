@@ -1751,6 +1751,19 @@ button:active {
     inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
       rgba(255, 255, 255, 0.28);
 }
+.clay-icon-tile.solid-danger {
+  background-color: #EB5353;
+  background-image: linear-gradient(145deg, #f07474 0%, #EB5353 100%);
+  color: #ffffff;
+  --clay-r: 5px;
+  --clay-blur: 12px;
+  box-shadow:
+    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h-danger), 0.32),
+    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
+      rgba(0, 0, 0, 0.22),
+    inset calc(var(--clay-r) * 0.5) calc(var(--clay-r) * 0.5) var(--clay-blur)
+      rgba(255, 255, 255, 0.28);
+}
 
 /* FAB solid (3D Physical Clay Dome) */
 .clay-fab.solid-primary {
@@ -2434,7 +2447,7 @@ button:active {
 [data-theme="neumorphism"] .field-md,
 [data-theme="neumorphism"] .field-lg,
 [data-theme="neumorphism"] .clay-segmented-track,
-[data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.flatpickr-input):not(.clay-date-picker-field),
 [data-theme="neumorphism"] select,
 [data-theme="neumorphism"] textarea {
   background-color: #E5E5E5 !important;
@@ -2454,8 +2467,8 @@ button:active {
     inset  3px  3px 7px rgba(13, 39, 80, 0.14) !important;
 }
 
-[data-theme="neumorphism"] input:focus,
-[data-theme="neumorphism"] input:focus-visible,
+[data-theme="neumorphism"] input:focus:not(.flatpickr-input):not(.clay-date-picker-field),
+[data-theme="neumorphism"] input:focus-visible:not(.flatpickr-input):not(.clay-date-picker-field),
 [data-theme="neumorphism"] select:focus,
 [data-theme="neumorphism"] select:focus-visible,
 [data-theme="neumorphism"] textarea:focus,
@@ -3060,6 +3073,10 @@ button:active {
   }
 
   /* ===== DATE PICKER INPUT SEAMLESS TRANSPARENCY ===== */
+  [data-theme="neumorphism"] .flatpickr-input,
+  [data-theme="neumorphism"] input.flatpickr-input,
+  [data-theme="neumorphism"] input.clay-date-picker-field,
+  [data-theme="neumorphism"] .clay-date-picker-field,
   .flatpickr-input,
   input.flatpickr-input,
   .clay-date-picker-field {
@@ -3068,6 +3085,7 @@ button:active {
     border: none !important;
     outline: none !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
     width: 100% !important;
     flex: 1 1 0% !important;
     min-width: 0 !important;
