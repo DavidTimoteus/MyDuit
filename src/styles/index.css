@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #2d6a4f;
-  --color-primary-dark: #1b4332;
-  --color-primary-light: #40916c;
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #34d399;
   --color-surface: #f4f7f6;
   --color-income: #10b981;
   --color-expense: #e53e3e;
@@ -103,7 +103,7 @@ textarea:focus-visible,
   --clay-r-icon: 22px;
 
   /* Hue shadows (RGB triples) */
-  --clay-h-primary: 38, 90, 67;
+  --clay-h-primary: 16, 185, 129;
   --clay-h-danger: 195, 53, 53;
   --clay-h-amber: 208, 134, 9;
   --clay-h-neutral: 100, 116, 139;
@@ -114,15 +114,15 @@ textarea:focus-visible,
   --clay-bg: #f0f3f0;
 
   /* ===== 3D CLAYMORPHISM EXTRUSION TOKENS (Product UI Styleguide & Michal Malewicz) ===== */
-  --clay-lip-btn-primary: #1b4332;
+  --clay-lip-btn-primary: #047857;
   --clay-lip-btn-danger:  #991b1b;
   --clay-lip-btn-blue:    #1e3a8a;
   --clay-lip-btn-neutral: rgba(0, 0, 0, 0.12);
-  --clay-lip-card:        rgba(0, 0, 0, 0.09);
-  --clay-lip-card-raised: rgba(0, 0, 0, 0.14);
+  --clay-lip-card:        rgba(0, 0, 0, 0.08);
+  --clay-lip-card-raised: rgba(0, 0, 0, 0.12);
   --clay-lip-chip:        rgba(0, 0, 0, 0.10);
-  --clay-focus-ring:      0 0 0 3px rgba(45, 106, 79, 0.35);
-  --clay-focus-glow:      0 0 12px rgba(45, 106, 79, 0.28);
+  --clay-focus-ring:      0 0 0 3px rgba(16, 185, 129, 0.35);
+  --clay-focus-glow:      0 0 12px rgba(16, 185, 129, 0.28);
 
   /* ===== UNIFIED MOTION PHYSICS TOKENS (Emil Kowalski + Jakub Krehel) ===== */
   --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Deselerasi mulus tanpa bounce overshoot */
@@ -389,53 +389,33 @@ button:active {
   letter-spacing: -0.025em;
 }
 
-/* ===== CLAY BASE ===== */
+/* ===== UNIFIED 5-LEVEL CLAYMORPHISM ELEVATION (Product UI Styleguide) ===== */
+
+/* Base Clay Utility (Level 2 Baseline — selaras dengan .clay-card) */
 .clay {
-  /* ---------------------------------------------------------------
-     CLAYMORPHISM (esensi, riset primer — bukan sekadar drop-shadow)
-
-     Resep resmi: TEPAT 3 bayangan =
-       1. outset  (mengambang dari halaman)
-       2. inset GELAP   (kanan-bawah)
-       3. inset TERANG  (kiri-atas)
-     Dua inset itulah yang memberi kesan "menggembung seperti tanah liat".
-     Tanpa inset = bukan claymorphism, cuma kartu berbayang.
-
-     Perbedaan wajib vs neumorphism: background kartu TIDAK harus sama
-     dengan halaman — clay mengambang dengan warnanya sendiri, jadi kontras
-     teks tetap terjaga (neumorphism gagal a11y karena itu).
-     --------------------------------------------------------------- */
-  --clay-h: var(--clay-h-primary);
-  /* Offset: tinggi-kiri untuk highlight, bawah-kanan untuk shade */
-  --clay-r: 10px;
-  --clay-blur: 18px;
+  --clay-h: var(--clay-h-neutral);
   border-radius: var(--clay-r-card);
-  /* Surface default: elemen clay WAJIB punya bidang sendiri. Tanpa ini
-     kartu jadi transparan (hanya bayangan) -> tampilan rusak. */
   background-color: var(--color-surfaceContainerLowest);
+  background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
   box-shadow:
-    /* 1. OUTSET — mengambang, pakai HUE komponen (bukan hitam generik) */
-    var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.30),
-    /* 2. INSET gelap — kanan bawah, memberi volume */
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(var(--clay-h), 0.22),
-    /* 3. INSET terang — kiri atas, pantulan cahaya */
-    inset calc(var(--clay-r) * 0.55) calc(var(--clay-r) * 0.55) var(--clay-blur)
-      rgba(255, 255, 255, 0.75);
+    0 3px 0 var(--clay-lip-card),
+    0 8px 18px -2px rgba(0, 0, 0, 0.05),
+    inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.98),
+    inset -2.5px -2.5px 6px rgba(0, 0, 0, 0.035);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
 
-/* State: TEKAN -> inset aprofund, outset hilang (meneceb ke dalam). */
+/* State: TEKAN -> tuts mekanikal fisik tertekan ke dalam */
 .clay:active {
-  transform: scale(0.985);
+  transform: translateY(2px) scale(0.99);
   box-shadow:
-    inset calc(var(--clay-r) * 0.9) calc(var(--clay-r) * 0.9) var(--clay-blur)
-      rgba(var(--clay-h), 0.26),
-    inset calc(var(--clay-r) * -0.7) calc(var(--clay-r) * -0.7) var(--clay-blur)
-      rgba(var(--clay-h), 0.18);
+    0 1px 0 var(--clay-lip-card),
+    0 3px 6px rgba(0, 0, 0, 0.04),
+    inset 2px 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .clay-key-primary { --clay-h: var(--clay-h-primary); }
@@ -444,36 +424,35 @@ button:active {
 .clay-key-neutral { --clay-h: var(--clay-h-neutral); }
 .clay-key-blue    { --clay-h: var(--clay-h-blue); }
 
-/* ===== CARDS ===== */
-/* PENTING (aturan hue §4 GAS): kelas komponen TIDAK boleh set --clay-h default
-   (declaration-nya menang dari clay-key-* krn urutan stylesheet) — hue wajib
-   lewat fallback var(--clay-h, <default>) supaya clay-key-* selalu menang. */
+/* Level 1: Soft Surface (Rata-rata harian, chip netral, sub-metrik) */
+.clay-lvl-1,
+.clay-card-soft {
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
+  border: 1px solid rgba(255, 255, 255, 0.90);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 1.5px 1.5px 2px rgba(255, 255, 255, 0.95),
+    inset -1.5px -1.5px 3px rgba(0, 0, 0, 0.03);
+}
+
+/* Level 2: Standard Content Card (Kartu Transaksi, Rekening, Utang) */
+.clay-lvl-2,
 .clay-card {
   border-radius: var(--clay-r-card);
   background-color: var(--color-surfaceContainerLowest);
   background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
   box-shadow:
-    0 10px 24px -4px rgba(0, 0, 0, 0.06),
-    inset 3px 3px 6px rgba(255, 255, 255, 0.90),
-    inset -3px -3px 8px rgba(0, 0, 0, 0.04),
-    0 3.5px 0 var(--clay-lip-card);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+    0 3px 0 var(--clay-lip-card),
+    0 8px 18px -2px rgba(0, 0, 0, 0.05),
+    inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.98),
+    inset -2.5px -2.5px 6px rgba(0, 0, 0, 0.035);
   overflow-x: clip;
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
-}
-
-/* Kartu lembut (Level 1 Elevation - Product UI Styleguide) */
-.clay-card-soft {
-  border-radius: var(--clay-r-card);
-  background: linear-gradient(180deg, #ffffff 0%, #f4f7f5 100%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow:
-    0 2px 0 var(--clay-lip-card),
-    0 4px 12px rgba(0, 0, 0, 0.04),
-    inset 1px 1px 1.5px rgba(255, 255, 255, 0.90);
 }
 
 /* Rekening card (budget) — softer shadow */
@@ -536,37 +515,40 @@ button:active {
     inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
-.clay-btn-primary {
+.clay-btn-primary,
+.clay-btn.solid-primary {
   --clay-h: var(--clay-h-primary);
-  background-color: #2d6a4f;
-  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 60%, #245841 100%);
+  background-color: #10b981;
+  background-image: linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
     0 4px 0 var(--clay-lip-btn-primary),
-    0 8px 18px rgba(var(--clay-h), 0.32),
-    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.35),
-    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
+    0 8px 18px rgba(var(--clay-h), 0.28),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.18);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
     background-color var(--motion-dur-fast) var(--motion-ease-spring);
 }
-.clay-btn-primary:hover {
+.clay-btn-primary:hover,
+.clay-btn.solid-primary:hover {
   transform: translateY(-1px);
   box-shadow:
     0 5px 0 var(--clay-lip-btn-primary),
-    0 12px 22px rgba(var(--clay-h), 0.36),
-    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.40),
-    inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
+    0 12px 22px rgba(var(--clay-h), 0.35),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.65),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.18);
 }
-.clay-btn-primary:active {
+.clay-btn-primary:active,
+.clay-btn.solid-primary:active {
   transform: translateY(3px);
   box-shadow:
     0 1px 0 var(--clay-lip-btn-primary),
-    0 2px 5px rgba(var(--clay-h), 0.24),
-    inset 0 2px 4px rgba(0, 0, 0, 0.35);
+    0 2px 5px rgba(var(--clay-h), 0.20),
+    inset 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
 .clay-btn-danger {
@@ -663,29 +645,29 @@ button:active {
     inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98);
 }
 .sidebar-nav-btn.is-active {
-  background: linear-gradient(180deg, #3d8b67 0%, #2d6a4f 60%, #1b4332 100%) !important;
+  background: linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%) !important;
   color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.40) !important;
   box-shadow:
-    0 4px 0 #143527,
-    0 10px 20px rgba(45, 106, 79, 0.38),
-    inset 0 1.5px 2px rgba(255, 255, 255, 0.45),
-    inset 0 -1.5px 2px rgba(0, 0, 0, 0.30) !important;
+    0 4px 0 #047857,
+    0 10px 20px rgba(16, 185, 129, 0.28),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.60),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.20) !important;
   transform: translateY(0);
 }
 .sidebar-nav-btn.is-active:hover {
   transform: translateY(-1px);
   box-shadow:
-    0 5px 0 #143527,
-    0 12px 24px rgba(45, 106, 79, 0.42),
-    inset 0 1.5px 2px rgba(255, 255, 255, 0.50) !important;
+    0 5px 0 #047857,
+    0 12px 24px rgba(16, 185, 129, 0.35),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.65) !important;
 }
 .sidebar-nav-btn.is-active:active {
   transform: translateY(2.5px);
   box-shadow:
-    0 1px 0 #143527,
-    0 3px 6px rgba(45, 106, 79, 0.25),
-    inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+    0 1px 0 #047857,
+    0 3px 6px rgba(16, 185, 129, 0.20),
+    inset 0 2px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
 /* ===== BUTTON CETAK PDF (referensi Image 2) =====
@@ -1052,30 +1034,32 @@ button:active {
    warna status untuk keadaan" — teks tidak pernah colour-on-colour,
    sehingga mustahil jadi white-on-white.
    ------------------------------------------------------------------ */
+.clay-lvl-3,
 .hero-card {
   position: relative;
-  border-radius: var(--clay-r-card-sm);
-  background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
-  border: 1px solid rgba(255, 255, 255, 0.90);
+  border-radius: 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9f7 100%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   color: #1e293b;               /* slate-800: kontras 14.6:1 di putih */
   overflow: hidden;
   /* Level 3 Elevation (Product UI Styleguide) - Murni Matte Clay tanpa noda lingkaran */
   box-shadow:
     0 4px 0 var(--clay-lip-card-raised),
-    0 12px 24px -4px rgba(0, 0, 0, 0.06),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.95),
-    inset -2px -2px 6px rgba(0, 0, 0, 0.04);
+    0 14px 28px -4px rgba(0, 0, 0, 0.07),
+    inset 3px 3px 6px rgba(255, 255, 255, 1),
+    inset -3px -3px 8px rgba(0, 0, 0, 0.04);
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
     box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
+.clay-lvl-3:hover,
 .hero-card:hover {
   transform: translateY(-1.5px);
   box-shadow:
-    0 5px 0 var(--clay-lip-card-raised),
-    0 16px 32px -6px rgba(0, 0, 0, 0.08),
-    inset 2px 2px 4px rgba(255, 255, 255, 0.98),
-    inset -2px -2px 6px rgba(0, 0, 0, 0.04);
+    0 5.5px 0 var(--clay-lip-card-raised),
+    0 18px 34px -4px rgba(0, 0, 0, 0.09),
+    inset 3px 3px 6px rgba(255, 255, 255, 1),
+    inset -3px -3px 8px rgba(0, 0, 0, 0.04);
 }
 
 .hero-primary { --clay-h: var(--clay-h-primary); }
@@ -1788,15 +1772,15 @@ button:active {
 }
 
 .clay-chip.solid-primary {
-  background-color: #2d6a4f;
-  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 100%);
+  background-color: #10b981;
+  background-image: linear-gradient(180deg, #34d399 0%, #10b981 100%);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
     0 2.5px 0 var(--clay-lip-btn-primary),
-    0 4px 10px rgba(var(--clay-h-primary), 0.30),
-    inset 0 1px 1.5px rgba(255, 255, 255, 0.40),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.20);
+    0 4px 10px rgba(var(--clay-h-primary), 0.28),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.15);
 }
 .clay-chip.solid-primary:hover { transform: translateY(-1px); }
 .clay-chip.solid-primary:active {
@@ -1804,7 +1788,7 @@ button:active {
   box-shadow:
     0 0.5px 0 var(--clay-lip-btn-primary),
     0 1px 3px rgba(var(--clay-h-primary), 0.20),
-    inset 0 1.5px 3px rgba(0, 0, 0, 0.30);
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.25);
 }
 
 /* FIX BUG: chip filter aktif di RiwayatMutasiModal memakai

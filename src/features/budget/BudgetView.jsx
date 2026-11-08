@@ -220,7 +220,7 @@ export default function BudgetView({ user }) {
   // Sub-tab Rekening: hero Total Saldo + daftar rekening
   // Sub-tab Budget: navigator + hero Total Budget + daftar budget
   return (
-    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-10">
+    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-20">
       {/* Header mobile (md:hidden) — logo savings emerald + judul */}
       <header className="flex items-center gap-2.5 pt-3 pb-4 md:hidden">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-primary text-white shadow-sm">

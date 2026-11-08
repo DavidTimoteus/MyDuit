@@ -511,12 +511,13 @@ export default function StatistikView({ user }) {
           x: {
             stacked: false,
             grid: { display: false },
-            border: { display: false },
+            border: { display: true, color: "rgba(148, 163, 184, 0.25)", width: 1.5 },
             ticks: {
               color: "#94a3b8",
               font: { size: 10 },
               autoSkip: false,
               maxRotation: 0,
+              padding: 8,
               callback(value, index) {
                 if (mode !== "bulanan") return tren.labels[index];
                 return tren.labels[index] % 2 === 1 ? tren.labels[index] : "";
@@ -524,12 +525,14 @@ export default function StatistikView({ user }) {
             },
           },
           y: {
+            grace: "10%",
             grid: { color: "rgba(148,163,184,.12)" },
             border: { display: false },
             ticks: {
               color: "#94a3b8",
               font: { size: 10 },
               maxTicksLimit: 6,
+              padding: 6,
               callback: (v) =>
                 formatCurrency(Math.abs(v), kur, loc, { compact: true }),
             },
@@ -596,7 +599,11 @@ export default function StatistikView({ user }) {
         // `flex-1` dipaksa setinggi sisa ruang sementara isinya hanya dua
         // kartu fixed-size. Data-data ini SUDAH dihitung di atas, cuma tak
         // pernah dirender — fitur hilang. Sekarang dikirim & ditampilkan.
-        hariAktif: Object.keys(ringkas.harian).length,
+        periodeLabel: mode === "bulanan" ? "Hari aktif catat" : "Bulan aktif catat",
+        hariAktif:
+          mode === "bulanan"
+            ? Object.keys(ringkas.harian).length
+            : Object.keys(ringkas.bulanan).length,
         jumlahHariBulan:
           mode === "bulanan" ? new Date(tahun, bulan + 1, 0).getDate() : 12,
         rataPengeluaranHariAktif: hitungRataPerHariAktif(ringkas.harian, "out"),
@@ -623,6 +630,7 @@ export default function StatistikView({ user }) {
     ringkas.pemasukan,
     ringkas.pengeluaran,
     ringkas.harian,
+    ringkas.bulanan,
     docs,
   ]);
 
@@ -662,7 +670,7 @@ export default function StatistikView({ user }) {
   const trendTitle = mode === "bulanan" ? "Tren Bulan Ini" : "Tren Tahun Ini";
 
   return (
-    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-10">
+    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-20">
       {/* Header mobile-only (logo + judul) — navigator periode ada di baris
           terpisah di bawah (pola sama dengan BudgetView) supaya judul tidak
           pernah terpotong. Di desktop header ini tersembunyi. */}
@@ -696,14 +704,12 @@ export default function StatistikView({ user }) {
 
         {/* Periode bar — segmented (Bulanan|Tahunan) + stepper */}
         <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-          <div className="flex items-center rounded-2xl bg-surface p-1 shadow-inner">
+          <div className="clay-segmented-track flex items-center p-1">
             <button
               type="button"
               onClick={() => setMode("bulanan")}
-              className={`stat-pill-tab flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none rounded-xl touch-manipulation ${
-                mode === "bulanan"
-                  ? "is-active bg-white text-primary shadow-[2px_2px_6px_rgba(0,0,0,0.1),_-1px_-1px_4px_rgba(255,255,255,0.9)]"
-                  : "bg-transparent text-slate-500 hover:text-slate-800 active:scale-95"
+              className={`clay-segment-item flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none touch-manipulation ${
+                mode === "bulanan" ? "is-active" : ""
               }`}
             >
               Bulanan
@@ -711,10 +717,8 @@ export default function StatistikView({ user }) {
             <button
               type="button"
               onClick={() => setMode("tahunan")}
-              className={`stat-pill-tab flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none rounded-xl touch-manipulation ${
-                mode === "tahunan"
-                  ? "is-active bg-white text-primary shadow-[2px_2px_6px_rgba(0,0,0,0.1),_-1px_-1px_4px_rgba(255,255,255,0.9)]"
-                  : "bg-transparent text-slate-500 hover:text-slate-800 active:scale-95"
+              className={`clay-segment-item flex flex-1 items-center justify-center py-2 px-4 text-xs font-bold transition-all duration-200 md:flex-none touch-manipulation ${
+                mode === "tahunan" ? "is-active" : ""
               }`}
             >
               Tahunan
@@ -760,7 +764,7 @@ export default function StatistikView({ user }) {
             value={ringkas.in_}
             pct={pctIn}
             banding={labelBanding}
-            cls="clay-key-primary"
+            cls="hero-primary"
             aksenCls="text-primary"
           />
           <SummaryCard
@@ -769,7 +773,7 @@ export default function StatistikView({ user }) {
             value={ringkas.out}
             pct={pctOut}
             banding={labelBanding}
-            cls="clay-key-danger"
+            cls="hero-danger"
             aksenCls="text-danger"
           />
           <SummaryCard
@@ -778,13 +782,13 @@ export default function StatistikView({ user }) {
             value={ringkas.saldo}
             pct={pctSaldo}
             banding={labelBanding}
-            cls="clay-key-blue"
+            cls="hero-blue"
             aksenCls="text-info"
           />
         </div>
 
         {/* TREND CHART */}
-        <div className="clay clay-card clay-key-primary rounded-[22px] bg-surfaceContainerLowest p-4">
+        <div className="clay-lvl-2 clay-card rounded-[22px] bg-surfaceContainerLowest p-4">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-bold text-slate-800">{trendTitle}</h3>
             <div className="flex items-center gap-3 text-xs">
@@ -1005,12 +1009,8 @@ function SummaryCard({ icon, label, value, pct, cls, aksenCls, banding }) {
   const iconTrend =
     pct === null ? "trending_flat" : positif ? "trending_up" : "trending_down";
   return (
-    // `cls` hanya bawa clay-key (menentukan --clay-h untuk shadow) DAN token
-    // warna aksen lewat `aksenCls`. Kartu tetap BERPUTIH seperti .clay-card —
-    // teks gelap di atasnya.Dulu: `text-white` + background yang bisa
-    // tertimpa utility lain = teks putih di atas putih (kontras 1.00).
     <div
-      className={`clay clay-card ${cls} rounded-[24px] border border-white/60 p-4 transition-all hover:-translate-y-0.5`}
+      className={`clay-lvl-3 hero-card ${cls} p-4`}
     >
       <div className="mb-2 flex items-center gap-2">
         <span

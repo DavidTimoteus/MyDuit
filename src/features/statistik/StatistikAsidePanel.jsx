@@ -128,7 +128,7 @@ export default function StatistikAsidePanel() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                     <span className="material-symbols-outlined icon-sm text-blue-600">event_available</span>
-                    Hari aktif catat
+                    {ringkas.periodeLabel || 'Hari aktif catat'}
                   </span>
                   <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">
                     {ringkas.hariAktif}

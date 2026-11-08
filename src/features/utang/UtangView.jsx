@@ -340,7 +340,7 @@ export default function UtangView({ user }) {
       />
 
       {/* ===== TAMPILAN DESKTOP (grid 2 kolom, semua kartu tampil) ===== */}
-      <section className="mx-auto hidden max-w-3xl px-5 pb-10 pt-4 md:block">
+      <section className="mx-auto hidden max-w-3xl px-5 pb-20 pt-4 md:block">
       {/* Ringkasan 3 kartu (desktop) */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="hero-card hero-danger p-4">

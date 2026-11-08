@@ -1,0 +1,106 @@
+{
+  "$schema": "https://figcraft.app/schemas/code-connect.json",
+  "name": "MyDuit 3D Claymorphism Design System",
+  "version": "1.0.0",
+  "components": {
+    "Button/Primary": {
+      "language": "javascript",
+      "component": "ClayButton",
+      "source": "src/styles/index.css",
+      "example": "<button className=\"clay-btn clay-key-primary solid-primary btn-md\">Aksi Utama</button>",
+      "tokens": {
+        "elevation": "Level 4",
+        "background": "linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%)",
+        "lipShelf": "0 4px 0 #047857",
+        "shadow": "0 10px 20px rgba(16, 185, 129, 0.28)",
+        "activeTransform": "translateY(2.5px)"
+      }
+    },
+    "Button/Secondary": {
+      "language": "javascript",
+      "component": "ClayButtonSecondary",
+      "source": "src/styles/index.css",
+      "example": "<button className=\"clay-btn clay-btn-secondary btn-md text-slate-700\">Aksi Sekunder</button>",
+      "tokens": {
+        "elevation": "Level 4 (Soft)",
+        "background": "linear-gradient(180deg, #ffffff 0%, #f6f9f7 100%)",
+        "lipShelf": "0 3.5px 0 rgba(0, 0, 0, 0.12)",
+        "shadow": "0 6px 14px rgba(0, 0, 0, 0.05)"
+      }
+    },
+    "Card/Standard": {
+      "language": "javascript",
+      "component": "ClayCard",
+      "source": "src/styles/index.css",
+      "example": "<div className=\"clay-lvl-2 clay-card rounded-[22px] bg-surfaceContainerLowest p-4\">Konten</div>",
+      "tokens": {
+        "elevation": "Level 2",
+        "background": "linear-gradient(180deg, #ffffff 0%, #f7faf8 100%)",
+        "lipShelf": "0 3px 0 rgba(0, 0, 0, 0.08)",
+        "shadow": "0 8px 18px -2px rgba(0, 0, 0, 0.05)",
+        "insetSpecular": "inset 2.5px 2.5px 5px rgba(255, 255, 255, 0.98)"
+      }
+    },
+    "Card/Hero": {
+      "language": "javascript",
+      "component": "HeroCard",
+      "source": "src/styles/index.css",
+      "example": "<div className=\"clay-lvl-3 hero-card hero-primary rounded-[24px] p-5\">Ringkasan Saldo</div>",
+      "tokens": {
+        "elevation": "Level 3",
+        "background": "linear-gradient(180deg, #ffffff 0%, #f6f9f7 100%)",
+        "lipShelf": "0 4px 0 rgba(0, 0, 0, 0.12)",
+        "shadow": "0 14px 28px -4px rgba(0, 0, 0, 0.07)",
+        "insetSpecular": "inset 3px 3px 6px rgba(255, 255, 255, 1)"
+      }
+    },
+    "Card/SubMetric": {
+      "language": "javascript",
+      "component": "ClayCardSoft",
+      "source": "src/styles/index.css",
+      "example": "<div className=\"clay-lvl-1 clay-card-soft rounded-[16px] p-2.5 text-center\">Sub Metrik</div>",
+      "tokens": {
+        "elevation": "Level 1",
+        "background": "#ffffff",
+        "shadow": "0 2px 6px rgba(0, 0, 0, 0.03)",
+        "insetSpecular": "inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9)"
+      }
+    },
+    "Navigation/SidebarItem": {
+      "language": "javascript",
+      "component": "SidebarNavButton",
+      "source": "src/components/Shell.jsx",
+      "example": "<button className=\"sidebar-nav-btn is-active\"><span className=\"material-symbols-outlined\">monitoring</span>Statistik</button>",
+      "tokens": {
+        "elevation": "Level 4",
+        "activeBackground": "linear-gradient(180deg, #34d399 0%, #10b981 60%, #059669 100%)",
+        "activeLipShelf": "0 4px 0 #047857",
+        "activeTextColor": "#ffffff",
+        "inactiveTextColor": "#334155"
+      }
+    },
+    "Control/SegmentedTrack": {
+      "language": "javascript",
+      "component": "ClaySegmentedTrack",
+      "source": "src/styles/index.css",
+      "example": "<div className=\"clay-segmented-track flex items-center p-1\"><button className=\"clay-segment-item is-active\">Bulanan</button><button className=\"clay-segment-item\">Tahunan</button></div>",
+      "tokens": {
+        "trackBackground": "#f1f5f3",
+        "activeItemBackground": "#ffffff",
+        "activeItemLipShelf": "0 2px 0 rgba(0, 0, 0, 0.08)",
+        "activeItemColor": "#10b981"
+      }
+    },
+    "Control/FilterChip": {
+      "language": "javascript",
+      "component": "ClayChip",
+      "source": "src/styles/index.css",
+      "example": "<button className=\"clay-chip solid-primary text-white h-9 px-4 text-xs font-semibold\">Semua</button>",
+      "tokens": {
+        "activeBackground": "linear-gradient(180deg, #34d399 0%, #10b981 100%)",
+        "activeLipShelf": "0 2.5px 0 #047857",
+        "inactiveBackground": "#ffffff"
+      }
+    }
+  }
+}
