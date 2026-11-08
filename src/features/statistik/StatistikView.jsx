@@ -416,6 +416,17 @@ export default function StatistikView({ user }) {
   //   - Grid Y sangat tipis, sumbu X tanpa garis (fokus ke data)
   //   - Tooltip kaya dengan judul + nilai berformat
   // Semua tetap Chart.js (MIT, gratis) — tidak menambah dependensi berbayar.
+  const [isMobileScreen, setIsMobileScreen] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const chartRef = useRef(null);
   const chartInst = useRef(null);
   useEffect(() => {
@@ -484,9 +495,9 @@ export default function StatistikView({ user }) {
             hoverBackgroundColor: "rgba(54, 174, 124, 1.0)",
             borderRadius: 12,
             borderSkipped: false,
-            maxBarThickness: 16,
-            barPercentage: 0.8,
-            categoryPercentage: 0.7,
+            maxBarThickness: isMobileScreen ? 14 : 16,
+            barPercentage: isMobileScreen ? 0.9 : 0.8,
+            categoryPercentage: isMobileScreen ? 0.85 : 0.7,
             order: 2,
           },
           {
@@ -497,27 +508,31 @@ export default function StatistikView({ user }) {
             hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
             borderRadius: 12,
             borderSkipped: false,
-            maxBarThickness: 16,
-            barPercentage: 0.8,
-            categoryPercentage: 0.7,
+            maxBarThickness: isMobileScreen ? 14 : 16,
+            barPercentage: isMobileScreen ? 0.9 : 0.8,
+            categoryPercentage: isMobileScreen ? 0.85 : 0.7,
             order: 2,
           },
-          {
-            type: "line",
-            label: "Saldo",
-            data: tren.dataSaldo,
-            borderColor: "#187498",
-            backgroundColor: gradSaldo,
-            fill: true,
-            tension: 0.45,
-            borderWidth: 3,
-            pointRadius: 4.5,
-            pointHoverRadius: 7,
-            pointBackgroundColor: "#FFFFFF",
-            pointBorderColor: "#187498",
-            pointBorderWidth: 2.5,
-            order: 1,
-          },
+          ...(!isMobileScreen
+            ? [
+                {
+                  type: "line",
+                  label: "Saldo",
+                  data: tren.dataSaldo,
+                  borderColor: "#187498",
+                  backgroundColor: gradSaldo,
+                  fill: true,
+                  tension: 0.45,
+                  borderWidth: 3,
+                  pointRadius: 4.5,
+                  pointHoverRadius: 7,
+                  pointBackgroundColor: "#FFFFFF",
+                  pointBorderColor: "#187498",
+                  pointBorderWidth: 2.5,
+                  order: 1,
+                },
+              ]
+            : []),
         ],
       },
       options: {
@@ -599,6 +614,7 @@ export default function StatistikView({ user }) {
     tren.dataSaldo,
     mode,
     kursVer,
+    isMobileScreen,
   ]);
 
   function bukaDetailKategori(jenis, kategori) {
@@ -839,7 +855,7 @@ export default function StatistikView({ user }) {
             <div className="flex items-center gap-2 text-xs">
               <LegendDot color="bg-[#36AE7C]" label="Pemasukan" />
               <LegendDot color="bg-[#EB5353]" label="Pengeluaran" />
-              <LegendDot color="bg-[#187498]" label="Saldo" />
+              {!isMobileScreen && <LegendDot color="bg-[#187498]" label="Saldo" />}
             </div>
           </div>
           <div className="neu-well relative rounded-2xl p-3 h-64 md:h-72">
