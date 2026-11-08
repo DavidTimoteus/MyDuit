@@ -643,7 +643,7 @@ export default function Shell({ user }) {
           100dvh - bottom-nav dan TIDAK boleh scroll. Tampilan utang mobile
           memakai pager satu-kartu-per-halaman supaya semua muat. Di luar itu
           (dan di desktop) tetap bisa scroll normal. */}
-      <main className="flex-1 min-w-0 pb-24 md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
+      <main className="flex-1 min-w-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
         <div className="min-w-0 md:h-full md:overflow-y-auto md:pr-2 md:rounded-[28px]">
           <div
             ref={mainScrollRef}
@@ -780,7 +780,7 @@ export default function Shell({ user }) {
       )}
       <nav
         id="navShell"
-        className="fixed inset-x-0 bottom-0 z-50 h-[76px] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 h-[calc(76px+env(safe-area-inset-bottom,0px))] pb-[env(safe-area-inset-bottom,0px)] md:hidden"
       >
         <div className="clay-nav absolute inset-0" aria-hidden="true"></div>
         {/* Grid 5 kolom sama lebar mengunci FAB tepat di tengah. Sebelumnya

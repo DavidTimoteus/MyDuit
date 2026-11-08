@@ -3520,3 +3520,37 @@ button:active {
     inset 0 0 0 1px rgba(54, 174, 124, 0.20) !important;
   transform: scale(0.995);
 }
+
+/* ===== NEUMORPHIC RADIO BUTTON THEME ===== */
+[data-theme="neumorphism"] .clay-radio {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.8) !important;
+  box-shadow:
+    -2.5px -2.5px 6px rgba(255, 255, 255, 0.90),
+     2.5px  2.5px 6px rgba(13, 39, 80, 0.15) !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 9999px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+[data-theme="neumorphism"] .clay-radio:checked {
+  background-color: #E5E5E5 !important;
+  border: none !important;
+  box-shadow:
+    inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18),
+    inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90) !important;
+}
+[data-theme="neumorphism"] .clay-radio:checked::after {
+  content: "" !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 9999px !important;
+  background-color: #36AE7C !important;
+  box-shadow: 0 0 4px rgba(54, 174, 124, 0.5) !important;
+}
