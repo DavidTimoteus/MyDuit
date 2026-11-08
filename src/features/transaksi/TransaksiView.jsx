@@ -420,19 +420,19 @@ async function konfirmHapus() {
             <span>Memuat riwayat kas...</span>
           </div>
         ) : pageItems.length === 0 ? (
-          <div className="clay clay-card-soft mx-auto my-6 flex max-w-sm flex-col items-center justify-center rounded-[28px] p-8 text-center bg-surfaceContainerLowest">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="neu-card mx-auto my-6 flex max-w-sm flex-col items-center justify-center rounded-[28px] bg-[#E5E5E5] p-8 text-center">
+            <div className="neu-well mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#E5E5E5] text-[#36AE7C]">
               <span className="material-symbols-outlined text-3xl">receipt_long</span>
             </div>
-            <p className="text-sm font-bold text-slate-800">Belum Ada Transaksi</p>
-            <p className="mt-1 text-xs leading-relaxed text-textSecondary">
-              Data transaksi tidak ditemukan. Ketuk tombol <span className="font-bold text-primary">+</span> di navigasi bawah untuk mencatat transaksi baru.
+            <p className="text-base font-extrabold text-slate-800 tracking-tight">Belum Ada Transaksi</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">
+              Data transaksi tidak ditemukan. Ketuk tombol <span className="font-extrabold text-[#36AE7C]">+</span> di navigasi bawah untuk mencatat transaksi baru.
             </p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
+            <div className="mt-4 flex flex-wrap justify-center gap-2.5">
               <button
                 type="button"
                 onClick={() => bukaForm('add', { preset: 'pemasukan' })}
-                className="clay-btn clay-key-primary solid-primary btn-sm flex items-center gap-1 text-white"
+                className="clay-btn clay-key-primary solid-primary btn-sm flex items-center gap-1.5 text-white font-bold"
               >
                 <span className="material-symbols-outlined icon-xs">trending_up</span>
                 Catat Pemasukan
@@ -440,7 +440,7 @@ async function konfirmHapus() {
               <button
                 type="button"
                 onClick={() => bukaForm('add', { preset: 'pengeluaran' })}
-                className="clay-btn clay-key-danger solid-danger btn-sm flex items-center gap-1 text-white"
+                className="clay-btn clay-key-danger solid-danger btn-sm flex items-center gap-1.5 text-white font-bold"
               >
                 <span className="material-symbols-outlined icon-xs">trending_down</span>
                 Catat Pengeluaran

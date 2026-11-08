@@ -61,10 +61,10 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
               <ClaySelect value={String(tahun)} onChange={(v) => setTahun(Number(v))} options={tahunOps.map((v) => ({ value: String(v), label: String(v) }))} />
             </div>
           </div>
-          <div className="flex min-h-[84px] items-center justify-between gap-4 rounded-[20px] bg-surface px-4 py-3">
+          <div className="neu-inset flex min-h-[84px] items-center justify-between gap-4 rounded-2xl bg-[#E5E5E5] px-4 py-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-slate-800">Sertakan Rekomendasi AI</p>
-              <p className="mt-0.5 max-w-[250px] text-xs leading-snug text-textSecondary">
+              <p className="text-sm font-bold text-slate-800 tracking-tight">Sertakan Rekomendasi AI</p>
+              <p className="mt-0.5 max-w-[250px] text-xs leading-snug text-slate-500">
                 {pakaiAI
                   ? 'Pratinjau section AI di bagian akhir laporan.'
                   : 'Analisis & saran keuangan otomatis di bagian akhir laporan.'}
