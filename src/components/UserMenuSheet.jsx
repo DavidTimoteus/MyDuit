@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { THEMES, EVENT_THEME, temaAktif, setTema } from '../lib/theme.js'
 import InstallButton from './InstallButton.jsx'
 
 /**
@@ -32,6 +33,13 @@ export default function UserMenuSheet({
   negara,
 }) {
   const sheetRef = useRef(null)
+  const [tema, setTemaState] = useState(temaAktif)
+
+  useEffect(() => {
+    const onTheme = (e) => setTemaState(e.detail?.tema || temaAktif());
+    window.addEventListener(EVENT_THEME, onTheme);
+    return () => window.removeEventListener(EVENT_THEME, onTheme);
+  }, []);
   const btnRef = useRef(null)
 
   // Tutup saat tekan Escape — perilaku dasar dialog yang sering hilang.
@@ -101,6 +109,28 @@ export default function UserMenuSheet({
           <span className="flex-1">
             <span className="block">Backup Data</span>
             <span className="block text-[11px] font-semibold text-slate-500">Ekspor atau pulihkan data</span>
+          </span>
+        </button>
+
+                <button
+          type="button"
+          className={itemCls}
+          onClick={() => {
+            const next = tema === THEMES.NEUMORPHISM ? THEMES.CLAYMORPHISM : THEMES.NEUMORPHISM;
+            setTema(next);
+          }}
+        >
+          <span className={iconCls}>
+            <span className="material-symbols-outlined icon-md">palette</span>
+          </span>
+          <span className="flex-1">
+            <span className="block">Gaya Desain</span>
+            <span className="block text-[11px] font-semibold text-slate-500">
+              {tema === THEMES.NEUMORPHISM ? 'Neumorphism (Modern)' : 'Claymorphism (Klasik)'}
+            </span>
+          </span>
+          <span className="clay-chip px-2.5 py-1 text-[11px] font-extrabold text-primary">
+            Ganti
           </span>
         </button>
 

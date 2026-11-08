@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import InstallButton from "./InstallButton.jsx";
 import ModulSkeleton from "./ModulSkeleton.jsx";
 import UserMenuSheet from "./UserMenuSheet.jsx";
+import { THEMES, EVENT_THEME, temaAktif, setTema } from "../lib/theme.js";
 import { getFirebase } from "../lib/firebase.js";
 import {
   detectCountryInfo,
@@ -434,6 +435,13 @@ export default function Shell({ user }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [pdfOpen, setPdfOpen] = useState(false);
   const [lokasiOpen, setLokasiOpen] = useState(false);
+  const [tema, setTemaState] = useState(temaAktif);
+
+  useEffect(() => {
+    const onTheme = (e) => setTemaState(e.detail?.tema || temaAktif());
+    window.addEventListener(EVENT_THEME, onTheme);
+    return () => window.removeEventListener(EVENT_THEME, onTheme);
+  }, []);
   const [fabDial, setFabDial] = useState(false);
   const [filterLabel, setFilterLabel] = useState("Hari Ini");
   const aktif = TABS.find((t) => t.id === tab);
@@ -621,6 +629,19 @@ export default function Shell({ user }) {
                   {countryFlag} {countryNama} · {currencySymbol}
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = tema === THEMES.NEUMORPHISM ? THEMES.CLAYMORPHISM : THEMES.NEUMORPHISM;
+                  setTema(next);
+                }}
+                title={`Gaya Desain: ${tema === THEMES.NEUMORPHISM ? 'Neumorphism (Modern)' : 'Claymorphism (Klasik)'} - Klik untuk ganti`}
+                className="clay-chip flex h-9 w-9 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200"
+              >
+                <span className="material-symbols-outlined icon-md">
+                  palette
+                </span>
+              </button>
               <button
                 onClick={() => setBackupOpen(true)}
                 title="Backup"

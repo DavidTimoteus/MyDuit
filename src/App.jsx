@@ -7,6 +7,7 @@ import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
 import { isFirebaseConfigured } from './lib/firebase.js'
 import { migrasiNormalisasi } from './lib/db.js'
+import { initTema } from './lib/theme.js'
 
 function LayarSetup(error) {
   return (
@@ -20,6 +21,9 @@ function LayarSetup(error) {
 }
 
 export default function App() {
+  useEffect(() => {
+    initTema()
+  }, [])
   // Selesai = Firebase siap dimuat (selain status 'loading' Auth)
   const fbReady = isFirebaseConfigured()
   const { status, user, error } = useAuth()

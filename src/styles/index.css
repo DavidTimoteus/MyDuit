@@ -2370,3 +2370,252 @@ button:active {
   font-size: 11px;
   font-weight: 800;
 }
+
+
+/* ==========================================================================
+   GAYA NEUMORPHISM MODERN (PURE NEUMORPHISM SOFT UI #E5E5E5)
+   --------------------------------------------------------------------------
+   Diterapkan saat documentElement memiliki atribut [data-theme="neumorphism"].
+   Mengimplementasikan spesifikasi kanvas FigCraft:
+     - Latar permukaan kanvas: #E5E5E5
+     - Palet 4-warna terstandarisasi:
+         Primary/Pemasukan:  #36AE7C (Mint Teal)
+         Danger/Pengeluaran: #EB5353 (Coral Red)
+         Blue/Pindah Saldo:  #187498 (Ocean Blue)
+         Warning/Streak:     #F9D923 (Sunny Yellow)
+     - Dual-directional soft lighting:
+         Raised: -8px -8px 20px rgba(255,255,255,0.75), 8px 8px 20px rgba(0,0,0,0.16)
+         Sunken: inset -4px -4px 8px rgba(255,255,255,0.80), inset 4px 4px 8px rgba(13,39,80,0.16)
+         Embossed Text: -3px -3px 6px rgba(255,255,255,0.95), 4px 4px 8px rgba(13,39,80,0.24)
+   ========================================================================== */
+
+[data-theme="neumorphism"] {
+  --clay-bg: #E5E5E5;
+  --color-surface: #E5E5E5;
+  --color-surfaceContainerLowest: #E5E5E5;
+  --color-surfaceContainerLow: #E5E5E5;
+
+  /* Standardized 4-Color Tokens */
+  --color-primary: #36AE7C;
+  --color-primary-dark: #2B8C63;
+  --color-primary-light: #4EC593;
+  --color-income: #36AE7C;
+  --color-incomeText: #26805B;
+
+  --color-danger: #EB5353;
+  --color-danger-light: #FDEDED;
+  --color-expense: #EB5353;
+  --color-expenseText: #C73838;
+
+  --color-info: #187498;
+  --color-info-light: #E2F1F8;
+
+  --color-warning: #D4AF0D;
+  --color-warning-light: #FEF9D9;
+
+  /* RGB Triples for alpha calculations */
+  --clay-h-primary: 54, 174, 124;
+  --clay-h-danger: 235, 83, 83;
+  --clay-h-amber: 249, 217, 35;
+  --clay-h-neutral: 140, 150, 165;
+  --clay-h-blue: 24, 116, 152;
+  --clay-h-info: 24, 116, 152;
+}
+
+[data-theme="neumorphism"] body {
+  background-color: #E5E5E5 !important;
+  color: #1E293B;
+}
+
+/* Card & Sheet Neumorphic */
+[data-theme="neumorphism"] .clay,
+[data-theme="neumorphism"] .clay-card,
+[data-theme="neumorphism"] .clay-lvl-2,
+[data-theme="neumorphism"] .clay-lvl-3 {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow:
+    -8px -8px 20px rgba(255, 255, 255, 0.75),
+     8px  8px 20px rgba(0, 0, 0, 0.16) !important;
+}
+
+/* Modals & Bottom Sheets */
+[data-theme="neumorphism"] .clay-sheet,
+[data-theme="neumorphism"] .mutasi-sheet {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow:
+    -14px -14px 32px rgba(255, 255, 255, 0.80),
+     14px  14px 32px rgba(0, 0, 0, 0.22) !important;
+}
+
+/* Sub-card & Soft Surface (Level 1) */
+[data-theme="neumorphism"] .clay-lvl-1,
+[data-theme="neumorphism"] .clay-card-soft {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.75),
+     5px  5px 12px rgba(0, 0, 0, 0.13) !important;
+}
+
+/* Neumorphic Buttons */
+[data-theme="neumorphism"] .clay-btn {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #1E293B !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.80),
+     5px  5px 12px rgba(0, 0, 0, 0.15) !important;
+}
+[data-theme="neumorphism"] .clay-btn:active,
+[data-theme="neumorphism"] .clay-btn.is-active,
+[data-theme="neumorphism"] .btn-pressed {
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.80),
+    inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
+  transform: translateY(1px) !important;
+}
+
+/* Neumorphic Chips & Filter Pills */
+[data-theme="neumorphism"] .clay-chip {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #334155 !important;
+  box-shadow:
+    -4px -4px 10px rgba(255, 255, 255, 0.80),
+     4px  4px 10px rgba(0, 0, 0, 0.14) !important;
+}
+[data-theme="neumorphism"] .clay-chip:active,
+[data-theme="neumorphism"] .clay-chip.is-active {
+  box-shadow:
+    inset -3px -3px 6px rgba(255, 255, 255, 0.80),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+}
+
+/* Sunken Form Fields */
+[data-theme="neumorphism"] .clay-field,
+[data-theme="neumorphism"] .clay-input,
+[data-theme="neumorphism"] .field-md,
+[data-theme="neumorphism"] .field-lg,
+[data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme="neumorphism"] select,
+[data-theme="neumorphism"] textarea {
+  background-color: #E5E5E5 !important;
+  border: none !important;
+  color: #1E293B !important;
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.80),
+    inset  4px  4px 8px rgba(13, 39, 80, 0.16) !important;
+}
+[data-theme="neumorphism"] input:focus,
+[data-theme="neumorphism"] select:focus,
+[data-theme="neumorphism"] textarea:focus {
+  outline: none !important;
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.90),
+    inset  4px  4px 8px rgba(54, 174, 124, 0.35) !important;
+}
+
+/* Sidebar Nav Buttons */
+[data-theme="neumorphism"] .sidebar-nav-btn {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #334155 !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.80),
+     5px  5px 12px rgba(0, 0, 0, 0.14) !important;
+}
+[data-theme="neumorphism"] .sidebar-nav-btn.is-active {
+  background-color: #E5E5E5 !important;
+  background-image: none !important;
+  border: none !important;
+  color: #36AE7C !important;
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.85),
+    inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
+}
+
+/* Mobile Bottom Dock */
+[data-theme="neumorphism"] .bottom-bar,
+[data-theme="neumorphism"] nav.fixed.bottom-0 {
+  background-color: #E5E5E5 !important;
+  border-top: none !important;
+  box-shadow:
+    -8px -8px 20px rgba(255, 255, 255, 0.80),
+     8px  8px 20px rgba(0, 0, 0, 0.16) !important;
+}
+[data-theme="neumorphism"] .nav-icon-wrap.is-active {
+  background-color: #E5E5E5 !important;
+  color: #36AE7C !important;
+  box-shadow:
+    inset -3px -3px 6px rgba(255, 255, 255, 0.85),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+}
+
+/* Central Dome FAB */
+[data-theme="neumorphism"] .clay-fab {
+  background-color: #36AE7C !important;
+  background-image: linear-gradient(145deg, #42C28D 0%, #2E976B 100%) !important;
+  border: 3.5px solid rgba(255, 255, 255, 0.70) !important;
+  box-shadow:
+    -6px -6px 14px rgba(255, 255, 255, 0.60),
+     7px  7px 18px rgba(46, 151, 107, 0.40) !important;
+}
+[data-theme="neumorphism"] .clay-fab:active {
+  box-shadow:
+    inset -2px -2px 5px rgba(255, 255, 255, 0.40),
+    inset  3px  3px 7px rgba(0, 0, 0, 0.30) !important;
+  transform: scale(0.96) !important;
+}
+
+/* Coin-well icon tiles */
+[data-theme="neumorphism"] .clay-icon-tile {
+  background-color: #E5E5E5 !important;
+  border: none !important;
+  box-shadow:
+    -3px -3px 7px rgba(255, 255, 255, 0.80),
+     3px  3px 7px rgba(0, 0, 0, 0.14) !important;
+}
+
+/* 3D Embossed Typography for Headers */
+[data-theme="neumorphism"] .text-embossed,
+[data-theme="neumorphism"] .brand-title-embossed,
+[data-theme="neumorphism"] .headline-saldo {
+  color: #E5E5E5 !important;
+  text-shadow:
+    -3px -3px 6px rgba(255, 255, 255, 0.95),
+     4px  4px 8px rgba(13, 39, 80, 0.24) !important;
+}
+
+/* Color Variants on Neumorphic Action Buttons */
+[data-theme="neumorphism"] .clay-btn.clay-key-primary,
+[data-theme="neumorphism"] .btn-primary {
+  background-color: #36AE7C !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.70),
+     6px  6px 14px rgba(43, 140, 99, 0.40) !important;
+}
+[data-theme="neumorphism"] .clay-btn.clay-key-danger,
+[data-theme="neumorphism"] .btn-danger {
+  background-color: #EB5353 !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.70),
+     6px  6px 14px rgba(235, 83, 83, 0.38) !important;
+}
+[data-theme="neumorphism"] .clay-btn.clay-key-blue,
+[data-theme="neumorphism"] .btn-blue {
+  background-color: #187498 !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    -5px -5px 12px rgba(255, 255, 255, 0.70),
+     6px  6px 14px rgba(24, 116, 152, 0.38) !important;
+}
