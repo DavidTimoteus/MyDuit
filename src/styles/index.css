@@ -636,6 +636,58 @@ button:active {
     inset 0 1.5px 3px rgba(0, 0, 0, 0.12);
 }
 
+/* ===== SIDEBAR NAV BUTTON (Anti-Ghost Button & 3D Tactile Standard) ===== */
+.sidebar-nav-btn {
+  border-radius: var(--clay-r-button);
+  background-color: var(--color-surfaceContainerLowest);
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7f5 100%);
+  color: #334155;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 3.5px 0 var(--clay-lip-btn-neutral),
+    0 6px 14px rgba(0, 0, 0, 0.04),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.95),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.04);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring),
+    background var(--motion-dur-fast) var(--motion-ease-spring);
+}
+.sidebar-nav-btn:hover {
+  transform: translateY(-1px);
+  color: #0f172a;
+  box-shadow:
+    0 4.5px 0 var(--clay-lip-btn-neutral),
+    0 8px 18px rgba(0, 0, 0, 0.06),
+    inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98);
+}
+.sidebar-nav-btn.is-active {
+  background: linear-gradient(180deg, #3d8b67 0%, #2d6a4f 60%, #1b4332 100%) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow:
+    0 4px 0 #143527,
+    0 10px 20px rgba(45, 106, 79, 0.38),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.45),
+    inset 0 -1.5px 2px rgba(0, 0, 0, 0.30) !important;
+  transform: translateY(0);
+}
+.sidebar-nav-btn.is-active:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 5px 0 #143527,
+    0 12px 24px rgba(45, 106, 79, 0.42),
+    inset 0 1.5px 2px rgba(255, 255, 255, 0.50) !important;
+}
+.sidebar-nav-btn.is-active:active {
+  transform: translateY(2.5px);
+  box-shadow:
+    0 1px 0 #143527,
+    0 3px 6px rgba(45, 106, 79, 0.25),
+    inset 0 2px 4px rgba(0, 0, 0, 0.35) !important;
+}
+
 /* ===== BUTTON CETAK PDF (referensi Image 2) =====
    Lingkaran putih kecil, ikon merah, shadow lembut. Hit area 36x36px tetap
    memenuhi target kontrol web; ikon visual 18px agar tidak dominan. */
@@ -872,10 +924,11 @@ button:active {
     -2px -2px 5px rgba(255, 255, 255, 0.9);
 }
 .nav-icon-wrap.nav-icon-active {
-  background: #e2e8f0;
+  background: rgba(45, 106, 79, 0.12);
+  color: var(--color-primary);
   box-shadow:
-    inset 2px 2px 5px rgba(0, 0, 0, 0.12),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.85);
+    inset 1.5px 1.5px 3.5px rgba(45, 106, 79, 0.22),
+    inset -1.5px -1.5px 3.5px rgba(255, 255, 255, 0.95);
 }
 /* Layar sangat sempit (<=360px): rapatkan sedikit agar 4 tab + FAB muat */
 @media (max-width: 360px) {
