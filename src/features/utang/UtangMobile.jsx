@@ -1,10 +1,11 @@
+import { useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 
 // ============================================================================
 // TAMPILAN UTANG & CICILAN — MOBILE
 // ----------------------------------------------------------------------------
-// Vertikal scrollable card list murni mengikuti standar Neumorphism #E5E5E5
-// dan konsisten dengan seluruh tab mobile lainnya (Transaksi, Rekening, Budget).
+// Paginated card view (1 kartu per halaman) dengan dukungan gestur swipe
+// horizontal dan kontrol pager Neumorphism taktil (#E5E5E5).
 // ============================================================================
 
 const FILTERS = [
@@ -241,23 +242,60 @@ export default function UtangMobile({
   onEdit,
   onHapus,
 }) {
+  const [halaman, setHalaman] = useState(0)
+
+  // Reset ke halaman 0 bila filter berubah
+  useEffect(() => {
+    setHalaman(0)
+  }, [filter])
+
+  const total = terurut.length
+  const idx = Math.min(Math.max(0, halaman), Math.max(0, total - 1))
+  const kartuAktif = terurut[idx]
+
+  function pindah(baru) {
+    if (baru < 0 || baru >= total) return
+    setHalaman(baru)
+  }
+
+  const touchStartX = useRef(0)
+  const touchStartY = useRef(0)
+
+  function handleTouchStart(e) {
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function handleTouchEnd(e) {
+    const diffX = e.changedTouches[0].clientX - touchStartX.current
+    const diffY = e.changedTouches[0].clientY - touchStartY.current
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+      if (diffX < 0) {
+        pindah(idx + 1)
+      } else {
+        pindah(idx - 1)
+      }
+    }
+  }
+
   return (
     <div className="flex flex-col pb-28 pt-2 md:hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl neu-well text-[#EB5353] bg-[#E5E5E5]">
-            <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>handshake</span>
+      {/* Header mobile (md:hidden) — logo handshake + judul embossed */}
+      <header className="pb-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="clay-icon-tile clay-key-danger solid-danger flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
+              <span className="material-symbols-outlined icon-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                handshake
+              </span>
+            </div>
+            <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Utang &amp; Cicilan</h2>
           </div>
-          <div>
-            <h2 className="text-lg font-black tracking-tight text-slate-800">Utang &amp; Cicilan</h2>
-            <p className="text-[11px] font-bold text-slate-500">Kelola pinjaman &amp; tagihan</p>
-          </div>
+          <span className="neu-inset rounded-full px-3 py-1 text-xs font-bold text-[#EB5353] bg-[#E5E5E5]">
+            {ringkasan.aktifCount} aktif
+          </span>
         </div>
-        <span className="neu-inset rounded-full px-3 py-1 text-xs font-bold text-[#EB5353] bg-[#E5E5E5]">
-          {ringkasan.aktifCount} aktif
-        </span>
-      </div>
+      </header>
 
       {/* 3 Metric Cards */}
       <div className="grid grid-cols-3 gap-2 my-1">
@@ -320,9 +358,9 @@ export default function UtangMobile({
         })}
       </div>
 
-      {/* Card List */}
-      <div className="space-y-3 pt-1">
-        {terurut.length === 0 ? (
+      {/* Card Display with Pagination */}
+      {total === 0 ? (
+        <div className="pt-2">
           <div className="neu-card rounded-2xl bg-[#E5E5E5] flex flex-col items-center justify-center p-8 text-center mt-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl neu-inset text-slate-400 mb-2">
               <span className="material-symbols-outlined text-3xl">payments</span>
@@ -330,19 +368,75 @@ export default function UtangMobile({
             <p className="text-sm font-extrabold text-slate-800">Belum ada utang/cicilan</p>
             <p className="mt-1 text-xs text-slate-500">Tekan tombol + untuk mencatat utang atau cicilan baru.</p>
           </div>
-        ) : (
-          terurut.map((t) => (
+        </div>
+      ) : (
+        <div className="pt-1 flex flex-col gap-3">
+          <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'pan-y' }}
+            className="w-full transition-all duration-200"
+          >
             <KartuUtangMobile
-              key={t.id}
-              t={t}
-              onBayar={() => onBayar(t)}
-              onLunasin={() => onLunasin(t)}
-              onEdit={() => onEdit(t)}
-              onHapus={() => onHapus(t)}
+              key={kartuAktif.id}
+              t={kartuAktif}
+              onBayar={() => onBayar(kartuAktif)}
+              onLunasin={() => onLunasin(kartuAktif)}
+              onEdit={() => onEdit(kartuAktif)}
+              onHapus={() => onHapus(kartuAktif)}
             />
-          ))
-        )}
-      </div>
+          </div>
+
+          {/* Pager Bar Neumorphic */}
+          {total > 1 && (
+            <div className="flex items-center justify-between gap-3 pt-1 px-1">
+              <button
+                type="button"
+                onClick={() => pindah(idx - 1)}
+                disabled={idx === 0}
+                aria-label="Kartu sebelumnya"
+                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <span className="material-symbols-outlined icon-md">chevron_left</span>
+              </button>
+
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="neu-inset rounded-full px-3.5 py-1 font-mono text-xs font-bold text-slate-700 bg-[#E5E5E5] tabular-nums">
+                  {idx + 1} dari {total}
+                </span>
+                {total <= 6 && (
+                  <div className="flex items-center gap-1.5" role="tablist" aria-label="Pilih kartu">
+                    {terurut.map((item, i) => (
+                      <button
+                        key={item.id || i}
+                        type="button"
+                        onClick={() => pindah(i)}
+                        aria-label={`Ke kartu ${i + 1}`}
+                        aria-current={i === idx ? 'page' : undefined}
+                        className={`transition-all duration-200 ${
+                          i === idx
+                            ? 'h-1.5 w-5 rounded-full bg-[#EB5353] shadow-sm'
+                            : 'h-1.5 w-1.5 rounded-full bg-slate-400/40'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => pindah(idx + 1)}
+                disabled={idx === total - 1}
+                aria-label="Kartu berikutnya"
+                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <span className="material-symbols-outlined icon-md">chevron_right</span>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
