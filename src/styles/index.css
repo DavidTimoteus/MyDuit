@@ -305,15 +305,17 @@ button:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #1b4332 0%, #2d6a4f 55%, #40916c 100%);
+  background-color: #E5E5E5;
+  background: #E5E5E5;
+  color: #0F172A;
   will-change: opacity, transform;
-  transition: opacity 450ms cubic-bezier(0.16, 1, 0.3, 1), transform 450ms cubic-bezier(0.16, 1, 0.3, 1), visibility 450ms linear;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1), visibility 350ms linear;
   opacity: 1;
   visibility: visible;
 }
 .splash-screen.is-leaving {
   opacity: 0;
-  transform: scale(1.04);
+  transform: scale(1.02);
   visibility: hidden;
   pointer-events: none;
 }
@@ -328,14 +330,17 @@ button:active {
 .splash-logo {
   width: 80px;
   height: 80px;
-  border-radius: 24px;
+  border-radius: 28px;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-  animation: splash-logo-pop 0.6s var(--motion-ease-spring) both;
+  background-color: #E5E5E5;
+  background: #E5E5E5;
+  box-shadow:
+    -8px -8px 20px rgba(255, 255, 255, 0.85),
+     8px  8px 20px rgba(0, 0, 0, 0.16);
+  animation: splash-logo-pop 0.5s var(--motion-ease-spring) both;
 }
 .splash-logo img {
   width: 80px;
@@ -504,7 +509,16 @@ button:active {
 
 /* ===== MODAL BACKDROP & CHOREOGRAPHY ===== */
 .modal-backdrop-wrap {
-  animation: modalBackdropFadeIn var(--motion-dur-normal) var(--motion-ease-spring) both;
+  animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity;
+}
+
+.modal-backdrop-wrap .clay-sheet,
+.modal-backdrop-wrap .neu-card,
+.modal-backdrop-wrap .neu-sheet {
+  animation: modalCardIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform-origin: center center;
 }
 
 /* ===== SHEET / MODAL (Level 5 Elevation - Product UI Styleguide) ===== */
@@ -1536,11 +1550,39 @@ button:active {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ===== SWIPE & PAGINATION TRANSITION ANIMATIONS ===== */
+/* ===== MODAL & ACCORDION SMOOTH TRANSITION ANIMATIONS ===== */
+@keyframes modalCardIn {
+  0% {
+    opacity: 0;
+    transform: scale3d(0.96, 0.96, 1) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale3d(1, 1, 1) translateY(0);
+  }
+}
+
+@keyframes accordionDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.accordion-slide-down {
+  animation: accordionDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+/* ===== SWIPE & PAGINATION TRANSITION ANIMATIONS (ULTRA SMOOTH) ===== */
 @keyframes pageSlideInRight {
   0% {
-    opacity: 0.15;
-    transform: translate3d(28px, 0, 0);
+    opacity: 0.08;
+    transform: translate3d(14px, 0, 0);
   }
   100% {
     opacity: 1;
@@ -1550,8 +1592,8 @@ button:active {
 
 @keyframes pageSlideInLeft {
   0% {
-    opacity: 0.15;
-    transform: translate3d(-28px, 0, 0);
+    opacity: 0.08;
+    transform: translate3d(-14px, 0, 0);
   }
   100% {
     opacity: 1;
@@ -1560,12 +1602,12 @@ button:active {
 }
 
 .page-transition-next {
-  animation: pageSlideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: pageSlideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
 }
 
 .page-transition-prev {
-  animation: pageSlideInLeft 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: pageSlideInLeft 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: transform, opacity;
 }
 
@@ -2480,8 +2522,8 @@ button:active {
 [data-theme="neumorphism"] .field-md,
 [data-theme="neumorphism"] .field-lg,
 [data-theme="neumorphism"] .clay-segmented-track,
-[data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.flatpickr-input):not(.clay-date-picker-field),
-[data-theme="neumorphism"] select,
+[data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.flatpickr-input):not(.clay-date-picker-field):not(.bg-transparent):not(.numInput):not(.cur-year),
+[data-theme="neumorphism"] select:not(.flatpickr-monthDropdown-months),
 [data-theme="neumorphism"] textarea {
   background-color: #E5E5E5 !important;
   border: none !important;
@@ -2500,8 +2542,8 @@ button:active {
     inset  3px  3px 7px rgba(13, 39, 80, 0.14) !important;
 }
 
-[data-theme="neumorphism"] input:focus:not(.flatpickr-input):not(.clay-date-picker-field),
-[data-theme="neumorphism"] input:focus-visible:not(.flatpickr-input):not(.clay-date-picker-field),
+[data-theme="neumorphism"] input:focus:not(.flatpickr-input):not(.clay-date-picker-field):not(.bg-transparent):not(.numInput):not(.cur-year),
+[data-theme="neumorphism"] input:focus-visible:not(.flatpickr-input):not(.clay-date-picker-field):not(.bg-transparent):not(.numInput):not(.cur-year),
 [data-theme="neumorphism"] select:focus,
 [data-theme="neumorphism"] select:focus-visible,
 [data-theme="neumorphism"] textarea:focus,
@@ -3072,9 +3114,24 @@ button:active {
     border: 1px solid rgba(255, 255, 255, 0.70) !important;
     border-radius: 20px !important;
     padding: 6px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain !important;
+    touch-action: pan-y !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(166, 171, 189, 0.45) transparent !important;
     box-shadow:
       8px 8px 24px rgba(166, 171, 189, 0.60),
       -8px -8px 24px rgba(255, 255, 255, 0.90) !important;
+  }
+  [data-theme="neumorphism"] .clay-select-list::-webkit-scrollbar {
+    width: 5px !important;
+  }
+  [data-theme="neumorphism"] .clay-select-list::-webkit-scrollbar-track {
+    background: transparent !important;
+    margin: 8px 0 !important;
   }
   [data-theme="neumorphism"] .clay-select-list::-webkit-scrollbar-thumb {
     background: rgba(166, 171, 189, 0.5) !important;
@@ -3105,11 +3162,21 @@ button:active {
       -1.5px -1.5px 4px rgba(255, 255, 255, 0.75) !important;
   }
 
-  /* ===== DATE PICKER INPUT SEAMLESS TRANSPARENCY ===== */
+  /* ===== DATE PICKER & NESTED CAPSULE INPUT SEAMLESS TRANSPARENCY ===== */
   [data-theme="neumorphism"] .flatpickr-input,
   [data-theme="neumorphism"] input.flatpickr-input,
   [data-theme="neumorphism"] input.clay-date-picker-field,
   [data-theme="neumorphism"] .clay-date-picker-field,
+  [data-theme="neumorphism"] .clay-field input,
+  [data-theme="neumorphism"] .clay-input input,
+  [data-theme="neumorphism"] .neu-inset input,
+  [data-theme="neumorphism"] .neu-well input,
+  [data-theme="neumorphism"] input.bg-transparent,
+  [data-theme="neumorphism"] .bg-transparent input,
+  [data-theme="neumorphism"] .flatpickr-current-month select,
+  [data-theme="neumorphism"] .flatpickr-current-month input,
+  [data-theme="neumorphism"] .flatpickr-current-month .numInputWrapper input,
+  [data-theme="neumorphism"] .flatpickr-monthDropdown-months,
   .flatpickr-input,
   input.flatpickr-input,
   .clay-date-picker-field {
@@ -3123,13 +3190,24 @@ button:active {
     flex: 1 1 0% !important;
     min-width: 0 !important;
     font-family: inherit !important;
-    font-size: 14px !important;
-    font-weight: 700 !important;
-    color: #1E293B !important;
+    font-size: inherit !important;
+    color: inherit !important;
     padding: 0 !important;
     margin: 0 !important;
-    cursor: pointer !important;
-    caret-color: transparent !important;
     -webkit-appearance: none !important;
     appearance: none !important;
+  }
+
+  [data-theme="neumorphism"] .clay-field input:focus,
+  [data-theme="neumorphism"] .clay-input input:focus,
+  [data-theme="neumorphism"] .neu-inset input:focus,
+  [data-theme="neumorphism"] .neu-well input:focus,
+  [data-theme="neumorphism"] input.bg-transparent:focus,
+  [data-theme="neumorphism"] .flatpickr-current-month select:focus,
+  [data-theme="neumorphism"] .flatpickr-current-month input:focus,
+  [data-theme="neumorphism"] .flatpickr-monthDropdown-months:focus {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
   }
