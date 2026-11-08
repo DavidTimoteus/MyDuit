@@ -124,5 +124,26 @@ cek('utang: filter aktif umum memakai palet tenang (danger hanya untuk terlambat
 const bebasLingkaranSemu = !fileCss.includes('.hero-card::before') && !fileCss.includes('radial-gradient(circle at 100% 0%')
 cek('css: kartu bebas dari ornamen semu lingkaran (.hero-card::before dan radial-gradient kotor)', bebasLingkaranSemu)
 
+// 22. Standardisasi Kanvas Netral Seluruh Aside Panel (Anti-Chameleon Aside Wrappers)
+const fileRightPanel = readFileSync(join(root, 'src/features/transaksi/RightPanel.jsx'), 'utf8')
+const fileStatistikPanel = readFileSync(join(root, 'src/features/statistik/StatistikAsidePanel.jsx'), 'utf8')
+const fileBudgetPanel = readFileSync(join(root, 'src/features/budget/BudgetAsidePanel.jsx'), 'utf8')
+const fileUtangPanel = readFileSync(join(root, 'src/features/utang/UtangAsidePanel.jsx'), 'utf8')
+
+const asidePanelSemuaNetral =
+  fileRightPanel.includes('clay clay-key-neutral') &&
+  fileStatistikPanel.includes('clay clay-key-neutral') &&
+  fileBudgetPanel.includes('clay clay-key-neutral') &&
+  fileUtangPanel.includes('clay clay-key-neutral')
+cek('aside: seluruh wrapper panel samping memakai kanvas clay netral (clay-key-neutral)', asidePanelSemuaNetral)
+
+// 23. Larangan Kartu Slab Monolitik Gelap (solid-* pada clay-card) di Seluruh Aside Panel
+const bebasSolidCards =
+  !fileRightPanel.includes('clay-card clay-key-primary solid-primary') &&
+  !fileBudgetPanel.includes('clay-card clay-key-blue solid-blue') &&
+  !fileUtangPanel.includes('clay-card clay-key-primary solid-primary') &&
+  !fileStatistikPanel.includes('clay-card clay-key-danger')
+cek('aside: seluruh kartu informasi aside panel bebas dari slab monolitik gelap (solid-* pada clay-card)', bebasSolidCards)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)

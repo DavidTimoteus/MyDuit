@@ -1,6 +1,6 @@
 # DESIGN: MyDuit PWA Design System (Claymorphism & Responsive Engine)
 
-> **Status:** Authoritative Specification (Rev. 3 - Claymorphism Tactile Standard)  
+> **Status:** Authoritative Specification (Rev. 4 - Claymorphism Tactile Standard & Anti-Overcrowding Architecture)  
 > **Filosofi Visual:** Tactile 3D Claymorphism (Soft Inset Highlights, Organic Radius, 3D Extruded Lip Shelf, Depth-Driven Interaction)  
 > **Aksesibilitas:** WCAG 2.1 AA Compliant (Kontras Teks >= 4.5:1, Target Sentuh Mobile >= 44x44px)
 
@@ -34,6 +34,10 @@
   - Text Primary: `#1e293b` (Slate-800, kontras > 10:1)
   - Text Secondary: `#475569` (Slate-600, kontras > 5:1)
 
+### C. Larangan Ornamen Semu & Lingkaran Blurry (Anti-Fake Circle Directive)
+- **Prinsip Fisika Clay:** Permukaan kartu clay adalah matte solid fisik murni dengan highlight specular tepi (inset shadow).
+- **Larangan Keras:** Dilarang menempelkan pseudo-element `::before`/`::after` berupa bulatan gradien radial blur di sudut kartu (seperti `.hero-card::before`). Efek tersebut merusak ilusi taktilitas clay 3D dan tampak seperti noda/kotoran visual yang menurunkan estetika aplikasi.
+
 ---
 
 ## 2. Kontrak Komponen 3D Claymorphism
@@ -45,13 +49,23 @@
   - Status Aktif: Menggunakan modifier `.is-active` yang mengunci `background: linear-gradient(180deg, #3d8b67 0%, #2d6a4f 60%, #1b4332 100%) !important;` dan `color: #ffffff !important;` dengan shelf lip `#143527` 4px dan bayangan 3D `0 10px 20px rgba(45, 106, 79, 0.38)`.
   - **Larangan Keras:** Dilarang menggunakan kombinasi kelas utility `clay-btn bg-primary text-white` atau `bg-blue-600 text-white` pada sidebar nav karena utility `bg-*` akan tertimpa gradien `.clay-btn`.
 
-### B. Hierarki Tombol & Aksi Cepat (*Panel Action Hierarchy*)
+### B. Arsitektur Aside Panel & Anti-Penumpukan Konten (*Anti-Overcrowding Standard*)
+- **Kanvas Netral:** Seluruh kontainer aside panel (`RightPanel`, `StatistikAsidePanel`, `BudgetAsidePanel`, `UtangAsidePanel`) WAJIB menggunakan pembungkus netral `clay clay-key-neutral bg-surfaceContainerLowest`. DILARANG memberi glow berwarna (hijau/merah/biru) pada bayangan kontainer luar panel.
+- **Konsolidasi Kartu (Maksimal 2-3 Kartu per Panel):**
+  - Dilarang menumpuk 7+ kartu kecil secara vertikal yang menyebabkan tabrakan bayangan (*shadow collision*), teks terpotong, dan kelelahan visual (*visual clutter*).
+  - Satukan metrik terkait ke dalam satu kartu terpadu dengan pemisah garis halus (`h-px bg-slate-100`).
+  - Metrik sekunder disajikan dalam baris kompak 3-kolom (`grid grid-cols-3 gap-2` dengan `.clay-card-soft`), bukan kartu individual bertingkat.
+- **Netralitas Permukaan Kartu:**
+  - Seluruh kartu informasi wajib menggunakan permukaan netral off-white (`bg-surfaceContainerLowest`, `#ffffff`) dengan bayangan elevasi standar.
+  - Dilarang membuat kartu slab monolitik gelap (`solid-primary`, `solid-blue`, `solid-danger` pada `.clay-card`) yang menyerupai tombol raksasa dan merusak ritme visual. Warna semantik HANYA digunakan pada tombol aksi, chip, badge status, dan ikon tile.
+
+### C. Hierarki Tombol & Aksi Cepat (*Panel Action Hierarchy*)
 - **Prinsip:** 1 Aksi Utama (*Tactile Primary Clay*) + Aksi Sekunder (*Neutral Soft Clay*).
 - **Larangan Penumpukan Permen (Traffic Light Candy Stack):** Dilarang menumpuk 3 tombol solid jenuh tinggi (Hijau, Merah, Biru) secara berdampingan.
   - Aksi utama (misal "Tambah Transaksi" / "Pemasukan"): Gunakan `.clay-btn.solid-primary`.
   - Aksi sekunder (misal "Tambah Pengeluaran" & "Pindah Saldo"): Gunakan `.clay-btn.clay-btn-secondary` dengan teks slate dan ikon berwarna tajam.
 
-### C. Semantik Filter Chip & Tab
+### D. Semantik Filter Chip & Tab
 - **Status Aktif Standar ("Semua", "Aktif", "Lunas"):** Menggunakan pil zamrud brand primer (`.clay-chip.solid-primary`), bukan merah darurat.
 - **Status Bahaya ("Terlambat"):** HANYA filter terlambat atau peringatan jatuh tempo yang diizinkan menggunakan `.clay-chip-active-danger`.
 
