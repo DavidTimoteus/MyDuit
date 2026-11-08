@@ -120,5 +120,9 @@ const fileUtangView = readFileSync(join(root, 'src/features/utang/UtangView.jsx'
 const filterSemuaTenang = !fileUtangView.includes("filter === f.id ? 'clay-chip-active-danger'")
 cek('utang: filter aktif umum memakai palet tenang (danger hanya untuk terlambat)', filterSemuaTenang)
 
+// 21. Larangan ornamen semu lingkaran / noda sudut pada kartu hero (.hero-card::before)
+const bebasLingkaranSemu = !fileCss.includes('.hero-card::before') && !fileCss.includes('radial-gradient(circle at 100% 0%')
+cek('css: kartu bebas dari ornamen semu lingkaran (.hero-card::before dan radial-gradient kotor)', bebasLingkaranSemu)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
