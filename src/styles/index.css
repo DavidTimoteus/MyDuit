@@ -44,7 +44,7 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Hallmark Floor: Focus-visible instan untuk seluruh elemen interaktif */
+/* Hallmark Floor: Focus-visible instan dengan cincin neon (Product UI Styleguide #00CFCC) */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -53,8 +53,9 @@ textarea:focus-visible,
 .clay-btn:focus-visible,
 .clay-chip:focus-visible,
 .clay-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid #00CFCC;
   outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(0, 207, 204, 0.45) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -109,7 +110,19 @@ textarea:focus-visible,
   --clay-h-blue: 31, 84, 200;
   --clay-h-info: 29, 78, 216;
 
-  --clay-bg: #f8faf9;
+  /* Kanvas tanah liat hangat (Product UI Styleguide) */
+  --clay-bg: #f0f3f0;
+
+  /* ===== 3D CLAYMORPHISM EXTRUSION TOKENS (Product UI Styleguide) ===== */
+  --clay-lip-btn-primary: #1b4332;
+  --clay-lip-btn-danger:  #991b1b;
+  --clay-lip-btn-blue:    #1e3a8a;
+  --clay-lip-btn-neutral: #cbd5e1;
+  --clay-lip-card:        rgba(195, 208, 200, 0.85);
+  --clay-lip-card-raised: rgba(180, 195, 185, 0.90);
+  --clay-lip-chip:        rgba(190, 204, 196, 0.85);
+  --clay-focus-ring:      0 0 0 3px rgba(0, 207, 204, 0.45);
+  --clay-focus-glow:      0 0 14px rgba(0, 207, 204, 0.45);
 
   /* ===== UNIFIED MOTION PHYSICS TOKENS (Emil Kowalski + Jakub Krehel) ===== */
   --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Deselerasi mulus tanpa bounce overshoot */
