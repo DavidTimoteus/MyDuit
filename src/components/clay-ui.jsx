@@ -2,17 +2,20 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import flatpickr from 'flatpickr'
 import 'flatpickr/dist/flatpickr.min.css'
+import { calculatePopupPos } from './popupPos.js'
+
+export { calculatePopupPos }
 
 // ===== Popup list fixed (portal ke body) — posisi dihitung dari rect trigger,
 // supaya tidak ke-clip overflow-y-auto modal (pola sama dgn enhanceClaySelect_ GAS).
-function usePopupList(open, triggerRef) {
+export function usePopupList(open, triggerRef) {
   const [pos, setPos] = useState(null)
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return
     const update = () => {
       if (!triggerRef.current) return
       const r = triggerRef.current.getBoundingClientRect()
-      setPos({ left: r.left, top: r.bottom + 6, width: r.width })
+      setPos(calculatePopupPos(r, window.innerHeight, window.innerWidth))
     }
     update()
     window.addEventListener('resize', update)
