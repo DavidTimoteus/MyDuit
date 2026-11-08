@@ -43,7 +43,7 @@ export default function BudgetAsidePanel() {
 
   return (
     <aside className="hidden xl:flex xl:h-full xl:w-[350px] xl:min-w-[350px] xl:max-w-[350px] xl:shrink-0 xl:grow-0 xl:flex-col xl:overflow-hidden xl:p-4 xl:pl-2">
-      <div className="clay clay-key-blue flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
+      <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header — judul "Statistik Budget" + tombol Cetak PDF di kanan */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <h2 className="text-base font-extrabold tracking-tight text-slate-800">Statistik Budget</h2>
@@ -56,34 +56,41 @@ export default function BudgetAsidePanel() {
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
           </button>
         </div>
-        <div className="mb-3 h-px shrink-0 bg-slate-200/70"></div>
+        <div className="mb-3.5 h-px shrink-0 bg-slate-200/70"></div>
 
-        {/* Sisa Budget (gradient biru, hero card dengan progress bar) */}
-        <div className="clay-card clay-key-blue solid-blue shrink-0 rounded-[22px] p-2.5 text-white">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-white">Sisa Budget</p>
-          <p className="font-mono text-lg font-extrabold mt-0.5">{formatRupiah(ringkas.sisa)}</p>
-          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
+        {/* Sisa Budget — Premier Neutral Clay Card */}
+        <div className="clay-card clay-key-neutral shrink-0 rounded-[22px] bg-surfaceContainerLowest p-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa Budget</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ringkas.lewat ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+              {ringkas.lewat ? 'Terlampaui' : `${ringkas.persen}% Terpakai`}
+            </span>
+          </div>
+          <p className={`font-mono text-2xl font-black mt-1 ${ringkas.lewat ? 'text-expenseText' : 'text-slate-800'}`}>
+            {formatRupiah(ringkas.sisa)}
+          </p>
+          <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/50">
             <div
-              className={`h-full rounded-full transition-all ${ringkas.lewat ? 'bg-red-300' : 'bg-white'}`}
-              style={{ width: `${Math.min(100, ringkas.persen)}%` }}
+              className={`h-full rounded-full transition-all ${ringkas.lewat ? 'bg-red-500' : 'bg-blue-600'}`}
+              style={{ width: `${Math.min(100, Math.max(0, ringkas.persen))}%` }}
             />
           </div>
-          <p className="mt-1 text-[11px] font-medium opacity-85">
+          <p className="mt-2 text-[11px] font-medium text-textSecondary">
             {ringkas.lewat
               ? `Terlampaui ${formatRupiah(Math.abs(ringkas.sisa))}`
               : `Terpakai ${ringkas.persen}% · Sisa ${formatRupiah(ringkas.sisa)}`}
           </p>
         </div>
 
-        {/* Hari tersisa + burn rate (2 kartu kecil) */}
-        <div className="mt-2 grid shrink-0 grid-cols-2 gap-2">
-          <div className="clay-card clay-key-blue rounded-[18px] bg-surfaceContainerLowest py-2 px-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Hari Tersisa</p>
-            <p className="font-mono text-sm font-extrabold text-slate-800 mt-0.5">{ringkas.hariTersisa}</p>
+        {/* Hari tersisa + burn rate (2 kartu kecil simetris) */}
+        <div className="mt-3 grid shrink-0 grid-cols-2 gap-2.5">
+          <div className="clay-card clay-key-neutral rounded-[18px] bg-surfaceContainerLowest p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Hari Tersisa</p>
+            <p className="font-mono text-base font-extrabold text-slate-800 mt-1">{ringkas.hariTersisa} <span className="text-xs font-medium text-slate-500">hari</span></p>
           </div>
-          <div className="clay-card clay-key-neutral rounded-[18px] bg-surfaceContainerLowest py-2 px-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Burn / Hari</p>
-            <p className="font-mono text-sm font-extrabold text-slate-800 mt-0.5">{formatRupiah(ringkas.burnPerHari)}</p>
+          <div className="clay-card clay-key-neutral rounded-[18px] bg-surfaceContainerLowest p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Burn / Hari</p>
+            <p className="font-mono text-base font-extrabold text-slate-800 mt-1 truncate" title={formatRupiah(ringkas.burnPerHari)}>{formatRupiah(ringkas.burnPerHari)}</p>
           </div>
         </div>
 

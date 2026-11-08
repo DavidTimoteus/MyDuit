@@ -41,7 +41,7 @@ export default function UtangAsidePanel() {
 
   return (
     <aside className="hidden xl:flex xl:h-full xl:w-[350px] xl:min-w-[350px] xl:max-w-[350px] xl:shrink-0 xl:grow-0 xl:flex-col xl:overflow-hidden xl:p-4 xl:pl-2">
-      <div className="clay clay-key-danger flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
+      <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <h2 className="text-base font-extrabold tracking-tight text-slate-800">Ringkasan Utang</h2>
@@ -54,20 +54,20 @@ export default function UtangAsidePanel() {
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
           </button>
         </div>
-        <div className="mb-3 h-px shrink-0 bg-slate-200/70"></div>
+        <div className="mb-3.5 h-px shrink-0 bg-slate-200/70"></div>
 
-        {/* SIGNATURE: Progres Pelunasan (ring SVG) */}
-        <div className="clay-card clay-key-primary solid-primary flex shrink-0 items-center gap-3.5 rounded-[18px] p-3.5 text-white">
+        {/* SIGNATURE: Progres Pelunasan (Premier Neutral Clay Card) */}
+        <div className="clay-card clay-key-neutral flex shrink-0 items-center gap-4 rounded-[22px] bg-surfaceContainerLowest p-4">
           <div className="relative shrink-0" style={{ width: 64, height: 64 }}>
             <svg viewBox="0 0 64 64" className="h-16 w-16 -rotate-90">
-              <circle cx="32" cy="32" r="27" fill="none" stroke="rgba(255,255,255,.25)" strokeWidth="7" />
+              <circle cx="32" cy="32" r="27" fill="none" stroke="#e2e8f0" strokeWidth="6" />
               <circle
                 cx="32"
                 cy="32"
                 r="27"
                 fill="none"
-                stroke="#ffffff"
-                strokeWidth="7"
+                stroke="#10b981"
+                strokeWidth="6"
                 strokeLinecap="round"
                 strokeDasharray={C}
                 strokeDashoffset={offset}
@@ -75,22 +75,22 @@ export default function UtangAsidePanel() {
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-mono text-sm font-extrabold">{r.persenLunas}%</span>
+              <span className="font-mono text-sm font-extrabold text-slate-800">{r.persenLunas}%</span>
             </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Progres Pelunasan</p>
-            <p className="font-mono mt-0.5 truncate text-sm font-bold">{formatRupiah(r.totalSisa)}</p>
-            <p className="mt-0.5 text-[10px] font-medium leading-snug opacity-85">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Progres Pelunasan</p>
+            <p className="font-mono mt-0.5 truncate text-base font-black text-slate-800">{formatRupiah(r.totalSisa)}</p>
+            <p className="mt-0.5 text-[11px] font-medium leading-snug text-textSecondary">
               dari {formatRupiah(r.totalAwal)} · {r.aktifCount} item aktif
             </p>
           </div>
         </div>
 
         {/* Jatuh Tempo Terdekat */}
-        <div className="clay-card clay-key-danger mt-2.5 shrink-0 rounded-[18px] bg-surfaceContainerLowest p-3.5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Jatuh Tempo Terdekat</p>
-          <div className="space-y-2.5">
+        <div className="clay-card clay-key-neutral mt-3 shrink-0 rounded-[20px] bg-surfaceContainerLowest p-3.5">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Jatuh Tempo Terdekat</p>
+          <div className="space-y-2">
             {r.jatuhTempo.length === 0 ? (
               <p className="text-[11px] text-textSecondary">Tidak ada jatuh tempo terdekat.</p>
             ) : (
@@ -104,8 +104,8 @@ export default function UtangAsidePanel() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[11px] font-bold text-slate-700">{j.nama}</p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${chipCls}`}>{label}</span>
-                    <span className="shrink-0 font-mono text-[10px] font-bold text-slate-600">{formatRupiah(j.sisa)}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${chipCls}`}>{label}</span>
+                    <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{formatRupiah(j.sisa)}</span>
                   </div>
                 )
               })
@@ -114,26 +114,26 @@ export default function UtangAsidePanel() {
         </div>
 
         {/* Statistik Cepat */}
-        <div className="clay-card clay-key-primary mt-2.5 shrink-0 rounded-[18px] bg-surfaceContainerLowest p-3.5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Statistik Cepat</p>
+        <div className="clay-card clay-key-neutral mt-3 shrink-0 rounded-[20px] bg-surfaceContainerLowest p-3.5">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Statistik Cepat</p>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-1.5 text-xs text-textSecondary">
+              <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                 <span className="material-symbols-outlined icon-sm text-blue-600">payments</span>Total cicilan aktif
               </span>
-              <span className="shrink-0 font-mono text-xs font-semibold">{r.cicilanAktif}</span>
+              <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{r.cicilanAktif}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-1.5 text-xs text-textSecondary">
+              <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                 <span className="material-symbols-outlined icon-sm text-amber-600">trending_up</span>Rata-rata per bulan
               </span>
-              <span className="shrink-0 font-mono text-xs font-semibold">{formatRupiah(r.rataPerBulan)}</span>
+              <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{formatRupiah(r.rataPerBulan)}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-1.5 text-xs text-textSecondary">
+              <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                 <span className="material-symbols-outlined icon-sm text-red-600">handshake</span>Utang aktif
               </span>
-              <span className="shrink-0 font-mono text-xs font-semibold">{r.aktifCount}</span>
+              <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{r.aktifCount}</span>
             </div>
           </div>
         </div>

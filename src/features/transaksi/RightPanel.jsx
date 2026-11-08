@@ -69,7 +69,7 @@ export default function RightPanel({ uid }) {
 
   return (
     <aside className="hidden xl:flex xl:h-full xl:w-[350px] xl:min-w-[350px] xl:max-w-[350px] xl:shrink-0 xl:grow-0 xl:flex-col xl:overflow-hidden xl:p-4 xl:pl-2">
-      <div className="clay clay-key-primary flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
+      <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
           <h2 className="text-base font-extrabold tracking-tight text-slate-800">Ringkasan</h2>
@@ -82,41 +82,59 @@ export default function RightPanel({ uid }) {
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
           </button>
         </div>
-        <div className="mb-3 h-px shrink-0 bg-slate-200/70"></div>
+        <div className="mb-3.5 h-px shrink-0 bg-slate-200/70"></div>
 
         <div className="flex shrink-0 flex-col">
-          <div className="flex shrink-0 flex-col gap-2">
-            {/* Total Saldo */}
-            <div className="clay clay-card clay-key-primary solid-primary flex flex-col gap-0.5 rounded-[18px] p-4 text-white">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined icon-sm text-white" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
-                <p className="text-[10px] font-semibold uppercase tracking-wider opacity-90">Total Saldo</p>
+          <div className="flex shrink-0 flex-col gap-3">
+            {/* Total Saldo - Premier Neutral Clay Card */}
+            <div className="clay-card clay-key-neutral flex flex-col gap-1 rounded-[22px] bg-surfaceContainerLowest p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-primary">
+                    <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
+                  </div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Saldo</p>
+                </div>
+                <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                  {arusBulan < 0 ? 'Defisit' : 'Surplus'}
+                </span>
               </div>
-              <p className="mt-0.5 font-mono text-xl font-extrabold tracking-tight">{rp(totalSaldo)}</p>
-              <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium opacity-80">
-                <span className="material-symbols-outlined icon-2xs">trending_up</span>
-                {arusBulan < 0 ? '−' : '+'}{simbolUang()}{formatNominal(Math.abs(arusBulan))} bulan ini
+              <p className="mt-1 font-mono text-2xl font-black tracking-tight text-slate-800">{rp(totalSaldo)}</p>
+              <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-textSecondary">
+                <span className={`material-symbols-outlined icon-2xs ${arusBulan < 0 ? 'text-expenseText' : 'text-incomeText'}`}>
+                  {arusBulan < 0 ? 'trending_down' : 'trending_up'}
+                </span>
+                <span className={arusBulan < 0 ? 'text-expenseText font-bold' : 'text-incomeText font-bold'}>
+                  {arusBulan < 0 ? '−' : '+'}{simbolUang()}{formatNominal(Math.abs(arusBulan))}
+                </span>
+                <span>bulan ini</span>
               </p>
             </div>
 
             {/* Pengeluaran Hari Ini */}
-            <div className="clay clay-card clay-key-danger flex flex-col gap-0.5 rounded-[18px] bg-surfaceContainerLowest p-4">
+            <div className="clay-card clay-key-neutral flex flex-col gap-0.5 rounded-[20px] bg-surfaceContainerLowest p-3.5">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined icon-sm text-expenseText" style={{ fontVariationSettings: "'FILL' 1" }}>today</span>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-expenseText">
+                  <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>today</span>
+                </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
               </div>
-              <p className="mt-0.5 font-mono text-lg font-extrabold tracking-tight text-expenseText">{rp(pengeluaranHariIni)}</p>
-              <p className="text-[10px] font-medium text-textSecondary">{transHariIni.length} transaksi · Hari ini</p>
+              <p className="mt-1 font-mono text-lg font-extrabold tracking-tight text-expenseText">{rp(pengeluaranHariIni)}</p>
+              <p className="text-[11px] font-medium text-textSecondary">{transHariIni.length} transaksi · Hari ini</p>
             </div>
 
             {/* Top Kategori */}
-            <div className="clay clay-card clay-key-primary flex flex-col gap-0.5 rounded-[18px] bg-surfaceContainerLowest p-4">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="material-symbols-outlined icon-sm text-incomeText" style={{ fontVariationSettings: "'FILL' 1" }}>category</span>
-                <p className="flex-1 truncate text-[10px] font-semibold uppercase tracking-wider text-slate-500">Top Kategori</p>
+            <div className="clay-card clay-key-neutral flex flex-col gap-0.5 rounded-[20px] bg-surfaceContainerLowest p-3.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                    <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>category</span>
+                  </div>
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">Top Kategori</p>
+                </div>
                 {topKategori && (
                   <span
-                    className={`shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
                       topKategori.jenis === 'pemasukan' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
                     }`}
                   >
@@ -124,7 +142,7 @@ export default function RightPanel({ uid }) {
                   </span>
                 )}
               </div>
-              <p className="mt-0.5 truncate text-base font-extrabold tracking-tight text-slate-800">
+              <p className="mt-1 truncate text-base font-extrabold tracking-tight text-slate-800">
                 {topKategori ? topKategori.nama : '-'}
               </p>
               <p className={`font-mono text-sm font-extrabold tracking-tight ${topKategori?.jenis === 'pengeluaran' ? 'text-expenseText' : 'text-incomeText'}`}>
