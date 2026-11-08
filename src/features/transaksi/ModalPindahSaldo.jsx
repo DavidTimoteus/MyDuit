@@ -88,7 +88,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
   const opsiAkun = akunList.map((a) => ({ value: a.id, label: a.nama }))
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="clay-sheet clay-key-blue flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 pb-2 pt-4">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
@@ -135,15 +135,20 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
             <label className="block text-[11px] font-semibold text-slate-600">
               Nominal ({simbolUang()}) <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              value={jumlah}
-              onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
-              inputMode="numeric"
-              placeholder="0"
-              required
-              className="clay-input field-lg w-full text-sm outline-none transition-colors font-mono"
-            />
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
+                {simbolUang()}
+              </span>
+              <input
+                type="text"
+                value={jumlah}
+                onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
+                inputMode="numeric"
+                placeholder="0"
+                required
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none transition-colors !text-[#187498]"
+              />
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">

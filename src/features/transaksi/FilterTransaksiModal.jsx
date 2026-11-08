@@ -49,7 +49,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
