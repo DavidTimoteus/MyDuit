@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { rangeForFilter } from '../../lib/format.js'
 import { enrichTransaksi, hapusPindahSaldo, hapusTransaksi } from '../../lib/db.js'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
@@ -98,6 +98,37 @@ export default function TransaksiView({ user }) {
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
   const pageItems = tampil.slice((page - 1) * PER_HALAMAN, page * PER_HALAMAN)
 
+  function prevPage() {
+    if (page > 1) setPage((p) => p - 1)
+  }
+
+  // Gesture swipe horizontal untuk navigasi halaman transaksi di mobile
+  const touchStartX = useRef(null)
+  const touchStartY = useRef(null)
+
+  function handleTouchStart(e) {
+    if (!e.touches || e.touches.length !== 1) return
+    touchStartX.current = e.touches[0].clientX
+    touchStartY.current = e.touches[0].clientY
+  }
+
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null || touchStartY.current === null) return
+    const touch = e.changedTouches[0]
+    const diffX = touch.clientX - touchStartX.current
+    const diffY = touch.clientY - touchStartY.current
+    touchStartX.current = null
+    touchStartY.current = null
+
+    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+      if (diffX < 0) {
+        if (page < totalPages || hasMore) nextPage()
+      } else {
+        if (page > 1) prevPage()
+      }
+    }
+  }
+
   async function nextPage() {
     if (page < totalPages) return setPage(page + 1)
     if (hasMore && !loadingMore) {
@@ -192,6 +223,18 @@ async function konfirmHapus() {
                         bg-surface
                         pt-2.5 pb-2.5 mb-0
                         relative">
+          {/* Header mobile (md:hidden) — logo transaksi + judul embossed */}
+          <header className="pb-2.5 md:hidden">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <div className="clay-icon-tile clay-key-primary solid-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
+                <span className="material-symbols-outlined icon-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  receipt_long
+                </span>
+              </div>
+              <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Transaksi</h2>
+            </div>
+          </header>
+
           <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
           {/* Kartu pencarian & filter */}
           <div className="clay clay-card clay-key-neutral w-full rounded-[22px] p-2.5 sm:p-3">
@@ -288,7 +331,7 @@ async function konfirmHapus() {
                 type="button"
                 aria-label="Halaman sebelumnya"
                 disabled={page <= 1}
-                onClick={() => setPage(page - 1)}
+                onClick={prevPage}
                 className="clay-pagination-arrow flex h-9 w-9 items-center justify-center rounded-full bg-surfaceContainerLowest text-slate-600 shadow-sm"
               >
                 <span className="material-symbols-outlined icon-md">chevron_left</span>
@@ -361,7 +404,12 @@ async function konfirmHapus() {
             </div>
           </div>
         ) : (
-          <div className="-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar">
+          <div
+            className="-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'pan-y' }}
+          >
             {pageItems.map((t) => (
               <TransaksiRow
                 key={t.id}
