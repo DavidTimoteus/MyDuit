@@ -359,9 +359,16 @@ button:active {
 /* ===== MONOSPACE DIGITS (Manrope with tabular nums) ===== */
 .font-mono {
   font-family: 'Manrope', sans-serif !important;
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' on, 'lnum' on;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+}
+
+.num-display {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' on, 'lnum' on;
+  letter-spacing: -0.025em;
 }
 
 /* ===== CLAY BASE ===== */
@@ -425,20 +432,22 @@ button:active {
 .clay-card {
   border-radius: var(--clay-r-card);
   background-color: var(--color-surfaceContainerLowest);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(246, 250, 248, 0.92) 100%);
   box-shadow:
-    8px 8px 20px rgba(var(--clay-h, var(--clay-h-neutral)), 0.10),
-    -6px -6px 16px rgba(255, 255, 255, 0.95),
-    inset 2px 2px 3px rgba(255, 255, 255, 0.8),
+    8px 8px 20px rgba(var(--clay-h, var(--clay-h-neutral)), 0.09),
+    -6px -6px 16px rgba(255, 255, 255, 0.98),
+    inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.9),
     inset -2px -2px 6px rgba(var(--clay-h, var(--clay-h-neutral)), 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-    overflow-x: clip;
-    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  overflow-x: clip;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Kartu lembut (empty state, info) */
 .clay-card-soft {
   border-radius: var(--clay-r-card);
-  background-color: #ffffff;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow:
     6px 6px 16px rgba(var(--clay-h, var(--clay-h-neutral)), 0.07),
     -5px -5px 14px rgba(255, 255, 255, 0.95),
@@ -458,7 +467,8 @@ button:active {
 /* ===== SHEET / MODAL ===== */
 .clay-sheet {
   border-radius: var(--clay-r-card);
-  background-color: #ffffff;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   box-shadow:
     0 14px 34px rgba(var(--clay-h, var(--clay-h-primary)), 0.22),
     0 2px 8px rgba(var(--clay-h, var(--clay-h-primary)), 0.12),
@@ -477,11 +487,11 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h, var(--clay-h-primary)), 0.22);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.2s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
 }
 .clay-btn:hover { transform: translateY(-1px); }
 .clay-btn:active {
-  transform: scale(0.96) translateY(0);
+  transform: scale(0.97) translateY(1px);
   box-shadow:
     inset 3px 3px 8px rgba(0, 0, 0, 0.22),
     inset -3px -3px 8px rgba(255, 255, 255, 0.3);
@@ -498,11 +508,11 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h), 0.22);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .clay-btn-primary:hover { transform: translateY(-1px); }
 .clay-btn-primary:active {
-  transform: scale(0.96) translateY(0);
+  transform: scale(0.97) translateY(1px);
   box-shadow:
     inset 3px 3px 8px rgba(0, 0, 0, 0.28),
     inset -3px -3px 8px rgba(255, 255, 255, 0.25);
@@ -519,11 +529,11 @@ button:active {
     -5px -5px 14px rgba(255, 255, 255, 0.5),
     inset 2px 2px 4px rgba(255, 255, 255, 0.35),
     inset -3px -3px 7px rgba(var(--clay-h), 0.22);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .clay-btn-danger:hover { transform: translateY(-1px); }
 .clay-btn-danger:active {
-  transform: scale(0.96) translateY(0);
+  transform: scale(0.97) translateY(1px);
   box-shadow:
     inset 3px 3px 8px rgba(0, 0, 0, 0.28),
     inset -3px -3px 8px rgba(255, 255, 255, 0.25);
@@ -539,11 +549,11 @@ button:active {
     -4px -4px 12px rgba(255, 255, 255, 0.6),
     inset 2px 2px 4px rgba(255, 255, 255, 0.5),
     inset -2px -2px 5px rgba(var(--clay-h, var(--clay-h-neutral)), 0.10);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .clay-btn-soft:active,
 .clay-btn-secondary:active {
-  transform: scale(0.96);
+  transform: scale(0.97) translateY(1px);
   box-shadow:
     inset 2px 2px 6px rgba(var(--clay-h), 0.25),
     inset -2px -2px 6px rgba(255, 255, 255, 0.5);
@@ -738,11 +748,13 @@ button:active {
 
 /* ===== ICON TILE ===== */
 .clay-icon-tile {
+  border-radius: var(--clay-r-icon, 20px);
   box-shadow:
-    4px 4px 10px rgba(var(--clay-h, var(--clay-h-primary)), 0.28),
-    -3px -3px 8px rgba(255, 255, 255, 0.55),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.35),
-    inset -2px -2px 4px rgba(var(--clay-h, var(--clay-h-primary)), 0.15);
+    4px 4px 11px rgba(var(--clay-h, var(--clay-h-primary)), 0.26),
+    -3px -3px 9px rgba(255, 255, 255, 0.65),
+    inset 1.5px 1.5px 3px rgba(255, 255, 255, 0.45),
+    inset -2px -2px 5px rgba(var(--clay-h, var(--clay-h-primary)), 0.16);
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ===== INPUT / INSET ===== */
@@ -826,7 +838,8 @@ button:active {
 .hero-card {
   position: relative;
   border-radius: var(--clay-r-card-sm);
-  background-color: #ffffff;
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
   color: #1e293b;               /* slate-800: kontras 14.6:1 di putih */
   overflow: hidden;
   --clay-h: var(--clay-h-primary);
@@ -848,32 +861,22 @@ button:active {
     4px 4px 13px rgba(var(--clay-h), 0.26),
     -3px -3px 10px rgba(255, 255, 255, 0.85);
 }
-/* Aksen warna: kartu clay premium dengan gradien halus & bayangan lembut */
-.hero-card {
-  position: relative;
-  border-radius: 24px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  box-shadow:
-    6px 6px 18px rgba(0, 0, 0, 0.08),
-    -6px -6px 18px rgba(255, 255, 255, 0.95),
-    inset 1px 1px 2px rgba(255, 255, 255, 0.8);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-}
+
 .hero-card::before {
   content: '';
   position: absolute;
   inset: 0 0 auto 0;
   height: 5px;
-  background-color: var(--clay-h);
+  background-color: rgb(var(--clay-h));
+  box-shadow: 0 1px 3px rgba(var(--clay-h), 0.3);
   pointer-events: none;
 }
 .hero-primary { --clay-h: var(--clay-h-primary); }
 .hero-danger  { --clay-h: var(--clay-h-danger); }
 .hero-blue    { --clay-h: var(--clay-h-blue); }
 .hero-gold    { --clay-h: var(--clay-h-amber); }
-.hero-amber   { background-color: #b45309; }
-.hero-neutral { background-color: #334155; }
+.hero-amber   { --clay-h: var(--clay-h-amber); }
+.hero-neutral { --clay-h: var(--clay-h-neutral); }
 
 /* ===== 3D DANGER CARD (hero utang) ===== */
 .card-3d-danger {
@@ -964,6 +967,14 @@ button:active {
     3px 3px 8px rgba(var(--clay-h-primary), 0.18),
     -3px -3px 8px rgba(255, 255, 255, 0.7),
     0 10px 24px rgba(var(--clay-h-primary), 0.16);
+  animation: clayDropdownIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.clay-select-list::-webkit-scrollbar {
+  width: 6px;
+}
+.clay-select-list::-webkit-scrollbar-thumb {
+  background: rgba(var(--clay-h-primary), 0.25);
+  border-radius: 999px;
 }
 .clay-select-option {
   padding: 8px 10px;
@@ -1214,6 +1225,11 @@ button:active {
 
 @keyframes clayPop {
   from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes clayDropdownIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 

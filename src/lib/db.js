@@ -61,13 +61,18 @@ export async function seedKategoriJikaKosong(uid) {
   const metaDoc = marker.docs.find((d) => d.id === 'seedKategori')
   const existing = new Set()
   const katSnap = await getDocs(userCol(uid, 'kategori'))
-  katSnap.docs.forEach((d) => existing.add((d.data().nama ?? '').toLowerCase()))
+  katSnap.docs.forEach((d) => {
+    const dt = d.data()
+    const j = (dt.jenis ?? '').toLowerCase()
+    const n = (dt.nama ?? '').toLowerCase()
+    existing.add(`${j}::${n}`)
+  })
   if (metaDoc && existing.size > 0) return false
 
   const missing = []
   for (const jenis of Object.keys(KATEGORI_DEFAULT)) {
     for (const nama of KATEGORI_DEFAULT[jenis]) {
-      if (!existing.has(nama.toLowerCase())) missing.push({ nama, jenis })
+      if (!existing.has(`${jenis.toLowerCase()}::${nama.toLowerCase()}`)) missing.push({ nama, jenis })
     }
   }
   if (missing.length === 0) {
@@ -472,13 +477,15 @@ export async function hapusUtang(uid, id) {
   await updateDoc(utangRef(uid, id), { deleted: true, updatedAt: serverTimestamp() })
 }
 
-// Cari kategori by nama; buat bila belum ada (untuk 'Pembayaran').
-export async function ambilAtauBuatKategori(uid, nama, jenis = 'Pengeluaran') {
+// Cari kategori by nama & jenis; buat bila belum ada.
+export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
+  const jn = (jenis || 'pengeluaran').toLowerCase()
   const snap = await getDocs(
-    query(userCol(uid, 'kategori'), where('nama', '==', nama), where('deleted', '==', false), fbLimit(1)),
+    query(userCol(uid, 'kategori'), where('nama', '==', nama), where('deleted', '==', false)),
   )
-  if (!snap.empty) return snap.docs[0].id
-  const ref = await addDoc(userCol(uid, 'kategori'), { nama, jenis, deleted: false, createdAt: serverTimestamp() })
+  const cocok = snap.docs.find((d) => (d.data().jenis ?? '').toLowerCase() === jn)
+  if (cocok) return cocok.id
+  const ref = await addDoc(userCol(uid, 'kategori'), { nama, jenis: jn, deleted: false, createdAt: serverTimestamp() })
   return ref.id
 }
 

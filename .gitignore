@@ -36,6 +36,7 @@ bridge.out.log
 .pytest-cache/
 *.bak_*
 src/.sentrux/
+.sentrux/
 
 # Internal documentation & APK binaries
 AGENTS.md

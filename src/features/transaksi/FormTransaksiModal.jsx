@@ -3,15 +3,27 @@ import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang 
 import { ambilAtauBuatKategori, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
-import { bacaStruk, matikanOcr } from '../../lib/ocrStruk.js'
+import { matikanOcr } from '../../lib/ocrStruk.js'
+import {
+  scanDokumenKeuangan,
+  bacaOcrConfig,
+  simpanOcrConfig,
+  bacaGeminiKey,
+  simpanGeminiKey,
+  hapusGeminiKey,
+  ujiKoneksiGemini,
+} from '../../lib/ocrProvider.js'
 
-// Modal Catat / Edit / Salin transaksi — markup persis GAS #viewTambah.
-// JENIS TIDAK dipilih user: di-set sistem dari titik masuk (Aksi Cepat /
-// speed-dial mengirim preset pemasukan|pengeluaran; default pengeluaran).
-// Grup Scan Struk (mode add) menjalankan OCR 100% di browser (lihat ocrStruk.js):
-// pengguna memilih/memfoto struk → total, tanggal, dan keterangan terisi otomatis.
+// Modal Catat / Edit / Salin transaksi — mendukung Pemasukan & Pengeluaran
+// dengan Segmented Clay Toggle interaktif, penyesuaian label rekening dinamis,
+// dan pemindaian struk otomatis (OCR) pada pengeluaran.
 export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkunBaru, akunList, kategoriList, mode, doc: sumber }) {
-  const [jenis, setJenis] = useState('pengeluaran')
+  const [jenis, setJenis] = useState(() => {
+    if ((mode === 'edit' || mode === 'salin') && sumber) {
+      return sumber.jenis ?? 'pengeluaran'
+    }
+    return sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
+  })
   const [jumlah, setJumlah] = useState('')
   const [kategoriNama, setKategoriNama] = useState('')
   const [akunId, setAkunId] = useState('')
@@ -28,6 +40,12 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [scanProgress, setScanProgress] = useState(0)
   const [scanHasil, setScanHasil] = useState(null) // hasil bacaStruk()
   const [scanPesan, setScanPesan] = useState('') // info/kesalahan OCR
+  const [ocrEnginePref, setOcrEnginePref] = useState(() => bacaOcrConfig().engine)
+  const [showOcrConfig, setShowOcrConfig] = useState(false)
+  const [geminiKeyInput, setGeminiKeyInput] = useState(() => bacaGeminiKey())
+  const [geminiStatus, setGeminiStatus] = useState('')
+  const [geminiTesting, setGeminiTesting] = useState(false)
+  const [showTutorialModal, setShowTutorialModal] = useState(false)
   // Sumber pembayaran yang terdeteksi dari struk tapi BELUM ada di akunList
   // (mis. user punya struk SeaBank tapi belum menambah rekening SeaBank).
   // null = tidak ada saran. Object = { nama, jenis } siap ditawarkan ke user.
@@ -64,7 +82,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setTanggal(mode === 'salin' ? isoHariIni() : (sumber.tanggal ?? isoHariIni()))
       setCatatan(sumber.catatan ?? '')
     } else {
-      // Jenis di-set sistem: preset dari pemicu (Aksi Cepat / speed-dial), default pengeluaran
+      // Preset dari pemicu (Aksi Cepat / speed-dial) atau default pengeluaran
       setJenis(sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
       setJumlah('')
       setKategoriNama('')
@@ -73,7 +91,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setCatatan('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, sumber?.id])
+  }, [open, mode, sumber?.id, sumber?.preset])
 
   if (!open) return null
 
@@ -100,6 +118,36 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     }
   }
 
+  async function simpanDanUjiGeminiKey() {
+    const key = geminiKeyInput.trim()
+    if (!key) {
+      hapusGeminiKey()
+      setGeminiStatus('Kunci API dikosongkan. Sistem akan menggunakan engine lokal.')
+      return
+    }
+    setGeminiTesting(true)
+    setGeminiStatus('Memverifikasi kunci dengan Google AI Studio...')
+    try {
+      const res = await ujiKoneksiGemini(key)
+      if (res.ok) {
+        simpanGeminiKey(key)
+        setGeminiStatus('Kunci API valid & aktif! Gemini Vision siap digunakan.')
+      } else {
+        setGeminiStatus(res.message || 'Kunci API tidak valid. Periksa kembali.')
+      }
+    } catch (err) {
+      setGeminiStatus('Gagal menghubungi Google: ' + err.message)
+    } finally {
+      setGeminiTesting(false)
+    }
+  }
+
+  function hapusKey() {
+    hapusGeminiKey()
+    setGeminiKeyInput('')
+    setGeminiStatus('Kunci API berhasil dihapus.')
+  }
+
   async function prosesStruk(e) {
     const file = e.target.files?.[0]
     e.target.value = '' // izinkan pilih file yang sama dua kali
@@ -123,8 +171,12 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setScan({ nama: file.name, url: URL.createObjectURL(file) })
 
     try {
-      const hasil = await bacaStruk(file, (p) => {
-        if (masihTerpasang.current) setScanProgress(Math.round(p * 100))
+      const hasil = await scanDokumenKeuangan(file, {
+        engine: ocrEnginePref,
+        geminiApiKey: geminiKeyInput,
+        onProgress: (p) => {
+          if (masihTerpasang.current) setScanProgress(Math.round(p * 100))
+        },
       })
       if (!masihTerpasang.current) return
       setScanHasil(hasil)
@@ -204,13 +256,22 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     e.preventDefault()
     const n = parseNominal(jumlah)
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
-    if (!akunId) return setError('Pilih rekening sumber dulu.')
+    if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
 
-    const akun = akunList.find((a) => a.id === akunId)
+    // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
+    const jenisSnap = jenis
+    const tanggalSnap = tanggal
+    const catatanSnap = catatan.trim()
+    const akunIdSnap = akunId
+    const namaKatSnap = kategoriNama.trim()
+    const modeSnap = mode
+    const sumberSnap = sumber
+
+    const akun = akunList.find((a) => a.id === akunIdSnap)
     if (jenisSnap === 'pengeluaran' && akun) {
       const saldoSaatIni = Number(akun.saldo) || 0
-      const saldoSetelah = modeSnap === 'edit' && sumberSnap?.akunId === akunId
+      const saldoSetelah = modeSnap === 'edit' && sumberSnap?.akunId === akunIdSnap
         ? saldoSaatIni + (Number(sumberSnap.jumlah) || 0) - n
         : saldoSaatIni - n
 
@@ -225,15 +286,6 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
         )
       }
     }
-
-    // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
-    const jenisSnap = jenis
-    const tanggalSnap = tanggal
-    const catatanSnap = catatan.trim()
-    const akunIdSnap = akunId
-    const namaKatSnap = kategoriNama.trim()
-    const modeSnap = mode
-    const sumberSnap = sumber
 
     // OPTIMISTIC: tutup modal SEKARANG, commit ke Firestore di background.
     // Promise tulis Firestore baru resolve setelah server ack — kalau ditunggu,
@@ -270,14 +322,21 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     })()
   }
 
-  const judul = mode === 'edit' ? 'Edit Transaksi' : mode === 'salin' ? 'Salin Transaksi' : 'Catat Transaksi'
+  const isPemasukan = jenis === 'pemasukan'
+  const judul = mode === 'edit'
+    ? (isPemasukan ? 'Edit Pemasukan' : 'Edit Pengeluaran')
+    : mode === 'salin'
+      ? (isPemasukan ? 'Salin Pemasukan' : 'Salin Pengeluaran')
+      : (isPemasukan ? 'Catat Pemasukan' : 'Catat Pengeluaran')
 
   return (
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={tutupModal}>
-      <div className="clay-sheet clay-key-primary flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 pb-2 pt-4">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
-            <span className="material-symbols-outlined icon-lg shrink-0 text-primary">receipt_long</span>
+            <span className={`material-symbols-outlined icon-lg shrink-0 ${isPemasukan ? 'text-primary' : 'text-danger'}`}>
+              {isPemasukan ? 'trending_up' : 'trending_down'}
+            </span>
             <span className="truncate">{judul}</span>
           </h3>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -302,20 +361,173 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
         </div>
 
+        {/* Segmented Clay Toggle: Pengeluaran vs Pemasukan */}
+        <div className="px-4 pt-2.5 pb-1">
+          <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100/90 p-1 shadow-inner">
+            <button
+              type="button"
+              onClick={() => {
+                setJenis('pengeluaran')
+                setError('')
+              }}
+              aria-pressed={!isPemasukan}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all duration-200 touch-manipulation ${
+                !isPemasukan
+                  ? 'bg-red-500 text-white shadow-[0_2px_8px_rgba(230,57,70,0.35)]'
+                  : 'text-slate-600 hover:text-slate-900 active:scale-98'
+              }`}
+            >
+              <span className="material-symbols-outlined icon-sm">trending_down</span>
+              Pengeluaran
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setJenis('pemasukan')
+                setError('')
+              }}
+              aria-pressed={isPemasukan}
+              className={`flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition-all duration-200 touch-manipulation ${
+                isPemasukan
+                  ? 'bg-emerald-600 text-white shadow-[0_2px_8px_rgba(45,106,79,0.35)]'
+                  : 'text-slate-600 hover:text-slate-900 active:scale-98'
+              }`}
+            >
+              <span className="material-symbols-outlined icon-sm">trending_up</span>
+              Pemasukan
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={submit} className="min-h-0 space-y-2 overflow-y-auto px-4 py-2">
-          {/* Scan Struk / Foto — HANYA mode tambah (GAS menyembunyikannya saat edit).
+          {/* Scan Struk / Foto — HANYA mode tambah pengeluaran (GAS menyembunyikannya saat edit / pemasukan).
               OCR berjalan 100% di browser: total, tanggal, jenis, dan merchant terisi otomatis. */}
-          {mode === 'add' && (
+          {mode === 'add' && !isPemasukan && (
             <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined icon-sm text-primary">document_scanner</span>
                 <label className="text-[11px] font-semibold text-textSecondary">Scan Struk / Foto Transaksi</label>
-                {scanHasil?.confidence > 0 && (
-                  <span className="ml-auto rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
-                    Akurasi {Math.round(scanHasil.confidence)}%
+                {scanHasil?.engine === 'gemini-flash' ? (
+                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <span className="material-symbols-outlined icon-2xs">smart_toy</span>
+                    Gemini Flash AI (99%)
                   </span>
-                )}
+                ) : scanHasil?.engine === 'pp-ocrv4' ? (
+                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                    <span className="material-symbols-outlined icon-2xs">psychology</span>
+                    PP-OCRv4 AI
+                  </span>
+                ) : scanHasil?.engine === 'unlimited-ocr' ? (
+                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    <span className="material-symbols-outlined icon-2xs">smart_toy</span>
+                    Unlimited-OCR AI
+                  </span>
+                ) : scanHasil?.confidence > 0 ? (
+                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="material-symbols-outlined icon-2xs">bolt</span>
+                    Lokal ({Math.round(scanHasil.confidence)}%)
+                  </span>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setShowOcrConfig((s) => !s)}
+                  title="Pengaturan Engine OCR"
+                  aria-label="Pengaturan Engine OCR"
+                  className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition-colors ${
+                    showOcrConfig ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-200 hover:text-slate-700'
+                  } ${!scanHasil ? 'ml-auto' : ''}`}
+                >
+                  <span className="material-symbols-outlined icon-xs">tune</span>
+                </button>
               </div>
+
+              {/* Panel Pengaturan Engine OCR */}
+              {showOcrConfig && (
+                <div className="flex flex-col gap-2 rounded-xl bg-slate-100/95 p-2.5 text-[10px] text-slate-700 shadow-inner">
+                  <div className="flex items-center justify-between font-semibold text-slate-800">
+                    <span>Pilihan Engine OCR:</span>
+                    <span className="text-[9px] text-slate-500 font-normal">
+                      {ocrEnginePref === 'auto'
+                        ? (geminiKeyInput ? 'Auto (Gemini AI Prioritas)' : 'Auto (On-Device Cerdas)')
+                        : ocrEnginePref === 'gemini'
+                          ? 'Google Gemini Vision (Cloud)'
+                          : ocrEnginePref === 'ppocr'
+                            ? 'PP-OCRv4 Mobile (On-Device)'
+                            : 'Tesseract (Lokal Offline)'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { id: 'auto', label: 'Auto Cerdas' },
+                      { id: 'gemini', label: 'Gemini AI' },
+                      { id: 'ppocr', label: 'PP-OCR' },
+                      { id: 'local', label: 'Tesseract' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setOcrEnginePref(opt.id)
+                          simpanOcrConfig({ engine: opt.id })
+                        }}
+                        className={`rounded-md py-1 text-center font-medium transition-all ${
+                          ocrEnginePref === opt.id
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'bg-white text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Kunci API Gemini Section */}
+                  <div className="border-t border-slate-200/80 pt-1.5 mt-0.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800">Kunci API Gemini (Akurasi &gt;99%):</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowTutorialModal(true)}
+                        className="inline-flex items-center gap-0.5 text-primary hover:underline font-bold text-[9.5px]"
+                      >
+                        <span className="material-symbols-outlined icon-2xs">help</span>
+                        Panduan Kunci Gratis
+                      </button>
+                    </div>
+                    <div className="mt-1 flex gap-1.5">
+                      <input
+                        type="password"
+                        placeholder="Tempel API Key AI Studio..."
+                        value={geminiKeyInput}
+                        onChange={(e) => setGeminiKeyInput(e.target.value)}
+                        className="flex-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-800 focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={simpanDanUjiGeminiKey}
+                        disabled={geminiTesting}
+                        className="rounded-md bg-primary px-2.5 py-1 text-[10px] font-bold text-white hover:bg-primary-hover disabled:opacity-50"
+                      >
+                        {geminiTesting ? '...' : 'Simpan'}
+                      </button>
+                      {geminiKeyInput && (
+                        <button
+                          type="button"
+                          onClick={hapusKey}
+                          className="rounded-md bg-slate-200 px-2 py-1 text-[10px] font-medium text-slate-700 hover:bg-slate-300"
+                        >
+                          Hapus
+                        </button>
+                      )}
+                    </div>
+                    {geminiStatus && (
+                      <p className={`mt-1 text-[9.5px] font-medium ${geminiStatus.includes('valid') ? 'text-emerald-700' : 'text-slate-600'}`}>
+                        {geminiStatus}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {!scanProses && (
                 <div className="flex gap-2">
@@ -407,7 +619,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="tx-akun" className="block text-[11px] font-semibold text-textSecondary">Sumber / Akun</label>
+            <label htmlFor="tx-akun" className="block text-[11px] font-semibold text-textSecondary">
+              {isPemasukan ? 'Rekening Tujuan / Penerima' : 'Sumber / Rekening'}
+            </label>
             <ClaySelect
               id="tx-akun"
               value={akunId}
@@ -571,13 +785,117 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           <button
             type="submit"
             disabled={saving}
-            className="clay-btn clay-key-primary solid-primary btn-lg w-full text-white transition-colors disabled:opacity-60"
+            className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} btn-lg w-full text-white transition-colors disabled:opacity-60`}
           >
             <span className="material-symbols-outlined icon-md">save</span>
-            {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : 'Simpan Transaksi'}
+            {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : isPemasukan ? 'Simpan Pemasukan' : 'Simpan Pengeluaran'}
           </button>
         </form>
       </div>
+
+      {/* Modal Panduan Ambil Kunci Gemini Gratis */}
+      {showTutorialModal && (
+        <div
+          className="fixed inset-0 z-[10001] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowTutorialModal(false)}
+        >
+          <div
+            className="clay-sheet clay-key-neutral flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-white p-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h4 className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <span className="material-symbols-outlined icon-sm text-primary">key</span>
+                Cara Ambil Kunci Gemini Gratis
+              </h4>
+              <button
+                type="button"
+                onClick={() => setShowTutorialModal(false)}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              >
+                <span className="material-symbols-outlined icon-sm">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-2.5 overflow-y-auto py-3 text-[11px] leading-relaxed text-slate-600">
+              <div className="rounded-xl bg-emerald-50 p-2.5 border border-emerald-100 text-emerald-800 text-[10.5px]">
+                <p className="font-bold flex items-center gap-1">
+                  <span className="material-symbols-outlined icon-xs">check_circle</span>
+                  100% Gratis Selamanya
+                </p>
+                <p className="mt-0.5 text-emerald-700">
+                  Disediakan gratis resmi oleh Google (kuota 1.500 struk per hari). Tidak perlu kartu kredit atau pembayaran.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    1
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800">Buka Google AI Studio</p>
+                    <p className="text-[10px] text-slate-500">Kunjungi halaman pembuatan kunci resmi Google:</p>
+                    <a
+                      href="https://aistudio.google.com/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-primary hover:bg-primary/20"
+                    >
+                      <span className="material-symbols-outlined icon-xs">open_in_new</span>
+                      Buka aistudio.google.com/apikey
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    2
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800">Masuk dengan Akun Google</p>
+                    <p className="text-[10px] text-slate-500">Login menggunakan akun Gmail / Google Anda seperti biasa.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    3
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800">Klik "Create API Key"</p>
+                    <p className="text-[10px] text-slate-500">
+                      Klik tombol biru <strong>"Create API key"</strong>, pilih proyek sembarang, lalu klik <strong>Copy</strong> untuk menyalin kuncinya.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    4
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800">Tempel di MyDuit</p>
+                    <p className="text-[10px] text-slate-500">
+                      Kembali ke aplikasi ini, tempelkan kunci di kotak Kunci API, lalu tekan <strong>Simpan</strong>.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowTutorialModal(false)}
+                className="w-full rounded-xl bg-primary py-2 text-center text-xs font-bold text-white hover:bg-primary-hover shadow-sm"
+              >
+                Saya Mengerti, Tutup Panduan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

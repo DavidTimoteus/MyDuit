@@ -269,6 +269,21 @@ async function konfirmHapus() {
             <span className="material-symbols-outlined shrink-0 icon-md">tune</span>
             <span className="truncate">{filterLabel(chip, rentang)}</span>
           </button>
+
+          {/* Tombol Catat Transaksi di tablet/desktop medium (768px-1279px) saat panel kanan & FAB tersembunyi */}
+          <button
+            onClick={() => bukaForm('add', { preset: jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran' })}
+            aria-label="Catat Transaksi"
+            className="hidden h-14 shrink-0 items-center gap-1.5 rounded-[22px] px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-95 md:flex xl:hidden"
+            style={{
+              background: jenis === 'pemasukan' ? '#2d6a4f' : '#1e293b',
+              boxShadow:
+                '3px 3px 9px rgba(0,0,0,.15), -3px -3px 9px rgba(255,255,255,.6), inset 1px 1px 3px rgba(255,255,255,.4)',
+            }}
+          >
+            <span className="material-symbols-outlined shrink-0 icon-md">add_circle</span>
+            <span className="truncate">{jenis === 'pemasukan' ? 'Tambah Pemasukan' : 'Catat Transaksi'}</span>
+          </button>
         </div>
 
           {/* Pagination — ikut sticky bersama toolbar sehingga tidak ter-scroll */}
@@ -331,6 +346,24 @@ async function konfirmHapus() {
             <p className="mt-1 text-xs leading-relaxed text-textSecondary">
               Data transaksi tidak ditemukan. Ketuk tombol <span className="font-bold text-primary">+</span> di navigasi bawah untuk mencatat transaksi baru.
             </p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => bukaForm('add', { preset: 'pemasukan' })}
+                className="clay-btn clay-key-primary solid-primary btn-sm flex items-center gap-1 text-white"
+              >
+                <span className="material-symbols-outlined icon-xs">trending_up</span>
+                Catat Pemasukan
+              </button>
+              <button
+                type="button"
+                onClick={() => bukaForm('add', { preset: 'pengeluaran' })}
+                className="clay-btn clay-key-danger solid-danger btn-sm flex items-center gap-1 text-white"
+              >
+                <span className="material-symbols-outlined icon-xs">trending_down</span>
+                Catat Pengeluaran
+              </button>
+            </div>
           </div>
         ) : (
           <div className="-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar">
@@ -380,7 +413,7 @@ async function konfirmHapus() {
 
 {/* Modal form tambah/edit/salin */}
       <FormTransaksiModal
-        key={`form-${modal.open ? modal.doc?.id ?? 'add' : 'closed'}`}
+        key={`form-${modal.open ? `${modal.mode}-${modal.doc?.id ?? modal.doc?.preset ?? 'default'}` : 'closed'}`}
         uid={uid}
         open={modal.open}
         mode={modal.mode}

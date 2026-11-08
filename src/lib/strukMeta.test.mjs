@@ -130,6 +130,22 @@ cek('non-tunai bukan tunai', cariTunai(strukGopay), false)
 cekBenar('barisStruk membuang baris kosong', barisStruk('A\n\n\nB\n  ').length === 2)
 cekBenar('barisStrub rapikan spasi ganda', barisStruk('A    B\nC').includes('A B'))
 
+// ---------- multi-line item pairing (R-SWA / spatial reading-order) ----------
+const strukMultiLine = `KAFE SENJA
+JL. SUDIRMAN 45
+KOPI SUSU GULA AREN
+1 x 22.000
+ROTI BAKAR COKLAT
+25.000
+TOTAL 47.000`
+
+const barangMultiLine = cariBarang(strukMultiLine)
+cekBenar('multi-line item terbaca 2 item', barangMultiLine.length === 2)
+cek('multi-line item 1 nama', barangMultiLine[0]?.nama, 'Kopi Susu Gula Aren')
+cek('multi-line item 1 harga', barangMultiLine[0]?.harga, 22000)
+cek('multi-line item 2 nama', barangMultiLine[1]?.nama, 'Roti Bakar Coklat')
+cek('multi-line item 2 harga', barangMultiLine[1]?.harga, 25000)
+
 // ---------- laporan ----------
 console.log(`\n=== UJI PEMBACAAN STRUK: ${lulus} lulus, ${gagal} gagal ===`)
 if (gagal) {

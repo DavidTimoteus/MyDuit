@@ -30,15 +30,18 @@ const QUERY_KATEGORI = (db, uid) =>
     orderBy('nama', 'asc'),
   )
 
-/** Dedupe defensif per-nama (jaga-jaga dokumen duplikat lama di server). */
+/** Dedupe defensif per-jenis & per-nama (mempertahankan kategori dengan nama sama pada jenis berbeda, mis. 'Lainnya'). */
 export function dedupeKategori(docs) {
   const seen = new Set()
   const list = []
   for (const d of docs) {
-    const key = (d.data().nama ?? '').toLowerCase()
+    const data = d.data()
+    const jenis = (data.jenis ?? '').toLowerCase()
+    const nama = (data.nama ?? '').toLowerCase()
+    const key = `${jenis}::${nama}`
     if (seen.has(key)) continue
     seen.add(key)
-    list.push({ id: d.id, ...d.data() })
+    list.push({ id: d.id, ...data })
   }
   return list
 }

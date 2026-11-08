@@ -165,7 +165,20 @@ export function cariBarang(teks) {
     const angkaBesar = [...semuaBaris[i].matchAll(/\d[\d.,]*/g)]
       .map((m) => parseAngkaID(m[0]))
       .some((n) => Number.isFinite(n) && n >= 1000)
-    if (angkaBesar) { mulai = i; break }
+    if (angkaBesar) {
+      // Jika baris sebelum harga (i - 1) memiliki huruf nama barang (bukan header/alamat),
+      // mulai dari nama barang tersebut (pola multi-line item).
+      if (i > 0 && !BARIS_NON_BARANG.test(semuaBaris[i - 1])) {
+        const hurufSblm = (semuaBaris[i - 1].replace(/\d[\d.,]*/g, '').match(/[A-Za-z]/g) || []).length
+        const isHeader = /jalan|jl\.|telp|phone|alamat|kasir|cashier|nota|struk|npwp/i.test(semuaBaris[i - 1])
+        if (hurufSblm >= 3 && !isHeader) {
+          mulai = i - 1
+          break
+        }
+      }
+      mulai = i
+      break
+    }
   }
 
   for (let idx = mulai; idx < semuaBaris.length; idx++) {
@@ -196,10 +209,31 @@ export function cariBarang(teks) {
     if (lihat.has(kunci)) continue
     lihat.add(kunci)
 
-    // Heuristik qty: angka kecil di(range 1..99)uga yang sering jadi jumlah.
+    // Heuristik qty: angka kecil di (range 1..99) yang sering jadi jumlah.
     // Harga: angka terbesar di baris.
-    const qty = angka.find((n) => n >= 1 && n <= 99 && n !== angka[angka.length - 1]) ?? null
-    const harga = angka.length ? Math.max(...angka) : null
+    let qty = angka.find((n) => n >= 1 && n <= 99 && n !== angka[angka.length - 1]) ?? null
+    let harga = angka.length ? Math.max(...angka) : null
+
+    // Multi-line item pairing (R-SWA / spatial reading-order collinearity):
+    // Jika baris saat ini belum memiliki harga wajar tapi baris berikutnya memuat qty/harga
+    if (harga === null && idx + 1 < semuaBaris.length) {
+      const barisBerikut = semuaBaris[idx + 1]
+      if (!BARIS_NON_BARANG.test(barisBerikut)) {
+        const angkaBerikut = [...barisBerikut.matchAll(/\d[\d.,]*/g)]
+          .map((m) => parseAngkaID(m[0]))
+          .filter((n) => Number.isFinite(n) && n > 0)
+        const hurufBerikut = (barisBerikut.replace(/\d[\d.,]*\s*[xX*]?/g, ' ').match(/[A-Za-z]/g) || []).length
+        if (hurufBerikut <= 4 && angkaBerikut.length > 0) {
+          const hargaBerikut = Math.max(...angkaBerikut)
+          if (hargaBerikut >= 500) {
+            harga = hargaBerikut
+            qty = angkaBerikut.find((n) => n >= 1 && n <= 99 && n !== hargaBerikut) ?? qty
+            idx++ // lewati baris harga berikutnya agar tidak diduplikasi
+          }
+        }
+      }
+    }
+
     hasil.push({ nama, qty, harga })
     if (hasil.length >= 12) break
   }

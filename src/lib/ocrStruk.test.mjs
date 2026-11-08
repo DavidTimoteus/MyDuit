@@ -6,7 +6,7 @@
 //  - 'subtotal' tidak boleh dianggap 'total'
 //  - ambil angka SETELAH kata kunci ("Tunai 50.000 Kembali 5.000")
 // Jalankan: node src/lib/ocrStruk.test.mjs
-import { cariTotal, cariTanggal, parseAngkaID, cariJenis, cariMerchant } from './ocrStruk.js'
+import { cariTotal, cariTanggal, parseAngkaID, cariJenis, cariMerchant, rekonstruksiTataLetakBaris, susunMarkdownStruk } from './ocrStruk.js'
 
 let lulus = 0
 let gagal = 0
@@ -72,6 +72,29 @@ cek('refund -> pemasukan', cariJenis('REFUND 20.000'), 'pemasukan')
 
 // ---------- cariMerchant ----------
 cek('merchant dari baris awal', cariMerchant('TOKO SUMBER REJEKI\nJl. Merdeka 12\nTOTAL 50.000'), 'TOKO SUMBER REJEKI')
+
+// ---------- R-SWA Lookahead: multi-line total extraction ----------
+cek('sliding window lookahead: TOTAL lalu nominal di baris berikutnya', cariTotal('TOTAL HARGA\n55.000').total, 55000)
+cek('sliding window lookahead: GRAND TOTAL dengan baris jeda item count', cariTotal('GRAND TOTAL\n2 ITEMS\n125.000').total, 125000)
+cek('sliding window lookahead: baris berikutnya terlarang (kembali) tidak diambil', cariTotal('TOTAL\nKEMBALI 5.000\n60.000').total, 60000)
+
+// ---------- rekonstruksiTataLetakBaris ----------
+cek('rekonstruksi baris gantung TOTAL :', rekonstruksiTataLetakBaris('TOTAL :\n45.000'), 'TOTAL : 45.000')
+cek('rekonstruksi baris gantung Rp', rekonstruksiTataLetakBaris('JUMLAH Rp\n88.000'), 'JUMLAH Rp 88.000')
+
+// ---------- susunMarkdownStruk ----------
+const mdHasil = susunMarkdownStruk({
+  merchant: 'Indomaret Merdeka',
+  tanggal: '2026-11-08',
+  total: 55000,
+  sumber: 'TOTAL 55.000',
+  barang: [{ nama: 'Roti Gandum', qty: 2, harga: 30000 }, { nama: 'Susu UHT', qty: 1, harga: 25000 }],
+  tunai: true,
+  teksMentah: 'INDOMARET MERDEKA\nROTI GANDUM 30.000\nSUSU UHT 25.000\nTOTAL 55.000',
+})
+cek('markdown struk memuat header ringkasan', mdHasil.includes('### 🧾 Ringkasan Struk Transaksi'), true)
+cek('markdown struk memuat tabel rincian item', mdHasil.includes('| No | Item / Deskripsi | Qty | Harga Satuan | Subtotal |'), true)
+cek('markdown struk memuat item roti gandum', mdHasil.includes('Roti Gandum'), true)
 
 // ---------- laporan ----------
 console.log(`\n=== UJI PARSER OCR: ${lulus} lulus, ${gagal} gagal ===`)

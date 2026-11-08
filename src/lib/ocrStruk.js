@@ -24,6 +24,7 @@
  */
 
 import { cariBarang, petakanKategori, cariPembayar, cariTunai } from './strukMeta.js'
+import { praProsesMutakhir } from './imageFilters.js'
 
 // ===================== PRA-PROSES GAMBAR =====================
 
@@ -678,14 +679,18 @@ function rapikanNominal(n, mentah) {
  *  1. Baris dengan kata kunci total (grand total > total > jumlah > bayar).
  *  2. Ambil angka SETELAH kata kunci bila ada (hindari "Tunai 50.000 Kembali 5.000"
  *     salah ambil), kalau tidak ada pakai angka terbesar di baris.
- *  3. Buang baris ber-kata-terlarang (npwp, telp, kembali, ppn, diskon, ...).
- *  4. Cadangan: angka terbesar di seluruh struk yang masuk akal.
+ *  3. Sliding Window Lookahead (R-SWA inspired dari Unlimited-OCR): bila baris
+ *     kata kunci total tidak memuat angka (mis. "TOTAL BELANJA\n55.000"), periksa
+ *     1-2 baris di bawahnya tanpa salah mengambil baris terlarang.
+ *  4. Buang baris ber-kata-terlarang (npwp, telp, kembali, ppn, diskon, ...).
+ *  5. Cadangan: angka terbesar di seluruh struk yang masuk akal.
  */
 export function cariTotal(teks) {
   const baris = normalisasiOcr(teks).split('\n')
   const kandidat = []
 
-  for (const b of baris) {
+  for (let i = 0; i < baris.length; i++) {
+    const b = baris[i]
     const lb = b.toLowerCase()
     const lvl = levelTotal(lb)
     const terlarang = KATA_ABAIKAN.some((k) => adaKata(lb, k))
@@ -695,10 +700,33 @@ export function cariTotal(teks) {
     // "KEMBALI 5.000" murni tetap dibuang.
     if (terlarang && lvl < 1) continue
 
-    const angkaMentah = [...b.matchAll(/(\d[\d.,]{2,})/g)]
-    const angka = angkaMentah
+    let angkaMentah = [...b.matchAll(/(\d[\d.,]{2,})/g)]
+    let angka = angkaMentah
       .map((m) => rapikanNominal(parseAngkaID(m[1]), m[1]))
       .filter((n) => n != null && n > 0)
+    let sumberBaris = b.trim()
+
+    // Sliding Window Lookahead (R-SWA inspired):
+    // Jika baris memuat kata kunci total tingkat tinggi (lvl >= 2) tapi tidak ada angka nominal pada baris ini,
+    // jelajahi jendela 1-2 baris berikutnya untuk menangkap nominal total yang tercetak di bawahnya.
+    if ((!angka.length || (angka.length === 1 && angka[0] < 100)) && lvl >= 2) {
+      for (let offset = 1; offset <= 2 && i + offset < baris.length; offset++) {
+        const nextB = baris[i + offset]
+        const nextLb = nextB.toLowerCase()
+        if (KATA_ABAIKAN.some((k) => adaKata(nextLb, k)) && levelTotal(nextLb) < 1) break
+        const nextAngkaMentah = [...nextB.matchAll(/(\d[\d.,]{2,})/g)]
+        const nextAngka = nextAngkaMentah
+          .map((m) => rapikanNominal(parseAngkaID(m[1]), m[1]))
+          .filter((n) => n != null && n >= 100)
+        if (nextAngka.length) {
+          angkaMentah = nextAngkaMentah
+          angka = nextAngka
+          sumberBaris = `${b.trim()} -> ${nextB.trim()}`
+          break
+        }
+      }
+    }
+
     if (!angka.length) continue
 
     // Ambil angka TERBESAR setelah kata kunci total pada baris ini.
@@ -708,7 +736,7 @@ export function cariTotal(teks) {
     // Nominal total selalu angka terbesar di antara angka pada baris totalnya,
     // jadi max lebih andal daripada "pertama" maupun "terakhir".
     let nilai = Math.max(...angka)
-    if (lvl >= 2) {
+    if (lvl >= 2 && sumberBaris === b.trim()) {
       const posKata = Math.max(
         ...KATA_TOTAL_TIER.flatMap((t) => t.kata).map((k) => lb.indexOf(k)),
       )
@@ -723,7 +751,7 @@ export function cariTotal(teks) {
     if (nilai >= 1000) bobot += 20
     if (nilai % 100 === 0) bobot += 10
     if (lvl === 3) bobot += 50
-    kandidat.push({ nilai, lvl, bobot, sumber: b.trim() })
+    kandidat.push({ nilai, lvl, bobot, sumber: sumberBaris })
   }
 
   if (!kandidat.length) return { total: null, sumber: null, lvl: 0 }
@@ -770,18 +798,20 @@ export async function bacaStruk(file, onProgress) {
   const fileAman = await kompresCitraAman(file, 1600, 0.85)
   const img = await muatGambar(fileAman)
   // Multi-perspektif preprocessing mutakhir:
+  //  - mutakhir (Auto-deskew + CLAHE shadow removal + Unsharp mask)
   //  - crop+Sauvola: foto HP berlatar ramai/gelap/miring
   //  - Sauvola adaptif: pencahayaan tidak merata
   //  - Otsu binarization: teks struk termal pudar/kontras rendah
   //  - kontras global: struk digital/scan bersih
   const varian = [
+    praProsesMutakhir(praProsesAdaptif(img, 1600)),
     praProsesCrop(img, 1600),
-    praProsesAdaptif(img, 1600),
     praProsesOtsu(img, 1600),
     praProses(img, 1500),
   ]
   const hasil = await jalankanOcr(varian, onProgress)
-  const teks = hasil.teks || ''
+  const teksAsli = hasil.teks || ''
+  const teks = rekonstruksiTataLetakBaris(teksAsli)
 
   const { total, sumber } = cariTotal(teks)
   const merchant = cariMerchant(teks)
@@ -835,8 +865,34 @@ export async function bacaStruk(file, onProgress) {
 }
 
 /**
+ * Rekonstruksi tata letak baris (collinear multi-line text) terinspirasi R-SWA Unlimited-OCR.
+ * Menggabungkan token yang terpisah baris secara tidak wajar pada dokumen struk.
+ */
+export function rekonstruksiTataLetakBaris(teks) {
+  if (!teks) return ''
+  const baris = String(teks).split('\n')
+  const hasil = []
+  for (let i = 0; i < baris.length; i++) {
+    const cur = baris[i].trim()
+    if (!cur) continue
+    // Jika baris saat ini berakhir dengan indikator gantung ("TOTAL :", "Rp", "Rp.", "IDR")
+    // dan baris berikutnya diawali angka nominal, gabungkan ke satu baris
+    if (i + 1 < baris.length && /(total|subtotal|jumlah|grand total|tagihan|rp\.?|idr)\s*:?$/i.test(cur)) {
+      const next = baris[i + 1].trim()
+      if (/^[\d.,\s]+/.test(next)) {
+        hasil.push(`${cur} ${next}`)
+        i++ // lewati baris berikutnya
+        continue
+      }
+    }
+    hasil.push(cur)
+  }
+  return hasil.join('\n')
+}
+
+/**
  * Konversi teks hasil ekstraksi struk menjadi format Markdown terstruktur offline.
- * Menghasilkan representasi dokumen yang mudah dibaca, rapi, dan konsisten.
+ * Menghasilkan representasi dokumen yang mudah dibaca, rapi, dan konsisten (terinspirasi Unlimited-OCR).
  */
 export function susunMarkdownStruk({ merchant, tanggal, total, sumber, barang, pembayar, tunai, teksMentah }) {
   const lines = []
@@ -845,9 +901,25 @@ export function susunMarkdownStruk({ merchant, tanggal, total, sumber, barang, p
   if (tanggal) lines.push(`- **Tanggal:** ${tanggal}`)
   if (total) lines.push(`- **Total Nominal:** Rp ${Number(total).toLocaleString('id-ID')}`)
   if (sumber) lines.push(`- **Baris Deteksi:** \`${sumber}\``)
-  if (barang) lines.push(`- **Item / Keterangan:** ${barang}`)
   if (pembayar) lines.push(`- **Metode Pembayaran:** ${pembayar.nama} (${pembayar.jenis})`)
   else if (tunai) lines.push(`- **Metode Pembayaran:** Tunai / Cash`)
+
+  if (Array.isArray(barang) && barang.length > 0) {
+    lines.push('')
+    lines.push('#### 📋 Rincian Item Transaksi')
+    lines.push('| No | Item / Deskripsi | Qty | Harga Satuan | Subtotal |')
+    lines.push('|:--:|:-----------------|:---:|:------------:|:--------:|')
+    barang.forEach((b, idx) => {
+      const q = b.qty || 1
+      const subtotal = b.harga ? b.harga : 0
+      const unit = b.harga && b.qty && b.qty > 1 ? Math.round(b.harga / b.qty) : b.harga || 0
+      const unitStr = unit ? `Rp ${unit.toLocaleString('id-ID')}` : '-'
+      const subStr = subtotal ? `Rp ${subtotal.toLocaleString('id-ID')}` : '-'
+      lines.push(`| ${idx + 1} | ${b.nama} | ${q} | ${unitStr} | ${subStr} |`)
+    })
+  } else if (typeof barang === 'string' && barang) {
+    lines.push(`- **Item / Keterangan:** ${barang}`)
+  }
   
   lines.push('')
   lines.push('#### 📄 Teks Ekstraksi Struk')

@@ -29,14 +29,26 @@
 - **Teks Pengeluaran:** `.text-expenseText` (`#991b1b`) — Rasio kontras 6.4:1 di atas putih/surface.
 - **Teks Bantuan / Keterangan:** `.text-textSecondary` (`#475569`) — Rasio kontras 5.1:1 (Lolos AA).
 
-### C. Component Tokens (Clay Anatomy)
+### C. Component Tokens (Clay Anatomy & Spring Dynamics)
 - **Border Radius:**
-  - Card: `var(--clay-r-card, 24px)`
-  - Input & Trigger: `var(--clay-r-input, 16px)`
+  - Card: `var(--clay-r-card, 26px)`
+  - Card Small / Hero: `var(--clay-r-card-sm, 22px)`
+  - Input & Trigger: `var(--clay-r-input, 18px)`
+  - Icon Tile: `var(--clay-r-icon, 20px)` (Squircle)
   - Pill / Chip: `9999px` (Full Rounded)
 - **Bayangan Clay Multi-Lapis:**
-  - Luar: `box-shadow: 4px 4px 12px rgba(var(--clay-h-primary), 0.16), -4px -4px 10px rgba(255,255,255,0.7)`
-  - Dalam (*Tactile Bevel*): `inset 2px 2px 5px rgba(255,255,255,0.6), inset -2px -2px 5px rgba(0,0,0,0.06)`
+  - Card Outset: `8px 8px 20px rgba(var(--clay-h), 0.09), -6px -6px 16px rgba(255,255,255,0.98)`
+  - Card Specular Rim: `inset 1.5px 1.5px 3px rgba(255,255,255,0.9), inset -2px -2px 6px rgba(var(--clay-h), 0.05)`
+  - Surface Fill: `linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(246,250,248,0.92) 100%)`
+  - Border: `1px solid rgba(255, 255, 255, 0.65)`
+- **Spring Micro-Interactions (Emil Kowalski / Jakub Krehel Physics):**
+  - Easing Curve Release / Pop: `cubic-bezier(0.34, 1.56, 0.64, 1)` (180ms - 200ms)
+  - Easing Curve Smooth Damping: `cubic-bezier(0.16, 1, 0.3, 1)`
+  - Button Active State: `transform: scale(0.97) translateY(1px);` dengan inset resistance
+- **Tabular Numeric Matrix:**
+  - Font: `font-variant-numeric: tabular-nums lining-nums; font-feature-settings: 'tnum' on, 'lnum' on; letter-spacing: -0.02em;`
+- **Aturan Sintaks Warna Hue:**
+  - Nilai `--clay-h-*` adalah *RGB triplet* (contoh: `38, 90, 67`). Penggunaan pada warna CSS wajib dibungkus `rgb(var(--clay-h))` atau `rgba(var(--clay-h), <alpha>)`. Dilarang menggunakan `background-color: var(--clay-h);` tanpa wrapper fungsi warna.
 
 ---
 
