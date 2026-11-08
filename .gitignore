@@ -50,3 +50,10 @@ TEST_MOBILE_REPORT.md
 # Jejak harness uji render (screenshot + harness versi lama) — bukan bagian aplikasi
 snapshots/
 node_modules/.myduit-test/
+
+# Local tooling, agent metadata, & scratch runners
+.agents/
+figcraft.connect.json
+dogfood_*.mjs
+*.cmd
+*.bat
