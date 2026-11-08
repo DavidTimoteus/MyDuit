@@ -398,7 +398,29 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
         </div>
 
-        <form onSubmit={submit} className="min-h-0 space-y-2 overflow-y-auto px-4 py-2">
+        <form onSubmit={submit} className="min-h-0 space-y-2.5 overflow-y-auto px-4 py-2">
+          {/* Hero Input Nominal (Paling Atas: Tak Tertutup Keyboard Virtual Mobile, Teks Kontras Tinggi) */}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="tx-jumlah" className="block text-[11px] font-bold tracking-wide uppercase text-textSecondary">
+              Nominal Transaksi ({simbolUang()})
+            </label>
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold text-slate-400 font-mono">
+                {simbolUang()}
+              </span>
+              <input
+                id="tx-jumlah"
+                type="text"
+                value={jumlah}
+                onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
+                inputMode="numeric"
+                placeholder="0"
+                required
+                autoFocus
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight text-slate-800"
+              />
+            </div>
+          </div>
           {/* Scan Struk / Foto — HANYA mode tambah pengeluaran (GAS menyembunyikannya saat edit / pemasukan).
               OCR berjalan 100% di browser: total, tanggal, jenis, dan merchant terisi otomatis. */}
           {mode === 'add' && !isPemasukan && (
@@ -757,21 +779,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               placeholder="Keterangan opsional"
-              className="clay-input field-lg w-full bg-surface text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tx-jumlah" className="block text-[11px] font-semibold text-textSecondary">Nominal ({simbolUang()})</label>
-            <input
-              id="tx-jumlah"
-              type="text"
-              value={jumlah}
-              onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
-              inputMode="numeric"
-              placeholder="0"
-              required
-              className="clay-input field-lg w-full bg-surface text-sm outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary font-mono"
+              className="clay-input field-lg w-full text-sm"
             />
           </div>
 
