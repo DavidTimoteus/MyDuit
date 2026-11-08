@@ -3466,3 +3466,14 @@ button:active {
   background-color: rgba(235, 83, 83, 0.12) !important;
   color: #EB5353 !important;
 }
+
+[data-theme="neumorphism"] .mutasi-item__saldo {
+  margin-top: 6px;
+  color: #64748B !important;
+}
+[data-theme="neumorphism"] .mutasi-item__saldo span:last-child {
+  color: #187498 !important;
+  text-shadow:
+    1px  1px 1px rgba(255, 255, 255, 0.95),
+   -1px -1px 1px rgba(0, 0, 0, 0.08) !important;
+}
