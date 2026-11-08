@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ambilDataLaporan, unduhLaporanPdf } from './laporan.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
 
@@ -11,6 +11,15 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
   const [pakaiAI, setPakaiAI] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [open, onClose])
 
   if (!open) return null
 

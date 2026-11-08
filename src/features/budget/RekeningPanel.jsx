@@ -132,11 +132,11 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           (menjadi blok rata tanpa inset) serta berisiko white-on-white bila
           utility lain ikut menimpa. Sekarang identitas warna dibawa hero-blue
           (strip aksen) sementara teks tetap gelap di atas putih. */}
-      <div className="hero-card hero-blue mt-4 rounded-2xl p-5 md:flex md:items-center md:justify-between md:gap-6 min-h-[100px] md:min-h-[170px]">
+      <div className="neu-card mt-4 rounded-2xl p-5 md:flex md:items-center md:justify-between md:gap-6 min-h-[100px] md:min-h-[170px] bg-[#E5E5E5]">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span
-              className="material-symbols-outlined icon-md text-info"
+              className="material-symbols-outlined icon-md text-[#187498]"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               account_balance_wallet
@@ -145,7 +145,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
               Total Semua Saldo
             </p>
           </div>
-          <p className="font-mono mb-3 text-2xl font-extrabold tracking-tight text-slate-900 tabular-nums md:text-3xl lg:text-4xl">
+          <p className="font-mono mb-3 text-2xl font-black tracking-tight text-slate-900 tabular-nums md:text-3xl lg:text-4xl brand-title-embossed">
             {formatRupiah(total)}
           </p>
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
@@ -162,16 +162,16 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           </div>
         </div>
         {/* Arus kas bulan berjalan — Pemasukan/Pengeluaran */}
-        <div className="mt-3 grid shrink-0 grid-cols-2 gap-x-4 gap-y-1 md:mt-0 md:text-right md:grid-cols-1">
-          <div>
+        <div className="mt-3 grid shrink-0 grid-cols-2 gap-3 md:mt-0 md:text-right md:grid-cols-1">
+          <div className="neu-inset rounded-xl p-2.5 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pemasukan bulan ini</p>
-            <p className="font-mono text-sm font-bold text-incomeText tabular-nums">
+            <p className="font-mono text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
               {formatRupiah(arusBulan.masuk)}
             </p>
           </div>
-          <div>
+          <div className="neu-inset rounded-xl p-2.5 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pengeluaran bulan ini</p>
-            <p className="font-mono text-sm font-bold text-expenseText tabular-nums">
+            <p className="font-mono text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
               {formatRupiah(arusBulan.keluar)}
             </p>
           </div>
@@ -285,8 +285,8 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                   transition: 'transform 380ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 300ms ease',
                   boxShadow:
                     delta === 0
-                      ? '-5px -5px 12px rgba(255, 255, 255, 0.75), 6px 6px 14px rgba(24, 116, 152, 0.20)'
-                      : '0 4px 6px -1px rgba(0, 0, 0, 0.08)',
+                      ? '-6px -6px 14px rgba(255, 255, 255, 0.85), 6px 6px 16px rgba(0, 0, 0, 0.15)'
+                      : '-3px -3px 8px rgba(255, 255, 255, 0.70), 3px 3px 8px rgba(0, 0, 0, 0.10)',
                 }}
               >
                 {delta === 0 ? (
@@ -294,13 +294,13 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     {/* Header Kartu — Ikon bank kecil bulat biru + nama + badge tipe + aksi */}
                     <div className="flex items-center gap-2 mb-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center shrink-0 shadow-none">
+                        <div className="w-8 h-8 rounded-xl bg-[#E5E5E5] shadow-[-2px_-2px_5px_rgba(255,255,255,0.9),2px_2px_5px_rgba(0,0,0,0.14)] flex items-center justify-center shrink-0 text-[#187498]">
                           <span className="material-symbols-outlined text-blue-700 icon-xs">account_balance</span>
                         </div>
                         <span className="font-bold text-base text-slate-800 truncate">{a.nama}</span>
                       </div>
                       {a.tipe && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium shrink-0 whitespace-nowrap ml-auto">
+                        <span className="neu-inset text-[10px] px-2.5 py-0.5 rounded-full font-bold text-[#187498] shrink-0 whitespace-nowrap ml-auto bg-[#E5E5E5]">
                           {a.tipe}
                         </span>
                       )}
@@ -309,7 +309,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         onClick={(e) => { e.stopPropagation(); setRiwayatId(a.id) }}
                         title="Detail perubahan rekening"
                         aria-label={`Detail perubahan ${a.nama}`}
-                        className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors shrink-0"
+                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#187498] bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
                       >
                         <span className="material-symbols-outlined icon-xs">history</span>
                       </button>
@@ -318,7 +318,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         onClick={(e) => { e.stopPropagation(); setModal({ open: true, edit: a }) }}
                         title="Edit rekening"
                         aria-label="Edit rekening"
-                        className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0"
+                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-slate-800 bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
                       >
                         <span className="material-symbols-outlined icon-xs">edit</span>
                       </button>
@@ -327,7 +327,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         onClick={(e) => { e.stopPropagation(); setHapusTarget(a) }}
                         title="Hapus rekening"
                         aria-label="Hapus rekening"
-                        className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500 transition-colors shrink-0"
+                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#EB5353] bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
                       >
                         <span className="material-symbols-outlined icon-xs">delete</span>
                       </button>
@@ -336,7 +336,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     {/* Saldo Akhir */}
                     <div className="mb-2">
                       <p className="text-xs text-slate-500">Saldo Akhir</p>
-                      <p className={`font-mono text-lg font-bold ${negatif ? 'text-expenseText' : 'text-slate-800'}`}>
+                      <p className={`font-mono text-xl font-black ${negatif ? 'text-[#EB5353]' : 'text-slate-900'} brand-title-embossed`}>
                         {formatRupiah(a.saldo)}
                       </p>
                     </div>
@@ -347,7 +347,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                       type="button"
                       onClick={() => setRiwayatId(a.id)}
                       aria-label={`Lihat detail perubahan ${a.nama}`}
-                      className="block w-full rounded-lg bg-slate-50 px-2.5 py-2 text-left transition-colors hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      className="neu-well block w-full rounded-xl bg-[#E5E5E5] p-2.5 text-left transition-all active:scale-[0.99] focus:outline-none"
                     >
                       <span className="block text-xs font-semibold text-slate-500 mb-1">Perubahan Terakhir</span>
                       {log ? (
@@ -390,38 +390,44 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                 negatif ? 'clay-key-danger' : 'clay-key-blue'
               }`}
             >
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-blue-700 icon-sm">account_balance</span>
+              <div className="flex items-start justify-between gap-2 mb-2.5">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-blue-700 icon-sm">account_balance</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-base text-slate-800 truncate" title={a.nama}>{a.nama}</p>
+                    {a.tipe && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium inline-block mt-0.5">
+                        {a.tipe}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <p className="font-bold text-base text-slate-800 truncate flex-1">{a.nama}</p>
-                {a.tipe && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium shrink-0">
-                    {a.tipe}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setRiwayatId(a.id)}
-                  aria-label={`Detail perubahan ${a.nama}`}
-                  className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-50 hover:text-blue-600"
-                >
-                  <span className="material-symbols-outlined icon-xs">history</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setModal({ open: true, edit: a })}
-                  className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-600"
-                >
-                  <span className="material-symbols-outlined icon-xs">edit</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setHapusTarget(a)}
-                  className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500"
-                >
-                  <span className="material-symbols-outlined icon-xs">delete</span>
-                </button>
+                <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setRiwayatId(a.id)}
+                    aria-label={`Detail perubahan ${a.nama}`}
+                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                  >
+                    <span className="material-symbols-outlined icon-xs">history</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setModal({ open: true, edit: a })}
+                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-600"
+                  >
+                    <span className="material-symbols-outlined icon-xs">edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHapusTarget(a)}
+                    className="clay-chip clay-key-neutral w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-red-50 hover:text-red-500"
+                  >
+                    <span className="material-symbols-outlined icon-xs">delete</span>
+                  </button>
+                </div>
               </div>
               <div className="mb-2">
                 <p className="text-xs text-slate-500">Saldo Akhir</p>

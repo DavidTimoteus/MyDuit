@@ -87,7 +87,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-danger w-full max-w-sm rounded-[24px] p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
-            <span className="material-symbols-outlined text-danger">account_balance_wallet</span>
+            <span className="material-symbols-outlined text-[#EB5353]">account_balance_wallet</span>
             {edit ? 'Edit Utang' : 'Tambah Utang'}
           </h3>
           <button type="button" onClick={onClose} className="clay-chip flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-200">
@@ -95,52 +95,77 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
           </button>
         </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2">
-          <div>
-            <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nama pihak</label>
-            <input
-              value={namaPihak}
-              onChange={(e) => setNamaPihak(e.target.value)}
-              placeholder="mis. Kredit Motor"
-              className="clay-field w-full rounded-xl px-3 py-2.5 text-sm font-semibold"
-            />
+        {/* Segmented Toggle Tipe Utang vs Cicilan */}
+        <div className="mb-3">
+          <div className="clay-segmented-track">
+            <button
+              type="button"
+              onClick={() => setTipe('Utang')}
+              className={`clay-segment-item ${tipe === 'Utang' ? 'is-active is-expense' : ''}`}
+            >
+              <span className="material-symbols-outlined icon-sm">receipt_long</span>
+              Utang
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipe('Cicilan')}
+              className={`clay-segment-item ${tipe === 'Cicilan' ? 'is-active' : ''}`}
+            >
+              <span className="material-symbols-outlined icon-sm">calendar_month</span>
+              Cicilan
+            </button>
           </div>
-          <div>
-            <label className="mb-0.5 block text-[11px] font-semibold text-textSecondary">Tipe</label>
-            <ClaySelect
-              value={tipe}
-              onChange={setTipe}
-              options={[{ value: 'Utang', label: 'Utang' }, { value: 'Cicilan', label: 'Cicilan' }]}
+          <span className="sr-only font-medium text-slate-800">{tipe}</span>
+        </div>
+
+        {/* Hero Nominal Total Display */}
+        <div className="mb-3 flex flex-col gap-1">
+          <label className="block text-[11px] font-bold tracking-wide uppercase text-slate-500">
+            Total {tipe} ({simbolUang()})
+          </label>
+          <div className="relative flex items-center">
+            <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#EB5353]">
+              {simbolUang()}
+            </span>
+            <input
+              value={total}
+              onChange={(e) => setTotal(formatRibuanInput(e.target.value))}
+              inputMode="numeric"
+              placeholder="0"
+              required
+              className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight tx-nominal-expense !text-[#EB5353]"
             />
           </div>
         </div>
 
-        <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Total</label>
-        <div className="clay-field mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5">
-          <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
+        <div className="mb-3">
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nama pihak</label>
           <input
-            value={total}
-            onChange={(e) => setTotal(formatRibuanInput(e.target.value))}
-            inputMode="numeric"
-            placeholder="0"
-            className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+            value={namaPihak}
+            onChange={(e) => setNamaPihak(e.target.value)}
+            placeholder="mis. Kredit Motor / Teman"
+            className="clay-input field-lg w-full rounded-2xl px-3 text-sm font-semibold"
           />
         </div>
 
         {tipe === 'Cicilan' && (
-          <>
-            <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Cicilan per bulan</label>
-            <div className="clay-field mb-3 flex items-center gap-2 rounded-xl px-3 py-2.5">
-              <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
+          <div className="mb-3 flex flex-col gap-1">
+            <label className="block text-[11px] font-bold tracking-wide uppercase text-slate-500">
+              Cicilan per bulan ({simbolUang()})
+            </label>
+            <div className="relative flex items-center">
+              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
+                {simbolUang()}
+              </span>
               <input
                 value={cicilan}
                 onChange={(e) => setCicilan(formatRibuanInput(e.target.value))}
                 inputMode="numeric"
                 placeholder="0"
-                className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight !text-[#187498]"
               />
             </div>
-          </>
+          </div>
         )}
 
         <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
@@ -159,7 +184,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         />
 
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
-        <button disabled={saving} className="clay-btn-primary btn-lg w-full text-sm font-extrabold disabled:opacity-60">
+        <button type="submit" disabled={saving} className="clay-btn clay-key-danger solid-danger btn-lg w-full text-sm font-extrabold text-white transition-all disabled:opacity-60">
           {saving ? 'Menyimpan…' : 'Simpan'}
         </button>
       </form>

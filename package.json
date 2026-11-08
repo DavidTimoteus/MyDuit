@@ -63,6 +63,7 @@
     "firebase-tools": "^15.28.2",
     "globals": "^15.0.0",
     "pdfjs-dist": "^6.3.289",
+    "puppeteer-core": "^25.16.0",
     "tailwindcss": "^4.3.3",
     "vite": "^6.4.3",
     "vite-plugin-pwa": "^1.3.0"

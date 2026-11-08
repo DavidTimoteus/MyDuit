@@ -29,16 +29,16 @@ export default function App() {
   const { status, user, error } = useAuth()
   const [splashReady, setSplashReady] = useState(false)
 
-  // Fallback: kalau Firebase tidak terkonfigurasi, splash tampil 1.4s lalu LayarSetup
-  // kalau OK, splash tunggu sampai Auth selesai (user loaded OR error)
+  // Begitu auth selesai ditentukan (user login / unauth / error),
+  // splash langsung ditandai siap agar Shell/AuthScreen dapat dimount.
+  // Splash.jsx mengontrol durasi minimum agar tidak flicker.
   useEffect(() => {
     if (!fbReady) {
-      const t = setTimeout(() => setSplashReady(true), 1400)
-      return () => clearTimeout(t)
+      setSplashReady(true)
+      return
     }
     if (status === 'loading') return
-    const t = setTimeout(() => setSplashReady(true), 1400)
-    return () => clearTimeout(t)
+    setSplashReady(true)
   }, [fbReady, status])
 
   // Migrasi anti-redundansi sekali per user (hanya saat splash sudah lewat

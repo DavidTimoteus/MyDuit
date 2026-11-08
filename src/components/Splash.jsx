@@ -1,30 +1,27 @@
 import { useEffect, useState } from 'react'
 
-// Splash screen MyDuit — tema hijau signature.
-// Background: gradien hijau gelap #1b4332 → #2d6a4f → #40916c.
-// Logo: kotak squircle clay hijau + favicon SVG (anti-flash, tanpa webfont).
-// Judul + tagline memakai teks putih/krem kontras tinggi di atas hijau.
-// Dot spinner putih semi-transparan (rgba 255,255,255,0.7).
-// Ditampilkan di atas segalanya (z-99999), lalu fade-out smooth & dihapus dari DOM
-// setelah ~1.4 detik (min waktu agar animasi masuk terasa) atau setelah
-// aplikasi siap dipakai (mana yang lebih akhir).
+// Splash screen MyDuit — Neumorphism & Claymorphism adaptive
 export default function Splash({ ready }) {
   const [leaving, setLeaving] = useState(false)
   const [mounted, setMounted] = useState(true)
 
   useEffect(() => {
-    const minTime = 1400
-    const fadeMs = 450
+    if (!ready) return
+    const isMock = typeof window !== 'undefined' && (localStorage.getItem('myduit:mock_user') || localStorage.getItem('myduit:mock_unauth'))
+    const minDisplay = isMock ? 150 : 800
+    const fadeMs = 350
     let timer
-    const dismiss = () => {
+    let unmountTimer
+
+    timer = setTimeout(() => {
       setLeaving(true)
-      timer = setTimeout(() => setMounted(false), fadeMs)
+      unmountTimer = setTimeout(() => setMounted(false), fadeMs)
+    }, minDisplay)
+
+    return () => {
+      clearTimeout(timer)
+      clearTimeout(unmountTimer)
     }
-    if (ready) {
-      // Tunggu minimum waktu splash tampil, baru keluar
-      timer = setTimeout(dismiss, minTime)
-    }
-    return () => clearTimeout(timer)
   }, [ready])
 
   if (!mounted) return null

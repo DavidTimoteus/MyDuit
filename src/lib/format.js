@@ -4,7 +4,7 @@
 // Firebase Auth tidak menyimpan negara pengguna secara eksplisit, jadi kita
 // mengira dari (1) TIMEZONE perangkat (paling akurat untuk lokasi) lalu
 // (2) bahasa browser. Default INDONESIA (IDR) untuk app yang memang di-Indonesia.
-const CURRENCY_BY_LOCALE = {
+const _CURRENCY_BY_LOCALE = {
   'id': 'IDR', 'id-id': 'IDR',
   'en-sg': 'SGD', 'en-my': 'MYR', 'en-us': 'USD', 'en-ca': 'CAD',
   'en-gb': 'GBP', 'en-au': 'AUD', 'en-ph': 'PHP', 'en-th': 'THB',
@@ -91,11 +91,8 @@ export function detectTimezone() {
 export function detectCurrency(locale) {
   const manual = negaraManual()
   if (manual) return NEGARA[manual].currency
-  const tz = detectTimezone().toLowerCase()
-  const country = COUNTRY_BY_TZ[tz]
-  if (country && CURRENCY_BY_COUNTRY[country]) return CURRENCY_BY_COUNTRY[country]
-  const key = String(locale || '').toLowerCase()
-  return CURRENCY_BY_LOCALE[key] || CURRENCY_DEFAULT
+  const info = detectCountryInfo(locale)
+  return info.currency || CURRENCY_DEFAULT
 }
 
 // Locale angka: ikut negara manual bila ada, kalau tidak pakai locale browser.
@@ -109,11 +106,22 @@ export function detectLocale() {
 export function detectCountryInfo(locale) {
   const manual = negaraManual()
   if (manual) return { code: manual, manual: true, ...NEGARA[manual] }
+
+  const loc = String(locale || (typeof navigator !== 'undefined' ? navigator.language : '') || '').toLowerCase()
+  if (loc.startsWith('id') || loc.includes('id') || loc.startsWith('in')) {
+    return { code: 'ID', manual: false, ...NEGARA.ID }
+  }
+
   const tz = detectTimezone().toLowerCase()
   let code = COUNTRY_BY_TZ[tz]
+  // Khusus Asia/Bangkok (UTC+7): jika locale bukan bahasa Thai, arahkan ke ID (WIB)
+  // karena zona waktu (UTC+7:00) Bangkok, Hanoi, Jakarta adalah standar default Windows di Indonesia.
+  if (tz === 'asia/bangkok' && !loc.startsWith('th')) {
+    code = 'ID'
+  }
+
   if (!code) {
-    const key = String(locale || '').toLowerCase()
-    const part = key.split('-')[1]?.toUpperCase()
+    const part = loc.split('-')[1]?.toUpperCase()
     code = part && CURRENCY_BY_COUNTRY[part] ? part : 'ID'
   }
   const data = NEGARA[code]

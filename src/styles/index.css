@@ -794,10 +794,9 @@ button:active {
   border-radius: var(--clay-r-chip) !important;
 }
 
-/* Modifier is-active — dipakai StatistikView untuk tab Bulanan/Tahunan.
-   Dipaksa berlapis di @layer components supaya tidak kalah oleh utility
-   Tailwind (bg-white / text-primary) yang ada di @layer utilities. */
-.is-active {
+/* Modifier is-active — scoped khusus untuk stat-pill-tab (Bulanan/Tahunan legacy)
+   supaya tidak bocor ke elemen is-active lain di seluruh sistem. */
+.stat-pill-tab.is-active {
   background-color: #ffffff !important;
   color: var(--color-primary) !important;
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1), -1px -1px 4px rgba(255, 255, 255, 0.9) !important;
@@ -2452,6 +2451,7 @@ button:active {
 [data-theme="neumorphism"] .clay,
 [data-theme="neumorphism"] .clay-card,
 [data-theme="neumorphism"] .clay-sheet,
+[data-theme="neumorphism"] .hero-card,
 [data-theme="neumorphism"] .mutasi-sheet,
 [data-theme="neumorphism"] .tx-card-item,
 [data-theme="neumorphism"] .neu-card,
@@ -2489,8 +2489,6 @@ button:active {
 [data-theme="neumorphism"] .clay-input,
 [data-theme="neumorphism"] .field-md,
 [data-theme="neumorphism"] .field-lg,
-[data-theme="neumorphism"] .neu-inset,
-[data-theme="neumorphism"] .neu-well,
 [data-theme="neumorphism"] .clay-segmented-track,
 [data-theme="neumorphism"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 [data-theme="neumorphism"] select,
@@ -2503,13 +2501,96 @@ button:active {
     inset  4px  4px 8px rgba(13, 39, 80, 0.16) !important;
 }
 
+[data-theme="neumorphism"] .neu-inset,
+[data-theme="neumorphism"] .neu-well {
+  background-color: #E5E5E5 !important;
+  border: none !important;
+  box-shadow:
+    inset -3px -3px 7px rgba(255, 255, 255, 0.85),
+    inset  3px  3px 7px rgba(13, 39, 80, 0.14) !important;
+}
+
 [data-theme="neumorphism"] input:focus,
+[data-theme="neumorphism"] input:focus-visible,
 [data-theme="neumorphism"] select:focus,
-[data-theme="neumorphism"] textarea:focus {
+[data-theme="neumorphism"] select:focus-visible,
+[data-theme="neumorphism"] textarea:focus,
+[data-theme="neumorphism"] textarea:focus-visible {
   outline: none !important;
   box-shadow:
     inset -4px -4px 8px rgba(255, 255, 255, 0.90),
-    inset  4px  4px 8px rgba(54, 174, 124, 0.35) !important;
+    inset  4px  4px 8px rgba(13, 39, 80, 0.16) !important;
+}
+
+/* Explicit Dynamic Nominal Colors */
+[data-theme="neumorphism"] input.tx-nominal-expense,
+[data-theme="neumorphism"] .tx-nominal-expense {
+  color: #EB5353 !important;
+}
+
+[data-theme="neumorphism"] input.tx-nominal-expense:focus,
+[data-theme="neumorphism"] input.tx-nominal-expense:focus-visible {
+  outline: none !important;
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.90),
+    inset  4px  4px 8px rgba(235, 83, 83, 0.30) !important;
+}
+
+[data-theme="neumorphism"] input.tx-nominal-income,
+[data-theme="neumorphism"] .tx-nominal-income {
+  color: #36AE7C !important;
+}
+
+[data-theme="neumorphism"] input.tx-nominal-income:focus,
+[data-theme="neumorphism"] input.tx-nominal-income:focus-visible {
+  outline: none !important;
+  box-shadow:
+    inset -4px -4px 8px rgba(255, 255, 255, 0.90),
+    inset  4px  4px 8px rgba(54, 174, 124, 0.30) !important;
+}
+
+/* Segmented Control Track & Active Pills */
+[data-theme="neumorphism"] .clay-segmented-track {
+  background-color: #E5E5E5 !important;
+  border-radius: 9999px !important;
+  padding: 4px !important;
+  box-shadow:
+    inset -3px -3px 6px rgba(255, 255, 255, 0.85),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.16) !important;
+}
+
+[data-theme="neumorphism"] .clay-segment-item {
+  background: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-radius: 9999px !important;
+  color: #64748B !important;
+  box-shadow: none !important;
+  transition: all 180ms ease !important;
+}
+
+[data-theme="neumorphism"] .clay-segment-item.is-active {
+  background: #E5E5E5 !important;
+  color: #187498 !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.90),
+     3px  3px 8px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphism"] .clay-segment-item.is-active.is-expense {
+  background: #EB5353 !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.70),
+     4px  4px 10px rgba(235, 83, 83, 0.38) !important;
+}
+
+[data-theme="neumorphism"] .clay-segment-item.is-active.is-income {
+  background: #36AE7C !important;
+  color: #FFFFFF !important;
+  box-shadow:
+    -3px -3px 8px rgba(255, 255, 255, 0.70),
+     4px  4px 10px rgba(54, 174, 124, 0.40) !important;
 }
 
 /* 3. NEUMORPHIC BUTTONS & PRESS STATES */
@@ -2594,14 +2675,35 @@ button:active {
     inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
 }
 
-/* Central Dome FAB */
+/* Central Dome FAB & Speed Dial Buttons */
+[data-theme="neumorphism"] .clay-fab,
+[data-theme="neumorphism"] .fab-dial-btn {
+  border: none !important;
+}
+
+[data-theme="neumorphism"] .clay-fab.clay-key-primary,
 [data-theme="neumorphism"] .clay-fab {
   background-color: #36AE7C !important;
   background-image: linear-gradient(145deg, #42C28D 0%, #2E976B 100%) !important;
-  border: 3.5px solid rgba(255, 255, 255, 0.70) !important;
   box-shadow:
-    -6px -6px 14px rgba(255, 255, 255, 0.60),
+    -6px -6px 14px rgba(255, 255, 255, 0.75),
      7px  7px 18px rgba(46, 151, 107, 0.40) !important;
+}
+
+[data-theme="neumorphism"] .clay-fab.clay-key-danger {
+  background-color: #EB5353 !important;
+  background-image: linear-gradient(145deg, #F38282 0%, #C73838 100%) !important;
+  box-shadow:
+    -6px -6px 14px rgba(255, 255, 255, 0.75),
+     7px  7px 18px rgba(235, 83, 83, 0.40) !important;
+}
+
+[data-theme="neumorphism"] .clay-fab.clay-key-blue {
+  background-color: #187498 !important;
+  background-image: linear-gradient(145deg, #4B9EBF 0%, #125773 100%) !important;
+  box-shadow:
+    -6px -6px 14px rgba(255, 255, 255, 0.75),
+     7px  7px 18px rgba(24, 116, 152, 0.40) !important;
 }
 
 [data-theme="neumorphism"] .clay-fab:active {
@@ -2621,28 +2723,54 @@ button:active {
 }
 
 /* 4. 3D EMBOSSED RELIEF TYPOGRAPHY FOR HEADERS (MATCHING "FREE UI kit") */
-[data-theme="neumorphism"] h1,
-[data-theme="neumorphism"] h2,
-[data-theme="neumorphism"] h3,
 [data-theme="neumorphism"] .brand-title,
 [data-theme="neumorphism"] .brand-title-embossed,
 [data-theme="neumorphism"] .headline-saldo,
-[data-theme="neumorphism"] .stat-card-val,
 [data-theme="neumorphism"] .total-saldo,
 [data-theme="neumorphism"] .text-embossed,
-[data-theme="neumorphism"] .neu-title {
+[data-theme="neumorphism"] .neu-title,
+[data-theme="neumorphism"] .neu-embossed,
+[data-theme="neumorphism"] .clay-sheet h2,
+[data-theme="neumorphism"] .clay-sheet h3 {
+  color: #EBEEF2 !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
   text-shadow:
-    -1px -1px 2px rgba(255, 255, 255, 0.90),
-     2px  2px 3px rgba(0, 0, 0, 0.22),
-     4px  4px 6px rgba(0, 0, 0, 0.12) !important;
+    -2px -2px 3px rgba(255, 255, 255, 1.0),
+    -1px -1px 1px rgba(255, 255, 255, 0.90),
+     2px  2px 3px rgba(163, 177, 198, 0.60),
+     4px  5px 8px rgba(13, 39, 80, 0.22) !important;
 }
 
-[data-theme="neumorphism"] .neu-embossed {
-  color: #E5E5E5 !important;
+/* Colored Embossed Variations for Theme-Specific Big Numbers / Cards */
+[data-theme="neumorphism"] .brand-title-embossed.embossed-blue,
+[data-theme="neumorphism"] .hero-card.hero-blue .stat-card-val,
+[data-theme="neumorphism"] .hero-card.hero-blue .font-mono {
+  color: #187498 !important;
   text-shadow:
-    -1px -1px 2px rgba(255, 255, 255, 0.90),
+    -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
-     4px  4px 6px rgba(0, 0, 0, 0.12) !important;
+     3px  4px 6px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphism"] .brand-title-embossed.embossed-green,
+[data-theme="neumorphism"] .hero-card.hero-primary .stat-card-val,
+[data-theme="neumorphism"] .hero-card.hero-primary .font-mono {
+  color: #36AE7C !important;
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.85),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     3px  4px 6px rgba(0, 0, 0, 0.14) !important;
+}
+
+[data-theme="neumorphism"] .brand-title-embossed.embossed-red,
+[data-theme="neumorphism"] .hero-card.hero-danger .stat-card-val,
+[data-theme="neumorphism"] .hero-card.hero-danger .font-mono {
+  color: #EB5353 !important;
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.85),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     3px  4px 6px rgba(0, 0, 0, 0.14) !important;
 }
 
 /* Color Variants on Neumorphic Action Buttons */
@@ -2692,6 +2820,42 @@ button:active {
 }
 
 /* 5. GAYA LAMA CLAYMORPHISM (ISOLATED LEGACY THEME) */
+
+/* Neumorphic Splash Screen */
+[data-theme="neumorphism"] .splash-screen {
+  background: #E5E5E5 !important;
+  color: #1E293B !important;
+}
+
+[data-theme="neumorphism"] .splash-logo {
+  background-color: #E5E5E5 !important;
+  border-radius: 28px !important;
+  box-shadow:
+    -8px -8px 20px rgba(255, 255, 255, 0.85),
+     8px  8px 20px rgba(0, 0, 0, 0.16) !important;
+}
+
+[data-theme="neumorphism"] .splash-title {
+  color: #1E293B !important;
+  text-shadow:
+    -1px -1px 2px rgba(255, 255, 255, 0.90),
+     2px  2px 3px rgba(0, 0, 0, 0.22),
+     4px  4px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+[data-theme="neumorphism"] .splash-tagline {
+  color: #36AE7C !important;
+  font-weight: 700 !important;
+}
+
+[data-theme="neumorphism"] .splash-sub {
+  color: #64748B !important;
+}
+
+[data-theme="neumorphism"] .splash-dot {
+  background: #36AE7C !important;
+}
+
 [data-theme="claymorphism"] {
   --clay-bg: #f0f3f0;
   --clay-h-primary: 16, 185, 129;

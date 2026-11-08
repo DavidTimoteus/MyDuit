@@ -1,3 +1,4 @@
+import { IS_DEMO_UID, MOCK_AKUN, MOCK_KATEGORI } from './mockData.js';
 import { createContext, useContext, useEffect, useState } from 'react'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { seedKategoriJikaKosong } from './db.js'
@@ -48,6 +49,12 @@ export function dedupeKategori(docs) {
 
 /** Buka dua langganan; kembalikan fungsi pembersih. */
 export function langgananAkunKategori(db, uid, { onAkun, onKategori, onSiap }) {
+  if (IS_DEMO_UID(uid)) {
+    onAkun(MOCK_AKUN);
+    onKategori(MOCK_KATEGORI);
+    onSiap(true);
+    return () => {};
+  }
   const unsubs = []
 
   // Seed kategori default sekali (diabaikan bila offline & database kosong).

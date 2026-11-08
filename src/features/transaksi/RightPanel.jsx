@@ -72,7 +72,7 @@ export default function RightPanel({ uid }) {
       <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-800">Ringkasan</h2>
+          <h2 className="brand-title-embossed text-base font-extrabold tracking-tight">Ringkasan</h2>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('myduit:export-pdf'))}
             aria-label="Export PDF"
@@ -99,7 +99,7 @@ export default function RightPanel({ uid }) {
                   {arusBulan < 0 ? 'Defisit' : 'Surplus'}
                 </span>
               </div>
-              <p className="mt-1 font-mono text-2xl font-black tracking-tight text-slate-800">{rp(totalSaldo)}</p>
+              <p className="brand-title-embossed mt-1 font-mono text-2xl font-black tracking-tight">{rp(totalSaldo)}</p>
               <p className="mt-0.5 flex items-center gap-1 text-[11px] font-medium text-textSecondary">
                 <span className={`material-symbols-outlined icon-2xs ${arusBulan < 0 ? 'text-expenseText' : 'text-incomeText'}`}>
                   {arusBulan < 0 ? 'trending_down' : 'trending_up'}

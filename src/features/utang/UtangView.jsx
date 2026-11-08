@@ -1,3 +1,4 @@
+import { IS_DEMO_UID, MOCK_UTANG } from '../../lib/mockData.js';
 import { useEffect, useMemo, useState } from 'react'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
@@ -18,6 +19,10 @@ function useUtangList(uid) {
   const [list, setList] = useState([])
   useEffect(() => {
     if (!uid) return
+    if (IS_DEMO_UID(uid)) {
+      setList(MOCK_UTANG);
+      return () => {};
+    }
     const { db } = getFirebase()
     const q = query(
       collection(db, 'users', uid, 'utang'),
@@ -129,20 +134,22 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
       {/* Baris atas: nama + status + aksi */}
       <div className="flex min-w-0 items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-[15px] font-bold leading-snug text-slate-800">{t.namaPihak}</p>
-          <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
-            {t.tipe}
-            {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
-          </p>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[15px] font-bold leading-snug text-slate-800" title={t.namaPihak}>{t.namaPihak}</p>
+          <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+            <span className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${warnaStatus}`}>{labelStatus}</span>
+            <p className="truncate text-[11px] font-medium text-slate-500">
+              {t.tipe}
+              {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
+            </p>
+          </div>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${warnaStatus}`}>{labelStatus}</span>
-          <button onClick={onEdit} aria-label="Edit utang" className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
-            <span className="material-symbols-outlined icon-sm">edit</span>
+        <div className="flex shrink-0 items-center gap-1 pt-0.5">
+          <button onClick={onEdit} aria-label="Edit utang" className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
+            <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
-          <button onClick={onHapus} aria-label="Hapus utang" className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
-            <span className="material-symbols-outlined icon-sm">delete</span>
+          <button onClick={onHapus} aria-label="Hapus utang" className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
+            <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
         </div>
       </div>
@@ -158,8 +165,8 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         </div>
         {!lunas && (
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={onLunasin} className="clay-btn-soft btn-sm min-h-11 px-3.5 text-slate-600">Lunasin</button>
-            <button onClick={onBayar} className="clay-btn-primary btn-sm min-h-11 px-4">Bayar</button>
+            <button onClick={onLunasin} className="neu-btn btn-sm min-h-10 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold transition-all active:scale-95">Lunasin</button>
+            <button onClick={onBayar} className="clay-btn clay-key-primary solid-primary btn-sm min-h-10 px-4 rounded-xl text-white font-bold transition-all active:scale-95">Bayar</button>
           </div>
         )}
       </div>
@@ -343,20 +350,20 @@ export default function UtangView({ user }) {
       <section className="mx-auto hidden max-w-3xl px-5 pb-20 pt-4 md:block">
       {/* Ringkasan 3 kartu (desktop) */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="hero-card hero-danger p-4">
-          <div className="mb-2 flex items-center gap-2"><span className="material-symbols-outlined icon-md text-danger" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total Utang</p></div>
-          <p className="font-mono text-xl font-extrabold tracking-tight text-slate-900 tabular-nums lg:text-2xl">{formatRupiah(ringkasan.totalSisa)}</p>
-          <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500"><span className="material-symbols-outlined icon-xs text-slate-500">trending_up</span>{ringkasan.aktifCount} aktif</p>
+        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total Utang</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#EB5353] bg-[#E5E5E5]">{ringkasan.aktifCount} aktif</span></div>
+          <p className="font-mono text-xl font-black tracking-tight text-[#EB5353] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalSisa)}</p>
+
         </div>
-        <div className="hero-card hero-primary p-4">
-          <div className="mb-2 flex items-center gap-2"><span className="material-symbols-outlined icon-md text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Lunas</p></div>
-          <p className="font-mono text-xl font-extrabold tracking-tight text-slate-900 tabular-nums lg:text-2xl">{formatRupiah(ringkasan.totalLunasNominal)}</p>
-          <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500"><span className="material-symbols-outlined icon-xs text-slate-500">check</span>{ringkasan.lunasCount} item lunas</p>
+        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#36AE7C]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Lunas</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#36AE7C] bg-[#E5E5E5]">{ringkasan.lunasCount} item lunas</span></div>
+          <p className="font-mono text-xl font-black tracking-tight text-[#36AE7C] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalLunasNominal)}</p>
+
         </div>
-        <div className="hero-card hero-blue p-4">
-          <div className="mb-2 flex items-center gap-2"><span className="material-symbols-outlined icon-md text-info" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Cicilan Aktif</p></div>
-          <p className="font-mono text-xl font-extrabold tracking-tight text-slate-900 tabular-nums lg:text-2xl">{ringkasan.cicilanAktif}</p>
-          <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-slate-500"><span className="material-symbols-outlined icon-xs text-slate-500">calendar_month</span>{formatRupiah(ringkasan.totalCicilanPerBulan)}/bln</p>
+        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#187498]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Cicilan Aktif</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#187498] bg-[#E5E5E5]">{formatRupiah(ringkasan.totalCicilanPerBulan)}/bln</span></div>
+          <p className="font-mono text-xl font-black tracking-tight text-[#187498] tabular-nums lg:text-2xl mt-1">{ringkasan.cicilanAktif}</p>
+
         </div>
       </div>
 

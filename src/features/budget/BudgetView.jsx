@@ -283,10 +283,10 @@ export default function BudgetView({ user }) {
           {/* Total Budget — kartu clay (bukan gradient biru).
               Aksen warna dibawa .hero-blue; teks tetap gelap di atas putih
               supaya kontrasnya terukur dan tidak pernah white-on-white. */}
-          <div className="hero-card hero-blue mb-4 shrink-0 p-5">
-            <div className="mb-1 flex items-center gap-2">
+          <div className="neu-card mb-4 shrink-0 rounded-2xl p-5 bg-[#E5E5E5]">
+            <div className="mb-2 flex items-center gap-2.5">
               <span
-                className="material-symbols-outlined icon-md text-info"
+                className="material-symbols-outlined icon-md text-[#187498]"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 wallet
@@ -295,29 +295,29 @@ export default function BudgetView({ user }) {
                 Total Budget
               </p>
             </div>
-            <p className="font-mono mb-2 text-xl font-extrabold tracking-tight text-slate-900 tabular-nums lg:text-2xl">
+            <p className="font-mono mb-2 text-2xl font-black tracking-tight text-slate-900 tabular-nums lg:text-3xl brand-title-embossed">
               {formatRupiah(ringkasan.totalLimit)}
             </p>
             <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
               <span>Terpakai: {formatRupiah(ringkasan.totalTerpakai)}</span>
               <span>Sisa: {formatRupiah(ringkasan.sisa)}</span>
             </div>
-            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+            <div className="neu-inset mt-3 h-2 w-full overflow-hidden rounded-full bg-[#E5E5E5]">
               <div
-                className={`h-full rounded-full transition-all ${ringkasan.lewat ? 'bg-danger' : 'bg-info'}`}
+                className={`h-full rounded-full transition-all ${ringkasan.lewat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
                 style={{ width: `${Math.min(100, ringkasan.persen)}%` }}
               />
             </div>
-            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 border-t border-slate-200 pt-3">
-              <div className="min-w-0">
+            <div className="mt-3 grid grid-cols-2 gap-3 pt-1">
+              <div className="neu-inset rounded-xl p-2.5 min-w-0">
                 <p className="text-[10px] font-medium text-slate-500">Pemasukan bulan ini</p>
-                <p className="font-mono truncate text-xs font-bold text-incomeText tabular-nums">
+                <p className="font-mono truncate text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPemasukan)}
                 </p>
               </div>
-              <div className="min-w-0 text-right">
+              <div className="neu-inset rounded-xl p-2.5 min-w-0 text-right">
                 <p className="text-[10px] font-medium text-slate-500">Pengeluaran bulan ini</p>
-                <p className="font-mono truncate text-xs font-bold text-expenseText tabular-nums">
+                <p className="font-mono truncate text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPengeluaran)}
                 </p>
               </div>

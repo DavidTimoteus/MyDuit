@@ -49,12 +49,12 @@ export default function AuthScreen() {
   }
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center p-6 bg-primary">
+    <div className="min-h-full flex flex-col items-center justify-center p-6 bg-surface">
       <div className="clay-card w-full max-w-sm rounded-[32px] p-8 text-center">
         <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-3xl clay-hero text-4xl font-extrabold text-white">
           M
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-slate-800">MyDuit</h1>
+        <h1 className="brand-title-embossed text-4xl sm:text-5xl font-black tracking-tight">MyDuit</h1>
         <p className="mt-1 text-sm font-semibold text-slate-500">Catat. Pantau. Kendalikan.</p>
         <p className="mt-4 text-sm leading-relaxed text-slate-500">
           Keuanganmu tersimpan aman di akunmu sendiri dan tetap bisa dibuka tanpa internet.
@@ -79,7 +79,7 @@ export default function AuthScreen() {
           </p>
         )}
       </div>
-      <p className="mt-6 text-xs font-semibold text-white">
+      <p className="mt-6 text-xs font-semibold text-textSecondary">
         Data hanya bisa diakses oleh akunmu — dijaga Firebase Security Rules.
       </p>
     </div>

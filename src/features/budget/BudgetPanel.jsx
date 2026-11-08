@@ -34,7 +34,7 @@ export default function BudgetPanel({
     <div>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {budgets.length === 0 ? (
-          <div className="clay-card-soft flex flex-col items-center px-6 py-12 text-center lg:col-span-2">
+          <div className="clay-card-soft col-span-full flex flex-col items-center px-6 py-12 text-center rounded-2xl bg-[#E5E5E5]">
             <span className="material-symbols-outlined mb-3 text-5xl text-blue-400/50" style={{ fontVariationSettings: "'FILL' 0" }}>savings</span>
             <p className="text-sm font-bold text-slate-700">Belum ada budget untuk periode ini</p>
             <p className="mt-1 text-xs text-slate-500">Tekan tombol + di bawah untuk membatasi pengeluaran.</p>
@@ -60,21 +60,23 @@ export default function BudgetPanel({
             return (
               <div key={b.id} className="clay-card rounded-[24px] relative overflow-hidden p-4 pl-5">
                 <span className={`absolute inset-y-0 left-0 w-1.5 ${warnaBar}`} aria-hidden="true" />
-                <div className="flex min-w-0 items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-[15px] font-bold leading-snug text-slate-800">{kategoriNama}</p>
-                    <p className="mt-0.5 text-[11px] font-medium text-slate-500">Limit {formatRupiah(b.limitNominal)}</p>
+                <div className="flex min-w-0 items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold leading-snug text-slate-800" title={kategoriNama}>{kategoriNama}</p>
+                    <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-[10px] font-bold ${warnaTeks} ${status === 'lewat' ? 'bg-red-50' : status === 'waspada' ? 'bg-amber-50' : 'bg-blue-50'}`}>
+                        <span className="material-symbols-outlined icon-2xs">{ikonStatus}</span>
+                        {labelStatus}
+                      </span>
+                      <span className="text-[11px] font-medium text-slate-500 whitespace-nowrap">Limit {formatRupiah(b.limitNominal)}</span>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1">
-                    <span className={`inline-flex items-center gap-0.5 rounded-md px-2 py-0.5 text-[11px] font-bold ${warnaTeks} ${status === 'lewat' ? 'bg-red-50' : status === 'waspada' ? 'bg-amber-50' : 'bg-blue-50'}`}>
-                      <span className="material-symbols-outlined icon-xs">{ikonStatus}</span>
-                      {labelStatus}
-                    </span>
-                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={`Edit budget ${kategoriNama}`} className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                      <span className="material-symbols-outlined icon-sm">edit</span>
+                  <div className="flex shrink-0 items-center gap-1 pt-0.5">
+                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={`Edit budget ${kategoriNama}`} className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600">
+                      <span className="material-symbols-outlined icon-xs">edit</span>
                     </button>
-                    <button onClick={() => setHapusTarget(b)} aria-label={`Hapus budget ${kategoriNama}`} className="flex h-11 w-11 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
-                      <span className="material-symbols-outlined icon-sm">delete</span>
+                    <button onClick={() => setHapusTarget(b)} aria-label={`Hapus budget ${kategoriNama}`} className="clay-chip clay-key-neutral flex h-7 w-7 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600">
+                      <span className="material-symbols-outlined icon-xs">delete</span>
                     </button>
                   </div>
                 </div>

@@ -443,6 +443,7 @@ export default function Shell({ user }) {
     return () => window.removeEventListener(EVENT_THEME, onTheme);
   }, []);
   const [fabDial, setFabDial] = useState(false);
+  useEffect(() => { setFabDial(false); }, [tab]);
   const [filterLabel, setFilterLabel] = useState("Hari Ini");
   const aktif = TABS.find((t) => t.id === tab);
   const mainScrollRef = useRef(null);
@@ -563,9 +564,7 @@ export default function Shell({ user }) {
               </span>
             </div>
             <div>
-              <p className="text-lg font-extrabold leading-tight tracking-tight">
-                MyDuit
-              </p>
+              <p className="brand-title-embossed text-2xl font-black leading-tight tracking-tight">MyDuit</p>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-textSecondary">
                 Catat · Pantau · Kendalikan
               </p>
@@ -839,6 +838,7 @@ export default function Shell({ user }) {
               nav) — persis keluhan "FAB tidak pas dengan notch". w-full
               membuat kolom yang memusatkan FAB. */}
           <div className="relative -mt-10 flex w-full justify-center">
+            {/* Speed Dial per Tab */}
             {tab === "transaksi" && (
               <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
                 <button
@@ -850,16 +850,14 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Catat Pemasukan"
                   title="Catat Pemasukan"
-                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
+                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
                   style={{
                     "--tx": "-52px",
                     "--ty": "-34px",
                     transitionDelay: ".02s",
                   }}
                 >
-                  <span className="material-symbols-outlined icon-sm">
-                    trending_up
-                  </span>
+                  <span className="material-symbols-outlined icon-sm">trending_up</span>
                 </button>
                 <button
                   type="button"
@@ -870,16 +868,14 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Pindah Saldo"
                   title="Pindah Saldo"
-                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
                   style={{
                     "--tx": "0px",
                     "--ty": "-72px",
                     transitionDelay: ".07s",
                   }}
                 >
-                  <span className="material-symbols-outlined icon-sm">
-                    sync_alt
-                  </span>
+                  <span className="material-symbols-outlined icon-sm">sync_alt</span>
                 </button>
                 <button
                   type="button"
@@ -890,51 +886,166 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Catat Pengeluaran"
                   title="Catat Pengeluaran"
-                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white touch-manipulation"
+                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
                   style={{
                     "--tx": "52px",
                     "--ty": "-34px",
                     transitionDelay: ".12s",
                   }}
                 >
-                  <span className="material-symbols-outlined icon-sm">
-                    trending_down
-                  </span>
+                  <span className="material-symbols-outlined icon-sm">trending_down</span>
                 </button>
               </div>
             )}
+
+            {tab === "statistik" && (
+              <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    dispatchAksi("pengeluaran");
+                  }}
+                  aria-label="Catat Transaksi"
+                  title="Catat Transaksi"
+                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "-42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".02s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">edit_note</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    window.dispatchEvent(new CustomEvent("myduit:export-pdf"));
+                  }}
+                  aria-label="Ekspor Laporan PDF"
+                  title="Ekspor Laporan PDF"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".07s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">picture_as_pdf</span>
+                </button>
+              </div>
+            )}
+
+            {tab === "budget" && (
+              <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    window.dispatchEvent(new CustomEvent("myduit:budget-add-rekening"));
+                  }}
+                  aria-label="Tambah Rekening"
+                  title="Tambah Rekening"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "-42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".02s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">account_balance_wallet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    window.dispatchEvent(new CustomEvent("myduit:budget-add-budget"));
+                  }}
+                  aria-label="Tambah Budget"
+                  title="Tambah Budget"
+                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".07s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">savings</span>
+                </button>
+              </div>
+            )}
+
+            {tab === "utang" && (
+              <div className={`fab-speed-dial ${fabDial ? "open" : ""}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    window.dispatchEvent(new CustomEvent("myduit:utang-add", { detail: { mode: "utang" } }));
+                  }}
+                  aria-label="Tambah Utang"
+                  title="Tambah Utang"
+                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "-42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".02s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">receipt_long</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFabDial(false);
+                    window.dispatchEvent(new CustomEvent("myduit:utang-add", { detail: { mode: "cicilan" } }));
+                  }}
+                  aria-label="Tambah Cicilan"
+                  title="Tambah Cicilan"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  style={{
+                    "--tx": "42px",
+                    "--ty": "-54px",
+                    transitionDelay: ".07s",
+                  }}
+                >
+                  <span className="material-symbols-outlined icon-sm">calendar_month</span>
+                </button>
+              </div>
+            )}
+
+            {/* Tombol FAB Utama (Tengah) */}
             <button
-              onClick={() => {
-                if (tab === "transaksi") {
-                  setFabDial((v) => !v);
-                } else if (tab === "budget") {
-                  window.dispatchEvent(
-                    new CustomEvent("myduit:buka-tambah-budget-rekening"),
-                  );
-                } else if (tab === "utang") {
-                  window.dispatchEvent(
-                    new CustomEvent("myduit:buka-tambah-utang"),
-                  );
-                }
-              }}
+              onClick={() => setFabDial((v) => !v)}
               aria-label={
                 tab === "budget"
-                  ? "Tambah Rekening/Budget"
+                  ? "Tambah Rekening / Budget"
                   : tab === "utang"
-                    ? "Tambah Utang"
-                    : "Quick Add Transaksi"
+                    ? "Tambah Utang / Cicilan"
+                    : tab === "statistik"
+                      ? "Aksi Statistik & Ekspor"
+                      : "Aksi Cepat Transaksi"
               }
-              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-4 border-surfaceContainerLowest text-white transition-all duration-200 active:scale-95 touch-manipulation ${
+              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-all duration-200 active:scale-95 touch-manipulation ${
                 tab === "budget"
-                  ? "clay-key-blue bg-blue-600"
+                  ? "clay-key-blue solid-blue bg-[#187498]"
                   : tab === "utang"
-                    ? "clay-key-danger bg-red-600"
-                    : "clay-key-primary bg-primary"
+                    ? "clay-key-danger solid-danger bg-[#EB5353]"
+                    : tab === "statistik"
+                      ? "clay-key-blue solid-blue bg-[#187498]"
+                      : "clay-key-primary solid-primary bg-[#36AE7C]"
               }`}
             >
               <span
                 className={`material-symbols-outlined icon-2xl transition-transform duration-200 group-hover:scale-110 ${
-                  tab === "transaksi" && fabDial ? "fab-icon-open" : ""
+                  fabDial ? "fab-icon-open" : ""
                 }`}
                 style={{ fontVariationSettings: "'FILL' 1, 'wght' 500" }}
               >

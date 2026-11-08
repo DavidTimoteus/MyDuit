@@ -193,8 +193,8 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
         </button>
         {!st.lunas && (
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <button onClick={onLunasin} className="clay-btn-soft btn-md min-h-11 px-3.5 text-slate-600">Lunasin</button>
-            <button onClick={onBayar} className="clay-btn-primary btn-md min-h-11 px-4">Bayar</button>
+            <button onClick={onLunasin} className="neu-btn btn-md min-h-11 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold transition-all active:scale-95">Lunasin</button>
+            <button onClick={onBayar} className="clay-btn clay-key-primary solid-primary btn-md min-h-11 px-4 rounded-xl text-white font-bold transition-all active:scale-95">Bayar</button>
           </div>
         )}
       </div>

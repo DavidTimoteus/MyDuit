@@ -122,8 +122,8 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
             {trans.catatan || trans.kategoriNama || 'Tanpa Keterangan'}
           </h3>
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-            <span className="font-medium">{tanggalRelatif(trans.tanggal)}</span>
-            <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+            <span className="font-medium whitespace-nowrap shrink-0">{tanggalRelatif(trans.tanggal)}</span>
+            <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></span>
             <span className="truncate">{trans.kategoriNama || '-'}</span>
           </div>
         </div>

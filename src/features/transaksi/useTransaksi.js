@@ -1,3 +1,4 @@
+import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js';
 import { getDocs, onSnapshot } from 'firebase/firestore'
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { buildTransQuery, docKeTransaksi } from '../../lib/db.js'
@@ -33,6 +34,13 @@ export function useTransaksi(uid, { jenis, range }) {
     setHasMore(false)
     lastDocRef.current = null
 
+    if (IS_DEMO_UID(uid)) {
+      let filtered = MOCK_TRANSAKSI;
+      if (jenis && jenis !== 'semua') filtered = filtered.filter(t => t.jenis === jenis);
+      dispatch({ type: 'snapshot', kunci, list: filtered });
+      setLoading(false);
+      return () => {};
+    }
     const q = buildTransQuery(uid, { jenis, range, pageSize: PAGE_SIZE })
     const unsub = onSnapshot(
       q,

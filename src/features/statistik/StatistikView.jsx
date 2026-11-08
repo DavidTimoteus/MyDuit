@@ -1,3 +1,4 @@
+import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js';
 import { useEffect, useMemo, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import {
@@ -180,6 +181,11 @@ export default function StatistikView({ user }) {
       where("tanggal", "<=", range.end),
       orderBy("tanggal", "desc"),
     );
+    if (IS_DEMO_UID(uid)) {
+      setDocs(MOCK_TRANSAKSI);
+      setLoading(false);
+      return () => {};
+    }
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -487,7 +493,11 @@ export default function StatistikView({ user }) {
             mode: "index",
             intersect: false,
             position: "nearest",
-            backgroundColor: "rgba(15,23,42,.94)",
+            backgroundColor: "rgba(229, 229, 229, 0.96)",
+            borderColor: "rgba(255, 255, 255, 0.9)",
+            borderWidth: 1.5,
+            titleColor: "#0F172A",
+            bodyColor: "#334155",
             padding: 10,
             cornerRadius: 12,
             titleFont: { size: 12, weight: "700" },
@@ -511,7 +521,7 @@ export default function StatistikView({ user }) {
           x: {
             stacked: false,
             grid: { display: false },
-            border: { display: true, color: "rgba(148, 163, 184, 0.25)", width: 1.5 },
+            border: { display: false },
             ticks: {
               color: "#94a3b8",
               font: { size: 10 },
@@ -526,7 +536,7 @@ export default function StatistikView({ user }) {
           },
           y: {
             grace: "10%",
-            grid: { color: "rgba(148,163,184,.12)" },
+            grid: { color: "rgba(0, 0, 0, 0.04)" },
             border: { display: false },
             ticks: {
               color: "#94a3b8",
@@ -696,9 +706,7 @@ export default function StatistikView({ user }) {
                 monitoring
               </span>
             </div>
-            <h2 className="font-display text-2xl font-extrabold leading-tight">
-              Statistik
-            </h2>
+            <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Statistik</h2>
           </div>
         </header>
 
@@ -729,20 +737,20 @@ export default function StatistikView({ user }) {
               onClick={() => navigate(-1)}
               disabled={!bisaMundur}
               aria-label="Periode sebelumnya"
-              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              className="neu-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-700 active:scale-95 transition-all disabled:opacity-40"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
                 chevron_left
               </span>
             </button>
-            <span className="stat-periode-label text-sm font-bold text-slate-800">
+            <span className="stat-periode-label min-w-[130px] text-center text-sm font-extrabold text-slate-800 tracking-tight font-display">
               {labelPeriode}
             </span>
             <button
               onClick={() => navigate(1)}
               disabled={!bisaMaju}
               aria-label="Periode berikutnya"
-              className="clay-pagination-arrow clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+              className="neu-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-700 active:scale-95 transition-all disabled:opacity-40"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
                 chevron_right
@@ -797,7 +805,7 @@ export default function StatistikView({ user }) {
               <LegendDot color="bg-blue-500" label="Saldo" />
             </div>
           </div>
-          <div className="relative h-64 md:h-72">
+          <div className="neu-well relative rounded-2xl p-3 h-64 md:h-72">
             <canvas ref={chartRef}></canvas>
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
@@ -867,23 +875,17 @@ export default function StatistikView({ user }) {
             sekarang adalah hasil aturan murni atas angka yang sudah dihitung,
             jadi bisa diverifikasi dan diuji. Lihat src/features/statistik/_aturan.js */}
         <div className="clay clay-card clay-key-primary overflow-hidden">
-          <div
-            className="flex items-center gap-3 px-5 py-4"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%)",
-            }}
-          >
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-              <span className="material-symbols-outlined icon-lg text-white">
+          <div className="flex items-center gap-3 border-b border-slate-200/60 px-5 py-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl clay-icon-tile clay-key-primary">
+              <span className="material-symbols-outlined icon-md text-primary">
                 insights
               </span>
             </div>
             <div className="min-w-0">
-              <h4 className="text-sm font-bold text-white">
+              <h4 className="text-sm font-bold text-slate-800">
                 Analisis Keuangan
               </h4>
-              <p className="mt-0.5 text-xs text-white">
+              <p className="mt-0.5 text-xs text-textSecondary">
                 {saran.length} temuan dari data{" "}
                 {mode === "bulanan" ? "bulan ini" : "tahun ini"}
               </p>

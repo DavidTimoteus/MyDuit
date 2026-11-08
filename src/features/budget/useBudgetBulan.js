@@ -1,3 +1,4 @@
+import { IS_DEMO_UID, MOCK_BUDGET } from '../../lib/mockData.js';
 import { useEffect, useState } from 'react'
 import { collection, onSnapshot, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
@@ -9,6 +10,10 @@ export function useBudgetBulan(uid, bulan, tahun) {
     if (!uid) {
       setList([])
       return
+    }
+    if (IS_DEMO_UID(uid)) {
+      setList(MOCK_BUDGET);
+      return () => {};
     }
     const { db } = getFirebase()
     const q = query(

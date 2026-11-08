@@ -378,7 +378,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 setError('')
               }}
               aria-pressed={!isPemasukan}
-              className={`clay-segment-item ${!isPemasukan ? 'is-active is-expense' : ''}`}
+              className={`clay-segment-item ${!isPemasukan ? 'is-active is-expense !text-white' : ''}`}
             >
               <span className="material-symbols-outlined icon-sm">trending_down</span>
               Pengeluaran
@@ -390,7 +390,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 setError('')
               }}
               aria-pressed={isPemasukan}
-              className={`clay-segment-item ${isPemasukan ? 'is-active is-income' : ''}`}
+              className={`clay-segment-item ${isPemasukan ? 'is-active is-income !text-white' : ''}`}
             >
               <span className="material-symbols-outlined icon-sm">trending_up</span>
               Pemasukan
@@ -405,7 +405,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               Nominal Transaksi ({simbolUang()})
             </label>
             <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold text-slate-400 font-mono">
+              <span className={`pointer-events-none absolute left-3.5 text-base font-extrabold font-mono transition-colors ${
+                isPemasukan ? 'text-[#36AE7C]' : 'text-[#EB5353]'
+              }`}>
                 {simbolUang()}
               </span>
               <input
@@ -417,16 +419,18 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 placeholder="0"
                 required
                 autoFocus
-                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight text-slate-800"
+                className={`clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight transition-colors ${
+                  isPemasukan ? 'tx-nominal-income !text-[#36AE7C]' : 'tx-nominal-expense !text-[#EB5353]'
+                }`}
               />
             </div>
           </div>
           {/* Scan Struk / Foto — HANYA mode tambah pengeluaran (GAS menyembunyikannya saat edit / pemasukan).
               OCR berjalan 100% di browser: total, tanggal, jenis, dan merchant terisi otomatis. */}
           {mode === 'add' && !isPemasukan && (
-            <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 p-2.5">
+            <div className="neu-inset flex flex-col gap-2 rounded-2xl p-3 bg-[#E5E5E5]">
               <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined icon-sm text-primary">document_scanner</span>
+                <span className="material-symbols-outlined icon-sm text-[#EB5353]">document_scanner</span>
                 <label className="text-[11px] font-semibold text-textSecondary">Scan Struk / Foto Transaksi</label>
                 {scanHasil?.engine === 'gemini-flash' ? (
                   <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
