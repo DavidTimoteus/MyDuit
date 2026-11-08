@@ -1232,8 +1232,12 @@ button:active {
   position: fixed;
   z-index: 10050;
   max-height: 15rem;
-  overflow-y: auto;
-  overflow-x: clip;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+  overscroll-behavior: contain !important;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
@@ -1554,7 +1558,7 @@ button:active {
 @keyframes modalCardIn {
   0% {
     opacity: 0;
-    transform: scale3d(0.96, 0.96, 1) translateY(8px);
+    transform: scale3d(0.95, 0.95, 1) translateY(12px);
   }
   100% {
     opacity: 1;
@@ -3278,6 +3282,12 @@ button:active {
     border: 1px solid rgba(255, 255, 255, 0.70) !important;
     border-radius: 20px !important;
     padding: 6px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
     box-sizing: border-box !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;

@@ -280,14 +280,16 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         </div>
 
         <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nominal bayar</label>
-        <div className="neu-inset mb-3.5 flex items-center gap-2 rounded-xl bg-[#E5E5E5] px-3.5 py-2.5">
-          <span className="font-mono text-base font-extrabold text-slate-500">{simbolUang()}</span>
+        <div className="relative mb-3.5 flex items-center">
+          <span className="pointer-events-none absolute left-3.5 font-mono text-base font-extrabold text-slate-500">
+            {simbolUang()}
+          </span>
           <input
             value={jumlah}
             onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
             inputMode="numeric"
             placeholder="0"
-            className="w-full bg-transparent font-mono text-xl font-black text-slate-900 outline-none tabular-nums placeholder:text-slate-400"
+            className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 font-mono text-xl font-black text-slate-900 outline-none tabular-nums placeholder:text-slate-400"
           />
         </div>
 

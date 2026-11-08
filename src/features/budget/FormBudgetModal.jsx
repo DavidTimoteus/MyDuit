@@ -84,14 +84,16 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
           options={[{ value: '', label: 'Pilih…', disabled: true }, ...opsi.map((k) => ({ value: k.id, label: k.nama + (dipakaiKategori.has(k.id) ? ' (sudah ada)' : ''), disabled: dipakaiKategori.has(k.id) }))]}
         />
         <label className="mb-0.5 block text-[11px] font-semibold text-textSecondary">Limit per bulan</label>
-        <div className="clay-field mb-4 flex items-center gap-2 rounded-xl px-3 py-2.5">
-          <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
+        <div className="relative mb-4 flex items-center">
+          <span className="pointer-events-none absolute left-3.5 text-sm font-bold text-slate-500">
+            {simbolUang()}
+          </span>
           <input
             value={limit}
             onChange={(e) => setLimit(formatRibuanInput(e.target.value))}
             inputMode="numeric"
             placeholder="0"
-            className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
+            className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-sm font-semibold outline-none placeholder:text-slate-500"
           />
         </div>
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}

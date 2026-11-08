@@ -31,12 +31,21 @@ export function usePopupList(open, triggerRef) {
 function useDismiss(open, close, listRef, triggerRef) {
   useEffect(() => {
     if (!open) return
+    let isTouchingList = false
+    const onTouchStart = (e) => {
+      if (listRef.current?.contains(e.target)) isTouchingList = true
+    }
+    const onTouchEnd = () => {
+      isTouchingList = false
+    }
     const onPointerDown = (e) => {
       if (listRef.current?.contains(e.target) || triggerRef.current?.contains(e.target)) return
       close()
     }
     const onScroll = (e) => {
-      if (listRef.current?.contains(e.target)) return
+      // Jika scroll/swipe terjadi di dalam popup atau sedang disentuh pengguna di mobile,
+      // jangan tutup dropdown.
+      if (isTouchingList || listRef.current?.contains(e.target)) return
       // Di mobile: jika input di dalam trigger sedang fokus, browser sering melakukan auto-scroll
       // untuk memastikan input berada di atas keyboard. Jangan menutup popup karena auto-scroll ini.
       if (triggerRef.current && triggerRef.current.contains(document.activeElement)) return
@@ -49,11 +58,15 @@ function useDismiss(open, close, listRef, triggerRef) {
       if (triggerRef.current && triggerRef.current.contains(document.activeElement)) return
       close()
     }
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchend', onTouchEnd, { passive: true })
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('scroll', onScroll, true)
     document.addEventListener('keydown', onKey)
     window.addEventListener('resize', onResize)
     return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchend', onTouchEnd)
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('scroll', onScroll, true)
       document.removeEventListener('keydown', onKey)
@@ -281,7 +294,8 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
     // armDatePicker_ (GAS): altInput readOnly + transparan + klik wrapper membuka kalender
     if (fp.altInput) {
       fp.altInput.readOnly = true
-      fp.altInput.classList.add('clay-date-picker-field')
+      fp.altInput.classList.add('clay-date-picker-field', 'bg-transparent', '!bg-transparent')
+      fp.altInput.style.backgroundColor = 'transparent'
       if (accent) fp.altInput.classList.add('clay-date-picker-field--accent')
       // flatpickr membuat input alternatif (yang terlihat & difokus). Pindahkan
       // id ke elemen itu supaya <label htmlFor> benar-benar mengarah ke field
