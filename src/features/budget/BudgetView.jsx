@@ -220,19 +220,19 @@ export default function BudgetView({ user }) {
   // Sub-tab Rekening: hero Total Saldo + daftar rekening
   // Sub-tab Budget: navigator + hero Total Budget + daftar budget
   return (
-    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-20">
+    <section className="mx-auto max-w-3xl px-4 sm:px-5 pb-2 md:pb-6">
       {/* Header mobile (md:hidden) — logo savings emerald + judul */}
-      <header className="flex items-center gap-2.5 pt-3 pb-4 md:hidden">
-        <div className="clay-icon-tile clay-key-primary solid-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
+      <header className="flex items-center gap-2 pt-1 pb-2.5 md:hidden">
+        <div className="clay-icon-tile clay-key-primary solid-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
           <span className="material-symbols-outlined icon-lg" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
         </div>
-        <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">
+        <h2 className="brand-title-embossed font-display text-xl font-extrabold leading-tight">
           {sub === 'budget' ? 'Budget' : 'Rekening'}
         </h2>
       </header>
 
       {/* Sub-tab toggle pill (Rekening | Budget) — Tactile Segmented Track */}
-      <div className="mb-5 px-1">
+      <div className="mb-3 px-1">
         <div className="clay-segmented-track">
           <button
             type="button"
@@ -283,7 +283,7 @@ export default function BudgetView({ user }) {
           {/* Total Budget — kartu clay (bukan gradient biru).
               Aksen warna dibawa .hero-blue; teks tetap gelap di atas putih
               supaya kontrasnya terukur dan tidak pernah white-on-white. */}
-          <div className="neu-card mb-4 shrink-0 rounded-2xl p-5 bg-[#E5E5E5]">
+          <div className="neu-card mb-3 shrink-0 rounded-2xl p-4 bg-[#E5E5E5]">
             <div className="mb-2 flex items-center gap-2.5">
               <span
                 className="material-symbols-outlined icon-md text-[#187498]"

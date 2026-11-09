@@ -146,7 +146,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           (menjadi blok rata tanpa inset) serta berisiko white-on-white bila
           utility lain ikut menimpa. Sekarang identitas warna dibawa hero-blue
           (strip aksen) sementara teks tetap gelap di atas putih. */}
-      <div className="neu-card mt-4 rounded-2xl p-5 md:flex md:items-center md:justify-between md:gap-6 min-h-[100px] md:min-h-[170px] bg-[#E5E5E5]">
+      <div className="neu-card mt-1 rounded-2xl p-4 md:p-5 md:flex md:items-center md:justify-between md:gap-6 min-h-[90px] md:min-h-[160px] bg-[#E5E5E5]">
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span
@@ -176,14 +176,14 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           </div>
         </div>
         {/* Arus kas bulan berjalan — Pemasukan/Pengeluaran */}
-        <div className="mt-3 grid shrink-0 grid-cols-2 gap-3 md:mt-0 md:text-right md:grid-cols-1">
-          <div className="neu-inset rounded-xl p-2.5 min-w-0">
+        <div className="mt-2.5 grid shrink-0 grid-cols-2 gap-2 md:mt-0 md:text-right md:grid-cols-1">
+          <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pemasukan bulan ini</p>
             <p className="font-mono text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
               {formatRupiah(arusBulan.masuk)}
             </p>
           </div>
-          <div className="neu-inset rounded-xl p-2.5 min-w-0">
+          <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pengeluaran bulan ini</p>
             <p className="font-mono text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
               {formatRupiah(arusBulan.keluar)}
@@ -204,12 +204,12 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           utama — pager menjadi penanda posisi yang berguna.
           Breakpoint: `md` (768px), sama dengan grid rekening. */}
       {totalCards > 1 && (
-        <div className="mt-4 mb-2 flex items-center justify-center gap-2 md:hidden">
+        <div className="mt-2 mb-1.5 flex items-center justify-center gap-2 md:hidden">
           <button
             type="button"
             onClick={() => setHalaman((h) => (h > 1 ? h - 1 : totalCards))}
             aria-label="Halaman sebelumnya"
-            className="clay-pagination-arrow flex h-9 w-9 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest text-blue-700 shadow-sm transition-all active:scale-95"
+            className="clay-pagination-arrow flex h-8 w-8 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest text-blue-700 shadow-sm transition-all active:scale-95"
           >
             <span className="material-symbols-outlined icon-md">chevron_left</span>
           </button>
@@ -218,7 +218,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
             type="button"
             onClick={() => setHalaman((h) => (h < totalCards ? h + 1 : 1))}
             aria-label="Halaman berikutnya"
-            className="clay-pagination-arrow flex h-9 w-9 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest text-blue-700 shadow-sm transition-all active:scale-95"
+            className="clay-pagination-arrow flex h-8 w-8 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest text-blue-700 shadow-sm transition-all active:scale-95"
           >
             <span className="material-symbols-outlined icon-md">chevron_right</span>
           </button>
@@ -236,7 +236,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         id="rekeningList"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="rekening-stack-wrap relative mt-2 min-h-[225px] md:hidden"
+        className="rekening-stack-wrap relative mt-1 min-h-[210px] md:hidden"
         style={{ touchAction: 'pan-y' }}
       >
         {akunList.length === 0 ? (
