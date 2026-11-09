@@ -119,7 +119,7 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
   const labelStatus = lunas ? 'Lunas' : terlambat ? 'Terlambat' : mendekati ? 'Segera' : 'Aktif'
   const badgeCls = lunas
-    ? 'text-[#36AE7C] bg-emerald-50'
+    ? 'text-[#36AE7C] bg-emerald-500/12 border border-emerald-500/25'
     : terlambat
       ? 'text-[#EB5353] bg-red-50'
       : mendekati
@@ -128,8 +128,7 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
   return (
     <div
-      className={`neu-card rounded-2xl p-4.5 relative transition-all ${lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}
-      style={lunas ? { backgroundColor: '#D1F2D9' } : undefined}
+      className={`neu-card rounded-2xl p-4.5 relative transition-all bg-[#E5E5E5] ${lunas ? 'is-lunas' : ''}`}
     >
 
       {/* Baris atas: nama + badge + aksi */}
@@ -137,7 +136,10 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-[15px] font-extrabold leading-snug text-slate-800" title={t.namaPihak}>{t.namaPihak}</p>
           <div className="mt-1 flex items-center gap-2 flex-wrap">
-            <span className={`neu-chip px-2 py-0.5 text-[10px] font-bold rounded-full ${badgeCls}`}>{labelStatus}</span>
+            <span className={`neu-chip px-2.5 py-0.5 text-[10px] font-extrabold rounded-full inline-flex items-center gap-1 ${badgeCls}`}>
+              {lunas && <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
+              {labelStatus}
+            </span>
             <span className="truncate text-[11px] font-semibold text-slate-500">
               {t.tipe}
               {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
@@ -174,13 +176,14 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
       {/* Progres + jatuh tempo */}
 
       <div className="mt-3">
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-          <div className={`h-full rounded-full transition-all ${lunas ? 'bg-primary' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
+        <div className="h-1.5 w-full overflow-hidden rounded-full neu-inset bg-[#E5E5E5]">
+          <div className={`h-full rounded-full transition-all ${lunas ? 'bg-[#36AE7C]' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
         </div>
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
           <span className="whitespace-nowrap font-medium text-slate-500">Terbayar {formatRupiah(terbayar)} ({persen}%)</span>
-          <span className={`inline-flex items-center gap-0.5 font-semibold ${jatuh.cls}`}>
+          <span className={`inline-flex items-center gap-0.5 font-bold ${lunas ? 'text-[#36AE7C]' : jatuh.cls}`}>
             {terlambat && <span className="material-symbols-outlined icon-xs">error</span>}
+            {lunas && <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>}
             {lunas ? 'Sudah lunas' : jatuh.teks}
           </span>
         </div>

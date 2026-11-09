@@ -3683,18 +3683,19 @@ button:active {
   box-shadow: 0 0 4px rgba(54, 174, 124, 0.5) !important;
 }
 
-/* ===== CARD UTANG / CICILAN LUNAS (NEUMORPHIC GREEN THEME) ===== */
+/* ===== CARD UTANG / CICILAN LUNAS (NEUMORPHIC HARMONY) ===== */
 [data-theme="neumorphism"] .neu-card.is-lunas,
 [data-theme="neumorphism"] .clay-card.is-lunas,
 [data-theme="neumorphism"] div.is-lunas,
 .neu-card.is-lunas,
 .clay-card.is-lunas,
 div.is-lunas {
-  background-color: #D1F2D9 !important;
-  background: #D1F2D9 !important;
+  background-color: #E5E5E5 !important;
+  background: #E5E5E5 !important;
   background-image: none !important;
   border: 1.5px solid rgba(54, 174, 124, 0.45) !important;
   box-shadow:
-    -6px -6px 16px rgba(255, 255, 255, 0.90),
-     6px  6px 16px rgba(54, 174, 124, 0.22) !important;
+    -8px -8px 20px rgba(255, 255, 255, 0.85),
+     8px  8px 20px rgba(0, 0, 0, 0.12),
+     0 0 16px rgba(54, 174, 124, 0.15) !important;
 }

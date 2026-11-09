@@ -67,7 +67,7 @@ function statusKartu(t) {
   if (lunas)
     return {
       label: 'Lunas',
-      cls: 'text-[#36AE7C]',
+      cls: 'text-[#36AE7C] bg-emerald-500/12 border border-emerald-500/25',
       aksen: 'bg-[#36AE7C]',
       lunas,
       terlambat,
@@ -134,8 +134,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
   return (
     <div
-      className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all ${st.lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}
-      style={st.lunas ? { backgroundColor: '#D1F2D9' } : undefined}
+      className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all bg-[#E5E5E5] ${st.lunas ? 'is-lunas' : ''}`}
     >
 
       <span className={`absolute inset-y-0 left-0 w-1.5 ${st.aksen}`} aria-hidden="true" />
@@ -150,7 +149,8 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className={`neu-inset rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${st.cls}`}>
+          <span className={`neu-inset rounded-full px-2.5 py-0.5 text-[10px] font-extrabold inline-flex items-center gap-1 ${st.cls}`}>
+            {st.lunas && <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
             {st.label}
           </span>
           <button
@@ -193,8 +193,9 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
           <span className="font-semibold text-slate-500">Terbayar {persen}%</span>
-          <span className={`inline-flex items-center gap-0.5 font-bold ${st.terlambat ? 'text-[#EB5353]' : st.lunas ? 'text-slate-500' : 'text-slate-700'}`}>
+          <span className={`inline-flex items-center gap-0.5 font-bold ${st.terlambat ? 'text-[#EB5353]' : st.lunas ? 'text-[#36AE7C]' : 'text-slate-700'}`}>
             {st.terlambat && <span className="material-symbols-outlined icon-xs">error</span>}
+            {st.lunas && <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>}
             {teksJatuhTempo(t, st)}
           </span>
         </div>
