@@ -36,4 +36,5 @@ export const MOCK_BUDGET = [
 
 export const MOCK_UTANG = [
   { id: 'u1', namaPihak: 'Kredit Motor Honda', total: 18000000, sisa: 6000000, cicilanPerBulan: 1500000, tipe: 'Cicilan', tglJatuhTempo: '2026-12-15', status: 'aktif', deleted: false },
+  { id: 'u2', namaPihak: 'Spaylater', total: 1393878, sisa: 0, cicilanPerBulan: 0, tipe: 'Utang', tglJatuhTempo: '2026-10-10', status: 'Lunas', deleted: false },
 ];

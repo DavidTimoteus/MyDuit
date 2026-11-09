@@ -103,8 +103,13 @@ function infoJatuhTempo(iso, tipe, terakhirBayar) {
   return { teks: `${awalan} (${d} hari lagi)`, cls: 'text-slate-500', hari: d }
 }
 
+export function cekLunasUtang(t) {
+  if (!t) return false
+  return String(t.status || '').trim().toLowerCase() === 'lunas' || (Number(t.sisa) || 0) <= 0
+}
+
 export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
-  const lunas = t.status === 'Lunas' || (t.sisa || 0) <= 0
+  const lunas = cekLunasUtang(t)
   const terbayar = Math.max(0, (t.total || 0) - (t.sisa || 0))
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
   const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
@@ -122,7 +127,10 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         : 'text-[#187498] bg-blue-50'
 
   return (
-    <div className={`neu-card rounded-2xl p-4.5 relative transition-all ${lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}>
+    <div
+      className={`neu-card rounded-2xl p-4.5 relative transition-all ${lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}
+      style={lunas ? { backgroundColor: '#D1F2D9' } : undefined}
+    >
 
       {/* Baris atas: nama + badge + aksi */}
       <div className="flex min-w-0 items-start justify-between gap-2">
@@ -207,9 +215,9 @@ export default function UtangView({ user }) {
   }, [])
 
   const tampil = useMemo(() => {
-    if (filter === 'aktif') return list.filter((t) => t.status !== 'Lunas' && (t.sisa || 0) > 0)
-    if (filter === 'lunas') return list.filter((t) => t.status === 'Lunas' || (t.sisa || 0) <= 0)
-    if (filter === 'terlambat') return list.filter((t) => t.status !== 'Lunas' && (t.sisa || 0) > 0 && selisihHari(t.tglJatuhTempo) < 0)
+    if (filter === 'aktif') return list.filter((t) => !cekLunasUtang(t))
+    if (filter === 'lunas') return list.filter((t) => cekLunasUtang(t))
+    if (filter === 'terlambat') return list.filter((t) => !cekLunasUtang(t) && selisihHari(t.tglJatuhTempo) < 0)
     return list
   }, [list, filter])
 
@@ -220,7 +228,7 @@ export default function UtangView({ user }) {
   // 3) aktif tanpa jatuh tempo, 4) lunas (di akhir, terbaru dulu).
   const terurut = useMemo(() => {
     const bobot = (t) => {
-      const lunas = t.status === 'Lunas' || (t.sisa || 0) <= 0
+      const lunas = cekLunasUtang(t)
       if (lunas) return 3
       const h = selisihHari(t.tglJatuhTempo)
       if (h === null) return 2
@@ -245,7 +253,7 @@ export default function UtangView({ user }) {
     let totalSisa = 0, totalAwal = 0, cicilanAktif = 0, lunasCount = 0, totalLunasNominal = 0, totalCicilanPerBulan = 0
     const aktif = []
     for (const t of list) {
-      const l = t.status === 'Lunas' || (t.sisa || 0) <= 0
+      const l = cekLunasUtang(t)
       totalAwal += t.total || 0
       if (l) {
         lunasCount++

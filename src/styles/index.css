@@ -3686,8 +3686,10 @@ button:active {
 /* ===== CARD UTANG / CICILAN LUNAS (NEUMORPHIC GREEN THEME) ===== */
 [data-theme="neumorphism"] .neu-card.is-lunas,
 [data-theme="neumorphism"] .clay-card.is-lunas,
+[data-theme="neumorphism"] div.is-lunas,
 .neu-card.is-lunas,
-.clay-card.is-lunas {
+.clay-card.is-lunas,
+div.is-lunas {
   background-color: #D1F2D9 !important;
   background: #D1F2D9 !important;
   background-image: none !important;

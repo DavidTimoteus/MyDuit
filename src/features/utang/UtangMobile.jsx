@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
+import { cekLunasUtang } from './UtangView.jsx'
 
 // ============================================================================
 // TAMPILAN UTANG & CICILAN — MOBILE
@@ -59,7 +60,7 @@ function selisihHari(iso, tipe, terakhirBayar) {
 }
 
 function statusKartu(t) {
-  const lunas = t.status === 'Lunas' || (t.sisa || 0) <= 0
+  const lunas = cekLunasUtang(t)
   const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
@@ -132,7 +133,10 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
 
   return (
-    <div className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all ${st.lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}>
+    <div
+      className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all ${st.lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}
+      style={st.lunas ? { backgroundColor: '#D1F2D9' } : undefined}
+    >
 
       <span className={`absolute inset-y-0 left-0 w-1.5 ${st.aksen}`} aria-hidden="true" />
 
