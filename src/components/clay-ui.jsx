@@ -257,11 +257,79 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
   )
 }
 
-// ===== Field tanggal gaya TOMBOL (flatpickr; range utk filter periode) =====
+// Helper parsing tanggal multi-format yang ramah pengetikan bebas pengguna:
+// Mendukung ISO (YYYY-MM-DD), DMY (DD/MM/YYYY, DD-MM-YYYY, D/M/YYYY), dan DDMMYYYY rapat.
+export function parseTanggalInput(str) {
+  if (!str || typeof str !== 'string') return null
+  const s = str.trim()
+  if (!s) return null
+
+  // 1. Format ISO: YYYY-MM-DD atau YYYY/MM/DD
+  const isoMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/)
+  if (isoMatch) {
+    const y = Number(isoMatch[1])
+    const m = Number(isoMatch[2])
+    const d = Number(isoMatch[3])
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return new Date(y, m - 1, d)
+    }
+  }
+
+  // 2. Format DD/MM/YYYY, DD-MM-YYYY, atau D/M/YY (tahun 2 digit diasumsikan 20xx)
+  const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)
+  if (dmyMatch) {
+    let d = Number(dmyMatch[1])
+    let m = Number(dmyMatch[2])
+    let y = Number(dmyMatch[3])
+    if (y < 100) y += 2000
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return new Date(y, m - 1, d)
+    }
+  }
+
+  // 3. Format angka rapat DDMMYYYY (mis. 09092026 atau 09112026)
+  const digitsMatch = s.match(/^(\d{2})(\d{2})(\d{4})$/)
+  if (digitsMatch) {
+    const d = Number(digitsMatch[1])
+    const m = Number(digitsMatch[2])
+    const y = Number(digitsMatch[3])
+    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+      return new Date(y, m - 1, d)
+    }
+  }
+
+  // 4. Default JS Date fallback
+  const dObj = new Date(s)
+  return !isNaN(dObj.getTime()) ? dObj : null
+}
+
+export function parseRangeInput(str) {
+  if (!str || typeof str !== 'string') return null
+  const s = str.trim()
+  if (!s) return null
+
+  const seps = [' to ', ' - ', ' s/d ', ' s.d. ']
+  for (const sep of seps) {
+    if (s.includes(sep)) {
+      const parts = s.split(sep)
+      if (parts.length === 2) {
+        const d1 = parseTanggalInput(parts[0])
+        const d2 = parseTanggalInput(parts[1])
+        if (d1 && d2) return [d1, d2]
+      }
+    }
+  }
+
+  const single = parseTanggalInput(s)
+  return single ? [single] : null
+}
+
+// ===== Field tanggal (flatpickr; mendukung pemilihan kalender & pengetikan langsung) =====
 // value: 'YYYY-MM-DD' (single) atau { start, end } (range). onChange mengirim format sama.
 export function ClayDateInput({ id, value, onChange, range = false, accent = false, placeholder = 'Pilih tanggal' }) {
   const wrapRef = useRef(null)
   const inputRef = useRef(null)
+  const btnRef = useRef(null)
   const fpRef = useRef(null)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
@@ -272,10 +340,15 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
       mode: range ? 'range' : 'single',
       dateFormat: 'Y-m-d',
       altInput: true,
-      altInputClass: 'clay-date-picker-field bg-transparent !bg-transparent outline-none border-none shadow-none',
+      altInputClass: 'clay-date-picker-field bg-transparent !bg-transparent outline-none border-none shadow-none w-full flex-1 min-w-0 text-slate-800 font-semibold text-sm cursor-text',
       altFormat: 'd/m/Y',
-      allowInput: false,
+      allowInput: true,
       disableMobile: true,
+      parseDate: (dateStr, format) => {
+        const parsed = parseTanggalInput(dateStr)
+        if (parsed) return parsed
+        return flatpickr.parseDate(dateStr, format)
+      },
       ...(range ? { maxDate: 'today' } : {}),
       onChange: (dates, dateStr) => {
         if (range) {
@@ -291,30 +364,97 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
       },
     })
     fpRef.current = fp
-    // armDatePicker_ (GAS): altInput readOnly + transparan + klik wrapper membuka kalender
+
+    // Komit input teks manual saat Enter atau blur
+    const commitManualInput = () => {
+      if (!fp.altInput) return
+      const raw = fp.altInput.value.trim()
+      if (!raw) {
+        if (!range && fp.selectedDates[0]) {
+          fp.setDate(fp.selectedDates[0], false)
+        }
+        return
+      }
+      if (range) {
+        const parsed = parseRangeInput(raw)
+        if (parsed && parsed.length === 2) {
+          fp.setDate(parsed, true)
+        } else if (fp.selectedDates.length === 2) {
+          fp.setDate(fp.selectedDates, false)
+        }
+      } else {
+        const parsed = parseTanggalInput(raw)
+        if (parsed) {
+          fp.setDate(parsed, true)
+        } else if (fp.selectedDates[0]) {
+          fp.setDate(fp.selectedDates[0], false)
+        }
+      }
+    }
+
+    const onAltKeyDown = (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        commitManualInput()
+        fp.close()
+        fp.altInput?.blur()
+      } else if (e.key === 'Escape') {
+        fp.close()
+      }
+    }
+
+    const onAltBlur = () => {
+      commitManualInput()
+    }
+
     if (fp.altInput) {
-      fp.altInput.readOnly = true
-      fp.altInput.classList.add('clay-date-picker-field', 'bg-transparent', '!bg-transparent')
+      fp.altInput.readOnly = false
       fp.altInput.style.backgroundColor = 'transparent'
       fp.altInput.style.border = 'none'
       fp.altInput.style.outline = 'none'
       fp.altInput.style.boxShadow = 'none'
       fp.altInput.style.webkitBoxShadow = 'none'
+      fp.altInput.style.cursor = 'text'
       if (accent) fp.altInput.classList.add('clay-date-picker-field--accent')
-      // flatpickr membuat input alternatif (yang terlihat & difokus). Pindahkan
-      // id ke elemen itu supaya <label htmlFor> benar-benar mengarah ke field
-      // yang bisa diklik/difokus — kalau id tertinggal di input tersembunyi,
-      // klik label tidak membuka kalender dan screen reader tidak menemukannya.
+      // Pindahkan id ke elemen altInput supaya <label htmlFor> benar-benar memfokuskan
+      // input teks yang tampil.
       if (id) {
         inputRef.current.removeAttribute('id')
         fp.altInput.id = id
       }
+      fp.altInput.addEventListener('keydown', onAltKeyDown)
+      fp.altInput.addEventListener('blur', onAltBlur)
     }
+
+    const btn = btnRef.current
+    const onBtnClick = (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      if (fp.isOpen) {
+        fp.close()
+      } else {
+        fp.open()
+      }
+    }
+    btn?.addEventListener('click', onBtnClick, true)
+
     const wrap = wrapRef.current
-    const openIt = () => fp.open()
-    wrap?.addEventListener('click', openIt)
+    const onWrapClick = (e) => {
+      // Jika area luar diklik (bukan input dan bukan tombol ikon), buka kalender dan arahkan fokus
+      if (e.target !== fp.altInput && !btn?.contains(e.target)) {
+        fp.open()
+        fp.altInput?.focus()
+      }
+    }
+    wrap?.addEventListener('click', onWrapClick)
+
     return () => {
-      wrap?.removeEventListener('click', openIt)
+      btn?.removeEventListener('click', onBtnClick, true)
+      wrap?.removeEventListener('click', onWrapClick)
+      if (fp.altInput) {
+        fp.altInput.removeEventListener('keydown', onAltKeyDown)
+        fp.altInput.removeEventListener('blur', onAltBlur)
+      }
       fp.destroy()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -343,9 +483,17 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
   return (
     <div
       ref={wrapRef}
-      className="clay-input field-lg flex w-full cursor-pointer items-center gap-2.5 text-sm font-semibold text-slate-800 transition-colors"
+      className="clay-input field-lg flex w-full cursor-text items-center gap-2.5 text-sm font-semibold text-slate-800 transition-colors"
     >
-      <span className="material-symbols-outlined icon-md shrink-0 text-[#36AE7C]">calendar_month</span>
+      <button
+        ref={btnRef}
+        type="button"
+        tabIndex={-1}
+        aria-label="Buka kalender"
+        className="flex shrink-0 items-center justify-center cursor-pointer text-[#36AE7C] hover:opacity-80 active:scale-95 transition-all"
+      >
+        <span className="material-symbols-outlined icon-md">calendar_month</span>
+      </button>
       {/* Input asli disembunyikan eksplisit — flatpickr membuat altInput terpisah yang tampil */}
       <input type="text" id={id ? id + '-hidden' : undefined} ref={inputRef} autoComplete="off" placeholder={placeholder} style={{ display: 'none' }} />
     </div>
