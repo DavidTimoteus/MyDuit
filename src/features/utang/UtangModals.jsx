@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { formatNominal, formatRibuanInput, formatRupiah, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
-import { bayarUtang, simpanUtang } from '../../lib/db.js'
+import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
@@ -248,6 +248,24 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
     const nSnap = n
     const tanggalSnap = tanggal
     const akunSnap = akun
+    const docId = buatTransaksiId(uid)
+
+    const optTx = {
+      id: docId,
+      jumlah: nSnap,
+      jenis: 'pengeluaran',
+      kategoriId: '',
+      kategoriNama: 'Pembayaran',
+      akunId: akunSnap.id,
+      akunNama: akunSnap.nama,
+      tanggal: tanggalSnap,
+      catatan: `Bayar ${utangSnap.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utangSnap.namaPihak}`,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    }
+
+    // Sebarkan transaksi optimis seketika agar langsung tampil di riwayat transaksi
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
 
     // OPTIMISTIC: tutup modal sekarang, commit Firestore di background.
     setError('')
@@ -256,7 +274,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
     ;(async () => {
       try {
-        await bayarUtang(uid, { utang: utangSnap, jumlah: nSnap, tanggal: tanggalSnap, akun: akunSnap })
+        await bayarUtang(uid, { id: docId, utang: utangSnap, jumlah: nSnap, tanggal: tanggalSnap, akun: akunSnap })
       } catch (e2) {
         console.warn('[utang-bayar] gagal:', e2?.message ?? e2)
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Mencatat pembayaran', e2) } }))

@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_TRANSAKSI } from './mockData.js'
+import { kanonikTanggal } from './format.js'
 
 // ===== KOLEKSI =====
 // users/{uid}/transaksi : { jumlah(int), jenis('pemasukan'|'pengeluaran'), kategoriId,
@@ -148,7 +149,7 @@ export async function simpanTransaksi(uid, data) {
     jenis: data.jenis,
     kategoriId: data.kategoriId,
     akunId: data.akunId,
-    tanggal: data.tanggal,
+    tanggal: kanonikTanggal(data.tanggal),
     catatan: data.catatan ?? '',
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
@@ -187,7 +188,7 @@ export async function updateTransaksi(uid, lama, data) {
     jenis: data.jenis,
     kategoriId: data.kategoriId,
     akunId: data.akunId,
-    tanggal: data.tanggal,
+    tanggal: kanonikTanggal(data.tanggal),
     catatan: data.catatan ?? '',
   }
   if (IS_DEMO_UID(uid)) {
@@ -263,7 +264,7 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
     akunId: dariId,
     dariId,
     keId,
-    tanggal,
+    tanggal: kanonikTanggal(tanggal),
     catatan: catatan ?? '',
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
@@ -341,7 +342,7 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
 }
 
 export function docKeTransaksi(d) {
-  const data = d.data()
+  const data = d.data({ serverTimestamps: 'estimate' })
   return { id: d.id, ...data }
 }
 
@@ -415,12 +416,19 @@ export async function migrasiNormalisasi(uid) {
     const v = d.data()
     const punyaNama = 'kategoriNama' in v || 'akunNama' in v
     const butuhKat = !v.kategoriId && !!v.kategoriNama && v.jenis !== 'pindah saldo'
-    if (!punyaNama && !butuhKat) continue
+    const butuhDeleted = !('deleted' in v)
+    const butuhCreatedAt = !('createdAt' in v)
+    const tglKanonik = kanonikTanggal(v.tanggal)
+    const butuhTanggal = v.tanggal !== tglKanonik
+    if (!punyaNama && !butuhKat && !butuhDeleted && !butuhCreatedAt && !butuhTanggal) continue
     const patch = {}
     if (butuhKat)
       patch.kategoriId = await ensureKategori(v.kategoriNama, v.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
     if ('kategoriNama' in v) patch.kategoriNama = deleteField()
     if ('akunNama' in v) patch.akunNama = deleteField()
+    if (butuhDeleted) patch.deleted = false
+    if (butuhCreatedAt) patch.createdAt = serverTimestamp()
+    if (butuhTanggal) patch.tanggal = tglKanonik
     patches.push({ ref: transaksiRef(uid, d.id), data: patch })
   }
 
@@ -539,27 +547,31 @@ export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
 // ATOMIK: keempat penulisan dibungkus SATU writeBatch. Versi sebelumnya memakai
 // empat await terpisah — bila salah satu gagal (jaringan/permission), pembayaran
 // bisa tercatat tetapi saldo/sisa utang tidak ikut berubah (data uang rusak senyap).
-export async function bayarUtang(uid, { utang, jumlah, tanggal, akun }) {
+export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
   const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
   const ket = `Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`
   const sisaBaru = Math.max(0, (Number(utang.sisa) || 0) - jumlah)
+  const tglKanonik = kanonikTanggal(tanggal)
+  const txRef = id ? doc(userCol(uid, 'transaksi'), id) : doc(userCol(uid, 'transaksi'))
+  const txId = txRef.id
 
   const { db } = getFirebase()
   const batch = writeBatch(db)
   batch.set(doc(userCol(uid, 'pembayaranUtang')), {
     utangId: utang.id,
+    transaksiId: txId,
     jumlah,
-    tanggal,
+    tanggal: tglKanonik,
     akunId: akun.id,
     deleted: false,
     createdAt: serverTimestamp(),
   })
-  batch.set(doc(userCol(uid, 'transaksi')), {
+  batch.set(txRef, {
     jumlah,
     jenis: 'pengeluaran',
     kategoriId: katId,
     akunId: akun.id,
-    tanggal,
+    tanggal: tglKanonik,
     catatan: ket,
     deleted: false,
     createdAt: serverTimestamp(),
@@ -567,7 +579,7 @@ export async function bayarUtang(uid, { utang, jumlah, tanggal, akun }) {
   batch.update(utangRef(uid, utang.id), {
     sisa: sisaBaru,
     status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
-    terakhirBayar: tanggal,
+    terakhirBayar: tglKanonik,
     updatedAt: serverTimestamp(),
   })
   batch.update(akunRef(uid, akun.id), {
@@ -576,4 +588,5 @@ export async function bayarUtang(uid, { utang, jumlah, tanggal, akun }) {
     mutasiTerakhir: { delta: -jumlah, keterangan: ket, at: serverTimestamp() },
   })
   await batch.commit()
+  return txId
 }

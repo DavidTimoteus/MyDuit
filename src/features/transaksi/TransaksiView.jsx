@@ -9,7 +9,8 @@ import { ChipAkunBaru, TransaksiRow } from './TransaksiRow.jsx'
 import { useTransaksi } from './useTransaksi.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 
-const PER_HALAMAN = 10
+const PER_HALAMAN = 20
+const LS_CHIP = 'myduit:tx_chip'
 
 const JENIS_ICONS = [
   { id: 'semua', icon: 'apps', title: 'Semua Transaksi' },
@@ -30,7 +31,22 @@ function filterLabel(chip, rentang) {
 
 export default function TransaksiView({ user }) {
   const uid = user.uid
-  const [chip, setChip] = useState('hari')
+  const [chip, setChip] = useState(() => {
+    try {
+      return localStorage.getItem(LS_CHIP) || 'semua'
+    } catch {
+      return 'semua'
+    }
+  })
+
+  function ubahChip(c) {
+    setChip(c)
+    try {
+      localStorage.setItem(LS_CHIP, c)
+    } catch {
+      // storage diblokir
+    }
+  }
   const [jenis, setJenis] = useState('semua')
   const [keyword, setKeyword] = useState('')
   const [rentang, setRentang] = useState({ start: '', end: '' })
@@ -103,7 +119,7 @@ export default function TransaksiView({ user }) {
       const item = e?.detail?.item
       if (!item) return
       if (range && ((range.start && item.tanggal < range.start) || (range.end && item.tanggal > range.end))) {
-        setChip('semua')
+        ubahChip('semua')
       }
       if (jenis !== 'semua' && item.jenis && item.jenis !== jenis) {
         setJenis('semua')
@@ -628,7 +644,7 @@ export default function TransaksiView({ user }) {
         rentang={rentang}
         onClose={() => setFilterOpen(false)}
         onApply={({ chip: c, rentang: r }) => {
-          setChip(c)
+          ubahChip(c)
           if (r) setRentang(r)
         }}
       />

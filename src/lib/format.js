@@ -213,8 +213,32 @@ export function isoHariIni() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function isoDari(d) {
+export function isoDari(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// Pastikan nilai tanggal selalu dalam format kanonik YYYY-MM-DD
+export function kanonikTanggal(val) {
+  if (!val) return isoHariIni()
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) return val.trim()
+  if (typeof val === 'string') {
+    const s = val.trim()
+    const m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)
+    if (m) {
+      let y = Number(m[3])
+      if (y < 100) y += 2000
+      const bln = Number(m[2])
+      const tgl = Number(m[1])
+      if (bln >= 1 && bln <= 12 && tgl >= 1 && tgl <= 31) {
+        return `${y}-${String(bln).padStart(2, '0')}-${String(tgl).padStart(2, '0')}`
+      }
+    }
+  }
+  const d = val instanceof Date ? val : new Date(val)
+  if (!isNaN(d.getTime())) {
+    return isoDari(d)
+  }
+  return isoHariIni()
 }
 
 // Label grup tanggal: Hari Ini / Kemarin / "Senin, 12 Mei 2026"

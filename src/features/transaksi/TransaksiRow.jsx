@@ -66,14 +66,29 @@ export function ChipAkunBaru({ uid }) {
 
 // Tanggal relatif ringkas: Hari Ini / Kemarin / "12/08" (persis feel GAS formatTanggalRelatif).
 function tanggalRelatif(iso) {
-  const hari = isoHariIni()
-  if (iso === hari) return 'Hari Ini'
-  const y = new Date()
-  y.setDate(y.getDate() - 1)
-  const kemarin = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
-  if (iso === kemarin) return 'Kemarin'
-  const d = new Date(`${iso}T00:00:00`)
-  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d)
+  if (!iso) return '-'
+  try {
+    const hari = isoHariIni()
+    if (iso === hari) return 'Hari Ini'
+    const y = new Date()
+    y.setDate(y.getDate() - 1)
+    const kemarin = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
+    if (iso === kemarin) return 'Kemarin'
+    const parts = String(iso).split('T')[0].split('-')
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+      if (!isNaN(d.getTime())) {
+        return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d)
+      }
+    }
+    const dFallback = new Date(iso)
+    if (!isNaN(dFallback.getTime())) {
+      return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(dFallback)
+    }
+  } catch {
+    // Abaikan error format dan tampilkan nilai asli
+  }
+  return String(iso)
 }
 
 // Satu kartu riwayat — markup & interaksi persis GAS renderRiwayatUI():

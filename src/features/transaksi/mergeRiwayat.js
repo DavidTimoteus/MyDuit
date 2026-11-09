@@ -22,6 +22,40 @@ export const RIWAYAT_AWAL = {
   pendingAdds: new Map(),
 }
 
+// Konversi createdAt serbaguna: mendukung Timestamp Firestore (toMillis / toDate / { seconds, nanoseconds }),
+// string ISO (mis. optimis), dan angka milidetik. Mengembalikan angka numerik murni.
+export function createdAtMillis(val) {
+  if (!val) return 0
+  if (typeof val === 'number') return val
+  if (typeof val.toMillis === 'function') return val.toMillis()
+  if (typeof val.toDate === 'function') {
+    const t = val.toDate()
+    return t instanceof Date && !isNaN(t.getTime()) ? t.getTime() : 0
+  }
+  if (typeof val.seconds === 'number') {
+    return val.seconds * 1000 + (val.nanoseconds ? Math.floor(val.nanoseconds / 1e6) : 0)
+  }
+  if (typeof val === 'string') {
+    const parsed = Date.parse(val)
+    if (!isNaN(parsed)) return parsed
+  }
+  const d = new Date(val)
+  return isNaN(d.getTime()) ? 0 : d.getTime()
+}
+
+// Pengurutan deterministik transaksi:
+//  1. Tanggal transaksi menurun (YYYY-MM-DD desc).
+//  2. Waktu pembuatan menurun (createdAtMillis desc) — memastikan transaksi baru selalu di atas.
+//  3. Bila sama persis atau kosong, pertahankan urutan snapshot (stabil / return 0).
+export function urutkanTransaksi(a, b) {
+  const cmpTgl = String(b.tanggal || '').localeCompare(String(a.tanggal || ''))
+  if (cmpTgl !== 0) return cmpTgl
+  const ma = createdAtMillis(a.createdAt)
+  const mb = createdAtMillis(b.createdAt)
+  if (ma !== mb) return mb - ma
+  return 0
+}
+
 // Gabungkan halaman pertama (live onSnapshot, maks PAGE_SIZE dokumen) dengan
 // riwayat halaman lanjutan hasil "Muat lagi", serta menyaring transaksi yang
 // sudah dihapus secara optimis.
@@ -47,11 +81,7 @@ export function kurangRiwayat(state, aksi) {
       // Query sama -> state dipertahankan (sinkronisasi ulang bukan ganti filter).
       if (aksi.kunci === state.kunci) return state
       const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
-      const initialDocs = Array.from(pending.values()).sort((a, b) => {
-        const cmpTgl = String(b.tanggal || '').localeCompare(String(a.tanggal || ''))
-        if (cmpTgl !== 0) return cmpTgl
-        return String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
-      })
+      const initialDocs = Array.from(pending.values()).sort(urutkanTransaksi)
       return {
         kunci: aksi.kunci,
         adaLanjutan: false,
@@ -73,11 +103,7 @@ export function kurangRiwayat(state, aksi) {
       // Gabungkan list snapshot dengan sisa pendingAdds yang belum masuk snapshot
       const pendingList = Array.from(pending.values())
       const combinedList = [...pendingList.filter((p) => !aksi.list.some((l) => l.id === p.id)), ...aksi.list]
-      combinedList.sort((a, b) => {
-        const cmpTgl = String(b.tanggal || '').localeCompare(String(a.tanggal || ''))
-        if (cmpTgl !== 0) return cmpTgl
-        return String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
-      })
+      combinedList.sort(urutkanTransaksi)
 
       return {
         ...state,
@@ -113,11 +139,7 @@ export function kurangRiwayat(state, aksi) {
       if (exists) {
         newDocs = state.docs.map((t) => (t.id === item.id ? { ...t, ...item } : t))
       } else {
-        newDocs = [item, ...state.docs].sort((a, b) => {
-          const cmpTgl = String(b.tanggal || '').localeCompare(String(a.tanggal || ''))
-          if (cmpTgl !== 0) return cmpTgl
-          return String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
-        })
+        newDocs = [item, ...state.docs].sort(urutkanTransaksi)
       }
 
       return {

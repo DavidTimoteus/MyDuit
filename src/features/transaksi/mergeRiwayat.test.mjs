@@ -2,7 +2,7 @@
 // harus MENAMPILKAN DATA YANG BERUBAH, bukan daftar lama yang tidak bergerak.
 //
 // Jalankan: node src/features/transaksi/mergeRiwayat.test.mjs
-import { RIWAYAT_AWAL, gabungSnapshot, kurangRiwayat } from './mergeRiwayat.js'
+import { RIWAYAT_AWAL, createdAtMillis, gabungSnapshot, kurangRiwayat, urutkanTransaksi } from './mergeRiwayat.js'
 
 let lulus = 0
 const galat = []
@@ -108,6 +108,23 @@ cek('snapshot server datang: tidak ada duplikasi ID', tambahOpt.docs.filter((t) 
 // Update optimis
 tambahOpt = kurangRiwayat(tambahOpt, { type: 'update', item: { id: 'past1', tanggal: '2026-09-09', jumlah: 9999 } })
 cek('update optimis: jumlah terupdate seketika', tambahOpt.docs.find((t) => t.id === 'past1')?.jumlah, 9999)
+
+// ===== Pengurutan Waktu Transaksi & Timestamp Firestore vs ISO String =====
+const lamaServer = {
+  id: 'tx-old-server',
+  tanggal: '2026-11-09',
+  createdAt: { seconds: 1762670000, nanoseconds: 0, toMillis: () => 1762670000000 },
+}
+const baruOptimis = {
+  id: 'tx-new-optimis',
+  tanggal: '2026-11-09',
+  createdAt: new Date(1762675000000).toISOString(),
+}
+const hasilUrut = [lamaServer, baruOptimis].sort(urutkanTransaksi)
+cek('pengurutan: transaksi baru optimis (ISO) selalu di atas dokumen lama server (Timestamp)', hasilUrut[0].id, 'tx-new-optimis')
+cek('createdAtMillis: mengekstrak milidetik dari objek Timestamp', createdAtMillis(lamaServer.createdAt), 1762670000000)
+cek('createdAtMillis: mengekstrak milidetik dari string ISO', createdAtMillis(baruOptimis.createdAt), 1762675000000)
+cek('createdAtMillis: fallback aman untuk nilai null/undefined', createdAtMillis(null), 0)
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${lulus + galat.length} cek lolos`)
 if (galat.length) {
