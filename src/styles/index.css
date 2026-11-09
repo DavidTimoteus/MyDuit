@@ -2485,12 +2485,12 @@ button:active {
 
 /* 1. ARCHETYPE 2: RAISED DROP SHADOW (Cards, Sheets, Modals, Buttons) */
 [data-theme="neumorphism"] .clay,
-[data-theme="neumorphism"] .clay-card,
+[data-theme="neumorphism"] .clay-card:not(.is-lunas),
 [data-theme="neumorphism"] .clay-sheet,
 [data-theme="neumorphism"] .hero-card,
 [data-theme="neumorphism"] .mutasi-sheet,
 [data-theme="neumorphism"] .tx-card-item,
-[data-theme="neumorphism"] .neu-card,
+[data-theme="neumorphism"] .neu-card:not(.is-lunas),
 [data-theme="neumorphism"] .neu-sheet,
 [data-theme="neumorphism"] .clay-lvl-2,
 [data-theme="neumorphism"] .clay-lvl-3 {
@@ -3685,11 +3685,14 @@ button:active {
 
 /* ===== CARD UTANG / CICILAN LUNAS (NEUMORPHIC GREEN THEME) ===== */
 [data-theme="neumorphism"] .neu-card.is-lunas,
-.neu-card.is-lunas {
-  background-color: #E8F5E9 !important;
-  background: #E8F5E9 !important;
-  border: 1px solid rgba(54, 174, 124, 0.35) !important;
+[data-theme="neumorphism"] .clay-card.is-lunas,
+.neu-card.is-lunas,
+.clay-card.is-lunas {
+  background-color: #D1F2D9 !important;
+  background: #D1F2D9 !important;
+  background-image: none !important;
+  border: 1.5px solid rgba(54, 174, 124, 0.45) !important;
   box-shadow:
     -6px -6px 16px rgba(255, 255, 255, 0.90),
-     6px  6px 16px rgba(54, 174, 124, 0.16) !important;
+     6px  6px 16px rgba(54, 174, 124, 0.22) !important;
 }

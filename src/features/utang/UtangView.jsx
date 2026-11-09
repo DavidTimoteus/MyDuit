@@ -122,7 +122,7 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         : 'text-[#187498] bg-blue-50'
 
   return (
-    <div className={`neu-card rounded-2xl p-4.5 relative transition-all ${lunas ? 'is-lunas !bg-[#E8F5E9]' : 'bg-[#E5E5E5]'}`}>
+    <div className={`neu-card rounded-2xl p-4.5 relative transition-all ${lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}>
 
       {/* Baris atas: nama + badge + aksi */}
       <div className="flex min-w-0 items-start justify-between gap-2">

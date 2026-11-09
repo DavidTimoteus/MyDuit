@@ -132,7 +132,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
 
   return (
-    <div className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all ${st.lunas ? 'is-lunas !bg-[#E8F5E9]' : 'bg-[#E5E5E5]'}`}>
+    <div className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all ${st.lunas ? 'is-lunas !bg-[#D1F2D9]' : 'bg-[#E5E5E5]'}`}>
 
       <span className={`absolute inset-y-0 left-0 w-1.5 ${st.aksen}`} aria-hidden="true" />
 
