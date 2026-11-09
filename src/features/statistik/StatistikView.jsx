@@ -905,7 +905,7 @@ export default function StatistikView({ user }) {
             Breakdown Kategori
           </h3>
           <span className="hidden text-[11px] font-medium text-slate-500 sm:inline">
-            Klik 2x kategori utk detail
+            Klik kategori utk detail
           </span>
         </div>
         <div className="-mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">

@@ -42,7 +42,7 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const rasio = Math.round((ringkas.saldo / ringkas.in_) * 100)
     if (rasio < 10) {
       R('peringatan', `Rasio tabungan ${rasio}%, di bawah standar`,
-        `Rentang yang umum ditonton 20 sampai 30 persen. Perlu naik sekitar ${Math.max(1, 20 - rasio)} poin lagi.`)
+        `Rentang yang umum ditonton 20 sampai 30%. Perlu naik sekitar ${Math.max(1, 20 - rasio)} poin lagi.`)
     } else if (rasio >= 30) {
       R('bagus', `Rasio tabungan ${rasio}%, sangat kuat`,
         'Sisa dana cukup besar. Pertimbangkan memindahkannya ke aset berisiko untuk melawan inflasi.')
@@ -56,10 +56,10 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
   if (tren.ada && tren.out > 0) {
     const delta = Math.round(((ringkas.out - tren.out) / tren.out) * 100)
     if (delta >= 25) {
-      R('peringatan', `Pengeluaran naik ${delta} persen dari periode sebelumnya`,
+      R('peringatan', `Pengeluaran naik ${delta}% dari periode sebelumnya`,
         `${rp(ringkas.out)} sekarang, sebelumnya ${rp(tren.out)}. Kenaikan segitu perlu ditinjau polanya.`)
     } else if (delta <= -20) {
-      R('bagus', `Pengeluaran turun ${Math.abs(delta)} persen dari periode sebelumnya`,
+      R('bagus', `Pengeluaran turun ${Math.abs(delta)}% dari periode sebelumnya`,
         'Hemat berhasil. Coba cari penyebabnya dan jadikan kebiasaan.')
     }
   }
@@ -69,10 +69,10 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const [top] = ringkas.pengeluaran
     const porsi = Math.round((top.total / ringkas.out) * 100)
     if (porsi >= 40) {
-      R('peringatan', `Kategori "${top.nama}" menyerap ${porsi} persen pengeluaran`,
+      R('peringatan', `Kategori "${top.nama}" menyerap ${porsi}% pengeluaran`,
         `${rp(top.total)} dari total ${rp(ringkas.out)}. Memangkas separuh kategori ini saja sudah berdampak nyata.`)
     } else if (porsi >= 25) {
-      R('info', `Kategori "${top.nama}" = ${porsi} persen pengeluaran`,
+      R('info', `Kategori "${top.nama}" = ${porsi}% pengeluaran`,
         'Kategori dominan, wajar untuk dipantau tapi belum menjadi masalah.')
     }
   }
