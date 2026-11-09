@@ -145,16 +145,16 @@ export default function UtangAsidePanel() {
           <div className="mt-2 grid grid-cols-2 gap-1.5">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'utang' } }))}
-              className="clay-btn clay-key-primary solid-primary btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
+              className="clay-btn clay-key-danger solid-danger btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>handshake</span>
               + Utang
             </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'cicilan' } }))}
-              className="clay-btn clay-btn-secondary btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-slate-700"
+              className="clay-btn clay-key-danger solid-danger btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
-              <span className="material-symbols-outlined icon-sm text-expenseText" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+              <span className="material-symbols-outlined icon-sm text-white" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
               + Cicilan
             </button>
           </div>
