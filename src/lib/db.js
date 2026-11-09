@@ -134,7 +134,15 @@ export async function hapusAkun(uid, id) {
 // offline Firestore sama seperti penulisan dokumen, jadi catat saat offline tetap
 // konsisten saat online. (Trade-off v1: bukan transaksi atomik lintas dokumen.)
 
+export function buatTransaksiId(uid) {
+  if (IS_DEMO_UID(uid)) {
+    return 'demo_tx_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)
+  }
+  return doc(userCol(uid, 'transaksi')).id
+}
+
 export async function simpanTransaksi(uid, data) {
+  const transId = data.id || buatTransaksiId(uid)
   const trans = {
     jumlah: Number(data.jumlah),
     jenis: data.jenis,
@@ -143,11 +151,20 @@ export async function simpanTransaksi(uid, data) {
     tanggal: data.tanggal,
     catatan: data.catatan ?? '',
     deleted: false,
-    createdAt: serverTimestamp(),
+    createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
+  }
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === transId)
+    if (idx !== -1) {
+      MOCK_TRANSAKSI[idx] = { id: transId, ...trans }
+    } else {
+      MOCK_TRANSAKSI.unshift({ id: transId, ...trans })
+    }
+    return transId
   }
   const { db } = getFirebase()
   const batch = writeBatch(db)
-  const ref = doc(userCol(uid, 'transaksi'))
+  const ref = doc(userCol(uid, 'transaksi'), transId)
   batch.set(ref, trans)
   batch.update(akunRef(uid, data.akunId), {
     saldo: increment(deltaSaldo(trans)),
@@ -155,7 +172,7 @@ export async function simpanTransaksi(uid, data) {
     mutasiTerakhir: { delta: deltaSaldo(trans), keterangan: `Transaksi ${data.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
   })
   await batch.commit()
-  return ref.id
+  return transId
 }
 
 export async function updateTransaksi(uid, lama, data) {
@@ -172,6 +189,13 @@ export async function updateTransaksi(uid, lama, data) {
     akunId: data.akunId,
     tanggal: data.tanggal,
     catatan: data.catatan ?? '',
+  }
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === lama.id)
+    if (idx !== -1) {
+      MOCK_TRANSAKSI[idx] = { ...MOCK_TRANSAKSI[idx], ...baru }
+    }
+    return
   }
   const { db } = getFirebase()
   const batch = writeBatch(db)
@@ -229,12 +253,10 @@ export async function hapusTransaksi(uid, trans) {
 // ===== PINDAH SALDO (transfer antar rekening) =====
 // 1 dokumen transaksi jenis 'pindah saldo' (tanpa +/- pada nominal) + saldo
 // sumber dikurangi & tujuan ditambah. dariId/keId disimpan utk pembatalan.
-export async function pindahSaldo(uid, { dariId, dariNama, keId, keNama, jumlah, tanggal, catatan }) {
+export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jumlah, tanggal, catatan }) {
   const jumlahInt = Number(jumlah)
-  const { db } = getFirebase()
-  const batch = writeBatch(db)
-  const ref = doc(userCol(uid, 'transaksi'))
-  batch.set(ref, {
+  const transId = id || buatTransaksiId(uid)
+  const trans = {
     jumlah: jumlahInt,
     jenis: 'pindah saldo',
     kategoriId: '',
@@ -244,8 +266,21 @@ export async function pindahSaldo(uid, { dariId, dariNama, keId, keNama, jumlah,
     tanggal,
     catatan: catatan ?? '',
     deleted: false,
-    createdAt: serverTimestamp(),
-  })
+    createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
+  }
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === transId)
+    if (idx !== -1) {
+      MOCK_TRANSAKSI[idx] = { id: transId, ...trans }
+    } else {
+      MOCK_TRANSAKSI.unshift({ id: transId, ...trans })
+    }
+    return transId
+  }
+  const { db } = getFirebase()
+  const batch = writeBatch(db)
+  const ref = doc(userCol(uid, 'transaksi'), transId)
+  batch.set(ref, trans)
   batch.update(akunRef(uid, dariId), {
     saldo: increment(-jumlahInt),
     updatedAt: serverTimestamp(),
@@ -257,7 +292,7 @@ export async function pindahSaldo(uid, { dariId, dariNama, keId, keNama, jumlah,
     mutasiTerakhir: { delta: jumlahInt, keterangan: `Pindah saldo dari ${dariNama}`, at: serverTimestamp() },
   })
   await batch.commit()
-  return ref.id
+  return transId
 }
 
 // Kembalikan efek pindah saldo (hapus): sumber +jumlah, tujuan -jumlah.

@@ -91,6 +91,24 @@ cek('snapshot basi tidak membangkitkan transaksi terhapus', opt.docs.map((t) => 
 opt = kurangRiwayat(opt, { type: 'hapus', ids: ['t1', 't3'] })
 cek('hapus optimis massal: seluruh id terpilih hilang seketika', opt.docs.length, 0)
 
+// ===== Tambah & Update Optimis =====
+let tambahOpt = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_HARI })
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'snapshot', kunci: K_HARI, list: [trx('today1', '2026-10-08')] })
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'tambah', item: trx('past1', '2026-09-09') })
+cek('tambah optimis: transaksi langsung tersisip seketika', tambahOpt.docs.some((t) => t.id === 'past1'), true)
+
+// Saat ganti filter, transaksi pending tetap dibawa sehingga tidak hilang sebelum server ack
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'mulai', kunci: K_SEMUA })
+cek('ganti filter: transaksi pending optimis tetap dipertahankan', tambahOpt.docs.some((t) => t.id === 'past1'), true)
+
+// Saat snapshot baru datang membawa past1, past1 tidak diduplikat
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'snapshot', kunci: K_SEMUA, list: [trx('today1', '2026-10-08'), trx('past1', '2026-09-09')] })
+cek('snapshot server datang: tidak ada duplikasi ID', tambahOpt.docs.filter((t) => t.id === 'past1').length, 1)
+
+// Update optimis
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'update', item: { id: 'past1', tanggal: '2026-09-09', jumlah: 9999 } })
+cek('update optimis: jumlah terupdate seketika', tambahOpt.docs.find((t) => t.id === 'past1')?.jumlah, 9999)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${lulus + galat.length} cek lolos`)
 if (galat.length) {
   console.log(galat.map((g) => `  - ${g}`).join('\n'))

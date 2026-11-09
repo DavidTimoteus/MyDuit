@@ -95,6 +95,24 @@ export default function TransaksiView({ user }) {
     return () => window.removeEventListener('myduit:aksi-cepat', onAksi)
   }, [])
 
+  // Tangani transaksi baru yang dicatat: jika tanggal atau jenis berada di luar filter aktif,
+  // alihkan filter agar transaksi baru langsung tampak seketika di daftar tanpa reload.
+  useEffect(() => {
+    function onTransaksiAdded(e) {
+      const item = e?.detail?.item
+      if (!item) return
+      if (range && ((range.start && item.tanggal < range.start) || (range.end && item.tanggal > range.end))) {
+        setChip('semua')
+      }
+      if (jenis !== 'semua' && item.jenis && item.jenis !== jenis) {
+        setJenis('semua')
+      }
+      setPage(1)
+    }
+    window.addEventListener('myduit:transaksi-added', onTransaksiAdded)
+    return () => window.removeEventListener('myduit:transaksi-added', onTransaksiAdded)
+  }, [range, jenis])
+
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
 
   useEffect(() => {

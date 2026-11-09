@@ -21,9 +21,9 @@ export function useTransaksi(uid, { jenis, range }) {
   const [error, setError] = useState('')
   const lastDocRef = useRef(null)
 
-  // Tangani event global penghapusan transaksi agar seluruh instans useTransaksi
-  // (mis. TransaksiView dan RightPanel) langsung menghapus transaksi secara serentak
-  // tanpa perlu reload atau mereset filter.
+  // Tangani event global penambahan, pembaruan, dan penghapusan transaksi
+  // agar seluruh instans useTransaksi (mis. TransaksiView dan RightPanel)
+  // langsung sinkron secara optimis tanpa perlu reload atau mereset filter.
   useEffect(() => {
     function onHapus(e) {
       const ids = e?.detail?.ids || (e?.detail?.id ? [e.detail.id] : null)
@@ -31,8 +31,26 @@ export function useTransaksi(uid, { jenis, range }) {
         dispatch({ type: 'hapus', ids })
       }
     }
+    function onTambah(e) {
+      const item = e?.detail?.item
+      if (item && item.id) {
+        dispatch({ type: 'tambah', item })
+      }
+    }
+    function onUpdate(e) {
+      const item = e?.detail?.item
+      if (item && item.id) {
+        dispatch({ type: 'update', item })
+      }
+    }
     window.addEventListener('myduit:transaksi-deleted', onHapus)
-    return () => window.removeEventListener('myduit:transaksi-deleted', onHapus)
+    window.addEventListener('myduit:transaksi-added', onTambah)
+    window.addEventListener('myduit:transaksi-updated', onUpdate)
+    return () => {
+      window.removeEventListener('myduit:transaksi-deleted', onHapus)
+      window.removeEventListener('myduit:transaksi-added', onTambah)
+      window.removeEventListener('myduit:transaksi-updated', onUpdate)
+    }
   }, [])
 
   useEffect(() => {
@@ -80,13 +98,25 @@ export function useTransaksi(uid, { jenis, range }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, jenis, range?.start, range?.end])
 
-  // Fungsi penghapusan optimis lokal: langsung menghapus transaksi seketika
-  // dari memori dan menyebarkannya via event bus tanpa perlu reload/reset filter.
+  // Fungsi optimis lokal (hapus, tambah, update): langsung memperbarui memori
+  // seketika dan menyebarkannya via event bus tanpa perlu reload/reset filter.
   const hapusLokal = useCallback((idOrIds) => {
     if (!idOrIds) return
     const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds]
     dispatch({ type: 'hapus', ids })
     window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids } }))
+  }, [])
+
+  const tambahLokal = useCallback((item) => {
+    if (!item?.id) return
+    dispatch({ type: 'tambah', item })
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item } }))
+  }, [])
+
+  const updateLokal = useCallback((item) => {
+    if (!item?.id) return
+    dispatch({ type: 'update', item })
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-updated', { detail: { item } }))
   }, [])
 
   async function muatLagi() {
@@ -108,5 +138,5 @@ export function useTransaksi(uid, { jenis, range }) {
     }
   }
 
-  return { docs: riwayat.docs, loading, loadingMore, hasMore, error, muatLagi, pageSize: PAGE_SIZE, hapusLokal }
+  return { docs: riwayat.docs, loading, loadingMore, hasMore, error, muatLagi, pageSize: PAGE_SIZE, hapusLokal, tambahLokal, updateLokal }
 }

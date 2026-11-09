@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
-import { pindahSaldo } from '../../lib/db.js'
+import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
@@ -59,6 +59,24 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     const tanggalSnap = tanggal
     const catatanSnap = catatan.trim()
 
+    const docId = buatTransaksiId(uid)
+    const optTx = {
+      id: docId,
+      jumlah: n,
+      jenis: 'pindah saldo',
+      kategoriId: '',
+      kategoriNama: 'Pindah Saldo',
+      akunId: dariIdSnap,
+      akunNama: `${dari?.nama ?? ''} → ${ke?.nama ?? ''}`,
+      dariId: dariIdSnap,
+      keId: keIdSnap,
+      tanggal: tanggalSnap,
+      catatan: catatanSnap,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    }
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
+
     // OPTIMISTIC: tutup modal sekarang, commit Firestore di background
     // (writeBatch baru resolve setelah server ack → jangan ditunggu di UI).
     setError('')
@@ -68,6 +86,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     ;(async () => {
       try {
         await pindahSaldo(uid, {
+          id: docId,
           dariId: dariIdSnap,
           dariNama: dari?.nama ?? '',
           keId: keIdSnap,

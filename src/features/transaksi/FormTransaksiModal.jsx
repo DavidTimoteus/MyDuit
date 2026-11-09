@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
-import { ambilAtauBuatKategori, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
+import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { matikanOcr } from '../../lib/ocrStruk.js'
@@ -294,24 +294,46 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       }
     }
 
-    // OPTIMISTIC: tutup modal SEKARANG, commit ke Firestore di background.
-    // Promise tulis Firestore baru resolve setelah server ack — kalau ditunggu,
-    // modal menggantung "Menyimpan…" saat jaringan lambat/offline (padahal data
-    // sudah masuk cache lokal & UI list langsung ter-update via onSnapshot).
+    // Resolusi awal kategori dari cache bila sudah ada
+    const targetKat = String(namaKatSnap ?? '').trim().toLowerCase()
+    const katAwal =
+      (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat && k?.jenis === jenisSnap) ??
+      (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat)
+
+    // ID dokumen: pertahankan bila edit, atau buat ID resmi sinkron sebelum submit
+    const docId = modeSnap === 'edit' && sumberSnap?.id ? sumberSnap.id : buatTransaksiId(uid)
+
+    const optTx = {
+      id: docId,
+      jumlah: n,
+      jenis: jenisSnap,
+      kategoriId: katAwal?.id ?? '',
+      kategoriNama: namaKatSnap,
+      akunId: akunIdSnap,
+      akunNama: akun?.nama ?? '',
+      tanggal: tanggalSnap,
+      catatan: catatanSnap,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    }
+
+    // OPTIMISTIC: kirim event optimis seketika, tutup modal SEKARANG, commit ke Firestore di background.
+    if (modeSnap === 'edit') {
+      window.dispatchEvent(new CustomEvent('myduit:transaksi-updated', { detail: { item: optTx } }))
+    } else {
+      window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
+    }
+
     setError('')
     setSaving(false)
     onClose()
 
     ;(async () => {
       try {
-        // Boundary: kategori bebas-ketik WAJIB jadi dokumen kategori resmi.
-        const targetKat = String(namaKatSnap ?? '').trim().toLowerCase()
-        const kat =
-          (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat && k?.jenis === jenisSnap) ??
-          (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat)
-        let kategoriId = kat?.id ?? ''
+        let kategoriId = katAwal?.id ?? ''
         if (!kategoriId) kategoriId = await ambilAtauBuatKategori(uid, namaKatSnap, jenisSnap)
         const data = {
+          id: docId,
           jumlah: n,
           jenis: jenisSnap,
           kategoriId,
