@@ -58,3 +58,4 @@ dogfood_*.mjs
 *.cmd
 *.bat
 design/
+scratch/

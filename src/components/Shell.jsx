@@ -935,7 +935,7 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Tambah Budget"
                   title="Tambah Budget"
-                  className="clay-fab clay-key-primary solid-primary fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
                   style={{
                     "--tx": "42px",
                     "--ty": "-54px",
@@ -976,7 +976,7 @@ export default function Shell({ user }) {
                   }}
                   aria-label="Tambah Cicilan"
                   title="Tambah Cicilan"
-                  className="clay-fab clay-key-blue solid-blue fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
+                  className="clay-fab clay-key-danger solid-danger fab-dial-btn flex items-center justify-center rounded-full text-white touch-manipulation"
                   style={{
                     "--tx": "42px",
                     "--ty": "-54px",
