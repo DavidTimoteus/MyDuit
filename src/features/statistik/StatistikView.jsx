@@ -503,7 +503,7 @@ export default function StatistikView({ user }) {
           {
             type: "bar",
             label: "Pengeluaran",
-            data: tren.dataOut,
+            data: tren.dataOut.map((v) => -Math.abs(v || 0)),
             backgroundColor: gradOut,
             hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
             borderRadius: 12,
@@ -562,9 +562,10 @@ export default function StatistikView({ user }) {
                   ? (tren.titles[items[0].dataIndex] ?? items[0].label ?? "")
                   : "",
               label: (item) => {
-                const val = Math.abs(item.parsed.y ?? 0);
-                const sign = (item.parsed.y ?? 0) < 0 ? "-" : "";
-                return ` ${item.dataset.label}: ${sign}${formatCurrency(val, kur, loc)}`;
+                const raw = Number(item.parsed.y) || 0;
+                const val = item.dataset.label === "Pengeluaran" ? Math.abs(raw) : raw;
+                const sign = item.dataset.label === "Saldo" && raw < 0 ? "-" : "";
+                return ` ${item.dataset.label}: ${sign}${formatCurrency(Math.abs(val), kur, loc)}`;
               },
             },
           },
@@ -588,7 +589,13 @@ export default function StatistikView({ user }) {
           },
           y: {
             grace: "10%",
-            grid: { color: "rgba(0, 0, 0, 0.04)" },
+            grid: {
+              color: (context) =>
+                context.tick?.value === 0
+                  ? "rgba(100, 116, 139, 0.35)"
+                  : "rgba(0, 0, 0, 0.04)",
+              lineWidth: (context) => (context.tick?.value === 0 ? 1.5 : 1),
+            },
             border: { display: false },
             ticks: {
               color: "#64748B",
