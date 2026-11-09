@@ -49,7 +49,7 @@ export default function TransaksiView({ user }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chip, rentang.start, rentang.end],
   )
-  const { docs, loading, loadingMore, hasMore, error, muatLagi } = useTransaksi(uid, { jenis, range })
+  const { docs, loading, loadingMore, hasMore, error, muatLagi, hapusLokal } = useTransaksi(uid, { jenis, range })
   const { akunList, kategoriList } = useAkunKategori(uid)
 
   // Resolve nama kategori/akun dari map snapshot (anti redundansi; fallback legacy)
@@ -96,6 +96,12 @@ export default function TransaksiView({ user }) {
   }, [])
 
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [page, totalPages])
   const pageItems = tampil.slice((page - 1) * PER_HALAMAN, page * PER_HALAMAN)
 
   const [slideDir, setSlideDir] = useState(null)
@@ -199,16 +205,23 @@ export default function TransaksiView({ user }) {
 async function konfirmHapus() {
     if (!hapusTarget) return
     const target = hapusTarget
-    // Tutup modal & reset loading state LANGSUNG (sinkron), Firestore commit
-    // di background. Tidak pakai microtask/setTimeout agar tidak double-fire
-    // saat parent re-render setelah state update.
     setHapusTarget(null)
     setHapusLoading(false)
+    setOpenDeleteId(null)
+
+    // Optimistic UI update: hapus secara instan dari tampilan tanpa refresh dan tanpa reset filter
+    hapusLokal?.(target.id)
+
     try {
       if (target.jenis === 'pindah saldo') await hapusPindahSaldo(uid, target)
       else await hapusTransaksi(uid, target)
     } catch (e2) {
       console.warn('[hapus] gagal:', e2?.message ?? e2)
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: { type: 'error', msg: 'Gagal menghapus transaksi dari server.' },
+        }),
+      )
     }
   }
 
@@ -220,6 +233,11 @@ async function konfirmHapus() {
     setBulkMode(false)
     setBulkHapusOpen(false)
     setHapusLoading(false)
+    setOpenDeleteId(null)
+
+    // Optimistic UI update massal: hapus semua ID terpilih secara instan
+    hapusLokal?.(ids)
+
     try {
       for (const t of targets) {
         if (t.jenis === 'pindah saldo') await hapusPindahSaldo(uid, t)

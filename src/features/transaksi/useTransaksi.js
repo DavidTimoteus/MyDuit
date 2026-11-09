@@ -1,6 +1,6 @@
 import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js';
 import { getDocs, onSnapshot } from 'firebase/firestore'
-import { useEffect, useReducer, useRef, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { buildTransQuery, docKeTransaksi } from '../../lib/db.js'
 import { RIWAYAT_AWAL, kurangRiwayat } from './mergeRiwayat.js'
 
@@ -21,6 +21,20 @@ export function useTransaksi(uid, { jenis, range }) {
   const [error, setError] = useState('')
   const lastDocRef = useRef(null)
 
+  // Tangani event global penghapusan transaksi agar seluruh instans useTransaksi
+  // (mis. TransaksiView dan RightPanel) langsung menghapus transaksi secara serentak
+  // tanpa perlu reload atau mereset filter.
+  useEffect(() => {
+    function onHapus(e) {
+      const ids = e?.detail?.ids || (e?.detail?.id ? [e.detail.id] : null)
+      if (ids && ids.length) {
+        dispatch({ type: 'hapus', ids })
+      }
+    }
+    window.addEventListener('myduit:transaksi-deleted', onHapus)
+    return () => window.removeEventListener('myduit:transaksi-deleted', onHapus)
+  }, [])
+
   useEffect(() => {
     if (!uid) return
     const kunci = kunciQuery(uid, jenis, range)
@@ -35,7 +49,7 @@ export function useTransaksi(uid, { jenis, range }) {
     lastDocRef.current = null
 
     if (IS_DEMO_UID(uid)) {
-      let filtered = MOCK_TRANSAKSI;
+      let filtered = MOCK_TRANSAKSI.filter(t => !t.deleted);
       if (jenis && jenis !== 'semua') filtered = filtered.filter(t => t.jenis === jenis);
       dispatch({ type: 'snapshot', kunci, list: filtered });
       setLoading(false);
@@ -66,6 +80,15 @@ export function useTransaksi(uid, { jenis, range }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uid, jenis, range?.start, range?.end])
 
+  // Fungsi penghapusan optimis lokal: langsung menghapus transaksi seketika
+  // dari memori dan menyebarkannya via event bus tanpa perlu reload/reset filter.
+  const hapusLokal = useCallback((idOrIds) => {
+    if (!idOrIds) return
+    const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds]
+    dispatch({ type: 'hapus', ids })
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids } }))
+  }, [])
+
   async function muatLagi() {
     if (!uid || !lastDocRef.current || loadingMore) return
     setLoadingMore(true)
@@ -85,5 +108,5 @@ export function useTransaksi(uid, { jenis, range }) {
     }
   }
 
-  return { docs: riwayat.docs, loading, loadingMore, hasMore, error, muatLagi, pageSize: PAGE_SIZE }
+  return { docs: riwayat.docs, loading, loadingMore, hasMore, error, muatLagi, pageSize: PAGE_SIZE, hapusLokal }
 }

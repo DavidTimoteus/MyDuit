@@ -77,6 +77,20 @@ cek('lanjut duplikat tidak menggandakan dokumen', [lanjut.docs.length, new Set(l
 cek('tanpa lanjutan: snapshot menang mutlak', gabungSnapshot({ prev: [trx('x', 'd')], list: [trx('y', 'd')], adaLanjutan: false }).map((t) => t.id), ['y'])
 cek('dengan lanjutan: prev > list dipertahankan', gabungSnapshot({ prev: [trx('1', 'd'), trx('2', 'd')], list: [trx('1', 'd')], adaLanjutan: true }).map((t) => t.id), ['1', '2'])
 
+// ===== Hapus Optimis & Perlindungan Snapshot Basi =====
+let opt = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_SEMUA })
+opt = kurangRiwayat(opt, { type: 'snapshot', kunci: K_SEMUA, list: [trx('t1', 'd'), trx('t2', 'd'), trx('t3', 'd')] })
+opt = kurangRiwayat(opt, { type: 'hapus', id: 't2' })
+cek('hapus optimis tunggal: id terhapus langsung hilang seketika', opt.docs.map((t) => t.id), ['t1', 't3'])
+
+// Snapshot lama dari server/cache yang masih membawa 't2' tidak boleh memunculkannya kembali
+opt = kurangRiwayat(opt, { type: 'snapshot', kunci: K_SEMUA, list: [trx('t1', 'd'), trx('t2', 'd'), trx('t3', 'd')] })
+cek('snapshot basi tidak membangkitkan transaksi terhapus', opt.docs.map((t) => t.id), ['t1', 't3'])
+
+// Hapus massal
+opt = kurangRiwayat(opt, { type: 'hapus', ids: ['t1', 't3'] })
+cek('hapus optimis massal: seluruh id terpilih hilang seketika', opt.docs.length, 0)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${lulus + galat.length} cek lolos`)
 if (galat.length) {
   console.log(galat.map((g) => `  - ${g}`).join('\n'))

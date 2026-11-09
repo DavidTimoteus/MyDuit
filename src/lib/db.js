@@ -16,6 +16,7 @@ import {
   startAfter,
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
+import { IS_DEMO_UID, MOCK_TRANSAKSI } from './mockData.js'
 
 // ===== KOLEKSI =====
 // users/{uid}/transaksi : { jumlah(int), jenis('pemasukan'|'pengeluaran'), kategoriId,
@@ -207,6 +208,11 @@ export async function updateTransaksi(uid, lama, data) {
 }
 
 export async function hapusTransaksi(uid, trans) {
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
+    if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
+    return
+  }
   const { db } = getFirebase()
   const batch = writeBatch(db)
   batch.update(transaksiRef(uid, trans.id), { deleted: true })
@@ -214,7 +220,7 @@ export async function hapusTransaksi(uid, trans) {
     batch.update(akunRef(uid, trans.akunId), {
       saldo: increment(-deltaSaldo(trans)),
       updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: -deltaSaldo(trans), keterangan: `Hapus transaksi ${trans.kategoriNama}`, at: serverTimestamp() },
+      mutasiTerakhir: { delta: -deltaSaldo(trans), keterangan: `Hapus transaksi ${trans.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
     })
   }
   await batch.commit()
@@ -256,6 +262,11 @@ export async function pindahSaldo(uid, { dariId, dariNama, keId, keNama, jumlah,
 
 // Kembalikan efek pindah saldo (hapus): sumber +jumlah, tujuan -jumlah.
 export async function hapusPindahSaldo(uid, trans) {
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
+    if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
+    return
+  }
   const { db } = getFirebase()
   const batch = writeBatch(db)
   batch.update(transaksiRef(uid, trans.id), { deleted: true })
