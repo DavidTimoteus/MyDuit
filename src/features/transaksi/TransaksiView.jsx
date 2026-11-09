@@ -445,6 +445,14 @@ async function konfirmHapus() {
                 <span className="material-symbols-outlined icon-xs">trending_down</span>
                 Catat Pengeluaran
               </button>
+              <button
+                type="button"
+                onClick={() => setPindahOpen(true)}
+                className="clay-btn clay-key-blue solid-blue btn-sm flex items-center gap-1.5 text-white font-bold"
+              >
+                <span className="material-symbols-outlined icon-xs">swap_horiz</span>
+                Catat Pindah Saldo
+              </button>
             </div>
           </div>
         ) : (
