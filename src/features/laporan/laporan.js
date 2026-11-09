@@ -409,7 +409,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
       doc.addPage()
       y = M
     }
-    y = judulSection(doc, 'Catatan', M, y, lebar)
+    y = judulSection(doc, 'Catatan & Analisis', M, y, lebar)
     let cy = y
     pecahan.forEach((p) => {
       doc.setFont('helvetica', 'normal')
@@ -418,7 +418,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
       doc.text(p, M, cy)
       cy += p.length * 4.2 + 1.5
     })
-    teks(doc, 'Catatan ini dihasilkan otomatis dari data periode, bukan nasihat keuangan.', M, cy + 1, { size: 7.5, warna: C.redup })
+    teks(doc, 'Catatan & analisis ini dihasilkan otomatis dari data periode, bukan nasihat keuangan.', M, cy + 1, { size: 7.5, warna: C.redup })
   }
 
   // ================= FOOTER TIAP HALAMAN =================

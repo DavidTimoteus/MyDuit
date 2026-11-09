@@ -63,17 +63,15 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
           </div>
           <div className="neu-inset flex min-h-[84px] items-center justify-between gap-4 rounded-2xl bg-[#E5E5E5] px-4 py-3">
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold text-slate-800 tracking-tight">Sertakan Rekomendasi AI</p>
+              <p className="text-sm font-bold text-slate-800 tracking-tight">Sertakan Catatan & Analisis</p>
               <p className="mt-0.5 max-w-[250px] text-xs leading-snug text-slate-500">
-                {pakaiAI
-                  ? 'Pratinjau section AI di bagian akhir laporan.'
-                  : 'Analisis & saran keuangan otomatis di bagian akhir laporan.'}
+                Ringkasan rasio tabungan, pengeluaran terbesar, dan utang di akhir laporan.
               </p>
             </div>
             <button
               type="button"
               role="switch"
-              aria-label="Sertakan rekomendasi AI"
+              aria-label="Sertakan catatan dan analisis"
               aria-checked={pakaiAI}
               onClick={() => setPakaiAI((v) => !v)}
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
