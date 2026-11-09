@@ -79,7 +79,7 @@ function tanggalRelatif(iso) {
 // Satu kartu riwayat — markup & interaksi persis GAS renderRiwayatUI():
 // klik = toggle tombol hapus, dblclick = edit; hue shadow ikut jenis
 // (hijau Pemasukan / merah Pengeluaran / biru Pindah Saldo).
-export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, deleteOpen, onToggleDelete, onEdit, onDelete }) {
+export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, deleteOpen, onToggleDelete, onEdit, onDelete, onSalin }) {
   const isPemasukan = trans.jenis === 'pemasukan'
   const isPindahSaldo = trans.jenis === 'pindah saldo'
   const sign = isPindahSaldo ? '' : isPemasukan ? '+' : '-'
@@ -135,19 +135,34 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
         <p className="text-[10px] text-slate-500">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
       </div>
       {!bulkMode && (
-        <button
-          type="button"
-          aria-label="Hapus transaksi"
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete?.(trans)
-          }}
-          className={`delete-btn-action neu-btn shrink-0 ml-2 h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 items-center justify-center transition-all touch-manipulation ${
-            deleteOpen ? 'flex' : 'hidden'
-          }`}
-        >
-          <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
-        </button>
+        <div className={`shrink-0 ml-2 items-center gap-1.5 ${deleteOpen ? 'flex' : 'hidden'}`}>
+          {!isPindahSaldo && (
+            <button
+              type="button"
+              aria-label="Salin transaksi"
+              title="Salin transaksi"
+              onClick={(e) => {
+                e.stopPropagation()
+                onSalin?.(trans)
+              }}
+              className="salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center transition-all touch-manipulation"
+            >
+              <span className="material-symbols-outlined icon-md">content_copy</span>
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Hapus transaksi"
+            title="Hapus transaksi"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete?.(trans)
+            }}
+            className="delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center transition-all touch-manipulation"
+          >
+            <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
+          </button>
+        </div>
       )}
     </div>
   )

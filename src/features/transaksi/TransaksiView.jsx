@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { rangeForFilter } from '../../lib/format.js'
-import { enrichTransaksi, hapusPindahSaldo, hapusTransaksi } from '../../lib/db.js'
+import { isoHariIni, rangeForFilter } from '../../lib/format.js'
+import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, simpanTransaksi } from '../../lib/db.js'
+import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
 import ModalPindahSaldo from './ModalPindahSaldo.jsx'
 import FilterTransaksiModal from './FilterTransaksiModal.jsx'
@@ -220,7 +221,50 @@ export default function TransaksiView({ user }) {
     })
   }
 
-async function konfirmHapus() {
+  async function handleSalinCepat(trans) {
+    if (!trans) return
+    setOpenDeleteId(null)
+    const docId = buatTransaksiId(uid)
+    const optTx = {
+      id: docId,
+      jumlah: Number(trans.jumlah) || 0,
+      jenis: trans.jenis,
+      kategoriId: trans.kategoriId ?? '',
+      kategoriNama: trans.kategoriNama ?? '',
+      akunId: trans.akunId ?? akunList[0]?.id ?? '',
+      akunNama: trans.akunNama ?? '',
+      tanggal: trans.tanggal ?? isoHariIni(),
+      catatan: trans.catatan ?? '',
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    }
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
+    window.dispatchEvent(
+      new CustomEvent('myduit:toast', {
+        detail: { type: 'success', msg: 'Transaksi berhasil disalin & dicatat!' },
+      })
+    )
+    ;(async () => {
+      try {
+        await simpanTransaksi(uid, {
+          id: docId,
+          jumlah: optTx.jumlah,
+          jenis: optTx.jenis,
+          kategoriId: optTx.kategoriId,
+          kategoriNama: optTx.kategoriNama,
+          akunId: optTx.akunId,
+          akunNama: optTx.akunNama,
+          tanggal: optTx.tanggal,
+          catatan: optTx.catatan,
+        })
+      } catch (e) {
+        console.warn('[salin-cepat] gagal:', e)
+        window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e) } }))
+      }
+    })()
+  }
+
+  async function konfirmHapus() {
     if (!hapusTarget) return
     const target = hapusTarget
     setHapusTarget(null)
@@ -520,6 +564,7 @@ async function konfirmHapus() {
                 deleteOpen={!bulkMode && openDeleteId === t.id}
                 onToggleDelete={(id) => setOpenDeleteId((prev) => (prev === id ? null : id))}
                 onEdit={() => bukaForm('edit', t)}
+                onSalin={handleSalinCepat}
                 onDelete={(tr) => {
                   setOpenDeleteId(null)
                   setHapusTarget(tr)

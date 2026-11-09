@@ -17,7 +17,7 @@ import {
 // Modal Catat / Edit / Salin transaksi — mendukung Pemasukan & Pengeluaran
 // dengan Segmented Clay Toggle interaktif, penyesuaian label rekening dinamis,
 // dan pemindaian struk otomatis (OCR) pada pengeluaran.
-export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkunBaru, akunList, kategoriList, mode, doc: sumber }) {
+export default function FormTransaksiModal({ uid, open, onClose, onSalin: _onSalin, onAkunBaru, akunList, kategoriList, mode, doc: sumber }) {
   const [jenis, setJenis] = useState(() => {
     if ((mode === 'edit' || mode === 'salin') && sumber) {
       return sumber.jenis ?? 'pengeluaran'
@@ -79,7 +79,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setJumlah(formatRibuanInput(String(sumber.jumlah ?? '')))
       setKategoriNama(sumber.kategoriNama ?? '')
       setAkunId(sumber.akunId ?? akunList[0]?.id ?? '')
-      setTanggal(mode === 'salin' ? isoHariIni() : (sumber.tanggal ?? isoHariIni()))
+      setTanggal(sumber.tanggal ?? isoHariIni())
       setCatatan(sumber.catatan ?? '')
     } else {
       // Preset dari pemicu (Aksi Cepat / speed-dial) atau default pengeluaran
@@ -259,6 +259,73 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     onClose()
   }
 
+  async function salinLangsung() {
+    const n = parseNominal(jumlah) || (Number(sumber?.jumlah) || 0)
+    if (n <= 0) return setError('Nominal harus lebih dari nol.')
+    if (!akunId && !sumber?.akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
+    const namaKat = (kategoriNama || sumber?.kategoriNama || '').trim()
+    if (!namaKat) return setError('Isi kategori dulu.')
+
+    const jenisSnap = jenis || sumber?.jenis || 'pengeluaran'
+    const tanggalSnap = tanggal || sumber?.tanggal || isoHariIni()
+    const catatanSnap = (catatan || sumber?.catatan || '').trim()
+    const akunIdSnap = akunId || sumber?.akunId || akunList[0]?.id || ''
+    const akun = akunList.find((a) => a.id === akunIdSnap)
+
+    const targetKat = namaKat.toLowerCase()
+    const katAwal =
+      (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat && k?.jenis === jenisSnap) ??
+      (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat)
+
+    const docId = buatTransaksiId(uid)
+    const optTx = {
+      id: docId,
+      jumlah: n,
+      jenis: jenisSnap,
+      kategoriId: katAwal?.id ?? '',
+      kategoriNama: namaKat,
+      akunId: akunIdSnap,
+      akunNama: akun?.nama ?? sumber?.akunNama ?? '',
+      tanggal: tanggalSnap,
+      catatan: catatanSnap,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    }
+
+    // Sebarkan optimis seketika & tutup modal
+    window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
+    window.dispatchEvent(
+      new CustomEvent('myduit:toast', {
+        detail: { type: 'success', msg: 'Transaksi berhasil disalin & dicatat!' },
+      })
+    )
+    setError('')
+    setSaving(false)
+    onClose()
+
+    ;(async () => {
+      try {
+        let kategoriId = katAwal?.id ?? ''
+        if (!kategoriId) kategoriId = await ambilAtauBuatKategori(uid, namaKat, jenisSnap)
+        const data = {
+          id: docId,
+          jumlah: n,
+          jenis: jenisSnap,
+          kategoriId,
+          kategoriNama: namaKat,
+          akunId: akunIdSnap,
+          akunNama: akun?.nama ?? '',
+          tanggal: tanggalSnap,
+          catatan: catatanSnap,
+        }
+        await simpanTransaksi(uid, data)
+      } catch (e2) {
+        console.warn('[transaksi-salin-langsung] gagal:', e2?.message ?? e2)
+        window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e2) } }))
+      }
+    })()
+  }
+
   async function submit(e) {
     e.preventDefault()
     const n = parseNominal(jumlah)
@@ -322,6 +389,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       window.dispatchEvent(new CustomEvent('myduit:transaksi-updated', { detail: { item: optTx } }))
     } else {
       window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
+      if (modeSnap === 'salin') {
+        window.dispatchEvent(
+          new CustomEvent('myduit:toast', {
+            detail: { type: 'success', msg: 'Transaksi berhasil disalin & dicatat!' },
+          })
+        )
+      }
     }
 
     setError('')
@@ -373,7 +447,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             {mode === 'edit' && (
               <button
                 type="button"
-                onClick={() => onSalin?.(sumber)}
+                onClick={salinLangsung}
                 title="Salin transaksi"
                 className="clay-chip clay-key-primary solid-primary inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-primary transition-colors "
               >
@@ -822,7 +896,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} btn-lg w-full text-white transition-colors disabled:opacity-60`}
           >
             <span className="material-symbols-outlined icon-md">save</span>
-            {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : isPemasukan ? 'Simpan Pemasukan' : 'Simpan Pengeluaran'}
+            {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : mode === 'salin' ? 'Salin & Catat Transaksi' : isPemasukan ? 'Simpan Pemasukan' : 'Simpan Pengeluaran'}
           </button>
         </form>
       </div>
