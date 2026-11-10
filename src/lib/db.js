@@ -17,8 +17,22 @@ import {
   startAfter,
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
-import { IS_DEMO_UID, MOCK_TRANSAKSI } from './mockData.js'
-import { kanonikTanggal } from './format.js'
+import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
+import { MAX_NOMINAL, kanonikTanggal } from './format.js'
+
+function wajibAngkaPositif(nilai, label = 'Nominal') {
+  const n = Math.round(Number(nilai))
+  if (!Number.isFinite(n) || n <= 0 || n > MAX_NOMINAL) {
+    throw new Error(`${label} tidak valid (harus lebih dari nol).`)
+  }
+  return n
+}
+
+function angkaAman(nilai) {
+  const n = Number(nilai)
+  if (!Number.isFinite(n)) return 0
+  return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(n)))
+}
 
 // ===== KOLEKSI =====
 // users/{uid}/transaksi : { jumlah(int), jenis('pemasukan'|'pengeluaran'), kategoriId,
@@ -41,9 +55,13 @@ export function akunRef(uid, id) {
   return doc(db, 'users', uid, 'akun', id)
 }
 
-// Delta saldo: pemasukan menambah, pengeluaran mengurangi.
+// Delta saldo: pemasukan menambah, pengeluaran mengurangi (0 bila non-reguler/korup).
 export function deltaSaldo(trans) {
-  return trans.jenis === 'pemasukan' ? trans.jumlah : -trans.jumlah
+  const jml = Math.max(0, angkaAman(trans?.jumlah))
+  if (jml === 0) return 0
+  if (trans?.jenis === 'pemasukan') return jml
+  if (trans?.jenis === 'pengeluaran') return -jml
+  return 0
 }
 
 // ===== KATEGORI DEFAULT (seed sekali saat pertama login) =====
@@ -93,34 +111,68 @@ export async function seedKategoriJikaKosong(uid) {
 
 // ===== AKUN (minimal utk Fase 2; modul lengkap di Fase 3) =====
 export async function tambahAkun(uid, { nama, saldoAwal = 0, tipe = 'Rekening Utama' }) {
+  const namaBersih = String(nama ?? '').trim()
+  if (!namaBersih) throw new Error('Nama rekening wajib diisi.')
+  const saldoInt = angkaAman(saldoAwal)
+  if (IS_DEMO_UID(uid)) {
+    const id = 'demo_acc_' + Date.now()
+    MOCK_AKUN.push({ id, nama: namaBersih, tipe, saldo: saldoInt, deleted: false })
+    return id
+  }
   const ref = await addDoc(userCol(uid, 'akun'), {
-    nama,
+    nama: namaBersih,
     tipe,
-    saldo: Number(saldoAwal) || 0,
+    saldo: saldoInt,
     deleted: false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    ...(Number(saldoAwal) > 0
-      ? { mutasiTerakhir: { delta: Number(saldoAwal), keterangan: 'Saldo awal', at: serverTimestamp() } }
+    ...(saldoInt !== 0
+      ? { mutasiTerakhir: { delta: saldoInt, keterangan: 'Saldo awal', at: serverTimestamp() } }
       : {}),
   })
   return ref.id
 }
 
-export async function updateAkun(uid, id, { nama, tipe, saldo }) {
-  const patch = { nama, tipe, updatedAt: serverTimestamp() }
-  if (saldo !== undefined && !Number.isNaN(Number(saldo))) {
-    patch.saldo = Math.round(Number(saldo))
-    patch.mutasiTerakhir = {
-      delta: 0,
-      keterangan: 'Koreksi penyesuaian saldo',
-      at: serverTimestamp(),
+export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
+  const namaBersih = String(nama ?? '').trim()
+  if (!namaBersih) throw new Error('Nama rekening wajib diisi.')
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_AKUN.findIndex((a) => a.id === id)
+    if (idx !== -1) {
+      MOCK_AKUN[idx] = {
+        ...MOCK_AKUN[idx],
+        nama: namaBersih,
+        tipe,
+        ...(saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))
+          ? { saldo: angkaAman(saldo) }
+          : {}),
+      }
+    }
+    return
+  }
+  const patch = { nama: namaBersih, tipe, updatedAt: serverTimestamp() }
+  if (saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))) {
+    const saldoBaru = angkaAman(saldo)
+    patch.saldo = saldoBaru
+    const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
+    const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
+    if (!adaLama || saldoBaru !== saldoLamaInt) {
+      patch.mutasiTerakhir = {
+        delta: adaLama ? saldoBaru - saldoLamaInt : 0,
+        keterangan: 'Koreksi penyesuaian saldo',
+        at: serverTimestamp(),
+      }
     }
   }
   await updateDoc(akunRef(uid, id), patch)
 }
 
 export async function hapusAkun(uid, id) {
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_AKUN.findIndex((a) => a.id === id)
+    if (idx !== -1) MOCK_AKUN.splice(idx, 1)
+    return
+  }
   await updateDoc(akunRef(uid, id), { deleted: true, updatedAt: serverTimestamp() })
 }
 
@@ -144,11 +196,16 @@ export function buatTransaksiId(uid) {
 }
 
 export async function simpanTransaksi(uid, data) {
+  const jumlahInt = wajibAngkaPositif(data?.jumlah, 'Nominal transaksi')
+  if (data?.jenis !== 'pemasukan' && data?.jenis !== 'pengeluaran') {
+    throw new Error('Jenis transaksi tidak valid.')
+  }
+  if (!data?.akunId) throw new Error('Rekening wajib dipilih.')
   const transId = data.id || buatTransaksiId(uid)
   const trans = {
-    jumlah: Number(data.jumlah),
+    jumlah: jumlahInt,
     jenis: data.jenis,
-    kategoriId: data.kategoriId,
+    kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: kanonikTanggal(data.tanggal),
     catatan: data.catatan ?? '',
@@ -187,10 +244,15 @@ export async function updateTransaksi(uid, lama, data) {
   if (lama?.utangId || data?.utangId) {
     throw new Error('Transaksi pembayaran utang tidak bisa diedit lewat form transaksi. Hapus lalu catat ulang pembayaran.')
   }
+  const jumlahInt = wajibAngkaPositif(data?.jumlah, 'Nominal transaksi')
+  if (data?.jenis !== 'pemasukan' && data?.jenis !== 'pengeluaran') {
+    throw new Error('Jenis transaksi tidak valid.')
+  }
+  if (!data?.akunId) throw new Error('Rekening wajib dipilih.')
   const baru = {
-    jumlah: Number(data.jumlah),
+    jumlah: jumlahInt,
     jenis: data.jenis,
-    kategoriId: data.kategoriId,
+    kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: kanonikTanggal(data.tanggal),
     catatan: data.catatan ?? '',
@@ -237,6 +299,10 @@ export async function updateTransaksi(uid, lama, data) {
 }
 
 export async function hapusTransaksi(uid, trans) {
+  if (!trans?.id) return
+  if (trans.jenis === 'pindah saldo') {
+    return hapusPindahSaldo(uid, trans)
+  }
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
     if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
@@ -253,12 +319,14 @@ export async function hapusTransaksi(uid, trans) {
     })
   }
   if (trans.utangId) {
-    const jml = Number(trans.jumlah) || 0
-    batch.update(utangRef(uid, trans.utangId), {
-      sisa: increment(jml),
-      status: 'Belum Lunas',
-      updatedAt: serverTimestamp(),
-    })
+    const jml = Math.max(0, angkaAman(trans.jumlah))
+    if (jml > 0) {
+      batch.update(utangRef(uid, trans.utangId), {
+        sisa: increment(jml),
+        status: 'Belum Lunas',
+        updatedAt: serverTimestamp(),
+      })
+    }
     if (trans.pembayaranUtangId) {
       batch.update(doc(userCol(uid, 'pembayaranUtang'), trans.pembayaranUtangId), {
         deleted: true,
@@ -292,10 +360,10 @@ export async function hapusTransaksiMassal(uid, targets) {
     for (const t of slice) {
       if (!t?.id) continue
       batch.update(transaksiRef(uid, t.id), { deleted: true })
-      const jml = Number(t.jumlah) || 0
+      const jml = Math.max(0, angkaAman(t.jumlah))
       if (t.jenis === 'pindah saldo') {
-        if (t.dariId) deltaPerAkun.set(t.dariId, (deltaPerAkun.get(t.dariId) || 0) + jml)
-        if (t.keId) deltaPerAkun.set(t.keId, (deltaPerAkun.get(t.keId) || 0) - jml)
+        if (t.dariId && t.dariId !== t.keId) deltaPerAkun.set(t.dariId, (deltaPerAkun.get(t.dariId) || 0) + jml)
+        if (t.keId && t.dariId !== t.keId) deltaPerAkun.set(t.keId, (deltaPerAkun.get(t.keId) || 0) - jml)
       } else {
         if (t.akunId) deltaPerAkun.set(t.akunId, (deltaPerAkun.get(t.akunId) || 0) - deltaSaldo(t))
         if (t.utangId && jml > 0) {
@@ -335,7 +403,9 @@ export async function hapusTransaksiMassal(uid, targets) {
 // 1 dokumen transaksi jenis 'pindah saldo' (tanpa +/- pada nominal) + saldo
 // sumber dikurangi & tujuan ditambah. dariId/keId disimpan utk pembatalan.
 export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jumlah, tanggal, catatan }) {
-  const jumlahInt = Number(jumlah)
+  if (!dariId || !keId) throw new Error('Pilih rekening sumber & tujuan dulu.')
+  if (dariId === keId) throw new Error('Rekening sumber & tujuan tidak boleh sama.')
+  const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pindah saldo')
   const transId = id || buatTransaksiId(uid)
   const trans = {
     jumlah: jumlahInt,
@@ -378,26 +448,28 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
 
 // Kembalikan efek pindah saldo (hapus): sumber +jumlah, tujuan -jumlah.
 export async function hapusPindahSaldo(uid, trans) {
+  if (!trans?.id) return
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
     if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
     return
   }
+  const jml = Math.max(0, angkaAman(trans.jumlah))
   const { db } = getFirebase()
   const batch = writeBatch(db)
   batch.update(transaksiRef(uid, trans.id), { deleted: true })
-  if (trans.dariId) {
+  if (trans.dariId && trans.dariId !== trans.keId) {
     batch.update(akunRef(uid, trans.dariId), {
-      saldo: increment(trans.jumlah),
+      saldo: increment(jml),
       updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: trans.jumlah, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+      mutasiTerakhir: { delta: jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
     })
   }
-  if (trans.keId) {
+  if (trans.keId && trans.dariId !== trans.keId) {
     batch.update(akunRef(uid, trans.keId), {
-      saldo: increment(-trans.jumlah),
+      saldo: increment(-jml),
       updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: -trans.jumlah, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+      mutasiTerakhir: { delta: -jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
     })
   }
   await batch.commit()
@@ -453,11 +525,18 @@ export function enrichTransaksi(docs, akunById, kategoriById) {
   })
 }
 
+// Kunci kanonik kategori: WAJIB menyertakan jenis agar kategori bernama sama
+// lintas jenis (mis. 'Lainnya' pemasukan vs 'Lainnya' pengeluaran) tidak terhapus/tertukar.
+export function kunciKategori(nama, jenis) {
+  return `${String(jenis ?? '').trim().toLowerCase()}::${String(nama ?? '').trim().toLowerCase()}`
+}
+
 // ===== MIGRASI SEKALI-JALAN: buang nama redundan, backfill kategoriId =====
 // Untuk semua dokumen lama: (1) kategoriId kosong tapi ada nama -> buat/temukan
 // kategori resmi; (2) hapus field kategoriNama/akunNama/utangNama via deleteField.
 // Idempoten — dokumen bersih dilewati. Dipanggil sekali per user setelah login.
 export async function migrasiNormalisasi(uid) {
+  if (!uid || IS_DEMO_UID(uid)) return 0
   const { db } = getFirebase()
   const markerRef = doc(userCol(uid, 'meta'), 'migrasiNormalisasi')
   const markerSnap = await getDoc(markerRef)
@@ -465,14 +544,13 @@ export async function migrasiNormalisasi(uid) {
 
   const patches = []
 
-  // 0) Dedupe kategori lama (nama sama, hasil race seeding) — simpan yang terlama,
-  //    sisanya soft-delete. Tanpa ini dropdown menampilkan nama berulang.
+  // 0) Dedupe kategori lama per jenis+nama — simpan yang terlama, sisanya soft-delete.
   const semuaKat = await getDocs(userCol(uid, 'kategori'))
   const grupKat = {}
   semuaKat.docs.forEach((d) => {
     const v = d.data()
     if (v.deleted) return
-    const key = (v.nama ?? '').toLowerCase()
+    const key = kunciKategori(v.nama, v.jenis)
     ;(grupKat[key] ??= []).push({ id: d.id, createdAt: v.createdAt?.toMillis?.() ?? 0 })
   })
   Object.values(grupKat).forEach((grup) => {
@@ -481,18 +559,19 @@ export async function migrasiNormalisasi(uid) {
     grup.slice(1).forEach((d) => patches.push({ ref: doc(db, 'users', uid, 'kategori', d.id), data: { deleted: true } }))
   })
 
-  // Kategori & akun map (cukup sekali baca)
-  const katSnap = await getDocs(userCol(uid, 'kategori'))
-  const katByName = {}
-  katSnap.docs.forEach((d) => {
+  // Kategori map per jenis::nama (cukup sekali baca dari hasil snapshot yang sama)
+  const katByKey = {}
+  semuaKat.docs.forEach((d) => {
     const v = d.data()
-    katByName[(v.nama ?? '').toLowerCase()] = d.id
+    if (v.deleted) return
+    const key = kunciKategori(v.nama, v.jenis)
+    if (!katByKey[key]) katByKey[key] = d.id
   })
   async function ensureKategori(nama, jenis) {
-    const key = (nama ?? '').toLowerCase()
-    if (katByName[key]) return katByName[key]
+    const key = kunciKategori(nama, jenis)
+    if (katByKey[key]) return katByKey[key]
     const id = await ambilAtauBuatKategori(uid, nama, jenis)
-    katByName[key] = id
+    katByKey[key] = id
     return id
   }
 
@@ -555,11 +634,27 @@ export function budgetRef(uid, id) {
 }
 
 export async function simpanBudget(uid, { id, kategoriId, limitNominal, bulan, tahun }) {
+  const limitInt = wajibAngkaPositif(limitNominal, 'Limit budget')
+  const bulanInt = Number(bulan)
+  const tahunInt = Number(tahun)
+  if (!kategoriId) throw new Error('Pilih kategori dulu.')
+  if (!Number.isInteger(bulanInt) || bulanInt < 0 || bulanInt > 11) throw new Error('Bulan budget tidak valid.')
+  if (!Number.isInteger(tahunInt) || tahunInt < 2000 || tahunInt > 2100) throw new Error('Tahun budget tidak valid.')
   const data = {
     kategoriId,
-    limitNominal: Number(limitNominal),
-    bulan,
-    tahun,
+    limitNominal: limitInt,
+    bulan: bulanInt,
+    tahun: tahunInt,
+  }
+  if (IS_DEMO_UID(uid)) {
+    if (id) {
+      const idx = MOCK_BUDGET.findIndex((b) => b.id === id)
+      if (idx !== -1) MOCK_BUDGET[idx] = { ...MOCK_BUDGET[idx], ...data }
+      return id
+    }
+    const newId = 'demo_bdg_' + Date.now()
+    MOCK_BUDGET.push({ id: newId, ...data, deleted: false })
+    return newId
   }
   if (id) {
     await updateDoc(budgetRef(uid, id), { ...data, updatedAt: serverTimestamp() })
@@ -574,6 +669,11 @@ export async function simpanBudget(uid, { id, kategoriId, limitNominal, bulan, t
 }
 
 export async function hapusBudget(uid, id) {
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_BUDGET.findIndex((b) => b.id === id)
+    if (idx !== -1) MOCK_BUDGET.splice(idx, 1)
+    return
+  }
   await updateDoc(budgetRef(uid, id), { deleted: true, updatedAt: serverTimestamp() })
 }
 
@@ -584,18 +684,37 @@ export function utangRef(uid, id) {
 }
 
 export async function simpanUtang(uid, { id, namaPihak, deskripsi, total, tipe, cicilanPerBulan, tglJatuhTempo, sisaLama, totalLama }) {
+  const namaBersih = String(namaPihak ?? '').trim()
+  if (!namaBersih) throw new Error('Nama pihak wajib diisi.')
+  const totalInt = wajibAngkaPositif(total, 'Total utang')
+  const tipeAman = tipe === 'Cicilan' ? 'Cicilan' : 'Utang'
+  const cicilanInt = tipeAman === 'Cicilan' ? Math.max(0, angkaAman(cicilanPerBulan)) : 0
   const data = {
-    namaPihak,
+    namaPihak: namaBersih,
     deskripsi: deskripsi ?? '',
-    total: Number(total),
-    tipe,
-    cicilanPerBulan: tipe === 'Cicilan' ? Number(cicilanPerBulan) || 0 : 0,
-    tglJatuhTempo,
+    total: totalInt,
+    tipe: tipeAman,
+    cicilanPerBulan: cicilanInt,
+    tglJatuhTempo: tglJatuhTempo ? kanonikTanggal(tglJatuhTempo) : '',
+  }
+  if (IS_DEMO_UID(uid)) {
+    if (id) {
+      const idx = MOCK_UTANG.findIndex((u) => u.id === id)
+      const selisih = totalInt - (Number(totalLama) || 0)
+      const sisaBaru = Math.max(0, (Number(sisaLama) || 0) + selisih)
+      if (idx !== -1) {
+        MOCK_UTANG[idx] = { ...MOCK_UTANG[idx], ...data, sisa: sisaBaru, status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas' }
+      }
+      return id
+    }
+    const newId = 'demo_ut_' + Date.now()
+    MOCK_UTANG.unshift({ id: newId, ...data, sisa: totalInt, status: 'Belum Lunas', deleted: false })
+    return newId
   }
   if (id) {
     // Total berubah -> sisa bergeser sebanyak selisih (jumlah terbayar tetap).
-    const selisih = data.total - (Number(totalLama) || 0)
-    const sisaBaru = Math.max(0, (Number(sisaLama) || 0) + selisih)
+    const selisih = totalInt - angkaAman(totalLama)
+    const sisaBaru = Math.max(0, angkaAman(sisaLama) + selisih)
     await updateDoc(utangRef(uid, id), {
       ...data,
       sisa: sisaBaru,
@@ -615,18 +734,38 @@ export async function simpanUtang(uid, { id, namaPihak, deskripsi, total, tipe, 
 }
 
 export async function hapusUtang(uid, id) {
+  if (IS_DEMO_UID(uid)) {
+    const idx = MOCK_UTANG.findIndex((u) => u.id === id)
+    if (idx !== -1) MOCK_UTANG.splice(idx, 1)
+    return
+  }
   await updateDoc(utangRef(uid, id), { deleted: true, updatedAt: serverTimestamp() })
 }
 
-// Cari kategori by nama & jenis; buat bila belum ada.
+// Cari kategori by nama & jenis (case-insensitive & trim); buat bila belum ada.
 export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
-  const jn = (jenis || 'pengeluaran').toLowerCase()
+  const namaBersih = String(nama ?? '').trim()
+  if (!namaBersih) throw new Error('Nama kategori wajib diisi.')
+  const jn = (jenis || 'pengeluaran').toLowerCase() === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
+  if (IS_DEMO_UID(uid)) {
+    const cocokMock = MOCK_KATEGORI.find(
+      (k) => !k.deleted && k.nama.trim().toLowerCase() === namaBersih.toLowerCase() && (k.jenis ?? '').toLowerCase() === jn,
+    )
+    if (cocokMock) return cocokMock.id
+    const newId = 'demo_kat_' + Date.now()
+    MOCK_KATEGORI.push({ id: newId, nama: namaBersih, jenis: jn, deleted: false })
+    return newId
+  }
   const snap = await getDocs(
-    query(userCol(uid, 'kategori'), where('nama', '==', nama), where('deleted', '==', false)),
+    query(userCol(uid, 'kategori'), where('deleted', '==', false)),
   )
-  const cocok = snap.docs.find((d) => (d.data().jenis ?? '').toLowerCase() === jn)
+  const targetLower = namaBersih.toLowerCase()
+  const cocok = snap.docs.find((d) => {
+    const dt = d.data()
+    return String(dt.nama ?? '').trim().toLowerCase() === targetLower && (dt.jenis ?? '').toLowerCase() === jn
+  })
   if (cocok) return cocok.id
-  const ref = await addDoc(userCol(uid, 'kategori'), { nama, jenis: jn, deleted: false, createdAt: serverTimestamp() })
+  const ref = await addDoc(userCol(uid, 'kategori'), { nama: namaBersih, jenis: jn, deleted: false, createdAt: serverTimestamp() })
   return ref.id
 }
 
@@ -635,11 +774,36 @@ export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
 // empat await terpisah — bila salah satu gagal (jaringan/permission), pembayaran
 // bisa tercatat tetapi saldo/sisa utang tidak ikut berubah (data uang rusak senyap).
 export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
-  const jumlahInt = Number(jumlah) || 0
+  const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pembayaran')
+  if (!utang?.id) throw new Error('Data utang tidak valid.')
+  if (!akun?.id) throw new Error('Pilih rekening sumber dana.')
   const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
   const ket = `Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`
-  const sisaBaru = Math.max(0, (Number(utang.sisa) || 0) - jumlahInt)
+  const sisaSebelum = Math.max(0, angkaAman(utang.sisa))
+  const sisaBaru = Math.max(0, sisaSebelum - jumlahInt)
   const tglKanonik = kanonikTanggal(tanggal)
+  if (IS_DEMO_UID(uid)) {
+    const txId = id || buatTransaksiId(uid)
+    MOCK_TRANSAKSI.unshift({
+      id: txId,
+      jumlah: jumlahInt,
+      jenis: 'pengeluaran',
+      kategoriId: katId,
+      akunId: akun.id,
+      utangId: utang.id,
+      tanggal: tglKanonik,
+      catatan: ket,
+      deleted: false,
+      createdAt: new Date().toISOString(),
+    })
+    const uIdx = MOCK_UTANG.findIndex((u) => u.id === utang.id)
+    if (uIdx !== -1) {
+      MOCK_UTANG[uIdx] = { ...MOCK_UTANG[uIdx], sisa: sisaBaru, status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas', terakhirBayar: tglKanonik }
+    }
+    const aIdx = MOCK_AKUN.findIndex((a) => a.id === akun.id)
+    if (aIdx !== -1) MOCK_AKUN[aIdx] = { ...MOCK_AKUN[aIdx], saldo: (Number(MOCK_AKUN[aIdx].saldo) || 0) - jumlahInt }
+    return txId
+  }
   const txRef = id ? doc(userCol(uid, 'transaksi'), id) : doc(userCol(uid, 'transaksi'))
   const txId = txRef.id
   const bayarRef = doc(userCol(uid, 'pembayaranUtang'))

@@ -29,7 +29,11 @@ function useUtangList(uid) {
       where('deleted', '==', false),
       orderBy('createdAt', 'desc'),
     )
-    return onSnapshot(q, (snap) => setList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
+    return onSnapshot(
+      q,
+      (snap) => setList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      () => setList([]),
+    )
   }, [uid])
   return list
 }
@@ -98,6 +102,7 @@ export function selisihHari(iso, tipe, terakhirBayar, nowRef = new Date()) {
   }
 
   const target = new Date(`${iso}T00:00:00`)
+  if (Number.isNaN(target.getTime())) return null
   return Math.round((target - now) / 86400000)
 }
 
@@ -133,8 +138,10 @@ export function cekLunasUtang(t) {
 
 export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
   const lunas = cekLunasUtang(t)
-  const terbayar = Math.max(0, (t.total || 0) - (t.sisa || 0))
-  const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
+  const totalUtang = Math.max(0, Number(t.total) || 0)
+  const sisaUtang = lunas ? 0 : Math.max(0, Number(t.sisa) || 0)
+  const terbayar = Math.max(0, totalUtang - sisaUtang)
+  const persen = totalUtang > 0 ? Math.min(100, Math.round((terbayar / totalUtang) * 100)) : 0
   const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
@@ -184,9 +191,9 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         <div className="min-w-0 shrink-0">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa utang</p>
           <p className={`whitespace-nowrap font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
-            {formatRupiah(t.sisa || 0)}
+            {formatRupiah(sisaUtang)}
           </p>
-          <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-slate-500">dari {formatRupiah(t.total || 0)}</p>
+          <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-slate-500">dari {formatRupiah(totalUtang)}</p>
         </div>
         {!lunas && (
           <div className="flex shrink-0 items-center gap-2">
@@ -280,24 +287,27 @@ export default function UtangView({ user }) {
     const aktif = []
     for (const t of list) {
       const l = cekLunasUtang(t)
-      totalAwal += t.total || 0
+      const tot = Math.max(0, Number(t.total) || 0)
+      const sisa = Math.max(0, Number(t.sisa) || 0)
+      totalAwal += tot
       if (l) {
         lunasCount++
-        totalLunasNominal += t.total || 0
+        totalLunasNominal += tot
       } else {
-        totalSisa += t.sisa || 0
+        totalSisa += sisa
         aktif.push(t)
         if (t.tipe === 'Cicilan') {
           cicilanAktif++
-          totalCicilanPerBulan += t.cicilanPerBulan || 0
+          totalCicilanPerBulan += Math.max(0, Number(t.cicilanPerBulan) || 0)
         }
       }
     }
     const terbayar = Math.max(0, totalAwal - totalSisa)
-    const persenLunas = totalAwal > 0 ? Math.round((terbayar / totalAwal) * 100) : 0
+    const persenLunas = totalAwal > 0 ? Math.min(100, Math.round((terbayar / totalAwal) * 100)) : 0
     const jatuhTempo = aktif
       .filter((t) => t.tglJatuhTempo)
-      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: t.sisa || 0, hari: selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) }))
+      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: Math.max(0, Number(t.sisa) || 0), hari: selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) }))
+      .filter((t) => t.hari !== null)
       .sort((a, b) => a.hari - b.hari)
     return {
       totalSisa, totalAwal, terbayar, persenLunas,
@@ -345,6 +355,7 @@ export default function UtangView({ user }) {
       await hapusUtang(uid, target.id)
     } catch (e) {
       console.warn('[utang-hapus] gagal:', e?.message ?? e)
+      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: 'Gagal menghapus utang.' } }))
     }
   }
 

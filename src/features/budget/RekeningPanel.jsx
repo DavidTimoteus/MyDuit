@@ -59,13 +59,15 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
   const rangeBulan = useMemo(rangeBulanIni, [])
 
   // Arus kas bulan berjalan — pakai propTransBulan dari BudgetView jika ada agar sinkron penuh dengan Statistik
-    const { docs: fallbackTrans } = useTransaksi(uid, propTransBulan ? {} : { range: rangeBulan, jenis: 'semua' })
-    const transBulan = propTransBulan || fallbackTrans
+  // dan tidak membuka listener useTransaksi tambahan yang mubazir.
+  const { docs: fallbackTrans } = useTransaksi(propTransBulan ? null : uid, { range: rangeBulan, jenis: 'semua' })
+  const transBulan = propTransBulan || fallbackTrans
   const arusBulan = useMemo(() => {
     let masuk = 0, keluar = 0
     for (const t of transBulan) {
-      if (t.jenis === 'pemasukan') masuk += t.jumlah || 0
-      else if (t.jenis === 'pengeluaran') keluar += t.jumlah || 0
+      const jml = Number(t.jumlah) || 0
+      if (t.jenis === 'pemasukan') masuk += jml
+      else if (t.jenis === 'pengeluaran') keluar += jml
     }
     return { masuk, keluar }
   }, [transBulan])
@@ -136,6 +138,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
       await hapusAkun(uid, target.id)
     } catch (e) {
       console.warn('[rekening-hapus] gagal:', e?.message ?? e)
+      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: 'Gagal menghapus rekening.' } }))
     }
   }
 

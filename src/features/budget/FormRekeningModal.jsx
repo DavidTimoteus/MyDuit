@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { formatRibuanInput, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatRibuanInputBertanda, parseNominalBertanda, simbolUang } from '../../lib/format.js'
 import { tambahAkun, updateAkun } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -23,7 +23,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     setKunciLama(kunci)
     setNama(edit?.nama ?? '')
     setTipe(edit?.tipe ?? TIPE_AKUN[0])
-    setSaldo(edit?.saldo !== undefined ? formatRibuanInput(String(edit.saldo)) : '')
+    setSaldo(edit?.saldo !== undefined ? formatRibuanInputBertanda(edit.saldo) : '')
     setError('')
   }
 
@@ -34,7 +34,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     if (!nama.trim()) return setError('Nama rekening wajib diisi.')
     const namaSnap = nama.trim()
     const tipeSnap = tipe
-    const saldoSnap = parseNominal(saldo)
+    const saldoSnap = parseNominalBertanda(saldo)
     const editSnap = edit
 
     // OPTIMISTIC: tutup modal sekarang, commit Firestore di background.
@@ -45,7 +45,12 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     ;(async () => {
       try {
         if (editSnap) {
-          await updateAkun(uid, editSnap.id, { nama: namaSnap, tipe: tipeSnap, saldo: saldoSnap })
+          await updateAkun(uid, editSnap.id, {
+            nama: namaSnap,
+            tipe: tipeSnap,
+            saldo: saldoSnap,
+            saldoLama: editSnap.saldo,
+          })
         } else {
           await tambahAkun(uid, { nama: namaSnap, tipe: tipeSnap, saldoAwal: saldoSnap })
         }
@@ -89,8 +94,8 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
           <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
           <input
             value={saldo}
-            onChange={(e) => setSaldo(formatRibuanInput(e.target.value))}
-            inputMode="numeric"
+            onChange={(e) => setSaldo(formatRibuanInputBertanda(e.target.value))}
+            inputMode="text"
             placeholder="0"
             className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
           />
