@@ -7,6 +7,7 @@ import { aturanAnalitik, hitungPersenPerubahan } from '../features/statistik/_at
 import { validasiEndpointOcr } from './ocrProvider.js'
 import { RIWAYAT_AWAL, kurangRiwayat } from '../features/transaksi/mergeRiwayat.js'
 import { parseTanggalInput } from '../components/clay-ui.jsx'
+import { isLocalMockAllowed } from '../features/auth/useAuth.js'
 
 let total = 0
 let lulus = 0
@@ -167,6 +168,46 @@ await cek('parseTanggalInput menolak tanggal kalender mustahil (anti-rollover 31
   assert.equal(valid?.getFullYear(), 2026)
   assert.equal(valid?.getMonth(), 7)
   assert.equal(valid?.getDate(), 15)
+})
+
+// 7. Penutupan Celah Security & Fuzzing (Firestore Rules Allowlist, OCR SSRF, Prototype Pollution, Mock Auth Gate)
+await cek('isLocalMockAllowed menolak origin produksi publik & hanya mengizinkan loopback saat prod', () => {
+  const prevWin = globalThis.window
+  try {
+    globalThis.window = { location: { hostname: 'myduit001.web.app' } }
+    assert.equal(isLocalMockAllowed(), false)
+    globalThis.window = { location: { hostname: '127.0.0.1' } }
+    assert.equal(isLocalMockAllowed(), true)
+    globalThis.window = { location: { hostname: 'localhost' } }
+    assert.equal(isLocalMockAllowed(), true)
+  } finally {
+    globalThis.window = prevWin
+  }
+})
+
+await cek('backup restore memangkas unknown fields (>25), kontrol char docId, & importGas tahan toString/length', () => {
+  assert.equal(validDocId('doc\x00id'), null)
+  assert.equal(validDocId('doc\nid'), null)
+  assert.equal(validDocId('doc%2f..%2fid'), null)
+
+  const kotor = { deleted: false, jumlah: 50000, jenis: 'pengeluaran', tanggal: '2026-11-10', isAdmin: true }
+  for (let i = 0; i < 30; i++) kotor['extra_' + i] = i
+  const bersih = bersihkanDokumenRestore('transaksi', kotor)
+  assert.equal(Object.keys(bersih).length <= 25, true)
+  assert.equal('isAdmin' in bersih, false)
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['ID', 'toString'], ['k1', 'x']]), 'Kategori')
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ ID: 'a1', Nama: 'A'.repeat(200), Saldo: 100 }]), 'Akun')
+  const { json } = konversiBackupGas(wb, XLSX, 'uid_test')
+  assert.equal(json.data.kategori[0].nama, 'Lainnya')
+  assert.equal(json.data.akun[0].nama.length <= 120, true)
+})
+
+await cek('validasiEndpointOcr menolak kredensial tertanam dan host metadata cloud', () => {
+  assert.throws(() => validasiEndpointOcr('https://user:pass@evil.example.com'))
+  assert.throws(() => validasiEndpointOcr('https://169.254.169.254/latest'))
+  assert.throws(() => validasiEndpointOcr('https://metadata.google.internal/'))
 })
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek audit lolos`)
