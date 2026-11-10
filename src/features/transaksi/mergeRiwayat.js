@@ -97,6 +97,17 @@ export function kurangRiwayat(state, aksi) {
     case 'mulai': {
       // Query sama -> state dipertahankan (sinkronisasi ulang bukan ganti filter).
       if (aksi.kunci === state.kunci) return state
+      const uidLama = state.kunci ? String(state.kunci).split('|')[0] : ''
+      const uidBaru = String(aksi.kunci || '').split('|')[0]
+      if (uidLama && uidLama !== uidBaru) {
+        return {
+          kunci: aksi.kunci,
+          adaLanjutan: false,
+          docs: [],
+          deletedIds: new Set(),
+          pendingAdds: new Map(),
+        }
+      }
       const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
       const initialDocs = Array.from(pending.values())
         .filter((p) => cocokKunci(p, aksi.kunci))
@@ -186,6 +197,7 @@ export function kurangRiwayat(state, aksi) {
     }
     case 'update': {
       const item = aksi.item
+      if (state.deletedIds && state.deletedIds.has(item.id)) return state
       const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
       if (pending.has(item.id)) {
         pending.set(item.id, { ...pending.get(item.id), ...item })

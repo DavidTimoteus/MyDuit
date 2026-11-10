@@ -18,7 +18,7 @@ export default function BackupModal({ open, onClose, uid }) {
     a.href = url
     a.download = `myduit-backup-${ts}.json`
     a.click()
-    URL.revokeObjectURL(url)
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
   async function ekspor() {
@@ -66,7 +66,13 @@ export default function BackupModal({ open, onClose, uid }) {
 
   function pilihFile(e) {
     const file = e.target.files?.[0]
+    e.target.value = ''
     if (!file) return
+    if (file.size > 15 * 1024 * 1024) {
+      setPreview(null)
+      setMsg({ type: 'err', text: 'Ukuran berkas backup terlalu besar (maksimal 15 MB).' })
+      return
+    }
     const ext = file.name.split('.').pop().toLowerCase()
     if (['xlsx', 'xls', 'csv'].includes(ext)) {
       parseSpreadsheet(file)

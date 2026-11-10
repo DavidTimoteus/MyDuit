@@ -10,6 +10,7 @@
 //
 // Modul ini memetakan tiap sheet ke bentuk dokumen yang benar-benar dibaca app.
 import { Timestamp } from 'firebase/firestore'
+import { kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 
 // Nama sheet (lowercase) -> nama koleksi Firestore PWA
 const PETA_SHEET = {
@@ -38,7 +39,7 @@ function keDate(v) {
 function keTanggalIso(v) {
   const d = keDate(v)
   if (!d) return ''
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return kanonikTanggal(d)
 }
 
 function keTimestamp(v) {
@@ -47,15 +48,21 @@ function keTimestamp(v) {
 }
 
 function keAngka(v) {
-  if (typeof v === 'number') return v
-  const n = Number(String(v ?? '').replace(/[^\d-]/g, ''))
-  return Number.isFinite(n) ? n : 0
+  return parseAngkaEksternal(v)
 }
 
 function keBool(v) {
   if (typeof v === 'boolean') return v
   const s = String(v ?? '').trim().toLowerCase()
   return s === 'true' || s === 'ya' || s === '1'
+}
+
+function keDeleted(row) {
+  const delRaw = kolom(row, 'Deleted')
+  if (delRaw !== undefined && delRaw !== '') return keBool(delRaw)
+  const aktifRaw = kolom(row, 'Aktif')
+  if (aktifRaw !== undefined && aktifRaw !== '') return !keBool(aktifRaw)
+  return false
 }
 
 function teks(v) {
@@ -103,8 +110,9 @@ export function konversiBackupGas(wb, XLSX, uid) {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
       const utangId = teks(kolom(r, 'UtangID'))
-      const jumlah = keAngka(kolom(r, 'Nominal', 'Jumlah'))
-      if (utangId) totalBayarPerUtang[utangId] = (totalBayarPerUtang[utangId] || 0) + jumlah
+      const jumlah = Math.max(0, keAngka(kolom(r, 'Nominal', 'Jumlah')))
+      const deleted = keDeleted(r)
+      if (utangId && !deleted) totalBayarPerUtang[utangId] = (totalBayarPerUtang[utangId] || 0) + jumlah
       return {
         id,
         utangId,
@@ -112,7 +120,7 @@ export function konversiBackupGas(wb, XLSX, uid) {
         akunId: teks(kolom(r, 'AkunID')),
         jumlah,
         tanggal: keTanggalIso(kolom(r, 'Tanggal')),
-        deleted: false,
+        deleted,
         createdAt: keTimestamp(kolom(r, 'Tanggal')) ?? Timestamp.now(),
       }
     })
@@ -155,10 +163,10 @@ export function konversiBackupGas(wb, XLSX, uid) {
       if (!id) return null
       const dok = {
         id,
-        nama: teks(kolom(r, 'Nama')),
+        nama: teks(kolom(r, 'Nama')) || 'Rekening',
         tipe: teks(kolom(r, 'Tipe')) || 'Lainnya',
         saldo: keAngka(kolom(r, 'Saldo')),
-        deleted: false,
+        deleted: keDeleted(r),
         createdAt: keTimestamp(kolom(r, 'CreatedAt')) ?? Timestamp.now(),
         updatedAt: keTimestamp(kolom(r, 'UpdatedAt')) ?? Timestamp.now(),
       }
@@ -192,16 +200,16 @@ export function konversiBackupGas(wb, XLSX, uid) {
       const jenis = teks(kolom(r, 'Jenis')).toLowerCase() // pemasukan | pengeluaran | pindah saldo
       const akunId = teks(kolom(r, 'AkunID'))
       const akunTujuanId = teks(kolom(r, 'AkunTujuanID'))
-      const tanggal = keTanggalIso(kolom(r, 'Tanggal'))
+      const tanggal = keTanggalIso(kolom(r, 'Tanggal')) || kanonikTanggal(null)
       const dok = {
         id,
-        jumlah: keAngka(kolom(r, 'Nominal', 'Jumlah')),
+        jumlah: Math.max(0, keAngka(kolom(r, 'Nominal', 'Jumlah'))),
         jenis,
         kategoriId: teks(kolom(r, 'KategoriID')),
         akunId,
         tanggal,
         catatan: teks(kolom(r, 'Keterangan', 'Catatan')),
-        deleted: false,
+        deleted: keDeleted(r),
         createdAt: keTimestamp(kolom(r, 'Tanggal')) ?? Timestamp.now(),
       }
       const utangId = teks(kolom(r, 'UtangID'))
@@ -221,21 +229,21 @@ export function konversiBackupGas(wb, XLSX, uid) {
     .map((r) => {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
-      const total = keAngka(kolom(r, 'Total'))
+      const total = Math.max(1, keAngka(kolom(r, 'Total')))
       const status = teks(kolom(r, 'Status')) || 'Belum Lunas'
       const terbayar = totalBayarPerUtang[id] || 0
       const sisa = status.toLowerCase() === 'lunas' ? 0 : Math.max(0, total - terbayar)
       return {
         id,
-        namaPihak: teks(kolom(r, 'NamaPihak')),
+        namaPihak: teks(kolom(r, 'NamaPihak')) || 'Pihak',
         deskripsi: teks(kolom(r, 'Deskripsi')),
         total,
         sisa,
         status,
-        tipe: teks(kolom(r, 'Tipe')) || 'Utang',
-        cicilanPerBulan: keAngka(kolom(r, 'CicilanPerBulan')),
+        tipe: teks(kolom(r, 'Tipe')) === 'Cicilan' ? 'Cicilan' : 'Utang',
+        cicilanPerBulan: Math.max(0, keAngka(kolom(r, 'CicilanPerBulan'))),
         tglJatuhTempo: keTanggalIso(kolom(r, 'TglJatuhTempo')),
-        deleted: false,
+        deleted: keDeleted(r),
         createdAt: keTimestamp(kolom(r, 'Tanggal')) ?? Timestamp.now(),
       }
     })
@@ -249,13 +257,15 @@ export function konversiBackupGas(wb, XLSX, uid) {
     .map((r) => {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
+      const b = keAngka(kolom(r, 'Bulan'))
+      const th = keAngka(kolom(r, 'Tahun'))
       return {
         id,
         kategoriId: teks(kolom(r, 'KategoriID')),
-        bulan: keAngka(kolom(r, 'Bulan')),
-        tahun: keAngka(kolom(r, 'Tahun')),
-        limitNominal: keAngka(kolom(r, 'LimitNominal', 'Limit')),
-        deleted: false,
+        bulan: Math.max(0, Math.min(11, b)),
+        tahun: th >= 2000 && th <= 2100 ? th : new Date().getFullYear(),
+        limitNominal: Math.max(0, keAngka(kolom(r, 'LimitNominal', 'Limit'))),
+        deleted: keDeleted(r),
         createdAt: Timestamp.now(),
       }
     })
