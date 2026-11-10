@@ -6,23 +6,158 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    // Validasi integritas dasar payload: field `deleted` bila ada wajib boolean,
-    // dan `jumlah` bila ada wajib numerik non-negatif. Tetap kompatibel dengan
-    // operasi patch/merge parsial (migrasiNormalisasi & soft-delete).
-    function validPayload() {
-      return (!('deleted' in request.resource.data) || request.resource.data.deleted is bool)
-        && (!('jumlah' in request.resource.data) || (request.resource.data.jumlah is number && request.resource.data.jumlah >= 0));
+    function maxNum() {
+      return 999999999999999;
     }
 
-    // Isolasi data per-user: setiap pengguna hanya punya akses penuh pada
-    // dokumen di dalam users/{uid}/... miliknya sendiri.
-    match /users/{uid}/{document=**} {
+    function validDocSize() {
+      return request.resource.data.keys().size() <= 25;
+    }
+
+    function validBase() {
+      let d = request.resource.data;
+      return validDocSize()
+        && (!('deleted' in d) || d.deleted is bool);
+    }
+
+    function validTransaksi(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || (
+          'deleted' in d && d.deleted is bool &&
+          'jumlah' in d &&
+          'jenis' in d &&
+          'tanggal' in d && d.tanggal is string && d.tanggal.size() == 10
+        ))
+        && (!('jumlah' in d) || (d.jumlah is number && d.jumlah >= 0 && d.jumlah <= maxNum()))
+        && (!('jenis' in d) || d.jenis in ['pemasukan', 'pengeluaran', 'pindah saldo'])
+        && (!('tanggal' in d) || (d.tanggal is string && d.tanggal.size() <= 32))
+        && (!('catatan' in d) || (d.catatan is string && d.catatan.size() <= 500));
+    }
+
+    function validAkun(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || (
+          'deleted' in d && d.deleted is bool &&
+          'nama' in d && d.nama is string && d.nama.size() > 0 && d.nama.size() <= 120 &&
+          'saldo' in d
+        ))
+        && (!('saldo' in d) || (d.saldo is number && d.saldo >= -maxNum() && d.saldo <= maxNum()))
+        && (!('nama' in d) || (d.nama is string && d.nama.size() <= 120))
+        && (!('tipe' in d) || (d.tipe is string && d.tipe.size() <= 60));
+    }
+
+    function validKategori(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || (
+          'deleted' in d && d.deleted is bool &&
+          'nama' in d && d.nama is string && d.nama.size() > 0 && d.nama.size() <= 100
+        ))
+        && (!('nama' in d) || (d.nama is string && d.nama.size() <= 100))
+        && (!('jenis' in d) || d.jenis in ['pemasukan', 'pengeluaran', '']);
+    }
+
+    function validBudget(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || (
+          'deleted' in d && d.deleted is bool &&
+          'limitNominal' in d &&
+          'bulan' in d &&
+          'tahun' in d
+        ))
+        && (!('limitNominal' in d) || (d.limitNominal is number && d.limitNominal >= 0 && d.limitNominal <= maxNum()))
+        && (!('bulan' in d) || (d.bulan is int && d.bulan >= 0 && d.bulan <= 11))
+        && (!('tahun' in d) || (d.tahun is int && d.tahun >= 2000 && d.tahun <= 2100));
+    }
+
+    function validUtang(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || (
+          'deleted' in d && d.deleted is bool &&
+          'namaPihak' in d && d.namaPihak is string && d.namaPihak.size() > 0 && d.namaPihak.size() <= 150 &&
+          'total' in d &&
+          'sisa' in d
+        ))
+        && (!('namaPihak' in d) || (d.namaPihak is string && d.namaPihak.size() <= 150))
+        && (!('deskripsi' in d) || (d.deskripsi is string && d.deskripsi.size() <= 500))
+        && (!('total' in d) || (d.total is number && d.total > 0 && d.total <= maxNum()))
+        && (!('sisa' in d) || (d.sisa is number && d.sisa >= 0 && d.sisa <= maxNum()))
+        && (!('cicilanPerBulan' in d) || (d.cicilanPerBulan is number && d.cicilanPerBulan >= 0 && d.cicilanPerBulan <= maxNum()))
+        && (!('tipe' in d) || d.tipe in ['Utang', 'Cicilan'])
+        && (!('tglJatuhTempo' in d) || (d.tglJatuhTempo is string && d.tglJatuhTempo.size() <= 32));
+    }
+
+    function validPembayaranUtang(isCreate) {
+      let d = request.resource.data;
+      return validBase()
+        && (!isCreate || ('deleted' in d && d.deleted is bool && 'jumlah' in d))
+        && (!('jumlah' in d) || (d.jumlah is number && d.jumlah >= 0 && d.jumlah <= maxNum()))
+        && (!('tanggal' in d) || (d.tanggal is string && d.tanggal.size() <= 32));
+    }
+
+    function validMutasiLog() {
+      let d = request.resource.data;
+      return validBase()
+        && (!('delta' in d) || (d.delta is number && d.delta >= -maxNum() && d.delta <= maxNum()));
+    }
+
+    function validMeta() {
+      let d = request.resource.data;
+      return d.keys().size() <= 5
+        && (!('done' in d) || d.done is bool);
+    }
+
+    match /users/{uid}/transaksi/{docId} {
       allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid) && validPayload();
+      allow create: if isOwner(uid) && validTransaksi(true);
+      allow update: if isOwner(uid) && validTransaksi(false);
     }
 
-    // Semua jalur lain ditolak eksplisit. Tanpa aturan ini, penambahan
-    // koleksi di luar users/ di masa depan akan terbuka secara diam-diam.
+    match /users/{uid}/akun/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validAkun(true);
+      allow update: if isOwner(uid) && validAkun(false);
+    }
+
+    match /users/{uid}/kategori/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validKategori(true);
+      allow update: if isOwner(uid) && validKategori(false);
+    }
+
+    match /users/{uid}/budget/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validBudget(true);
+      allow update: if isOwner(uid) && validBudget(false);
+    }
+
+    match /users/{uid}/utang/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validUtang(true);
+      allow update: if isOwner(uid) && validUtang(false);
+    }
+
+    match /users/{uid}/pembayaranUtang/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create: if isOwner(uid) && validPembayaranUtang(true);
+      allow update: if isOwner(uid) && validPembayaranUtang(false);
+    }
+
+    match /users/{uid}/mutasiLog/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validMutasiLog();
+    }
+
+    match /users/{uid}/meta/{docId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validMeta();
+    }
+
+    // Semua jalur lain (termasuk subkoleksi asing atau koleksi root lain) ditolak eksplisit.
     match /{document=**} {
       allow read, write: if false;
     }

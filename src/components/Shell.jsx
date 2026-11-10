@@ -9,6 +9,7 @@ import {
   detectCountryInfo,
   simpanNegaraManual,
   formatRupiah,
+  parseTanggalIsoAman,
   NEGARA,
   EVENT_LOKASI,
 } from "../lib/format.js";
@@ -178,9 +179,11 @@ function SidebarInsightStatistik() {
         </span>
       </div>
       <p className="text-[10px] font-medium text-textSecondary">
-        {last
-          ? `Catatan terakhir: ${new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${last}T00:00:00`))}`
-          : "Belum ada catatan pada periode ini"}
+        {(() => {
+          const dLast = parseTanggalIsoAman(last);
+          if (!dLast) return last ? `Catatan terakhir: ${last}` : "Belum ada catatan pada periode ini";
+          return `Catatan terakhir: ${new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(dLast)}`;
+        })()}
       </p>
       <div className="h-px bg-slate-200/70"></div>
       <div className="flex items-start gap-2">
@@ -506,6 +509,9 @@ export default function Shell({ user }) {
     try {
       if (uid) localStorage.removeItem(`myduit-migrasi-norm-${uid}`);
       localStorage.removeItem("myduit_gemini_api_key");
+      localStorage.removeItem("myduit_ocr_engine");
+      localStorage.removeItem("myduit_ocr_endpoint");
+      localStorage.removeItem("myduit:tx_chip");
     } catch (e) {
       console.warn("bersihkan penanda lokal gagal:", e?.message);
     }

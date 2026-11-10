@@ -6,14 +6,7 @@
     <title>MyDuit — Catatan Keuangan</title>
     <meta name="description" content="Catat, pantau, dan kendalikan keuangan pribadi. Offline-first." />
     <meta name="theme-color" content="#E5E5E5" />
-    <script>
-      (function() {
-        try {
-          var t = localStorage.getItem('myduit:theme') || 'neumorphism';
-          document.documentElement.setAttribute('data-theme', t);
-        } catch(e) {}
-      })();
-    </script>
+    <script src="/boot.js"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -30,27 +23,6 @@
       href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
       rel="stylesheet"
     />
-    <script>
-      // Jaring pengaman untuk chunk yang gagal dimuat.
-      //
-      // Vite memuat potongan kode lazy dengan nama ber-hash. Setelah deploy baru,
-      // berkas lama hilang; tab yang masih terbuka (atau service worker yang
-      // menyajikan index.html lama) meminta nama lama dan menerima HTML alih-alih
-      // JavaScript. Modul gagal di-parse, React tidak pernah mount, dan pengguna
-      // hanya melihat layar putih. Vite memancarkan `vite:preloadError` untuk
-      // kasus ini: cukup muat ulang SEKALI untuk mengambil index.html + nama baru.
-      // Penjaga sessionStorage mencegah loop bila gagalnya bukan karena versi.
-      window.addEventListener('vite:preloadError', function () {
-        try {
-          if (!sessionStorage.getItem('myduit-preload-reload')) {
-            sessionStorage.setItem('myduit-preload-reload', '1')
-            window.location.reload()
-          }
-        } catch (e) {
-          window.location.reload()
-        }
-      })
-    </script>
   </head>
   <body>
     <div id="root">

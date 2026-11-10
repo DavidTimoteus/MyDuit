@@ -96,6 +96,7 @@ export default defineConfig({
         // service worker runtime-cache saat benar-benar dibuka.
         globPatterns: [
           'index.html',
+          'boot.js',
           'manifest.webmanifest',
           'registerSW.js',
           'assets/*.js',
