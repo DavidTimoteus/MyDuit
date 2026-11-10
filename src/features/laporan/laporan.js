@@ -1,4 +1,4 @@
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from '../../lib/mockData.js'
 import { uangAktif } from '../../lib/format.js'
@@ -102,7 +102,7 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
     const { db } = getFirebase()
     const user = (nama) => collection(db, 'users', uid, nama)
     const [txSnap, akunSnap, katSnap, utangSnap, budgetSnap] = await Promise.all([
-      getDocs(query(user('transaksi'), where('deleted', '==', false), where('tanggal', '>=', start), where('tanggal', '<=', end))),
+      getDocs(query(user('transaksi'), where('deleted', '==', false), where('tanggal', '>=', start), where('tanggal', '<=', end), orderBy('tanggal', 'desc'))),
       getDocs(query(user('akun'), where('deleted', '==', false))),
       getDocs(query(user('kategori'), where('deleted', '==', false))),
       getDocs(query(user('utang'), where('deleted', '==', false))),

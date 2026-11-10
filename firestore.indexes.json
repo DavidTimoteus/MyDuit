@@ -34,6 +34,23 @@
         { "fieldPath": "deleted", "order": "ASCENDING" },
         { "fieldPath": "nama", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "budget",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "bulan", "order": "ASCENDING" },
+        { "fieldPath": "tahun", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transaksi",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "tanggal", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

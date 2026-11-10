@@ -4,6 +4,7 @@ import {
   deleteField,
   getDoc,
   getDocs,
+  getDocsFromCache,
   increment,
   limit as fbLimit,
   orderBy,
@@ -32,6 +33,11 @@ function angkaAman(nilai) {
   const n = Number(nilai)
   if (!Number.isFinite(n)) return 0
   return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(n)))
+}
+
+function potongTeks(nilai, maks) {
+  const s = String(nilai ?? '').trim()
+  return s.length > maks ? s.slice(0, maks) : s
 }
 
 // ===== KOLEKSI =====
@@ -111,17 +117,19 @@ export async function seedKategoriJikaKosong(uid) {
 
 // ===== AKUN (minimal utk Fase 2; modul lengkap di Fase 3) =====
 export async function tambahAkun(uid, { nama, saldoAwal = 0, tipe = 'Rekening Utama' }) {
-  const namaBersih = String(nama ?? '').trim()
+  const namaBersih = potongTeks(nama, 120)
   if (!namaBersih) throw new Error('Nama rekening wajib diisi.')
+  const tipeAman = potongTeks(tipe || 'Rekening Utama', 60) || 'Rekening Utama'
   const saldoInt = angkaAman(saldoAwal)
   if (IS_DEMO_UID(uid)) {
     const id = 'demo_acc_' + Date.now()
-    MOCK_AKUN.push({ id, nama: namaBersih, tipe, saldo: saldoInt, deleted: false })
+    MOCK_AKUN.push({ id, nama: namaBersih, tipe: tipeAman, saldo: saldoInt, deleted: false })
     return id
   }
-  const ref = await addDoc(userCol(uid, 'akun'), {
+  const ref = doc(userCol(uid, 'akun'))
+  await setDoc(ref, {
     nama: namaBersih,
-    tipe,
+    tipe: tipeAman,
     saldo: saldoInt,
     deleted: false,
     createdAt: serverTimestamp(),
@@ -134,15 +142,16 @@ export async function tambahAkun(uid, { nama, saldoAwal = 0, tipe = 'Rekening Ut
 }
 
 export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
-  const namaBersih = String(nama ?? '').trim()
+  const namaBersih = potongTeks(nama, 120)
   if (!namaBersih) throw new Error('Nama rekening wajib diisi.')
+  const tipeAman = potongTeks(tipe || 'Rekening Utama', 60) || 'Rekening Utama'
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_AKUN.findIndex((a) => a.id === id)
     if (idx !== -1) {
       MOCK_AKUN[idx] = {
         ...MOCK_AKUN[idx],
         nama: namaBersih,
-        tipe,
+        tipe: tipeAman,
         ...(saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))
           ? { saldo: angkaAman(saldo) }
           : {}),
@@ -150,7 +159,7 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
     }
     return
   }
-  const patch = { nama: namaBersih, tipe, updatedAt: serverTimestamp() }
+  const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
   if (saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))) {
     const saldoBaru = angkaAman(saldo)
     patch.saldo = saldoBaru
@@ -208,7 +217,7 @@ export async function simpanTransaksi(uid, data) {
     kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: kanonikTanggal(data.tanggal),
-    catatan: data.catatan ?? '',
+    catatan: potongTeks(data.catatan, 500),
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
   }
@@ -255,7 +264,7 @@ export async function updateTransaksi(uid, lama, data) {
     kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: kanonikTanggal(data.tanggal),
-    catatan: data.catatan ?? '',
+    catatan: potongTeks(data.catatan, 500),
   }
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === lama.id)
@@ -415,7 +424,7 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
     dariId,
     keId,
     tanggal: kanonikTanggal(tanggal),
-    catatan: catatan ?? '',
+    catatan: potongTeks(catatan, 500),
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
   }
@@ -568,11 +577,14 @@ export async function migrasiNormalisasi(uid) {
     if (!katByKey[key]) katByKey[key] = d.id
   })
   async function ensureKategori(nama, jenis) {
-    const key = kunciKategori(nama, jenis)
+    const namaAman = potongTeks(nama, 100) || 'Lainnya'
+    const key = kunciKategori(namaAman, jenis)
     if (katByKey[key]) return katByKey[key]
-    const id = await ambilAtauBuatKategori(uid, nama, jenis)
-    katByKey[key] = id
-    return id
+    const jn = (jenis || 'pengeluaran').toLowerCase() === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
+    const ref = doc(userCol(uid, 'kategori'))
+    patches.unshift({ ref, data: { nama: namaAman, jenis: jn, deleted: false, createdAt: serverTimestamp() } })
+    katByKey[key] = ref.id
+    return ref.id
   }
 
   // 1) transaksi
@@ -585,7 +597,11 @@ export async function migrasiNormalisasi(uid) {
     const butuhCreatedAt = !('createdAt' in v)
     const tglKanonik = kanonikTanggal(v.tanggal)
     const butuhTanggal = v.tanggal !== tglKanonik
-    if (!punyaNama && !butuhKat && !butuhDeleted && !butuhCreatedAt && !butuhTanggal) continue
+    const catatanLama = typeof v.catatan === 'string' ? v.catatan : String(v.catatan ?? '')
+    const butuhCatatan = typeof v.catatan !== 'string' || catatanLama.length > 500
+    const butuhJumlah =
+      typeof v.jumlah !== 'number' || !Number.isFinite(v.jumlah) || v.jumlah < 0 || v.jumlah > MAX_NOMINAL
+    if (!punyaNama && !butuhKat && !butuhDeleted && !butuhCreatedAt && !butuhTanggal && !butuhCatatan && !butuhJumlah) continue
     const patch = {}
     if (butuhKat)
       patch.kategoriId = await ensureKategori(v.kategoriNama, v.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
@@ -594,6 +610,8 @@ export async function migrasiNormalisasi(uid) {
     if (butuhDeleted) patch.deleted = false
     if (butuhCreatedAt) patch.createdAt = serverTimestamp()
     if (butuhTanggal) patch.tanggal = tglKanonik
+    if (butuhCatatan) patch.catatan = catatanLama.slice(0, 500)
+    if (butuhJumlah) patch.jumlah = Math.max(0, angkaAman(v.jumlah))
     patches.push({ ref: transaksiRef(uid, d.id), data: patch })
   }
 
@@ -684,14 +702,14 @@ export function utangRef(uid, id) {
 }
 
 export async function simpanUtang(uid, { id, namaPihak, deskripsi, total, tipe, cicilanPerBulan, tglJatuhTempo, sisaLama, totalLama }) {
-  const namaBersih = String(namaPihak ?? '').trim()
+  const namaBersih = potongTeks(namaPihak, 150)
   if (!namaBersih) throw new Error('Nama pihak wajib diisi.')
   const totalInt = wajibAngkaPositif(total, 'Total utang')
   const tipeAman = tipe === 'Cicilan' ? 'Cicilan' : 'Utang'
   const cicilanInt = tipeAman === 'Cicilan' ? Math.max(0, angkaAman(cicilanPerBulan)) : 0
   const data = {
     namaPihak: namaBersih,
-    deskripsi: deskripsi ?? '',
+    deskripsi: potongTeks(deskripsi, 500),
     total: totalInt,
     tipe: tipeAman,
     cicilanPerBulan: cicilanInt,
@@ -743,8 +761,9 @@ export async function hapusUtang(uid, id) {
 }
 
 // Cari kategori by nama & jenis (case-insensitive & trim); buat bila belum ada.
-export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
-  const namaBersih = String(nama ?? '').trim()
+// Membaca cache lebih dulu agar tidak memblokir antrean writeBatch offline saat membuat kategori baru.
+export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran', { tungguServer = false, batch = null } = {}) {
+  const namaBersih = potongTeks(nama, 100)
   if (!namaBersih) throw new Error('Nama kategori wajib diisi.')
   const jn = (jenis || 'pengeluaran').toLowerCase() === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
   if (IS_DEMO_UID(uid)) {
@@ -756,33 +775,55 @@ export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
     MOCK_KATEGORI.push({ id: newId, nama: namaBersih, jenis: jn, deleted: false })
     return newId
   }
-  const snap = await getDocs(
-    query(userCol(uid, 'kategori'), where('deleted', '==', false)),
-  )
+  const qKat = query(userCol(uid, 'kategori'), where('deleted', '==', false))
+  let snap = null
+  try {
+    snap = await getDocsFromCache(qKat)
+  } catch {
+    snap = null
+  }
+  if (!snap || snap.empty) {
+    if (typeof navigator === 'undefined' || navigator.onLine !== false) {
+      try {
+        snap = await getDocs(qKat)
+      } catch {
+        snap = null
+      }
+    }
+  }
   const targetLower = namaBersih.toLowerCase()
-  const cocok = snap.docs.find((d) => {
+  const cocok = snap?.docs.find((d) => {
     const dt = d.data()
     return String(dt.nama ?? '').trim().toLowerCase() === targetLower && (dt.jenis ?? '').toLowerCase() === jn
   })
   if (cocok) return cocok.id
-  const ref = await addDoc(userCol(uid, 'kategori'), { nama: namaBersih, jenis: jn, deleted: false, createdAt: serverTimestamp() })
+
+  const ref = doc(userCol(uid, 'kategori'))
+  const payload = { nama: namaBersih, jenis: jn, deleted: false, createdAt: serverTimestamp() }
+  if (batch) {
+    batch.set(ref, payload)
+  } else if (tungguServer) {
+    await setDoc(ref, payload)
+  } else {
+    void setDoc(ref, payload).catch((err) => {
+      console.warn('[kategori-auto] gagal simpan kategori:', err?.message ?? err)
+    })
+  }
   return ref.id
 }
 
 // Bayar utang/cicilan: catat pembayaran + transaksi pengeluaran + kurangi sisa + saldo akun.
-// ATOMIK: keempat penulisan dibungkus SATU writeBatch. Versi sebelumnya memakai
-// empat await terpisah — bila salah satu gagal (jaringan/permission), pembayaran
-// bisa tercatat tetapi saldo/sisa utang tidak ikut berubah (data uang rusak senyap).
+// ATOMIK: keempat penulisan (termasuk kategori Pembayaran bila belum ada) dibungkus SATU writeBatch.
 export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
   const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pembayaran')
   if (!utang?.id) throw new Error('Data utang tidak valid.')
   if (!akun?.id) throw new Error('Pilih rekening sumber dana.')
-  const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
-  const ket = `Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`
+  const ket = potongTeks(`Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`, 500)
   const sisaSebelum = Math.max(0, angkaAman(utang.sisa))
   const sisaBaru = Math.max(0, sisaSebelum - jumlahInt)
   const tglKanonik = kanonikTanggal(tanggal)
   if (IS_DEMO_UID(uid)) {
+    const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
     const txId = id || buatTransaksiId(uid)
     MOCK_TRANSAKSI.unshift({
       id: txId,
@@ -804,12 +845,13 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
     if (aIdx !== -1) MOCK_AKUN[aIdx] = { ...MOCK_AKUN[aIdx], saldo: (Number(MOCK_AKUN[aIdx].saldo) || 0) - jumlahInt }
     return txId
   }
+  const { db } = getFirebase()
+  const batch = writeBatch(db)
+  const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran', { batch })
   const txRef = id ? doc(userCol(uid, 'transaksi'), id) : doc(userCol(uid, 'transaksi'))
   const txId = txRef.id
   const bayarRef = doc(userCol(uid, 'pembayaranUtang'))
 
-  const { db } = getFirebase()
-  const batch = writeBatch(db)
   batch.set(bayarRef, {
     utangId: utang.id,
     transaksiId: txId,

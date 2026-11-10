@@ -22,7 +22,14 @@ export function useBudgetBulan(uid, bulan, tahun) {
       where('bulan', '==', bulan),
       where('tahun', '==', tahun),
     )
-    return onSnapshot(q, (snap) => setList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))))
+    return onSnapshot(
+      q,
+      (snap) => setList(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      (e) => {
+        console.warn('[budget] snapshot gagal:', e?.message ?? e)
+        setList([])
+      },
+    )
   }, [uid, bulan, tahun])
   return list
 }

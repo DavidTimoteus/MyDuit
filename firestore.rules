@@ -20,6 +20,14 @@ service cloud.firestore {
         && (!('deleted' in d) || d.deleted is bool);
     }
 
+    // Izinkan soft-delete walaupun dokumen lama punya field legacy/oversized.
+    function isSoftDelete() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      return keys.hasOnly(['deleted', 'deletedAt', 'updatedAt'])
+        && 'deleted' in keys
+        && request.resource.data.deleted == true;
+    }
+
     function validTransaksi(isCreate) {
       let d = request.resource.data;
       return validBase()
@@ -114,42 +122,42 @@ service cloud.firestore {
     match /users/{uid}/transaksi/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validTransaksi(true);
-      allow update: if isOwner(uid) && validTransaksi(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validTransaksi(false));
     }
 
     match /users/{uid}/akun/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validAkun(true);
-      allow update: if isOwner(uid) && validAkun(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validAkun(false));
     }
 
     match /users/{uid}/kategori/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validKategori(true);
-      allow update: if isOwner(uid) && validKategori(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validKategori(false));
     }
 
     match /users/{uid}/budget/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validBudget(true);
-      allow update: if isOwner(uid) && validBudget(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validBudget(false));
     }
 
     match /users/{uid}/utang/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validUtang(true);
-      allow update: if isOwner(uid) && validUtang(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validUtang(false));
     }
 
     match /users/{uid}/pembayaranUtang/{docId} {
       allow read, delete: if isOwner(uid);
       allow create: if isOwner(uid) && validPembayaranUtang(true);
-      allow update: if isOwner(uid) && validPembayaranUtang(false);
+      allow update: if isOwner(uid) && (isSoftDelete() || validPembayaranUtang(false));
     }
 
     match /users/{uid}/mutasiLog/{docId} {
       allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid) && validMutasiLog();
+      allow create, update: if isOwner(uid) && (isSoftDelete() || validMutasiLog());
     }
 
     match /users/{uid}/meta/{docId} {
