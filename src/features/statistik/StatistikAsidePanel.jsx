@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatRupiah } from '../../lib/format.js'
+import { formatRupiah, parseTanggalIsoAman } from '../../lib/format.js'
 
 // Panel kanan khusus tab Statistik (desktop only). Render di Shell dengan
 // `tab === 'statistik'`. Subscribe ringkasan via event `myduit:statistik-update`
@@ -163,9 +163,12 @@ export default function StatistikAsidePanel() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-[10px] font-medium text-textSecondary">
-                    {new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(
-                      new Date(`${ringkas.hariPalingBoros.tgl}T00:00:00`),
-                    )}
+                    {(() => {
+                      const dBoros = parseTanggalIsoAman(ringkas.hariPalingBoros.tgl)
+                      return dBoros
+                        ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(dBoros)
+                        : ringkas.hariPalingBoros.tgl
+                    })()}
                     {ringkas.terbesarPemasukan && (
                       <> · pemasukan {ringkas.terbesarPemasukan.nama}</>
                     )}

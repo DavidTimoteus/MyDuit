@@ -22,7 +22,7 @@ import {
   EVENT_LOKASI,
 } from "../../lib/format.js";
 
-import { aturanAnalitik } from "./_aturan.js";
+import { aturanAnalitik, hitungPersenPerubahan } from "./_aturan.js";
 const NAMA_BULAN_ID = [
   "Januari",
   "Februari",
@@ -174,6 +174,15 @@ export default function StatistikView({ user }) {
     if (!uid) return;
     setLoading(true);
     setError("");
+    if (IS_DEMO_UID(uid)) {
+      setDocs(
+        MOCK_TRANSAKSI.filter(
+          (t) => !t.deleted && t.tanggal >= range.start && t.tanggal <= range.end,
+        ),
+      );
+      setLoading(false);
+      return () => {};
+    }
     const { db } = getFirebase();
     const q = query(
       collection(db, "users", uid, "transaksi"),
@@ -182,11 +191,6 @@ export default function StatistikView({ user }) {
       where("tanggal", "<=", range.end),
       orderBy("tanggal", "desc"),
     );
-    if (IS_DEMO_UID(uid)) {
-      setDocs(MOCK_TRANSAKSI);
-      setLoading(false);
-      return () => {};
-    }
     const unsub = onSnapshot(
       q,
       (snap) => {
@@ -218,26 +222,33 @@ export default function StatistikView({ user }) {
             ? "pengeluaran"
             : null;
       if (!j) continue;
-      const n = t.jumlah || 0;
-      const kId = t.kategoriId || "Lainnya";
-      if (j === "pemasukan") {
-        in_ += n;
-        grupIn[kId] = (grupIn[kId] || 0) + n;
-      } else {
-        out += n;
-        grupOut[kId] = (grupOut[kId] || 0) + n;
+      const n = Number(t.jumlah) || 0;
+      const namaFallback = t.kategoriNama || "Lainnya";
+      const kKey =
+        t.kategoriId && katById[t.kategoriId]
+          ? t.kategoriId
+          : `nama:${namaFallback}`;
+      const bucket = j === "pemasukan" ? grupIn : grupOut;
+      if (j === "pemasukan") in_ += n;
+      else out += n;
+      if (!bucket[kKey]) {
+        bucket[kKey] = {
+          id: kKey,
+          nama: (t.kategoriId && katById[t.kategoriId]) || namaFallback,
+          total: 0,
+        };
       }
+      bucket[kKey].total += n;
       const tgl = (t.tanggal || "").slice(0, 10);
-      const bulanKey = tgl.slice(0, 7);
-      harian[tgl] = harian[tgl] || { in: 0, out: 0 };
-      harian[tgl][j === "pemasukan" ? "in" : "out"] += n;
-      bulanan[bulanKey] = bulanan[bulanKey] || { in: 0, out: 0 };
-      bulanan[bulanKey][j === "pemasukan" ? "in" : "out"] += n;
+      if (tgl) {
+        const bulanKey = tgl.slice(0, 7);
+        harian[tgl] = harian[tgl] || { in: 0, out: 0 };
+        harian[tgl][j === "pemasukan" ? "in" : "out"] += n;
+        bulanan[bulanKey] = bulanan[bulanKey] || { in: 0, out: 0 };
+        bulanan[bulanKey][j === "pemasukan" ? "in" : "out"] += n;
+      }
     }
-    const toArr = (m) =>
-      Object.entries(m)
-        .map(([id, total]) => ({ id, nama: katById[id] || "Lainnya", total }))
-        .sort((a, b) => b.total - a.total);
+    const toArr = (m) => Object.values(m).sort((a, b) => b.total - a.total);
     return {
       in_,
       out,
@@ -313,6 +324,20 @@ export default function StatistikView({ user }) {
   const [trend, setTrend] = useState({ in_: 0, out: 0, saldo: 0, ada: false });
   useEffect(() => {
     if (!uid) return;
+    if (IS_DEMO_UID(uid)) {
+      const prevDocs = MOCK_TRANSAKSI.filter(
+        (t) => !t.deleted && t.tanggal >= prevRange.start && t.tanggal <= prevRange.end,
+      );
+      let in_ = 0,
+        out = 0;
+      prevDocs.forEach((t) => {
+        const n = Number(t.jumlah) || 0;
+        if (t.jenis === "pemasukan") in_ += n;
+        else if (t.jenis === "pengeluaran") out += n;
+      });
+      setTrend({ in_, out, saldo: in_ - out, ada: prevDocs.length > 0 });
+      return;
+    }
     let batal = false;
     (async () => {
       try {
@@ -330,8 +355,9 @@ export default function StatistikView({ user }) {
           out = 0;
         snap.docs.forEach((d) => {
           const t = d.data();
-          if (t.jenis === "pemasukan") in_ += t.jumlah || 0;
-          else if (t.jenis === "pengeluaran") out += t.jumlah || 0;
+          const n = Number(t.jumlah) || 0;
+          if (t.jenis === "pemasukan") in_ += n;
+          else if (t.jenis === "pengeluaran") out += n;
         });
         setTrend({ in_, out, saldo: in_ - out, ada: snap.size > 0 });
       } catch (e) {
@@ -345,14 +371,9 @@ export default function StatistikView({ user }) {
   }, [uid, prevRange.start, prevRange.end]);
 
   // null = tidak ada pembanding (periode sebelumnya kosong) → jangan tampilkan persen palsu.
-  function pctBaru(baru, lama) {
-    if (!trend.ada) return null;
-    if (lama === 0) return baru > 0 ? null : 0;
-    return Math.round(((baru - lama) / lama) * 100);
-  }
-  const pctIn = pctBaru(ringkas.in_, trend.in_);
-  const pctOut = pctBaru(ringkas.out, trend.out);
-  const pctSaldo = pctBaru(ringkas.saldo, trend.saldo);
+  const pctIn = hitungPersenPerubahan(ringkas.in_, trend.in_, trend.ada);
+  const pctOut = hitungPersenPerubahan(ringkas.out, trend.out, trend.ada);
+  const pctSaldo = hitungPersenPerubahan(ringkas.saldo, trend.saldo, trend.ada);
   const labelBanding =
     mode === "bulanan" ? "vs bulan sebelumnya" : "vs tahun sebelumnya";
   // Temuan analitik untuk kartu "Analisis Keuangan". Memakai mesin aturan
@@ -626,12 +647,17 @@ export default function StatistikView({ user }) {
   ]);
 
   function bukaDetailKategori(jenis, kategori) {
+    const targetJenis = jenis === "in" ? "pemasukan" : "pengeluaran";
     const items = docs
-      .filter(
-        (t) =>
-          t.jenis === (jenis === "in" ? "pemasukan" : "pengeluaran") &&
-          (t.kategoriId || "Lainnya") === kategori.id,
-      )
+      .filter((t) => {
+        if (t.jenis !== targetJenis) return false;
+        const namaFallback = t.kategoriNama || "Lainnya";
+        const kKey =
+          t.kategoriId && katById[t.kategoriId]
+            ? t.kategoriId
+            : `nama:${namaFallback}`;
+        return kKey === kategori.id;
+      })
       .sort((a, b) => (b.tanggal || "").localeCompare(a.tanggal || ""));
     const labelPeriode =
       mode === "bulanan"
@@ -709,6 +735,16 @@ export default function StatistikView({ user }) {
   // (bukan hanya periode aktif) supaya akurat lintas bulan. Fetch sekali per mount.
   useEffect(() => {
     if (!uid) return;
+    if (IS_DEMO_UID(uid)) {
+      const tanggalList = MOCK_TRANSAKSI.filter((t) => !t.deleted).map((t) => t.tanggal);
+      const { streak, last } = hitungStreak_(tanggalList);
+      window.dispatchEvent(
+        new CustomEvent("myduit:sidebar-statistik-update", {
+          detail: { streak, last },
+        }),
+      );
+      return;
+    }
     let batal = false;
     (async () => {
       try {

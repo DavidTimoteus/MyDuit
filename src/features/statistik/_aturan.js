@@ -13,6 +13,18 @@
 // diverifikasi user (kenapa? aturan jelas) dan bisa diuji dengan assert,
 // sesuatu yang tidak bisa dijanjikan LLM.
 // ============================================================================
+import { parseTanggalIsoAman } from '../../lib/format.js'
+
+// Hitung persen perubahan periode dengan penyebut absolut agar perbaikan
+// dari nilai negatif (mis. saldo -1jt -> +500rb) tampil positif (+150%), bukan terbalik.
+export function hitungPersenPerubahan(baru, lama, ada = true) {
+  if (!ada) return null
+  const b = Number(baru) || 0
+  const l = Number(lama) || 0
+  if (l === 0) return b === 0 ? 0 : null
+  return Math.round(((b - l) / Math.abs(l)) * 100)
+}
+
 export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, tahun }) {
   const saran = []
   const periode =
@@ -77,9 +89,11 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     }
   }
 
-  // 5) Proyeksi akhir bulan dari laju boros saat ini
-  if (mode === 'bulanan' && jumlahHariBulan > 0 && ringkas.out > 0) {
-    const hariBerjalan = Math.max(1, Math.min(new Date().getDate(), jumlahHariBulan))
+  // 5) Proyeksi akhir bulan dari laju boros saat ini (khusus bulan berjalan)
+  const kini = new Date()
+  const isBulanBerjalan = kini.getFullYear() === tahun && kini.getMonth() === bulan
+  if (mode === 'bulanan' && isBulanBerjalan && jumlahHariBulan > 0 && ringkas.out > 0) {
+    const hariBerjalan = Math.max(1, Math.min(kini.getDate(), jumlahHariBulan))
     const proyeksi = Math.round((ringkas.out / hariBerjalan) * jumlahHariBulan)
     const sisaHari = jumlahHariBulan - hariBerjalan
     const sisaRupiah = proyeksi - ringkas.out
@@ -98,11 +112,12 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
   const perHari = Object.entries(ringkas.harian || {}).filter(([, v]) => v.out > 0)
   if (perHari.length >= 3) {
     const puncak = perHari.reduce((a, b) => (b[1].out > a[1].out ? b : a))
-    const namaHari = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(
-      new Date(`${puncak[0]}T00:00:00`),
-    )
-    R('info', `Puncak pengeluaran di hari ${namaHari}`,
-      `${rp(puncak[1].out)} tercatat hari itu. Kalau bisa ditahan sekali seminggu, hemat sekitar ${rp(puncak[1].out / 4)} sebulan.`)
+    const tglPuncak = parseTanggalIsoAman(puncak[0])
+    if (tglPuncak) {
+      const namaHari = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(tglPuncak)
+      R('info', `Puncak pengeluaran di hari ${namaHari}`,
+        `${rp(puncak[1].out)} tercatat hari itu. Kalau bisa ditahan sekali seminggu, hemat sekitar ${rp(puncak[1].out / 4)} sebulan.`)
+    }
   }
 
   // 7) Pengeluaran harian versus pemasukan

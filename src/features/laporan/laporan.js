@@ -1,5 +1,6 @@
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
+import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from '../../lib/mockData.js'
 import { uangAktif } from '../../lib/format.js'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -87,65 +88,88 @@ function tglSingkat(tglIso) {
 }
 
 export async function ambilDataLaporan(uid, bulan, tahun) {
-  const { db } = getFirebase()
   const start = iso(tahun, bulan, 1)
   const end = iso(tahun, bulan, new Date(tahun, bulan + 1, 0).getDate())
-  const user = (nama) => collection(db, 'users', uid, nama)
 
-  const [txSnap, akunSnap, katSnap, utangSnap, budgetSnap] = await Promise.all([
-    getDocs(query(user('transaksi'), where('deleted', '==', false), where('tanggal', '>=', start), where('tanggal', '<=', end))),
-    getDocs(query(user('akun'), where('deleted', '==', false))),
-    getDocs(query(user('kategori'), where('deleted', '==', false))),
-    getDocs(query(user('utang'), where('deleted', '==', false))),
-    getDocs(query(user('budget'), where('deleted', '==', false), where('bulan', '==', bulan), where('tahun', '==', tahun))),
-  ])
+  let txRaw, akunRaw, katRaw, utangRaw, budgetRaw
+  if (IS_DEMO_UID(uid)) {
+    txRaw = MOCK_TRANSAKSI.filter((t) => !t.deleted && t.tanggal >= start && t.tanggal <= end)
+    akunRaw = MOCK_AKUN.filter((a) => !a.deleted)
+    katRaw = MOCK_KATEGORI.filter((k) => !k.deleted)
+    utangRaw = MOCK_UTANG.filter((u) => !u.deleted)
+    budgetRaw = MOCK_BUDGET.filter((b) => !b.deleted && b.bulan === bulan && b.tahun === tahun)
+  } else {
+    const { db } = getFirebase()
+    const user = (nama) => collection(db, 'users', uid, nama)
+    const [txSnap, akunSnap, katSnap, utangSnap, budgetSnap] = await Promise.all([
+      getDocs(query(user('transaksi'), where('deleted', '==', false), where('tanggal', '>=', start), where('tanggal', '<=', end))),
+      getDocs(query(user('akun'), where('deleted', '==', false))),
+      getDocs(query(user('kategori'), where('deleted', '==', false))),
+      getDocs(query(user('utang'), where('deleted', '==', false))),
+      getDocs(query(user('budget'), where('deleted', '==', false), where('bulan', '==', bulan), where('tahun', '==', tahun))),
+    ])
+    txRaw = txSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    akunRaw = akunSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    katRaw = katSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    utangRaw = utangSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    budgetRaw = budgetSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  }
 
-  const akun = Object.fromEntries(akunSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-  const kategori = Object.fromEntries(katSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]))
-  const transaksi = txSnap.docs
-    .map((d) => {
-      const t = { id: d.id, ...d.data() }
+  const akun = Object.fromEntries(akunRaw.map((d) => [d.id, d]))
+  const kategori = Object.fromEntries(katRaw.map((d) => [d.id, d]))
+  const transaksi = txRaw
+    .map((t) => {
       const namaAkun = t.jenis === 'pindah saldo'
         ? `${akun[t.dariId]?.nama ?? akun[t.akunId]?.nama ?? '—'} > ${akun[t.keId]?.nama ?? '—'}`
-        : akun[t.akunId]?.nama || '—'
+        : akun[t.akunId]?.nama || t.akunNama || '—'
       return {
         ...t,
-        kategoriNama: t.jenis === 'pindah saldo' ? 'Pindah Saldo' : kategori[t.kategoriId]?.nama || 'Lainnya',
+        jumlah: Number(t.jumlah) || 0,
+        kategoriNama: t.jenis === 'pindah saldo' ? 'Pindah Saldo' : kategori[t.kategoriId]?.nama || t.kategoriNama || 'Lainnya',
         akunNama: namaAkun,
       }
     })
     .sort((a, b) => String(a.tanggal).localeCompare(String(b.tanggal)))
-  const budgets = budgetSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
-  const utangSemua = utangSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+  const budgets = budgetRaw
+  const utangSemua = utangRaw
   let pemasukan = 0, pengeluaran = 0
-  const kategoriIn = {}, kategoriOut = {}
+  const kategoriIn = {}, kategoriOut = {}, terpakaiPerKatId = {}
   for (const t of transaksi) {
+    const jml = Number(t.jumlah) || 0
     if (t.jenis === 'pemasukan') {
-      pemasukan += t.jumlah || 0
-      kategoriIn[t.kategoriNama] = (kategoriIn[t.kategoriNama] || 0) + (t.jumlah || 0)
+      pemasukan += jml
+      kategoriIn[t.kategoriNama] = (kategoriIn[t.kategoriNama] || 0) + jml
     } else if (t.jenis === 'pengeluaran') {
-      pengeluaran += t.jumlah || 0
-      kategoriOut[t.kategoriNama] = (kategoriOut[t.kategoriNama] || 0) + (t.jumlah || 0)
+      pengeluaran += jml
+      kategoriOut[t.kategoriNama] = (kategoriOut[t.kategoriNama] || 0) + jml
+      if (t.kategoriId) terpakaiPerKatId[t.kategoriId] = (terpakaiPerKatId[t.kategoriId] || 0) + jml
     }
   }
   const topIn = Object.entries(kategoriIn).sort((a, b) => b[1] - a[1])
   const topOut = Object.entries(kategoriOut).sort((a, b) => b[1] - a[1])
 
   const utangAktif = utangSemua
-    .filter((u) => u.status !== 'Lunas' && (Number(u.sisa) || 0) > 0)
+    .filter((u) => String(u.status || '').trim().toLowerCase() !== 'lunas' && (Number(u.sisa) || 0) > 0)
     .map((u) => ({ ...u, hari: selisihHari(u.tglJatuhTempo, u.tipe, u.terakhirBayar) }))
-  const totalUtangAktif = utangAktif.reduce((s, u) => s + (Number(u.sisa) || 0), 0)
-  const cicilanPerBulan = utangAktif.reduce((s, u) => s + (Number(u.cicilanPerBulan) || 0), 0)
+  const totalUtangAktif = utangAktif.reduce((s, u) => s + Math.max(0, Number(u.sisa) || 0), 0)
+  const cicilanPerBulan = utangAktif.reduce((s, u) => s + Math.max(0, Number(u.cicilanPerBulan) || 0), 0)
   const perluPerhatian = utangAktif.filter((u) => u.hari !== null && u.hari <= 14).sort((a, b) => a.hari - b.hari)
 
-  // Anggaran vs realisasi: gabungkan limit budget dengan pengeluaran nyata
-  // per kategori. Sebelumnya data ini dihitung lalu dibuang (tidak dirender).
+  // Anggaran vs realisasi: cocokkan per `kategoriId` agar 100% sinkron dengan BudgetView.jsx
+  // (mencegah transaksi kategori terhapus/kosong ikut menagih budget 'Lainnya').
+  const seenKat = new Set()
   const anggaran = budgets
+    .filter((b) => {
+      const k = b.kategoriId || b.id
+      if (seenKat.has(k)) return false
+      seenKat.add(k)
+      return true
+    })
     .map((b) => {
       const nama = kategori[b.kategoriId]?.nama || b.kategoriNama || 'Tanpa kategori'
-      const limit = Number(b.limitNominal) || 0
-      const terpakai = kategoriOut[nama] || 0
-      const persen = limit > 0 ? Math.round((terpakai / limit) * 100) : 0
+      const limit = Math.max(0, Number(b.limitNominal) || 0)
+      const terpakai = b.kategoriId ? (terpakaiPerKatId[b.kategoriId] || 0) : (kategoriOut[nama] || 0)
+      const persen = limit > 0 ? Math.round((terpakai / limit) * 100) : (terpakai > 0 ? 100 : 0)
       return { nama, limit, terpakai, persen, sisa: limit - terpakai, lewat: terpakai > limit }
     })
     .sort((a, b) => b.persen - a.persen)
@@ -334,7 +358,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
       teks(doc, kol.kosong, x, ky + 3, { size: 8, warna: C.redup })
       return
     }
-    const maks = Math.max(...kol.items.map(([, n]) => n))
+    const maks = Math.max(1, ...kol.items.map(([, n]) => Number(n) || 0))
     kol.items.forEach(([namaKat, total]) => {
       teks(doc, String(namaKat).slice(0, 24), x, ky + 2.6, { size: 8.2 })
       teks(doc, rp(total), x + kolomKat, ky + 2.6, { size: 8.2, warna: C.tinta, align: 'right' })

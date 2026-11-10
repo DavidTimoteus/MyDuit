@@ -40,14 +40,15 @@ export default function RightPanel({ uid }) {
     let masuk = 0
     let keluar = 0
     for (const t of bulanEnriched) {
-      if (t.jenis === 'pemasukan') masuk += t.jumlah || 0
-      else if (t.jenis === 'pengeluaran') keluar += t.jumlah || 0
+      const jml = Number(t.jumlah) || 0
+      if (t.jenis === 'pemasukan') masuk += jml
+      else if (t.jenis === 'pengeluaran') keluar += jml
     }
     return masuk - keluar
   }, [bulanEnriched])
 
   const pengeluaranHariIni = useMemo(
-    () => transHariIni.reduce((s, t) => s + (t.jumlah || 0), 0),
+    () => transHariIni.reduce((s, t) => s + (Number(t.jumlah) || 0), 0),
     [transHariIni],
   )
 
@@ -58,7 +59,7 @@ export default function RightPanel({ uid }) {
     for (const t of bulanEnriched) {
       if (t.jenis !== 'pemasukan' && t.jenis !== 'pengeluaran') continue
       const key = `${t.jenis}||${t.kategoriNama || 'Lainnya'}`
-      map[key] = (map[key] || 0) + (t.jumlah || 0)
+      map[key] = (map[key] || 0) + (Number(t.jumlah) || 0)
     }
     const terbaik = Object.entries(map).sort((a, b) => b[1] - a[1])[0]
     if (!terbaik) return null
@@ -137,9 +138,8 @@ export default function RightPanel({ uid }) {
                 </div>
                 {topKategori && (
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                      topKategori.jenis === 'pemasukan' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
-                    }`}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${topKategori.jenis === 'pemasukan' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
+                      }`}
                   >
                     {topKategori.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}
                   </span>

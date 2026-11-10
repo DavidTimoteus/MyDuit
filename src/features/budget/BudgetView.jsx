@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { onSnapshot, query, where, orderBy, collection } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
+import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js'
 import { formatRupiah } from '../../lib/format.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
@@ -47,6 +48,14 @@ export default function BudgetView({ user }) {
   const [transBulan, setTransBulan] = useState([])
   useEffect(() => {
     if (!uid) return
+    if (IS_DEMO_UID(uid)) {
+      setTransBulan(
+        MOCK_TRANSAKSI.filter(
+          (t) => !t.deleted && t.tanggal >= range.start && t.tanggal <= range.end,
+        ),
+      )
+      return
+    }
     const { db } = getFirebase()
     const q = query(
       collection(db, 'users', uid, 'transaksi'),
@@ -127,33 +136,43 @@ export default function BudgetView({ user }) {
     let totalPemasukan = 0
     let totalPengeluaran = 0
     for (const t of transEnriched) {
+      const jml = Number(t.jumlah) || 0
       if (t.jenis === 'pemasukan') {
-        totalPemasukan += t.jumlah || 0
+        totalPemasukan += jml
         continue
       }
       if (t.jenis !== 'pengeluaran') continue
-      totalPengeluaran += t.jumlah || 0
+      totalPengeluaran += jml
       // Hanya pengeluaran BERKATEGORI yang menagih budget; pindah saldo punya
       // kategoriId '' (falsy) dan tetap terlewati.
-      if (t.kategoriId) terpakaiPerKategori[t.kategoriId] = (terpakaiPerKategori[t.kategoriId] || 0) + (t.jumlah || 0)
+      if (t.kategoriId) terpakaiPerKategori[t.kategoriId] = (terpakaiPerKategori[t.kategoriId] || 0) + jml
     }
-    const list = budgets.map((b) => {
+    // Dedupe defensif per kategoriId agar dokumen ganda tidak menggandakan total budget/terpakai.
+    const seenKat = new Set()
+    const budgetsUnik = []
+    for (const b of budgets) {
+      const key = b.kategoriId || b.id
+      if (seenKat.has(key)) continue
+      seenKat.add(key)
+      budgetsUnik.push(b)
+    }
+    const list = budgetsUnik.map((b) => {
       const terpakai = terpakaiPerKategori[b.kategoriId] || 0
-      const limit = b.limitNominal || 0
-      const persen = limit > 0 ? Math.min(999, Math.round((terpakai / limit) * 100)) : 0
+      const limit = Math.max(0, Number(b.limitNominal) || 0)
+      const persen = limit > 0 ? Math.min(999, Math.round((terpakai / limit) * 100)) : (terpakai > 0 ? 100 : 0)
       const hampirHabis = persen >= 80
       const kategoriNama = b.kategoriNama ?? katById[b.kategoriId] ?? '?'
       // `lewat` PER budget — tanpa ini kartu BudgetPanel tidak pernah
       // menampilkan status "Lewat"/"+N%" karena b.lewat selalu undefined.
       const lewat = terpakai > limit
-      return { ...b, kategoriNama, terpakai, persen, hampirHabis, lewat }
+      return { ...b, limitNominal: limit, kategoriNama, terpakai, persen, hampirHabis, lewat }
     })
-    const totalLimit = budgets.reduce((s, b) => s + (b.limitNominal || 0), 0)
+    const totalLimit = list.reduce((s, b) => s + (b.limitNominal || 0), 0)
     // Hanya pengeluaran pada kategori YANG DIANGGARKAN yang dihitung sebagai
     // pemakaian budget total agar pengeluaran non-budget tidak mendistorsi progres budget.
     const totalTerpakai = list.reduce((s, b) => s + (b.terpakai || 0), 0)
     const sisa = totalLimit - totalTerpakai
-    const persen = totalLimit > 0 ? Math.min(999, Math.round((totalTerpakai / totalLimit) * 100)) : 0
+    const persen = totalLimit > 0 ? Math.min(999, Math.round((totalTerpakai / totalLimit) * 100)) : (totalTerpakai > 0 ? 100 : 0)
     const akhirBulan = new Date(tahun, bulan + 1, 0).getDate()
     const isBulanIni = tahun === today.getFullYear() && bulan === today.getMonth()
     const isBulanLalu = tahun < today.getFullYear() || (tahun === today.getFullYear() && bulan < today.getMonth())
