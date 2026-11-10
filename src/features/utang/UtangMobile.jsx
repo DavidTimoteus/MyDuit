@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
-import { cekLunasUtang } from './UtangView.jsx'
+import { cekLunasUtang, hitungJatuhTempoBulanan, selisihHari } from './UtangView.jsx'
 
 // ============================================================================
 // TAMPILAN UTANG & CICILAN — MOBILE
@@ -15,49 +15,6 @@ const FILTERS = [
   { id: 'lunas', label: 'Lunas' },
   { id: 'terlambat', label: 'Telat' },
 ]
-
-function hitungJatuhTempoBulanan(iso, terakhirBayar) {
-  if (!iso) return null
-  const tglRef = new Date(`${iso}T00:00:00`)
-  if (isNaN(tglRef.getTime())) return null
-  const hariTgl = tglRef.getDate()
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-
-  let sudahBayarBulanIni = false
-  if (terakhirBayar) {
-    const tglBayar = new Date(`${terakhirBayar}T00:00:00`)
-    if (!isNaN(tglBayar.getTime())) {
-      sudahBayarBulanIni =
-        tglBayar.getFullYear() === now.getFullYear() &&
-        tglBayar.getMonth() === now.getMonth()
-    }
-  }
-
-  const targetMonth = sudahBayarBulanIni ? now.getMonth() + 1 : now.getMonth()
-  const targetYear = now.getFullYear()
-
-  let target = new Date(targetYear, targetMonth, hariTgl)
-  if (target.getMonth() !== targetMonth % 12) {
-    target = new Date(targetYear, targetMonth + 1, 0)
-  }
-  return { target, sudahBayarBulanIni }
-}
-
-function selisihHari(iso, tipe, terakhirBayar) {
-  if (!iso) return null
-  const now = new Date()
-  now.setHours(0, 0, 0, 0)
-
-  if (tipe === 'Cicilan') {
-    const info = hitungJatuhTempoBulanan(iso, terakhirBayar)
-    if (!info?.target) return null
-    return Math.round((info.target - now) / 86400000)
-  }
-
-  const target = new Date(`${iso}T00:00:00`)
-  return Math.round((target - now) / 86400000)
-}
 
 function statusKartu(t) {
   const lunas = cekLunasUtang(t)
@@ -105,13 +62,14 @@ function teksJatuhTempo(t, st) {
   if (st.lunas) return 'Sudah lunas'
   if (!t.tglJatuhTempo) return 'Tanpa jatuh tempo'
   const d = st.hari
+  if (d === null || Number.isNaN(d)) return 'Tanpa jatuh tempo'
   const tglRef = new Date(`${t.tglJatuhTempo}T00:00:00`)
   const hariTgl = !isNaN(tglRef.getTime()) ? tglRef.getDate() : ''
 
   if (t.tipe === 'Cicilan') {
     const info = hitungJatuhTempoBulanan(t.tglJatuhTempo, t.terakhirBayar)
     if (info?.sudahBayarBulanIni) {
-      return `Bulan ini lunas • Tempo brikutnya tgl ${hariTgl} (${d} hr lagi)`
+      return `Bulan ini lunas • Tempo berikutnya tgl ${hariTgl} (${d} hr lagi)`
     }
     const awalan = `Tempo bulanan tgl ${hariTgl}`
     if (d < 0) return `${awalan} (Telat ${-d} hari)`
@@ -175,7 +133,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa utang</p>
         <div className="flex items-baseline justify-between gap-2 mt-0.5">
           <p className={`font-mono text-2xl font-black leading-tight tracking-tight tabular-nums ${st.lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
-            {formatRupiah(t.sisa || 0)}
+            {formatRupiah(Math.max(0, Number(t.sisa) || 0))}
           </p>
           <p className="text-xs font-semibold text-slate-500 tabular-nums">
             dari {formatRupiah(t.total || 0)}

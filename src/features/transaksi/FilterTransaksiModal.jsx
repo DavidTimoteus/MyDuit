@@ -17,11 +17,13 @@ function rentangNHari(n) {
 export default function FilterTransaksiModal({ open, chip, rentang, onClose, onApply }) {
   const [tipe, setTipe] = useState('hari')
   const [range, setRange] = useState({ start: '', end: '' })
+  const [errMsg, setErrMsg] = useState('')
 
   useEffect(() => {
     if (!open) return
     setTipe(['hari', 'semua', '7hari', '30hari', 'rentang'].includes(chip) ? chip : 'semua')
     setRange({ start: rentang.start ?? '', end: rentang.end ?? '' })
+    setErrMsg('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
@@ -29,7 +31,14 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
 
   function terapkan() {
     if (tipe === 'rentang') {
-      if (!range.start || !range.end) return
+      if (!range.start || !range.end) {
+        setErrMsg('Pilih tanggal mulai dan tanggal akhir dulu.')
+        return
+      }
+      if (range.start > range.end) {
+        setErrMsg('Tanggal mulai tidak boleh melebihi tanggal akhir.')
+        return
+      }
       onApply({ chip: 'rentang', rentang: range })
     } else {
       onApply({ chip: tipe })
@@ -43,7 +52,16 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
         <span className={`block text-sm font-medium ${primary ? 'text-primary' : 'text-slate-800'}`}>{label}</span>
         {subtitle !== null && <span className="text-xs text-slate-500">{subtitle}</span>}
       </div>
-      <input type="radio" name="filterTipeModal" checked={tipe === id} onChange={() => setTipe(id)} className="clay-radio" />
+      <input
+        type="radio"
+        name="filterTipeModal"
+        checked={tipe === id}
+        onChange={() => {
+          setTipe(id)
+          setErrMsg('')
+        }}
+        className="clay-radio"
+      />
     </label>
   )
 
@@ -77,8 +95,22 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
 
           {tipe === 'rentang' && (
             <div className="mt-2">
-              <ClayDateInput range accent value={range} onChange={setRange} placeholder="Pilih periode" />
+              <ClayDateInput
+                range
+                accent
+                value={range}
+                onChange={(r) => {
+                  setRange(r)
+                  setErrMsg('')
+                }}
+                placeholder="Pilih periode"
+              />
             </div>
+          )}
+          {errMsg && (
+            <p role="alert" className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+              {errMsg}
+            </p>
           )}
         </div>
 

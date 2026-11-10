@@ -51,9 +51,12 @@ function useDismiss(open, close, listRef, triggerRef) {
       close()
     }
     const onKey = (e) => e.key === 'Escape' && close()
+    let lebarAwal = window.innerWidth
     const onResize = () => {
-      // Di perangkat mobile, kemunculan/penutupan soft-keyboard memicu event resize window.
-      // Jika input sedang aktif/fokus, abaikan resize agar popup kategori tidak tertutup seketika.
+      // Abaikan resize vertikal (muncul/hilangnya soft-keyboard mobile) agar tap pada opsi dropdown tidak dibatalkan.
+      const lebarBaru = window.innerWidth
+      if (lebarBaru === lebarAwal) return
+      lebarAwal = lebarBaru
       if (triggerRef.current && triggerRef.current.contains(document.activeElement)) return
       close()
     }
@@ -257,6 +260,15 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
   )
 }
 
+function buatTanggalValid(y, m, d) {
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return null
+  if (y < 1900 || y > 2200 || m < 1 || m > 12 || d < 1 || d > 31) return null
+  const dt = new Date(y, m - 1, d)
+  // Tolak tanggal kalender mustahil (mis. 31/02/2026 yg di-rollover JS ke 3 Maret)
+  if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null
+  return dt
+}
+
 // Helper parsing tanggal multi-format yang ramah pengetikan bebas pengguna:
 // Mendukung ISO (YYYY-MM-DD), DMY (DD/MM/YYYY, DD-MM-YYYY, D/M/YYYY), dan DDMMYYYY rapat.
 export function parseTanggalInput(str) {
@@ -267,38 +279,26 @@ export function parseTanggalInput(str) {
   // 1. Format ISO: YYYY-MM-DD atau YYYY/MM/DD
   const isoMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/)
   if (isoMatch) {
-    const y = Number(isoMatch[1])
-    const m = Number(isoMatch[2])
-    const d = Number(isoMatch[3])
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-      return new Date(y, m - 1, d)
-    }
+    return buatTanggalValid(Number(isoMatch[1]), Number(isoMatch[2]), Number(isoMatch[3]))
   }
 
   // 2. Format DD/MM/YYYY, DD-MM-YYYY, atau D/M/YY (tahun 2 digit diasumsikan 20xx)
   const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)
   if (dmyMatch) {
-    let d = Number(dmyMatch[1])
-    let m = Number(dmyMatch[2])
+    const d = Number(dmyMatch[1])
+    const m = Number(dmyMatch[2])
     let y = Number(dmyMatch[3])
     if (y < 100) y += 2000
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-      return new Date(y, m - 1, d)
-    }
+    return buatTanggalValid(y, m, d)
   }
 
   // 3. Format angka rapat DDMMYYYY (mis. 09092026 atau 09112026)
   const digitsMatch = s.match(/^(\d{2})(\d{2})(\d{4})$/)
   if (digitsMatch) {
-    const d = Number(digitsMatch[1])
-    const m = Number(digitsMatch[2])
-    const y = Number(digitsMatch[3])
-    if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
-      return new Date(y, m - 1, d)
-    }
+    return buatTanggalValid(Number(digitsMatch[3]), Number(digitsMatch[2]), Number(digitsMatch[1]))
   }
 
-  // 4. Default JS Date fallback
+  // 4. Default JS Date fallback (hanya utk string berformat teks eksplisit seperti "15 Aug 2026")
   const dObj = new Date(s)
   return !isNaN(dObj.getTime()) ? dObj : null
 }
