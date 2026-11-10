@@ -40,18 +40,24 @@ console.log(`  ID dibuat server       : ${serverGen}`)
 console.log(`  memakai increment()    : ${(src.match(/\bincrement\(/g) || []).length} (atomik, aman races)`)
 console.log(`  memakai runTransaction : ${(src.match(/runTransaction\(/g) || []).length}`)
 
-console.log('\n=== KRITERIA OFFLINE-FIRST ===')
+console.log('\n=== KRITERIA OFFLINE-FIRST & INTEGRITAS LEDGER ===')
+const fbSrc = fs.readFileSync(new URL('./firebase.js', import.meta.url), 'utf8')
 const cek = [
-  ['persistentLocalCache aktif', /persistentLocalCache\(/.test(src) || 'di firebase.js'],
-  ['multi-tab manager', /persistentMultipleTabManager\(/.test(fs.readFileSync(new URL('./firebase.js', import.meta.url), 'utf8'))],
-  ['tidak ada ID buatan client (Date.now/random) pada jalur tulis',
+  ['persistentLocalCache aktif di firebase.js', /persistentLocalCache\(/.test(fbSrc)],
+  ['multi-tab manager aktif di firebase.js', /persistentMultipleTabManager\(/.test(fbSrc)],
+  ['tidak ada ID buatan client (Date.now/random) pada jalur tulis Firestore',
     !/doc\([^)]*Date\.now\(\)/.test(src) && !/doc\([^)]*Math\.random\(\)/.test(src)],
-  ['balance ditulis atomik via increment()', (src.match(/\bincrement\(/g) || []).length > 0],
+  ['balance & sisa utang ditulis atomik via increment()', (src.match(/\bincrement\(/g) || []).length >= 9],
+  ['seedKategoriJikaKosong memakai getDoc(markerRef) 1-read', /getDoc\(markerRef\)/.test(src)],
+  ['bayarUtang menautkan utangId & pembayaranUtangId ke transaksi', /utangId:\s*utang\.id/.test(src) && /pembayaranUtangId:\s*bayarRef\.id/.test(src)],
+  ['hapusTransaksi me-rollback sisa utang & pembayaranUtang', /trans\.utangId/.test(src) && /trans\.pembayaranUtangId/.test(src)],
+  ['hapusTransaksiMassal memakai writeBatch terkelompok', /export async function hapusTransaksiMassal/.test(src)],
 ]
 let gagal = 0
 for (const [nama, ok] of cek) {
-  const nyata = typeof ok === 'string' ? true : ok
+  const nyata = Boolean(ok)
   if (!nyata) gagal++
   console.log(`  ${nyata ? '[OK]  ' : '[GAGAL]'} ${nama}`)
 }
 console.log(gagal === 0 ? '\nSemua kriteria terpenuhi.' : `\n${gagal} kriteria gagal.`)
+if (gagal > 0) throw new Error(`${gagal} kriteria offline-first gagal`)

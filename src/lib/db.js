@@ -2,6 +2,7 @@ import {
   addDoc,
   collection,
   deleteField,
+  getDoc,
   getDocs,
   increment,
   limit as fbLimit,
@@ -57,10 +58,11 @@ export async function seedKategoriJikaKosong(uid) {
   // TOCTOU (semua melihat "kosong" lalu men-seed berkali-kali). Karena Firestore
   // tidak punya unique constraint: (1) hanya buat nama yang MEMANG belum ada
   // (upsert per-nama, aman dipanggil ulang), (2) marker meta agar kebanyakan
-  // pemanggilan berikutnya skip tanpa baca besar.
+  // pemanggilan berikutnya skip dengan 1 pembacaan dokumen saja tanpa baca besar.
   const markerRef = doc(userCol(uid, 'meta'), 'seedKategori')
-  const marker = await getDocs(query(userCol(uid, 'meta'), fbLimit(1)))
-  const metaDoc = marker.docs.find((d) => d.id === 'seedKategori')
+  const markerSnap = await getDoc(markerRef)
+  if (markerSnap.exists() && markerSnap.data()?.done) return false
+
   const existing = new Set()
   const katSnap = await getDocs(userCol(uid, 'kategori'))
   katSnap.docs.forEach((d) => {
@@ -69,7 +71,6 @@ export async function seedKategoriJikaKosong(uid) {
     const n = (dt.nama ?? '').toLowerCase()
     existing.add(`${j}::${n}`)
   })
-  if (metaDoc && existing.size > 0) return false
 
   const missing = []
   for (const jenis of Object.keys(KATEGORI_DEFAULT)) {
@@ -78,7 +79,7 @@ export async function seedKategoriJikaKosong(uid) {
     }
   }
   if (missing.length === 0) {
-    if (!metaDoc) await setDoc(markerRef, { done: true, at: serverTimestamp() })
+    await setDoc(markerRef, { done: true, at: serverTimestamp() })
     return false
   }
   const batch = writeBatch(getFirebase().db)
@@ -183,6 +184,9 @@ export async function updateTransaksi(uid, lama, data) {
   if (lama?.jenis === 'pindah saldo' || data?.jenis === 'pindah saldo') {
     throw new Error('Pindah saldo tidak bisa diedit lewat form transaksi. Hapus lalu buat ulang.')
   }
+  if (lama?.utangId || data?.utangId) {
+    throw new Error('Transaksi pembayaran utang tidak bisa diedit lewat form transaksi. Hapus lalu catat ulang pembayaran.')
+  }
   const baru = {
     jumlah: Number(data.jumlah),
     jenis: data.jenis,
@@ -248,7 +252,83 @@ export async function hapusTransaksi(uid, trans) {
       mutasiTerakhir: { delta: -deltaSaldo(trans), keterangan: `Hapus transaksi ${trans.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
     })
   }
+  if (trans.utangId) {
+    const jml = Number(trans.jumlah) || 0
+    batch.update(utangRef(uid, trans.utangId), {
+      sisa: increment(jml),
+      status: 'Belum Lunas',
+      updatedAt: serverTimestamp(),
+    })
+    if (trans.pembayaranUtangId) {
+      batch.update(doc(userCol(uid, 'pembayaranUtang'), trans.pembayaranUtangId), {
+        deleted: true,
+        updatedAt: serverTimestamp(),
+      })
+    }
+  }
   await batch.commit()
+}
+
+// Hapus massal atomik: gabungkan penghapusan banyak transaksi (reguler, pindah saldo,
+// maupun pembayaran utang) ke dalam writeBatch terkelompok dengan akumulasi delta per
+// akunId & utangId agar tidak menimpa dokumen akun yang sama berulang kali.
+export async function hapusTransaksiMassal(uid, targets) {
+  if (!Array.isArray(targets) || targets.length === 0) return
+  if (IS_DEMO_UID(uid)) {
+    const idSet = new Set(targets.map((t) => t.id))
+    for (let i = MOCK_TRANSAKSI.length - 1; i >= 0; i--) {
+      if (idSet.has(MOCK_TRANSAKSI[i].id)) MOCK_TRANSAKSI.splice(i, 1)
+    }
+    return
+  }
+  const { db } = getFirebase()
+  const CHUNK = 120
+  for (let i = 0; i < targets.length; i += CHUNK) {
+    const slice = targets.slice(i, i + CHUNK)
+    const batch = writeBatch(db)
+    const deltaPerAkun = new Map()
+    const deltaPerUtang = new Map()
+
+    for (const t of slice) {
+      if (!t?.id) continue
+      batch.update(transaksiRef(uid, t.id), { deleted: true })
+      const jml = Number(t.jumlah) || 0
+      if (t.jenis === 'pindah saldo') {
+        if (t.dariId) deltaPerAkun.set(t.dariId, (deltaPerAkun.get(t.dariId) || 0) + jml)
+        if (t.keId) deltaPerAkun.set(t.keId, (deltaPerAkun.get(t.keId) || 0) - jml)
+      } else {
+        if (t.akunId) deltaPerAkun.set(t.akunId, (deltaPerAkun.get(t.akunId) || 0) - deltaSaldo(t))
+        if (t.utangId && jml > 0) {
+          deltaPerUtang.set(t.utangId, (deltaPerUtang.get(t.utangId) || 0) + jml)
+          if (t.pembayaranUtangId) {
+            batch.update(doc(userCol(uid, 'pembayaranUtang'), t.pembayaranUtangId), {
+              deleted: true,
+              updatedAt: serverTimestamp(),
+            })
+          }
+        }
+      }
+    }
+
+    for (const [akunId, delta] of deltaPerAkun.entries()) {
+      if (delta === 0) continue
+      batch.update(akunRef(uid, akunId), {
+        saldo: increment(delta),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta, keterangan: `Hapus ${slice.length} transaksi`, at: serverTimestamp() },
+      })
+    }
+    for (const [utangId, deltaSisa] of deltaPerUtang.entries()) {
+      if (deltaSisa <= 0) continue
+      batch.update(utangRef(uid, utangId), {
+        sisa: increment(deltaSisa),
+        status: 'Belum Lunas',
+        updatedAt: serverTimestamp(),
+      })
+    }
+
+    await batch.commit()
+  }
 }
 
 // ===== PINDAH SALDO (transfer antar rekening) =====
@@ -377,6 +457,10 @@ export function enrichTransaksi(docs, akunById, kategoriById) {
 // Idempoten — dokumen bersih dilewati. Dipanggil sekali per user setelah login.
 export async function migrasiNormalisasi(uid) {
   const { db } = getFirebase()
+  const markerRef = doc(userCol(uid, 'meta'), 'migrasiNormalisasi')
+  const markerSnap = await getDoc(markerRef)
+  if (markerSnap.exists() && markerSnap.data()?.done) return 0
+
   const patches = []
 
   // 0) Dedupe kategori lama (nama sama, hasil race seeding) — simpan yang terlama,
@@ -458,6 +542,7 @@ export async function migrasiNormalisasi(uid) {
     patches.slice(i, i + 400).forEach((p) => b.set(p.ref, p.data, { merge: true }))
     await b.commit()
   }
+  await setDoc(markerRef, { done: true, at: serverTimestamp() })
   return patches.length
 }
 
@@ -548,44 +633,48 @@ export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran') {
 // empat await terpisah — bila salah satu gagal (jaringan/permission), pembayaran
 // bisa tercatat tetapi saldo/sisa utang tidak ikut berubah (data uang rusak senyap).
 export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
+  const jumlahInt = Number(jumlah) || 0
   const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
   const ket = `Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`
-  const sisaBaru = Math.max(0, (Number(utang.sisa) || 0) - jumlah)
+  const sisaBaru = Math.max(0, (Number(utang.sisa) || 0) - jumlahInt)
   const tglKanonik = kanonikTanggal(tanggal)
   const txRef = id ? doc(userCol(uid, 'transaksi'), id) : doc(userCol(uid, 'transaksi'))
   const txId = txRef.id
+  const bayarRef = doc(userCol(uid, 'pembayaranUtang'))
 
   const { db } = getFirebase()
   const batch = writeBatch(db)
-  batch.set(doc(userCol(uid, 'pembayaranUtang')), {
+  batch.set(bayarRef, {
     utangId: utang.id,
     transaksiId: txId,
-    jumlah,
+    jumlah: jumlahInt,
     tanggal: tglKanonik,
     akunId: akun.id,
     deleted: false,
     createdAt: serverTimestamp(),
   })
   batch.set(txRef, {
-    jumlah,
+    jumlah: jumlahInt,
     jenis: 'pengeluaran',
     kategoriId: katId,
     akunId: akun.id,
+    utangId: utang.id,
+    pembayaranUtangId: bayarRef.id,
     tanggal: tglKanonik,
     catatan: ket,
     deleted: false,
     createdAt: serverTimestamp(),
   })
   batch.update(utangRef(uid, utang.id), {
-    sisa: sisaBaru,
+    sisa: sisaBaru <= 0 ? 0 : increment(-jumlahInt),
     status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
     terakhirBayar: tglKanonik,
     updatedAt: serverTimestamp(),
   })
   batch.update(akunRef(uid, akun.id), {
-    saldo: increment(-jumlah),
+    saldo: increment(-jumlahInt),
     updatedAt: serverTimestamp(),
-    mutasiTerakhir: { delta: -jumlah, keterangan: ket, at: serverTimestamp() },
+    mutasiTerakhir: { delta: -jumlahInt, keterangan: ket, at: serverTimestamp() },
   })
   await batch.commit()
   return txId
