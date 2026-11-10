@@ -4,12 +4,40 @@ import { kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
-// Validasi segmen ID dokumen Firestore untuk mencegah path traversal ('a/b', '.', '..', '__proto__').
+const ALLOWLIST_FIELDS = {
+  transaksi: new Set([
+    'jumlah', 'jenis', 'kategoriId', 'akunId', 'dariId', 'keId',
+    'utangId', 'pembayaranUtangId', 'tanggal', 'catatan',
+    'deleted', 'deletedAt', 'createdAt', 'updatedAt',
+  ]),
+  akun: new Set(['nama', 'tipe', 'saldo', 'mutasiTerakhir', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
+  kategori: new Set(['nama', 'jenis', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
+  budget: new Set(['kategoriId', 'limitNominal', 'bulan', 'tahun', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
+  utang: new Set([
+    'namaPihak', 'deskripsi', 'total', 'sisa', 'status', 'tipe',
+    'cicilanPerBulan', 'tglJatuhTempo', 'terakhirBayar',
+    'deleted', 'deletedAt', 'createdAt', 'updatedAt',
+  ]),
+  pembayaranUtang: new Set(['utangId', 'transaksiId', 'akunId', 'jumlah', 'tanggal', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
+  mutasiLog: new Set(['akunId', 'aksi', 'delta', 'transaksiId', 'timestamp', 'deleted', 'deletedAt', 'createdAt']),
+}
+
+function adaKarakterKontrol(str) {
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i)
+    if (code < 32 || code === 127) return true
+  }
+  return false
+}
+
+// Validasi segmen ID dokumen Firestore untuk mencegah path traversal ('a/b', '.', '..', '__proto__') & karakter kontrol.
 export function validDocId(rawId) {
   if (typeof rawId !== 'string' && typeof rawId !== 'number') return null
   const id = String(rawId).trim()
   if (!id || id.length > 128) return null
+  if (adaKarakterKontrol(id)) return null
   if (id === '.' || id === '..' || id.includes('/') || id.includes('\\') || id.includes('..')) return null
+  if (/%2e|%2f|%5c/i.test(id)) return null
   if (UNSAFE_KEYS.has(id)) return null
   return id
 }
@@ -55,12 +83,22 @@ export function hidupkanTimestamp(val) {
 // Normalisasi tipe field per koleksi agar dokumen backup selalu valid di Firestore Rules
 // dan tidak memunculkan angka string ("50000"), dokumen hilang (`deleted` absen), dsb.
 export function bersihkanDokumenRestore(koleksi, rawData) {
-  const data = { ...(rawData && typeof rawData === 'object' ? rawData : {}) }
+  const allow = ALLOWLIST_FIELDS[koleksi]
+  const data = {}
+  if (rawData && typeof rawData === 'object') {
+    for (const [k, v] of Object.entries(rawData)) {
+      if (UNSAFE_KEYS.has(k)) continue
+      if (allow && !allow.has(k)) continue
+      data[k] = v
+      if (Object.keys(data).length >= 25) break
+    }
+  }
   data.deleted = typeof data.deleted === 'boolean' ? data.deleted : false
 
   switch (koleksi) {
     case 'transaksi': {
       data.jumlah = Math.max(0, parseAngkaEksternal(data.jumlah))
+      if (!data.deleted && data.jumlah <= 0) data.deleted = true
       const j = String(data.jenis ?? 'pengeluaran').trim().toLowerCase()
       data.jenis = ['pemasukan', 'pengeluaran', 'pindah saldo'].includes(j) ? j : 'pengeluaran'
       data.tanggal = kanonikTanggal(data.tanggal)
@@ -81,6 +119,7 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
     }
     case 'budget': {
       data.limitNominal = Math.max(0, parseAngkaEksternal(data.limitNominal))
+      if (!data.deleted && data.limitNominal <= 0) data.deleted = true
       const b = Math.round(Number(data.bulan))
       data.bulan = Number.isFinite(b) ? Math.max(0, Math.min(11, b)) : new Date().getMonth()
       const th = Math.round(Number(data.tahun))
@@ -91,6 +130,9 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
       data.namaPihak = String(data.namaPihak ?? 'Pihak').trim().slice(0, 150) || 'Pihak'
       data.total = Math.max(1, parseAngkaEksternal(data.total))
       data.sisa = Math.max(0, Math.min(data.total, parseAngkaEksternal(data.sisa)))
+      if (data.status !== undefined) {
+        data.status = data.sisa <= 0 || data.status === 'Lunas' ? 'Lunas' : 'Belum Lunas'
+      }
       if (data.cicilanPerBulan !== undefined) {
         data.cicilanPerBulan = Math.max(0, parseAngkaEksternal(data.cicilanPerBulan))
       }
@@ -101,7 +143,8 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
     }
     case 'pembayaranUtang': {
       data.jumlah = Math.max(0, parseAngkaEksternal(data.jumlah))
-      if (data.tanggal) data.tanggal = kanonikTanggal(data.tanggal)
+      if (!data.deleted && data.jumlah <= 0) data.deleted = true
+      data.tanggal = data.tanggal ? kanonikTanggal(data.tanggal) : kanonikTanggal(null)
       break
     }
     case 'mutasiLog': {

@@ -30,24 +30,11 @@ export function apakahPpOcrDidukung() {
 async function muatOrtRuntime() {
   if (ortInstance) return ortInstance
 
-  try {
-    // 1. Cek objek global window.ort jika sudah dimuat
-    if (typeof window !== 'undefined' && window.ort) {
-      ortInstance = window.ort
-      ppOcrReady = true
-      return ortInstance
-    }
-
-    // 2. Coba import dinamis dengan penanda @vite-ignore agar tidak memutus bundler jika paket belum terinstall
-    const ortPkg = 'onnxruntime-web'
-    const ortModule = await import(/* @vite-ignore */ ortPkg).catch(() => null)
-    if (ortModule?.InferenceSession) {
-      ortInstance = ortModule
-      ppOcrReady = true
-      return ortInstance
-    }
-  } catch (err) {
-    console.info('[ppocr] ONNX Runtime belum dimuat, fallback ke Tesseract:', err.message)
+  // Cek objek global window.ort jika sudah dimuat (bebas dynamic module specifier import)
+  if (typeof window !== 'undefined' && window.ort?.InferenceSession) {
+    ortInstance = window.ort
+    ppOcrReady = true
+    return ortInstance
   }
 
   return null

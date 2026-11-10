@@ -12,6 +12,7 @@
 import { bacaStruk } from './ocrStruk.js'
 import { petakanKategori } from './strukMeta.js'
 import { bacaStrukPpOcr } from './ppocrProvider.js'
+import { parseAngkaEksternal, parseTanggalIsoAman } from './format.js'
 import {
   bacaGeminiKey,
   simpanGeminiKey,
@@ -39,7 +40,20 @@ export function validasiEndpointOcr(raw) {
   } catch {
     throw new Error('Format URL endpoint OCR tidak valid.')
   }
+  if (parsed.username || parsed.password) {
+    throw new Error('Endpoint OCR tidak boleh menyertakan kredensial dalam URL.')
+  }
   const host = parsed.hostname.toLowerCase()
+  if (
+    host === 'metadata.google.internal' ||
+    host === '169.254.169.254' ||
+    host === '100.100.100.200' ||
+    host === '0.0.0.0' ||
+    host === '[::]' ||
+    host.startsWith('169.254.')
+  ) {
+    throw new Error('Host endpoint OCR tidak diizinkan.')
+  }
   const isLocal = host === '127.0.0.1' || host === 'localhost' || host === '[::1]'
   const cleanPath = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/+$/, '')
   if (parsed.protocol === 'https:') return `${parsed.origin}${cleanPath}`
@@ -165,10 +179,12 @@ async function panggilUnlimitedOcrApi(file, endpoint, timeoutMs = DEFAULT_OCR_TI
  */
 function normalisasiHasilUnlimited(resData) {
   const d = resData?.data || resData || {}
-  const total = typeof d.total === 'number' ? d.total : d.total ? Number(d.total) : null
+  const totalParsed = parseAngkaEksternal(d.total)
+  const total = totalParsed > 0 ? totalParsed : null
   const barang = Array.isArray(d.barang) ? d.barang : []
   const merchant = d.merchant || ''
   const jenis = d.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
+  const tanggal = parseTanggalIsoAman(d.tanggal) ? String(d.tanggal).trim().slice(0, 10) : null
 
   let kategoriNama = d.kategoriNama || ''
   let kategoriDari = d.kategoriDari || 'unlimited-ocr'
@@ -189,7 +205,7 @@ function normalisasiHasilUnlimited(resData) {
     markdown: d.markdown || '',
     total,
     totalSumber: d.totalSumber || (total ? `Total Rp ${total.toLocaleString('id-ID')}` : null),
-    tanggal: d.tanggal || null,
+    tanggal,
     jenis,
     merchant,
     barang,

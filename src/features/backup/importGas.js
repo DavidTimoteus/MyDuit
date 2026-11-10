@@ -65,20 +65,22 @@ function keDeleted(row) {
   return false
 }
 
-function teks(v) {
-  return String(v ?? '').trim()
+function teks(v, maks = 0) {
+  const s = String(v ?? '').trim()
+  return maks > 0 && s.length > maks ? s.slice(0, maks) : s
 }
 
-// Ambil nilai kolom secara case-insensitive supaya toleran terhadap variasi header.
+// Ambil nilai kolom secara case-insensitive dengan null-prototype agar aman terhadap nama kolom 'toString'/'__proto__'.
 function kolom(row, ...kandidat) {
+  if (!row || typeof row !== 'object') return undefined
   for (const k of kandidat) {
-    if (row[k] !== undefined) return row[k]
+    if (Object.hasOwn(row, k) && row[k] !== undefined) return row[k]
   }
-  const lower = {}
+  const lower = Object.create(null)
   for (const [k, v] of Object.entries(row)) lower[k.toLowerCase()] = v
   for (const k of kandidat) {
-    const v = lower[k.toLowerCase()]
-    if (v !== undefined) return v
+    const lc = k.toLowerCase()
+    if (Object.hasOwn(lower, lc) && lower[lc] !== undefined) return lower[lc]
   }
   return undefined
 }
@@ -163,8 +165,8 @@ export function konversiBackupGas(wb, XLSX, uid) {
       if (!id) return null
       const dok = {
         id,
-        nama: teks(kolom(r, 'Nama')) || 'Rekening',
-        tipe: teks(kolom(r, 'Tipe')) || 'Lainnya',
+        nama: teks(kolom(r, 'Nama'), 120) || 'Rekening',
+        tipe: teks(kolom(r, 'Tipe'), 60) || 'Lainnya',
         saldo: keAngka(kolom(r, 'Saldo')),
         deleted: keDeleted(r),
         createdAt: keTimestamp(kolom(r, 'CreatedAt')) ?? Timestamp.now(),
@@ -181,10 +183,11 @@ export function konversiBackupGas(wb, XLSX, uid) {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
       const aktifRaw = kolom(r, 'Aktif')
+      const jenisRaw = teks(kolom(r, 'Jenis')).toLowerCase()
       return {
         id,
-        nama: teks(kolom(r, 'Nama')),
-        jenis: teks(kolom(r, 'Jenis')).toLowerCase(),
+        nama: teks(kolom(r, 'Nama'), 100) || 'Lainnya',
+        jenis: jenisRaw === 'pemasukan' ? 'pemasukan' : 'pengeluaran',
         deleted: aktifRaw === undefined || aktifRaw === '' ? false : !keBool(aktifRaw),
         createdAt: Timestamp.now(),
       }
@@ -197,19 +200,23 @@ export function konversiBackupGas(wb, XLSX, uid) {
     .map((r) => {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
-      const jenis = teks(kolom(r, 'Jenis')).toLowerCase() // pemasukan | pengeluaran | pindah saldo
+      const jenisRaw = teks(kolom(r, 'Jenis')).toLowerCase()
+      const jenis = ['pemasukan', 'pengeluaran', 'pindah saldo'].includes(jenisRaw) ? jenisRaw : 'pengeluaran'
       const akunId = teks(kolom(r, 'AkunID'))
       const akunTujuanId = teks(kolom(r, 'AkunTujuanID'))
       const tanggal = keTanggalIso(kolom(r, 'Tanggal')) || kanonikTanggal(null)
+      const jumlah = Math.max(0, keAngka(kolom(r, 'Nominal', 'Jumlah')))
+      const deletedRaw = keDeleted(r)
+      const deleted = deletedRaw || jumlah <= 0
       const dok = {
         id,
-        jumlah: Math.max(0, keAngka(kolom(r, 'Nominal', 'Jumlah'))),
+        jumlah,
         jenis,
         kategoriId: teks(kolom(r, 'KategoriID')),
         akunId,
         tanggal,
-        catatan: teks(kolom(r, 'Keterangan', 'Catatan')),
-        deleted: keDeleted(r),
+        catatan: teks(kolom(r, 'Keterangan', 'Catatan'), 500),
+        deleted,
         createdAt: keTimestamp(kolom(r, 'Tanggal')) ?? Timestamp.now(),
       }
       const utangId = teks(kolom(r, 'UtangID'))
@@ -230,13 +237,15 @@ export function konversiBackupGas(wb, XLSX, uid) {
       const id = teks(kolom(r, 'ID'))
       if (!id) return null
       const total = Math.max(1, keAngka(kolom(r, 'Total')))
-      const status = teks(kolom(r, 'Status')) || 'Belum Lunas'
+      const statusRaw = teks(kolom(r, 'Status'))
       const terbayar = totalBayarPerUtang[id] || 0
-      const sisa = status.toLowerCase() === 'lunas' ? 0 : Math.max(0, total - terbayar)
+      const isLunas = statusRaw.toLowerCase() === 'lunas'
+      const sisa = isLunas ? 0 : Math.max(0, Math.min(total, total - terbayar))
+      const status = isLunas || sisa <= 0 ? 'Lunas' : 'Belum Lunas'
       return {
         id,
-        namaPihak: teks(kolom(r, 'NamaPihak')) || 'Pihak',
-        deskripsi: teks(kolom(r, 'Deskripsi')),
+        namaPihak: teks(kolom(r, 'NamaPihak'), 150) || 'Pihak',
+        deskripsi: teks(kolom(r, 'Deskripsi'), 500),
         total,
         sisa,
         status,

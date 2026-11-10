@@ -7,7 +7,7 @@
  *  - Mengembalikan JSON terstruktur native tanpa regex parsers.
  */
 
-import { parseAngkaEksternal } from './format.js'
+import { parseAngkaEksternal, parseTanggalIsoAman } from './format.js'
 
 export const STORAGE_KEY_GEMINI_KEY = 'myduit_gemini_api_key'
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash'
@@ -242,7 +242,7 @@ Aturan Ekstraksi:
 function normalisasiHasilGemini(data) {
   const d = data && typeof data === 'object' ? data : {}
   const merchant = d.merchant || 'Toko / Merchant'
-  const tanggal = d.tanggal || null
+  const tanggal = parseTanggalIsoAman(d.tanggal) ? String(d.tanggal).trim().slice(0, 10) : null
   const totalParsed = parseAngkaEksternal(d.total)
   const total = totalParsed > 0 ? totalParsed : null
   const jenis = d.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
