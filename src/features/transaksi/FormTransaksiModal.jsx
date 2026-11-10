@@ -62,6 +62,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [sumberMenyimpan, setSumberMenyimpan] = useState(false)
   const [tambahAkunBusy, setTambahAkunBusy] = useState(false)
   const masihTerpasang = useRef(true)
+  const submittedRef = useRef(false)
 
   useEffect(() => {
     masihTerpasang.current = true
@@ -74,6 +75,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
   useEffect(() => {
     if (!open) return
+    submittedRef.current = false
     setError('')
     setSaving(false)
     // Bersihkan sisa hasil scan dari sesi sebelumnya
@@ -287,10 +289,12 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     const n = parseNominal(jumlah)
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
+    submittedRef.current = true
 
     // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
     const jenisSnap = jenis

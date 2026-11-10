@@ -2,12 +2,18 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { useEffect, useState } from 'react'
 import { getFirebase } from '../../lib/firebase.js'
 
+export function isLocalMockAllowed() {
+  if (import.meta.env?.DEV) return true
+  if (typeof window === 'undefined') return false
+  return ['localhost', '127.0.0.1', '[::1]'].includes(window.location?.hostname)
+}
+
 // status: 'loading' (cek sesi) | 'masuk' | 'keluar' | 'error'
 export function useAuth() {
   const [state, setState] = useState({ status: 'loading', user: null })
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && isLocalMockAllowed()) {
       try {
         if (localStorage.getItem('myduit:mock_unauth')) {
           setState({ status: 'keluar', user: null })

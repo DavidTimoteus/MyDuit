@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatNominal, formatRibuanInput, formatRupiah, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
@@ -20,6 +20,11 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
   const [deskripsi, setDeskripsi] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const submittedRef = useRef(false)
+
+  useEffect(() => {
+    if (open) submittedRef.current = false
+  }, [open, edit?.id, mode])
 
   // Reset isi form mengikuti kunci pembuka (id edit + mode).
   // kunciLama DIINISIASI null, BUKAN kunci: UtangView memakai `key`, jadi
@@ -45,9 +50,11 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     const n = parseNominal(total)
     if (!namaPihak.trim()) return setError('Nama pihak wajib diisi.')
     if (n <= 0) return setError('Total harus lebih dari nol.')
+    submittedRef.current = true
 
     // Snapshot sebelum modal ditutup
     const editSnap = edit
@@ -209,6 +216,11 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
   const [akunId, setAkunId] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const submittedRef = useRef(false)
+
+  useEffect(() => {
+    if (open) submittedRef.current = false
+  }, [open, utang?.id, lunasin])
 
   // Sama seperti FormUtangModal: kunciLama mulai dari null supaya reset
   // berjalan saat mount (pemanggil memakai `key`, instance baru tiap buka).
@@ -231,9 +243,11 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akun) return setError('Pilih rekening sumber.')
     if (n > (utang.sisa || 0)) return setError('Nominal melebihi sisa utang.')
+    submittedRef.current = true
     const saldoAkun = Number(akun.saldo) || 0
     if (saldoAkun - n < 0) {
       window.dispatchEvent(

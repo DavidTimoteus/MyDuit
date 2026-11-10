@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { isLocalMockAllowed } from '../features/auth/useAuth.js'
 
 // Splash screen MyDuit — Neumorphism & Claymorphism adaptive
 export default function Splash({ ready }) {
@@ -7,7 +8,10 @@ export default function Splash({ ready }) {
 
   useEffect(() => {
     if (!ready) return
-    const isMock = typeof window !== 'undefined' && (localStorage.getItem('myduit:mock_user') || localStorage.getItem('myduit:mock_unauth'))
+    const isMock =
+      isLocalMockAllowed() &&
+      typeof window !== 'undefined' &&
+      (localStorage.getItem('myduit:mock_user') || localStorage.getItem('myduit:mock_unauth'))
     const minDisplay = isMock ? 100 : 350
     const fadeMs = 300
     let timer

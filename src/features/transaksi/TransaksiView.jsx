@@ -33,7 +33,8 @@ export default function TransaksiView({ user }) {
   const uid = user.uid
   const [chip, setChip] = useState(() => {
     try {
-      return localStorage.getItem(LS_CHIP) || 'semua'
+      const saved = localStorage.getItem(LS_CHIP) || 'semua'
+      return saved === 'rentang' ? 'semua' : saved
     } catch {
       return 'semua'
     }
@@ -42,7 +43,8 @@ export default function TransaksiView({ user }) {
   function ubahChip(c) {
     setChip(c)
     try {
-      localStorage.setItem(LS_CHIP, c)
+      if (c === 'rentang') localStorage.removeItem(LS_CHIP)
+      else localStorage.setItem(LS_CHIP, c)
     } catch {
       // storage diblokir
     }
@@ -237,8 +239,19 @@ export default function TransaksiView({ user }) {
     })
   }
 
+  const salinLockRef = useRef({ id: null, at: 0 })
+  const hapusLockRef = useRef(new Set())
+  const bulkHapusLockRef = useRef(false)
+
+  useEffect(() => {
+    if (bulkHapusOpen) bulkHapusLockRef.current = false
+  }, [bulkHapusOpen])
+
   async function handleSalinCepat(trans) {
-    if (!trans) return
+    if (!trans || trans.jenis === 'pindah saldo') return
+    const now = Date.now()
+    if (salinLockRef.current.id === trans.id && now - salinLockRef.current.at < 800) return
+    salinLockRef.current = { id: trans.id, at: now }
     setOpenDeleteId(null)
     const docId = buatTransaksiId(uid)
     const optTx = {
@@ -282,8 +295,9 @@ export default function TransaksiView({ user }) {
   }
 
   async function konfirmHapus() {
-    if (!hapusTarget) return
+    if (!hapusTarget || hapusLockRef.current.has(hapusTarget.id)) return
     const target = hapusTarget
+    hapusLockRef.current.add(target.id)
     setHapusTarget(null)
     setHapusLoading(false)
     setOpenDeleteId(null)
@@ -295,6 +309,7 @@ export default function TransaksiView({ user }) {
       if (target.jenis === 'pindah saldo') await hapusPindahSaldo(uid, target)
       else await hapusTransaksi(uid, target)
     } catch (e2) {
+      hapusLockRef.current.delete(target.id)
       console.warn('[hapus] gagal:', e2?.message ?? e2)
       window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: target } }))
       window.dispatchEvent(
@@ -306,7 +321,8 @@ export default function TransaksiView({ user }) {
   }
 
   async function konfirmHapusMassal() {
-    if (selected.size === 0) return
+    if (selected.size === 0 || bulkHapusLockRef.current) return
+    bulkHapusLockRef.current = true
     const ids = Array.from(selected)
     const targets = ids.map((id) => docsEnriched.find((x) => x.id === id)).filter(Boolean)
     setSelected(new Set())

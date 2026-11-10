@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
@@ -15,9 +15,11 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
   const [catatan, setCatatan] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const submittedRef = useRef(false)
 
   useEffect(() => {
     if (!open) return
+    submittedRef.current = false
     setTanggal(isoHariIni())
     setDariId(akunList[0]?.id ?? '')
     setKeId(akunList[1]?.id ?? '')
@@ -32,10 +34,12 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     const n = parseNominal(jumlah)
     if (!dariId || !keId) return setError('Pilih rekening sumber & tujuan dulu.')
     if (sama) return setError('Rekening sumber & tujuan tidak boleh sama.')
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
+    submittedRef.current = true
     const dari = akunList.find((a) => a.id === dariId)
     const ke = akunList.find((a) => a.id === keId)
 

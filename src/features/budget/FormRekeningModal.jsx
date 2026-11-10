@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatRibuanInputBertanda, parseNominalBertanda, simbolUang } from '../../lib/format.js'
 import { tambahAkun, updateAkun } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
@@ -15,6 +15,11 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
   const [saldo, setSaldo] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const submittedRef = useRef(false)
+
+  useEffect(() => {
+    if (open) submittedRef.current = false
+  }, [open, edit?.id])
 
   // Isi ulang tiap kali modal dibuka
   const kunci = open ? open + (edit?.id ?? '') : 'tutup'
@@ -31,7 +36,9 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     if (!nama.trim()) return setError('Nama rekening wajib diisi.')
+    submittedRef.current = true
     const namaSnap = nama.trim()
     const tipeSnap = tipe
     const saldoSnap = parseNominalBertanda(saldo)

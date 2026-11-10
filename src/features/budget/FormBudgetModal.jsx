@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatRibuanInput, parseNominal, simbolUang } from '../../lib/format.js'
 import { simpanBudget } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
@@ -12,6 +12,11 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
   const [limit, setLimit] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const submittedRef = useRef(false)
+
+  useEffect(() => {
+    if (open) submittedRef.current = false
+  }, [open, edit?.id])
 
   // Isi ulang tiap kali modal dibuka
   const kunci = open ? open + (edit?.id ?? '') : 'tutup'
@@ -29,10 +34,12 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
 
   async function submit(e) {
     e.preventDefault()
+    if (submittedRef.current) return
     const kat = opsi.find((k) => k.id === kategoriId)
     const n = parseNominal(limit)
     if (!kat) return setError('Pilih kategori dulu.')
     if (n <= 0) return setError('Limit harus lebih dari nol.')
+    submittedRef.current = true
 
     const idSnap = edit?.id
     const kategoriIdSnap = kat.id
