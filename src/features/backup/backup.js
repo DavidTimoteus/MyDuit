@@ -1,5 +1,42 @@
-import { collection, getDocs, writeBatch, doc } from 'firebase/firestore'
+import { Timestamp, collection, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
+
+// Rekonstruksi nilai Timestamp Firestore yang ter-serialisasi ke JSON
+// ({ seconds, nanoseconds }, { _seconds, _nanoseconds }, atau ISO string pada field waktu)
+// agar indeks orderBy('createdAt', 'desc') dan method .toDate() tidak rusak pasca-restore.
+export function hidupkanTimestamp(val) {
+  if (!val || typeof val !== 'object') return val
+  if (val instanceof Timestamp) return val
+  const sec =
+    typeof val.seconds === 'number'
+      ? val.seconds
+      : typeof val._seconds === 'number'
+        ? val._seconds
+        : null
+  const nano =
+    typeof val.nanoseconds === 'number'
+      ? val.nanoseconds
+      : typeof val._nanoseconds === 'number'
+        ? val._nanoseconds
+        : 0
+  if (
+    sec !== null &&
+    Object.keys(val).every((k) => ['seconds', 'nanoseconds', '_seconds', '_nanoseconds', 'type'].includes(k))
+  ) {
+    return new Timestamp(sec, nano)
+  }
+  if (Array.isArray(val)) return val.map(hidupkanTimestamp)
+  const out = {}
+  for (const [k, v] of Object.entries(val)) {
+    if ((k === 'createdAt' || k === 'updatedAt' || k === 'timestamp' || k === 'at') && typeof v === 'string') {
+      const d = new Date(v)
+      out[k] = Number.isNaN(d.getTime()) ? v : Timestamp.fromDate(d)
+    } else {
+      out[k] = hidupkanTimestamp(v)
+    }
+  }
+  return out
+}
 
 // Fail-closed: uid di path Firestore coming dari argumen, jadi satu kesalahan
 // di call site (atau file backup berisi uid orang lain) akan menulis ke akun
@@ -59,7 +96,7 @@ export async function restoreData(uid, json, onProgress) {
     for (const item of arr) {
       if (!item || !item.id) continue
       const { id, ...rest } = item
-      ops.push({ koleksi: c, ref: doc(db, 'users', uid, c, String(id)), data: rest })
+      ops.push({ koleksi: c, ref: doc(db, 'users', uid, c, String(id)), data: hidupkanTimestamp(rest) })
     }
   }
 

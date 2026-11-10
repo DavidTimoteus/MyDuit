@@ -505,6 +505,7 @@ export default function Shell({ user }) {
     // sama sekali sampai halaman di-reload.
     try {
       if (uid) localStorage.removeItem(`myduit-migrasi-norm-${uid}`);
+      localStorage.removeItem("myduit_gemini_api_key");
     } catch (e) {
       console.warn("bersihkan penanda lokal gagal:", e?.message);
     }

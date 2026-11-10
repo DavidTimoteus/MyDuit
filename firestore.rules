@@ -2,14 +2,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Validasi integritas dasar payload: field `deleted` bila ada wajib boolean,
+    // dan `jumlah` bila ada wajib numerik non-negatif. Tetap kompatibel dengan
+    // operasi patch/merge parsial (migrasiNormalisasi & soft-delete).
+    function validPayload() {
+      return (!('deleted' in request.resource.data) || request.resource.data.deleted is bool)
+        && (!('jumlah' in request.resource.data) || (request.resource.data.jumlah is number && request.resource.data.jumlah >= 0));
+    }
+
     // Isolasi data per-user: setiap pengguna hanya punya akses penuh pada
     // dokumen di dalam users/{uid}/... miliknya sendiri.
-    //
-    // Sudah diverifikasi empiris: permintaan tanpa token auth ke
-    // users/{uid}/transaksi, /akun, dan /mutasiLog semuanya dijawab 403
-    // PERMISSION_DENIED, termasuk percobaan tulis.
     match /users/{uid}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validPayload();
     }
 
     // Semua jalur lain ditolak eksplisit. Tanpa aturan ini, penambahan
