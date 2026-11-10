@@ -155,5 +155,67 @@ cek('modal pengeluaran: judul "Catat Pengeluaran"', htmlPengeluaran.includes('Ca
 cek('modal pengeluaran: label sumber rekening kontekstual', htmlPengeluaran.includes('Sumber / Rekening'))
 cek('modal pengeluaran: tombol simpan "Simpan Pengeluaran"', htmlPengeluaran.includes('Simpan Pengeluaran'))
 
+// ===== 6. Uji Render Form Mode Edit & Mode Salin (Alur Salin via Edit Modal) =====
+const sumberEdit = {
+  id: 'tx_asal_123',
+  jenis: 'pengeluaran',
+  jumlah: 75000,
+  kategoriNama: 'Makanan',
+  akunId: 'a1',
+  tanggal: '2026-11-05',
+  catatan: 'Kopi Pagi',
+}
+
+const htmlEdit = renderToString(
+  h(FormTransaksiModal, {
+    uid: 'u1',
+    open: true,
+    mode: 'edit',
+    doc: sumberEdit,
+    akunList,
+    kategoriList,
+    onClose: () => {},
+    onSalin: () => {},
+  }),
+)
+
+cek('modal edit: judul "Edit Pengeluaran"', htmlEdit.includes('Edit Pengeluaran'))
+cek('modal edit: menampilkan tombol Salin transaksi di header', htmlEdit.includes('aria-label="Salin transaksi"') && htmlEdit.includes('content_copy'))
+cek('modal edit: tombol submit "Simpan Perubahan"', htmlEdit.includes('Simpan Perubahan'))
+cek('modal edit: tidak menampilkan banner mode salin', !htmlEdit.includes('Mode salin:'))
+
+const htmlSalinOut = renderToString(
+  h(FormTransaksiModal, {
+    uid: 'u1',
+    open: true,
+    mode: 'salin',
+    doc: sumberEdit,
+    akunList,
+    kategoriList,
+    onClose: () => {},
+  }),
+)
+
+cek('modal salin pengeluaran: judul "Salin Pengeluaran"', htmlSalinOut.includes('Salin Pengeluaran'))
+cek('modal salin pengeluaran: menampilkan banner mode salin yang dapat diedit', htmlSalinOut.includes('Mode salin:'))
+cek('modal salin pengeluaran: mengisi ulang nominal & catatan sumber agar bisa diedit', htmlSalinOut.includes('75') && htmlSalinOut.includes('Kopi Pagi'))
+cek('modal salin pengeluaran: tombol submit "Salin &amp; Catat Transaksi"', htmlSalinOut.includes('Salin &amp; Catat Transaksi'))
+cek('modal salin pengeluaran: tidak menampilkan tombol header "Salin transaksi" lagi', !htmlSalinOut.includes('aria-label="Salin transaksi"'))
+
+const htmlSalinIn = renderToString(
+  h(FormTransaksiModal, {
+    uid: 'u1',
+    open: true,
+    mode: 'salin',
+    doc: { ...sumberEdit, jenis: 'pemasukan', kategoriNama: 'Gaji', catatan: 'Bonus' },
+    akunList,
+    kategoriList,
+    onClose: () => {},
+  }),
+)
+
+cek('modal salin pemasukan: judul "Salin Pemasukan"', htmlSalinIn.includes('Salin Pemasukan'))
+cek('modal salin pemasukan: label rekening penerima kontekstual', htmlSalinIn.includes('Rekening Tujuan / Penerima'))
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji transaksiSubmit gagal: ${galat.join(' | ')}`)
