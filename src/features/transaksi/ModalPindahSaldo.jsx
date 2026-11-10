@@ -97,6 +97,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
         })
       } catch (e2) {
         console.warn('[pindah-saldo] gagal:', e2?.message ?? e2)
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids: [docId] } }))
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Memindahkan saldo', e2) } }))
       }
     })()

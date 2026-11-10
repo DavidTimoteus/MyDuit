@@ -321,6 +321,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin: _onSal
         await simpanTransaksi(uid, data)
       } catch (e2) {
         console.warn('[transaksi-salin-langsung] gagal:', e2?.message ?? e2)
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids: [docId] } }))
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e2) } }))
       }
     })()
@@ -421,6 +422,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin: _onSal
         else await simpanTransaksi(uid, data)
       } catch (e2) {
         console.warn('[transaksi-simpan] gagal:', e2?.message ?? e2)
+        if (modeSnap === 'edit' && sumberSnap) {
+          window.dispatchEvent(new CustomEvent('myduit:transaksi-updated', { detail: { item: sumberSnap } }))
+        } else {
+          window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids: [docId] } }))
+        }
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyimpan transaksi', e2) } }))
       }
     })()

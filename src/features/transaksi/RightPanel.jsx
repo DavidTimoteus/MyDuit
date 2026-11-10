@@ -21,10 +21,13 @@ function rangeBulanIni() {
 export default function RightPanel({ uid }) {
   const { akunList, kategoriList } = useAkunKategori(uid)
   const bulan = useMemo(rangeBulanIni, [])
-  const { docs: transBulan } = useTransaksi(uid, { range: bulan, jenis: 'semua' })
+  // Gunakan pageSize: 0 (tanpa batas 50 dokumen) agar perhitungan Surplus/Defisit
+  // dan Top Kategori di panel kanan 100% konsisten dengan StatistikView & BudgetView.
+  const { docs: transBulan } = useTransaksi(uid, { range: bulan, jenis: 'semua', pageSize: 0 })
   const { docs: transHariIni } = useTransaksi(uid, {
     range: { start: isoHariIni(), end: isoHariIni() },
     jenis: 'pengeluaran',
+    pageSize: 0,
   })
 
   const akunById = useMemo(() => Object.fromEntries(akunList.map((a) => [a.id, a])), [akunList])

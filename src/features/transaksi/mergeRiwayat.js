@@ -56,6 +56,23 @@ export function urutkanTransaksi(a, b) {
   return 0
 }
 
+// Periksa apakah dokumen transaksi memenuhi filter pada `kunci` (`uid|jenis|start|end`).
+// Penting agar event global `myduit:transaksi-added` (misal Pemasukan atau tanggal bulan lalu)
+// tidak mencemari instance `useTransaksi` lain yang sedang memfilter jenis/rentang spesifik
+// (seperti `transHariIni` khusus pengeluaran hari ini di RightPanel).
+export function cocokKunci(item, kunci) {
+  if (!item) return false
+  if (!kunci) return true
+  const [, jenis = 'semua', start = '', end = ''] = String(kunci).split('|')
+  if (jenis && jenis !== 'semua' && item.jenis && item.jenis !== jenis) {
+    return false
+  }
+  const tgl = String(item.tanggal || '')
+  if (start && tgl && tgl < start) return false
+  if (end && tgl && tgl > end) return false
+  return true
+}
+
 // Gabungkan halaman pertama (live onSnapshot, maks PAGE_SIZE dokumen) dengan
 // riwayat halaman lanjutan hasil "Muat lagi", serta menyaring transaksi yang
 // sudah dihapus secara optimis.
@@ -81,7 +98,9 @@ export function kurangRiwayat(state, aksi) {
       // Query sama -> state dipertahankan (sinkronisasi ulang bukan ganti filter).
       if (aksi.kunci === state.kunci) return state
       const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
-      const initialDocs = Array.from(pending.values()).sort(urutkanTransaksi)
+      const initialDocs = Array.from(pending.values())
+        .filter((p) => cocokKunci(p, aksi.kunci))
+        .sort(urutkanTransaksi)
       return {
         kunci: aksi.kunci,
         adaLanjutan: false,
@@ -95,13 +114,17 @@ export function kurangRiwayat(state, aksi) {
       // dokumen filter lama ke daftar filter baru.
       if (aksi.kunci !== state.kunci) return state
       const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
-      // Jika dokumen dari snapshot sudah memuat pending add, hapus dari pending
+      // Jika dokumen dari snapshot sudah memuat pending add, atau pending add
+      // memang tidak cocok dengan kunci filter ini, bersihkan dari pending.
       aksi.list.forEach((t) => {
         if (pending.has(t.id)) pending.delete(t.id)
       })
+      for (const [id, p] of pending.entries()) {
+        if (!cocokKunci(p, state.kunci)) pending.delete(id)
+      }
 
-      // Gabungkan list snapshot dengan sisa pendingAdds yang belum masuk snapshot
-      const pendingList = Array.from(pending.values())
+      // Gabungkan list snapshot dengan sisa pendingAdds yang cocok filter namun belum masuk snapshot
+      const pendingList = Array.from(pending.values()).filter((p) => cocokKunci(p, state.kunci))
       const combinedList = [...pendingList.filter((p) => !aksi.list.some((l) => l.id === p.id)), ...aksi.list]
       combinedList.sort(urutkanTransaksi)
 
@@ -134,10 +157,22 @@ export function kurangRiwayat(state, aksi) {
       const baruDeleted = new Set(state.deletedIds || [])
       baruDeleted.delete(item.id)
 
+      // Hanya sisipkan ke docs tampilan aktif bila item cocok dengan filter kunci saat ini.
+      // Item tetap disimpan di pendingAdds agar bila pemanggil langsung mereset filter ke
+      // 'semua' (aksi 'mulai' berikutnya), item tersebut langsung tampil.
+      if (!cocokKunci(item, state.kunci)) {
+        return {
+          ...state,
+          deletedIds: baruDeleted,
+          pendingAdds: pending,
+          docs: state.docs.filter((t) => t.id !== item.id),
+        }
+      }
+
       const exists = state.docs.some((t) => t.id === item.id)
       let newDocs
       if (exists) {
-        newDocs = state.docs.map((t) => (t.id === item.id ? { ...t, ...item } : t))
+        newDocs = state.docs.map((t) => (t.id === item.id ? { ...t, ...item } : t)).sort(urutkanTransaksi)
       } else {
         newDocs = [item, ...state.docs].sort(urutkanTransaksi)
       }
@@ -151,9 +186,25 @@ export function kurangRiwayat(state, aksi) {
     }
     case 'update': {
       const item = aksi.item
+      const pending = state.pendingAdds ? new Map(state.pendingAdds) : new Map()
+      if (pending.has(item.id)) {
+        pending.set(item.id, { ...pending.get(item.id), ...item })
+      }
+      if (!cocokKunci(item, state.kunci)) {
+        return {
+          ...state,
+          pendingAdds: pending,
+          docs: state.docs.filter((t) => t.id !== item.id),
+        }
+      }
+      const exists = state.docs.some((t) => t.id === item.id)
+      const newDocs = exists
+        ? state.docs.map((t) => (t.id === item.id ? { ...t, ...item } : t)).sort(urutkanTransaksi)
+        : [item, ...state.docs].sort(urutkanTransaksi)
       return {
         ...state,
-        docs: state.docs.map((t) => (t.id === item.id ? { ...t, ...item } : t)),
+        pendingAdds: pending,
+        docs: newDocs,
       }
     }
     case 'hapus': {

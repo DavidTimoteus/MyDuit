@@ -416,7 +416,9 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
   }
   constraints.push(orderBy('tanggal', 'desc'))
   constraints.push(orderBy('createdAt', 'desc'))
-  constraints.push(fbLimit(pageSize))
+  if (pageSize && Number.isFinite(pageSize) && pageSize > 0) {
+    constraints.push(fbLimit(pageSize))
+  }
   if (cursor) constraints.push(startAfter(cursor))
   return query(userCol(uid, 'transaksi'), ...constraints)
 }

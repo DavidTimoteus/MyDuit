@@ -94,10 +94,14 @@ cek('hapus optimis massal: seluruh id terpilih hilang seketika', opt.docs.length
 // ===== Tambah & Update Optimis =====
 let tambahOpt = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_HARI })
 tambahOpt = kurangRiwayat(tambahOpt, { type: 'snapshot', kunci: K_HARI, list: [trx('today1', '2026-10-08')] })
-tambahOpt = kurangRiwayat(tambahOpt, { type: 'tambah', item: trx('past1', '2026-09-09') })
-cek('tambah optimis: transaksi langsung tersisip seketika', tambahOpt.docs.some((t) => t.id === 'past1'), true)
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'tambah', item: trx('today2', '2026-10-08') })
+cek('tambah optimis sesuai filter: langsung tersisip seketika', tambahOpt.docs.some((t) => t.id === 'today2'), true)
 
-// Saat ganti filter, transaksi pending tetap dibawa sehingga tidak hilang sebelum server ack
+// Transaksi di luar rentang tanggal aktif disimpan di pendingAdds namun TIDAK membocori docs filter Hari Ini
+tambahOpt = kurangRiwayat(tambahOpt, { type: 'tambah', item: trx('past1', '2026-09-09') })
+cek('tambah optimis luar rentang: tidak membocori daftar Hari Ini', tambahOpt.docs.some((t) => t.id === 'past1'), false)
+
+// Saat ganti filter ke Semua, transaksi pending tetap dibawa sehingga langsung tampil sebelum server ack
 tambahOpt = kurangRiwayat(tambahOpt, { type: 'mulai', kunci: K_SEMUA })
 cek('ganti filter: transaksi pending optimis tetap dipertahankan', tambahOpt.docs.some((t) => t.id === 'past1'), true)
 
@@ -108,6 +112,26 @@ cek('snapshot server datang: tidak ada duplikasi ID', tambahOpt.docs.filter((t) 
 // Update optimis
 tambahOpt = kurangRiwayat(tambahOpt, { type: 'update', item: { id: 'past1', tanggal: '2026-09-09', jumlah: 9999 } })
 cek('update optimis: jumlah terupdate seketika', tambahOpt.docs.find((t) => t.id === 'past1')?.jumlah, 9999)
+
+// Filter spesifik jenis (misal Pengeluaran Hari Ini di RightPanel) TIDAK boleh kemasukan Pemasukan
+const K_OUT_HARI = 'u1|pengeluaran|2026-10-08|2026-10-08'
+let outHari = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_OUT_HARI })
+outHari = kurangRiwayat(outHari, {
+  type: 'snapshot',
+  kunci: K_OUT_HARI,
+  list: [{ id: 'out1', tanggal: '2026-10-08', jenis: 'pengeluaran', jumlah: 50000 }],
+})
+outHari = kurangRiwayat(outHari, {
+  type: 'tambah',
+  item: { id: 'inc1', tanggal: '2026-10-08', jenis: 'pemasukan', jumlah: 10000000 },
+})
+cek('filter pengeluaran tidak bocor saat ada tambah pemasukan', outHari.docs.map((t) => t.id), ['out1'])
+outHari = kurangRiwayat(outHari, {
+  type: 'snapshot',
+  kunci: K_OUT_HARI,
+  list: [{ id: 'out1', tanggal: '2026-10-08', jenis: 'pengeluaran', jumlah: 50000 }],
+})
+cek('snapshot membersihkan pendingAdds yang tidak cocok dengan kunci filter', outHari.pendingAdds.has('inc1'), false)
 
 // ===== Pengurutan Waktu Transaksi & Timestamp Firestore vs ISO String =====
 const lamaServer = {

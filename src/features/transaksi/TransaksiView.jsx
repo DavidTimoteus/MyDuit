@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { isoHariIni, rangeForFilter } from '../../lib/format.js'
-import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, simpanTransaksi } from '../../lib/db.js'
+import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, hapusTransaksiMassal, simpanTransaksi } from '../../lib/db.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
 import ModalPindahSaldo from './ModalPindahSaldo.jsx'
@@ -275,6 +275,7 @@ export default function TransaksiView({ user }) {
         })
       } catch (e) {
         console.warn('[salin-cepat] gagal:', e)
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids: [docId] } }))
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e) } }))
       }
     })()
@@ -295,6 +296,7 @@ export default function TransaksiView({ user }) {
       else await hapusTransaksi(uid, target)
     } catch (e2) {
       console.warn('[hapus] gagal:', e2?.message ?? e2)
+      window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: target } }))
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
           detail: { type: 'error', msg: 'Gagal menghapus transaksi dari server.' },
@@ -317,12 +319,17 @@ export default function TransaksiView({ user }) {
     hapusLokal?.(ids)
 
     try {
-      for (const t of targets) {
-        if (t.jenis === 'pindah saldo') await hapusPindahSaldo(uid, t)
-        else await hapusTransaksi(uid, t)
-      }
+      await hapusTransaksiMassal(uid, targets)
     } catch (e2) {
       console.warn('[hapus-massal] gagal:', e2?.message ?? e2)
+      targets.forEach((t) => {
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: t } }))
+      })
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: { type: 'error', msg: 'Gagal menghapus transaksi terpilih dari server.' },
+        }),
+      )
     }
   }
 
@@ -337,6 +344,14 @@ export default function TransaksiView({ user }) {
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
           detail: { type: 'info', msg: 'Pindah saldo tidak bisa diedit. Hapus lalu buat ulang bila perlu diubah.' },
+        }),
+      )
+      return
+    }
+    if (doc && doc.utangId && mode === 'edit') {
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: { type: 'info', msg: 'Transaksi pembayaran utang tidak bisa diedit. Hapus lalu catat ulang pembayaran.' },
         }),
       )
       return

@@ -13,7 +13,7 @@ const kunciQuery = (uid, jenis, range) => `${uid}|${jenis}|${range?.start ?? ''}
 // Dokumen pertama selalu live (onSnapshot) -> tulis offline tampil instan.
 // Logika daftar (kapan dokumen lama dibuang, kapan halaman lanjutan dipertahankan)
 // hidup di mergeRiwayat.js dan diuji terpisah tanpa Firestore.
-export function useTransaksi(uid, { jenis, range }) {
+export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
   const [riwayat, dispatch] = useReducer(kurangRiwayat, RIWAYAT_AWAL)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -69,20 +69,22 @@ export function useTransaksi(uid, { jenis, range }) {
     if (IS_DEMO_UID(uid)) {
       let filtered = MOCK_TRANSAKSI.filter(t => !t.deleted);
       if (jenis && jenis !== 'semua') filtered = filtered.filter(t => t.jenis === jenis);
+      if (range?.start) filtered = filtered.filter(t => t.tanggal >= range.start);
+      if (range?.end) filtered = filtered.filter(t => t.tanggal <= range.end);
       dispatch({ type: 'snapshot', kunci, list: filtered });
       setLoading(false);
       return () => {};
     }
-    const q = buildTransQuery(uid, { jenis, range, pageSize: PAGE_SIZE })
+    const q = buildTransQuery(uid, { jenis, range, pageSize })
     const unsub = onSnapshot(
       q,
       (snap) => {
         const list = snap.docs.map(docKeTransaksi)
         lastDocRef.current = snap.docs[snap.docs.length - 1] ?? null
-        // Snapshot hanya mencakup PAGE_SIZE dokumen pertama; reducer yang
+        // Snapshot hanya mencakup pageSize dokumen pertama (bila dibatasi); reducer yang
         // memutuskan apakah halaman "Muat lagi" ikut dipertahankan.
         dispatch({ type: 'snapshot', kunci, list })
-        setHasMore(snap.docs.length === PAGE_SIZE)
+        setHasMore(Boolean(pageSize && pageSize > 0 && snap.docs.length === pageSize))
         setLoading(false)
       },
       (e) => {
@@ -96,7 +98,7 @@ export function useTransaksi(uid, { jenis, range }) {
     // akan membuka ulang langganan Firestore tanpa henti. ESLint tidak
     // menandai ini karena keduanya primitif yang stabil.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, jenis, range?.start, range?.end])
+  }, [uid, jenis, range?.start, range?.end, pageSize])
 
   // Fungsi optimis lokal (hapus, tambah, update): langsung memperbarui memori
   // seketika dan menyebarkannya via event bus tanpa perlu reload/reset filter.

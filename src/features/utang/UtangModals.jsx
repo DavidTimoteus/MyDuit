@@ -277,6 +277,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         await bayarUtang(uid, { id: docId, utang: utangSnap, jumlah: nSnap, tanggal: tanggalSnap, akun: akunSnap })
       } catch (e2) {
         console.warn('[utang-bayar] gagal:', e2?.message ?? e2)
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids: [docId] } }))
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Mencatat pembayaran', e2) } }))
       }
     })()
