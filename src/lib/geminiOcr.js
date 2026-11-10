@@ -7,6 +7,8 @@
  *  - Mengembalikan JSON terstruktur native tanpa regex parsers.
  */
 
+import { parseAngkaEksternal } from './format.js'
+
 export const STORAGE_KEY_GEMINI_KEY = 'myduit_gemini_api_key'
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash'
 export const FALLBACK_GEMINI_MODEL = 'gemini-1.5-flash'
@@ -238,13 +240,15 @@ Aturan Ekstraksi:
  * Normalisasi data JSON dari Gemini ke format seragam MyDuit.
  */
 function normalisasiHasilGemini(data) {
-  const merchant = data.merchant || 'Toko / Merchant'
-  const tanggal = data.tanggal || null
-  const total = typeof data.total === 'number' ? data.total : data.total ? parseInt(data.total, 10) : null
-  const jenis = data.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
-  const barang = Array.isArray(data.barang) ? data.barang : []
-  const keterangan = data.keterangan || (barang.length ? barang.map((b) => b.nama).join(', ') : merchant)
-  const kategoriNama = data.kategoriNama || 'Lainnya'
+  const d = data && typeof data === 'object' ? data : {}
+  const merchant = d.merchant || 'Toko / Merchant'
+  const tanggal = d.tanggal || null
+  const totalParsed = parseAngkaEksternal(d.total)
+  const total = totalParsed > 0 ? totalParsed : null
+  const jenis = d.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
+  const barang = Array.isArray(d.barang) ? d.barang : []
+  const keterangan = d.keterangan || (barang.length ? barang.map((b) => b.nama).join(', ') : merchant)
+  const kategoriNama = d.kategoriNama || 'Lainnya'
 
   // Susun Markdown Table
   const lines = []
@@ -252,8 +256,8 @@ function normalisasiHasilGemini(data) {
   lines.push(`- **Merchant / Toko:** ${merchant}`)
   if (tanggal) lines.push(`- **Tanggal:** ${tanggal}`)
   if (total) lines.push(`- **Total Nominal:** Rp ${total.toLocaleString('id-ID')}`)
-  if (data.sumberBayar?.nama) lines.push(`- **Metode Pembayaran:** ${data.sumberBayar.nama} (${data.sumberBayar.jenis})`)
-  else if (data.bayarTunai) lines.push(`- **Metode Pembayaran:** Tunai / Cash`)
+  if (d.sumberBayar?.nama) lines.push(`- **Metode Pembayaran:** ${d.sumberBayar.nama} (${d.sumberBayar.jenis})`)
+  else if (d.bayarTunai) lines.push(`- **Metode Pembayaran:** Tunai / Cash`)
 
   if (barang.length > 0) {
     lines.push('')
@@ -261,8 +265,8 @@ function normalisasiHasilGemini(data) {
     lines.push('| No | Item / Deskripsi | Qty | Harga Satuan | Subtotal |')
     lines.push('|:--:|:-----------------|:---:|:------------:|:--------:|')
     barang.forEach((b, idx) => {
-      const q = b.qty || 1
-      const subtotal = b.harga || 0
+      const q = Math.max(1, parseAngkaEksternal(b.qty) || 1)
+      const subtotal = Math.max(0, parseAngkaEksternal(b.harga))
       const unit = q > 1 && subtotal ? Math.round(subtotal / q) : subtotal
       const unitStr = unit ? `Rp ${unit.toLocaleString('id-ID')}` : '-'
       const subStr = subtotal ? `Rp ${subtotal.toLocaleString('id-ID')}` : '-'
@@ -284,8 +288,8 @@ function normalisasiHasilGemini(data) {
     kategoriDari: 'gemini-vlm',
     kategoriYakin: true,
     keterangan,
-    sumberBayar: data.sumberBayar || null,
-    bayarTunai: Boolean(data.bayarTunai),
+    sumberBayar: d.sumberBayar || null,
+    bayarTunai: Boolean(d.bayarTunai),
     confidence: 99.5,
     psm: 'vlm',
     fotoBuram: false,

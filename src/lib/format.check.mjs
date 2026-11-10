@@ -39,8 +39,34 @@ assert.equal(f.formatRupiah(-5000, { tanda: true }), '− Rp5.000')
 f.simpanNegaraManual('')
 assert.equal(f.negaraManual(), '')
 
-// parseNominal tetap toleran terhadap pemisah locale apa pun.
+// parseNominal tetap toleran terhadap pemisah locale apa pun & mencegah overflow / float korup.
 assert.equal(f.parseNominal('1,234,567'), 1234567)
 assert.equal(f.parseNominal('1.234.567'), 1234567)
+assert.equal(f.parseNominal(12500.5), 12501)
+assert.equal(f.parseNominal('99999999999999999999'), f.MAX_NOMINAL)
+
+// parseNominalBertanda & formatRibuanInputBertanda menjaga saldo minus saat edit rekening.
+f.simpanNegaraManual('ID')
+assert.equal(f.parseNominalBertanda('-50.000'), -50000)
+assert.equal(f.formatRibuanInputBertanda(-50000), '-50.000')
+assert.equal(f.formatRibuanInputBertanda(0), '0')
+
+// parseAngkaEksternal membedakan desimal vs ribuan agar tidak berlipat 100x.
+assert.equal(f.parseAngkaEksternal('50000.00'), 50000)
+assert.equal(f.parseAngkaEksternal('Rp 50.000,00'), 50000)
+assert.equal(f.parseAngkaEksternal('1,250.75'), 1251)
+assert.equal(f.parseAngkaEksternal('-25.000,00'), -25000)
+
+// Tanggal korup tidak pernah melempar RangeError dan kalender invalid ditolak.
+assert.equal(f.parseTanggalIsoAman('2026-02-31'), null)
+assert.equal(f.kanonikTanggal('2026-02-31'), f.isoHariIni())
+assert.equal(f.tanggalLabel(''), 'Tanpa tanggal')
+assert.equal(f.tanggalPendek('bukan-tanggal'), 'bukan-tanggal')
+
+// Rentang terbalik otomatis dinormalisasi.
+assert.deepEqual(f.rangeForFilter('rentang', { start: '2026-11-10', end: '2026-11-01' }), {
+  start: '2026-11-01',
+  end: '2026-11-10',
+})
 
 console.log('format.check: OK')

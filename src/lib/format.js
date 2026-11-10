@@ -196,16 +196,81 @@ export function formatRupiah(n, { tanda = false } = {}) {
   return `${v < 0 ? '− ' : ''}${sym}${abs}`
 }
 
-// "12.500" -> 12500 ; menerima input bebas
+export const MAX_NOMINAL = 999_999_999_999_999
+
+function clampNominalPositif(n) {
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return Math.min(MAX_NOMINAL, Math.round(n))
+}
+
+// "12.500" -> 12500 ; menerima input bebas (bilangan bulat non-negatif)
 export function parseNominal(str) {
+  if (typeof str === 'number') return clampNominalPositif(str)
   const digits = String(str ?? '').replace(/\D/g, '')
-  return digits ? parseInt(digits, 10) : 0
+  return digits ? clampNominalPositif(Number(digits)) : 0
+}
+
+// Versi bertanda untuk koreksi saldo rekening (mengizinkan saldo negatif/overdraft)
+export function parseNominalBertanda(str) {
+  if (typeof str === 'number') {
+    if (!Number.isFinite(str)) return 0
+    return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(str)))
+  }
+  const raw = String(str ?? '').trim()
+  if (!raw) return 0
+  const negatif = raw.startsWith('-') || raw.startsWith('−')
+  const abs = parseNominal(raw)
+  if (abs === 0) return 0
+  return negatif ? -abs : abs
+}
+
+// Parser angka toleran untuk sumber eksternal (XLSX/CSV/JSON/OCR):
+// membedakan akhiran desimal 1-2 digit ("50000.00", "50.000,50") dari ribuan ("50.000").
+export function parseAngkaEksternal(val) {
+  if (typeof val === 'number') {
+    if (!Number.isFinite(val)) return 0
+    return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(val)))
+  }
+  const raw = String(val ?? '').trim()
+  if (!raw) return 0
+  const negatif = raw.startsWith('-') || raw.startsWith('−')
+  const s = raw.replace(/[^\d.,]/g, '')
+  if (!s) return 0
+  const mDec = s.match(/^([\d.,]+)[.,](\d{1,2})$/)
+  if (mDec) {
+    const bulat = mDec[1].replace(/[.,]/g, '')
+    const num = Number(`${bulat || 0}.${mDec[2]}`)
+    if (!Number.isFinite(num)) return 0
+    const clamped = Math.min(MAX_NOMINAL, Math.round(num))
+    return negatif ? -clamped : clamped
+  }
+  const digits = s.replace(/[.,]/g, '')
+  const num = digits ? Math.min(MAX_NOMINAL, Number(digits)) : 0
+  if (!Number.isFinite(num) || num === 0) return 0
+  return negatif ? -num : num
 }
 
 // Untuk input live: angka -> "12.500" (grouping mengikuti locale aktif)
 export function formatRibuanInput(str) {
   const v = parseNominal(str)
   return v ? v.toLocaleString(uangAktif().locale) : ''
+}
+
+// Untuk input koreksi saldo bertanda (mempertahankan tanda '-' & angka '0')
+export function formatRibuanInputBertanda(str) {
+  if (typeof str === 'number') {
+    if (!Number.isFinite(str)) return ''
+    if (str === 0) return '0'
+    const clamped = parseNominalBertanda(str)
+    return `${clamped < 0 ? '-' : ''}${Math.abs(clamped).toLocaleString(uangAktif().locale)}`
+  }
+  const raw = String(str ?? '').trim()
+  if (!raw) return ''
+  if (raw === '-' || raw === '−') return '-'
+  const negatif = raw.startsWith('-') || raw.startsWith('−')
+  const v = parseNominal(raw)
+  if (!v) return raw.includes('0') ? '0' : (negatif ? '-' : '')
+  return `${negatif ? '-' : ''}${v.toLocaleString(uangAktif().locale)}`
 }
 
 export function isoHariIni() {
@@ -217,10 +282,28 @@ export function isoDari(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function tanggalKalenderValid(y, bln, tgl) {
+  const dt = new Date(y, bln - 1, tgl)
+  return dt.getFullYear() === y && dt.getMonth() === bln - 1 && dt.getDate() === tgl
+}
+
+// Parse tanggal YYYY-MM-DD secara aman (kembalikan null bila format/kalender tidak valid).
+export function parseTanggalIsoAman(iso) {
+  if (typeof iso !== 'string') return null
+  const m = iso.trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (!m) return null
+  const y = Number(m[1]), bln = Number(m[2]), tgl = Number(m[3])
+  if (!tanggalKalenderValid(y, bln, tgl)) return null
+  return new Date(y, bln - 1, tgl)
+}
+
 // Pastikan nilai tanggal selalu dalam format kanonik YYYY-MM-DD
 export function kanonikTanggal(val) {
   if (!val) return isoHariIni()
-  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) return val.trim()
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+    const s = val.trim()
+    return parseTanggalIsoAman(s) ? s : isoHariIni()
+  }
   if (typeof val === 'string') {
     const s = val.trim()
     const m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/)
@@ -229,7 +312,7 @@ export function kanonikTanggal(val) {
       if (y < 100) y += 2000
       const bln = Number(m[2])
       const tgl = Number(m[1])
-      if (bln >= 1 && bln <= 12 && tgl >= 1 && tgl <= 31) {
+      if (tanggalKalenderValid(y, bln, tgl)) {
         return `${y}-${String(bln).padStart(2, '0')}-${String(tgl).padStart(2, '0')}`
       }
     }
@@ -248,12 +331,14 @@ export function tanggalLabel(iso) {
   const y = new Date()
   y.setDate(y.getDate() - 1)
   if (iso === isoDari(y)) return 'Kemarin'
-  const d = new Date(`${iso}T00:00:00`)
+  const d = parseTanggalIsoAman(iso)
+  if (!d) return iso || 'Tanpa tanggal'
   return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
 }
 
 export function tanggalPendek(iso) {
-  const d = new Date(`${iso}T00:00:00`)
+  const d = parseTanggalIsoAman(iso)
+  if (!d) return iso || '—'
   return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d)
 }
 
@@ -287,8 +372,11 @@ export function rangeForFilter(chip, rentang = {}) {
     }
     case 'tahun':
       return { start: `${now.getFullYear()}-01-01`, end: `${now.getFullYear()}-12-31` }
-    case 'rentang':
-      return { start: rentang.start || '0000-01-01', end: rentang.end || '9999-12-31' }
+    case 'rentang': {
+      const start = rentang.start || '0000-01-01'
+      const end = rentang.end || '9999-12-31'
+      return start <= end ? { start, end } : { start: end, end: start }
+    }
     default:
       return null // semua
   }

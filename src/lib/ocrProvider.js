@@ -28,6 +28,25 @@ export const DEFAULT_OCR_TIMEOUT_MS = 5000
 const STORAGE_KEY_ENGINE = 'myduit_ocr_engine'
 const STORAGE_KEY_ENDPOINT = 'myduit_ocr_endpoint'
 
+// Tolak protokol non-HTTP/S dan HTTP plaintext ke host eksternal agar foto struk
+// pribadi tidak dikirim tanpa enkripsi ke server pihak ketiga.
+export function validasiEndpointOcr(raw) {
+  const val = String(raw || '').trim().replace(/\/+$/, '')
+  if (!val) throw new Error('Endpoint OCR tidak boleh kosong.')
+  let parsed
+  try {
+    parsed = new URL(val)
+  } catch {
+    throw new Error('Format URL endpoint OCR tidak valid.')
+  }
+  const host = parsed.hostname.toLowerCase()
+  const isLocal = host === '127.0.0.1' || host === 'localhost' || host === '[::1]'
+  const cleanPath = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/+$/, '')
+  if (parsed.protocol === 'https:') return `${parsed.origin}${cleanPath}`
+  if (parsed.protocol === 'http:' && isLocal) return `${parsed.origin}${cleanPath}`
+  throw new Error('Endpoint OCR eksternal wajib memakai HTTPS (HTTP hanya diizinkan untuk localhost).')
+}
+
 /**
  * Baca konfigurasi OCR aktif dari LocalStorage.
  * @returns {{ engine: 'auto'|'gemini'|'ppocr'|'local'|'unlimited', endpoint: string, hasGeminiKey: boolean }}
@@ -40,7 +59,14 @@ export function bacaOcrConfig() {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       engine = window.localStorage.getItem(STORAGE_KEY_ENGINE) || 'auto'
-      endpoint = window.localStorage.getItem(STORAGE_KEY_ENDPOINT) || DEFAULT_OCR_ENDPOINT
+      const rawEp = window.localStorage.getItem(STORAGE_KEY_ENDPOINT)
+      if (rawEp) {
+        try {
+          endpoint = validasiEndpointOcr(rawEp)
+        } catch {
+          endpoint = DEFAULT_OCR_ENDPOINT
+        }
+      }
       hasGeminiKey = Boolean(bacaGeminiKey())
     }
   } catch {
@@ -57,10 +83,13 @@ export function simpanOcrConfig(config = {}) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       if (config.engine) window.localStorage.setItem(STORAGE_KEY_ENGINE, config.engine)
-      if (config.endpoint) window.localStorage.setItem(STORAGE_KEY_ENDPOINT, config.endpoint)
+      if (config.endpoint) {
+        const cleanEp = validasiEndpointOcr(config.endpoint)
+        window.localStorage.setItem(STORAGE_KEY_ENDPOINT, cleanEp)
+      }
     }
-  } catch {
-    /* abaikan */
+  } catch (err) {
+    if (config.endpoint) throw err
   }
 }
 
@@ -72,7 +101,7 @@ export function simpanOcrConfig(config = {}) {
  */
 export async function cekStatusUnlimitedOcr(endpoint = DEFAULT_OCR_ENDPOINT, timeoutMs = 2000) {
   try {
-    const cleanUrl = endpoint.replace(/\/+$/, '')
+    const cleanUrl = validasiEndpointOcr(endpoint)
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -105,7 +134,7 @@ export async function cekStatusUnlimitedOcr(endpoint = DEFAULT_OCR_ENDPOINT, tim
  * @param {number} timeoutMs
  */
 async function panggilUnlimitedOcrApi(file, endpoint, timeoutMs = DEFAULT_OCR_TIMEOUT_MS) {
-  const cleanUrl = endpoint.replace(/\/+$/, '')
+  const cleanUrl = validasiEndpointOcr(endpoint)
   const formData = new FormData()
   formData.append('file', file)
 
