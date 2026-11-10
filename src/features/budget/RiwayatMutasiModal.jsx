@@ -35,9 +35,16 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chip, rentang.start, rentang.end],
   )
+  // Query ke Firestore hanya memotong batas bawah (`start`), TANPA memotong batas atas (`end`),
+  // supaya mutasi dari `end` hingga hari ini tetap terbaca oleh `bangunMutasi` saat menghitung
+  // mundur `saldoSesudah` dari `akun.saldo` terkini. Pemotongan `end` dilakukan di `bangunMutasi`.
+  const queryRange = useMemo(
+    () => (range?.start ? { start: range.start, end: '9999-12-31' } : null),
+    [range?.start],
+  )
   const { docs, loading, loadingMore, hasMore, error, muatLagi } = useTransaksi(uid, {
     jenis: 'semua',
-    range,
+    range: queryRange,
   })
 
   const baris = useMemo(
@@ -46,8 +53,9 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
         akunId: akun?.id,
         saldoSekarang: akun?.saldo,
         kategoriById,
+        range,
       }),
-    [docs, akun?.id, akun?.saldo, kategoriById],
+    [docs, akun?.id, akun?.saldo, kategoriById, range],
   )
   const ringkas = useMemo(() => ringkasMutasi(baris), [baris])
 

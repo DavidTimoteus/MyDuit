@@ -13,6 +13,7 @@ import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import { formatRibuanInput } from '../../lib/format.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
+import { selisihHari } from './UtangView.jsx'
 
 const galat = []
 let total = 0
@@ -91,6 +92,16 @@ const htmlBayarCicilan = renderToString(
 )
 
 cek('bayar cicilan: nominal default = cicilan/bulan', htmlBayarCicilan, `value="${formatRibuanInput(String(cicilan.cicilanPerBulan))}"`)
+
+// ===== 5. Uji selisihHari Cicilan: sudah bayar bulan ini vs tunggakan bulan lalu =====
+const nowNov = new Date('2026-11-10T00:00:00')
+// Cicilan dibuat September (tgl 15), sudah dibayar bulan November -> tempo berikutnya 15 Desember (+35 hari)
+const hariSudahBayar = selisihHari('2026-09-15', 'Cicilan', '2026-11-05', nowNov)
+cek('cicilan sudah bayar bulan ini: jatuh tempo bergeser ke bulan depan (>0 hari)', '', () => hariSudahBayar === 35)
+
+// Cicilan dibuat September (tgl 15), belum pernah dibayar -> tetap terdeteksi terlambat di bulan November (<0 hari)
+const hariTunggak = selisihHari('2026-09-15', 'Cicilan', '', nowNov)
+cek('cicilan belum pernah dibayar sejak bulan lalu: tetap terlambat (<0 hari)', '', () => hariTunggak < 0)
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${total - galat.length}/${total} cek lolos`)
 if (galat.length) throw new Error(`Prefill form utang/bayar gagal: ${galat.join(' | ')}`)

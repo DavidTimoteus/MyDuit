@@ -33,13 +33,51 @@ const C = {
   putih: [255, 255, 255],
 }
 
-function selisihHari(tglIso) {
+function selisihHari(tglIso, tipe, terakhirBayar) {
   if (!tglIso) return null
-  const target = new Date(`${tglIso}T00:00:00`)
-  if (Number.isNaN(target.getTime())) return null
+  const tglRef = new Date(`${tglIso}T00:00:00`)
+  if (Number.isNaN(tglRef.getTime())) return null
   const kini = new Date()
   kini.setHours(0, 0, 0, 0)
-  return Math.round((target - kini) / 86400000)
+
+  if (tipe === 'Cicilan') {
+    const hariTgl = tglRef.getDate()
+    let targetYear = kini.getFullYear()
+    let targetMonth = kini.getMonth()
+    if (terakhirBayar) {
+      const tglBayar = new Date(`${terakhirBayar}T00:00:00`)
+      if (!Number.isNaN(tglBayar.getTime())) {
+        const sudahBayarBulanIni =
+          tglBayar.getFullYear() === kini.getFullYear() && tglBayar.getMonth() === kini.getMonth()
+        if (sudahBayarBulanIni) {
+          targetMonth = kini.getMonth() + 1
+        } else {
+          const nextAfterBayar = tglBayar.getFullYear() * 12 + tglBayar.getMonth() + 1
+          const currentYm = kini.getFullYear() * 12 + kini.getMonth()
+          if (nextAfterBayar < currentYm) {
+            targetYear = Math.floor(nextAfterBayar / 12)
+            targetMonth = nextAfterBayar % 12
+          }
+        }
+      }
+    } else {
+      const refYm = tglRef.getFullYear() * 12 + tglRef.getMonth()
+      const currentYm = kini.getFullYear() * 12 + kini.getMonth()
+      if (refYm < currentYm) {
+        targetYear = tglRef.getFullYear()
+        targetMonth = tglRef.getMonth()
+      }
+    }
+    const normYear = targetYear + Math.floor(targetMonth / 12)
+    const normMonth = ((targetMonth % 12) + 12) % 12
+    let target = new Date(normYear, normMonth, hariTgl)
+    if (target.getMonth() !== normMonth) {
+      target = new Date(normYear, normMonth + 1, 0)
+    }
+    return Math.round((target - kini) / 86400000)
+  }
+
+  return Math.round((tglRef - kini) / 86400000)
 }
 
 function tglSingkat(tglIso) {
@@ -95,7 +133,7 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
 
   const utangAktif = utangSemua
     .filter((u) => u.status !== 'Lunas' && (Number(u.sisa) || 0) > 0)
-    .map((u) => ({ ...u, hari: selisihHari(u.tglJatuhTempo) }))
+    .map((u) => ({ ...u, hari: selisihHari(u.tglJatuhTempo, u.tipe, u.terakhirBayar) }))
   const totalUtangAktif = utangAktif.reduce((s, u) => s + (Number(u.sisa) || 0), 0)
   const cicilanPerBulan = utangAktif.reduce((s, u) => s + (Number(u.cicilanPerBulan) || 0), 0)
   const perluPerhatian = utangAktif.filter((u) => u.hari !== null && u.hari <= 14).sort((a, b) => a.hari - b.hari)

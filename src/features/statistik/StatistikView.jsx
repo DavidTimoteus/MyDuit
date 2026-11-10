@@ -6,6 +6,7 @@ import {
   query,
   where,
   orderBy,
+  limit as fbLimit,
   collection,
   getDocs,
 } from "firebase/firestore";
@@ -716,6 +717,8 @@ export default function StatistikView({ user }) {
           query(
             collection(db, "users", uid, "transaksi"),
             where("deleted", "==", false),
+            orderBy("tanggal", "desc"),
+            fbLimit(365),
           ),
         );
         if (batal) return;

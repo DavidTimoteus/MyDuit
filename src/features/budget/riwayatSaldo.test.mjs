@@ -91,6 +91,16 @@ cek(
   { jumlah: 3, masuk: 10000, keluar: 5000 },
 )
 
+// ===== filter rentang Kustom masa lalu mempertahankan saldoSesudah historis akurat =====
+const kustom = bangunMutasi(docs, {
+  akunId: A,
+  saldoSekarang: 15000,
+  kategoriById: katById,
+  range: { start: '2026-10-05', end: '2026-10-06' },
+})
+cek('kustom masa lalu: hanya mutasi dalam rentang yang tampil', kustom.map((b) => b.id), ['t2', 't1'])
+cek('kustom masa lalu: saldoSesudah tetap akurat (18.000 & 8.000, bukan 15.000)', kustom.map((b) => b.saldoSesudah), [18000, 8000])
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${lulus + galat.length} cek lolos`)
 if (galat.length) {
   console.log(galat.map((g) => `  - ${g}`).join('\n'))

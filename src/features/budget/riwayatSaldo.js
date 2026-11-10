@@ -57,14 +57,17 @@ export function infoMutasi(t, akunId) {
 //   akunId         : akun yang ditampilkan
 //   saldoSekarang  : saldo akun saat ini (sumber "saldo sesudah")
 //   kategoriById   : map id -> nama kategori (fallback legacy t.kategoriNama)
-export function bangunMutasi(docs, { akunId, saldoSekarang = 0, kategoriById = {} } = {}) {
+//   range          : { start?, end? } opsional; pemotongan batas atas (`end`) dilakukan
+//                    SETELAH rantai `saldoSesudah` dihitung mundur dari `saldoSekarang`
+//                    agar filter rentang Kustom masa lalu tetap menampilkan saldo historis akurat.
+export function bangunMutasi(docs, { akunId, saldoSekarang = 0, kategoriById = {}, range = null } = {}) {
   const urut = (docs ?? []).filter((t) => termasukAkun(t, akunId)).slice()
   // Stable sort terbaru-dulu: tanggal 'YYYY-MM-DD' kronologis; dokumen dengan
   // tanggal sama mempertahankan urutan query (orderBy createdAt desc).
   urut.sort((a, b) => (a.tanggal < b.tanggal ? 1 : a.tanggal > b.tanggal ? -1 : 0))
 
   let saldo = Number(saldoSekarang) || 0
-  return urut.map((t) => {
+  const semuaBaris = urut.map((t) => {
     const delta = deltaMutasi(t, akunId)
     const info = infoMutasi(t, akunId)
     const baris = {
@@ -86,6 +89,13 @@ export function bangunMutasi(docs, { akunId, saldoSekarang = 0, kategoriById = {
     }
     saldo -= delta
     return baris
+  })
+
+  if (!range || (!range.start && !range.end)) return semuaBaris
+  return semuaBaris.filter((b) => {
+    if (range.start && b.tanggal < range.start) return false
+    if (range.end && b.tanggal > range.end) return false
+    return true
   })
 }
 

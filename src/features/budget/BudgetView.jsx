@@ -149,13 +149,17 @@ export default function BudgetView({ user }) {
       return { ...b, kategoriNama, terpakai, persen, hampirHabis, lewat }
     })
     const totalLimit = budgets.reduce((s, b) => s + (b.limitNominal || 0), 0)
-    const totalTerpakai = Object.values(terpakaiPerKategori).reduce((s, n) => s + n, 0)
+    // Hanya pengeluaran pada kategori YANG DIANGGARKAN yang dihitung sebagai
+    // pemakaian budget total agar pengeluaran non-budget tidak mendistorsi progres budget.
+    const totalTerpakai = list.reduce((s, b) => s + (b.terpakai || 0), 0)
     const sisa = totalLimit - totalTerpakai
     const persen = totalLimit > 0 ? Math.min(999, Math.round((totalTerpakai / totalLimit) * 100)) : 0
-    const tglSekarang = today.getDate()
     const akhirBulan = new Date(tahun, bulan + 1, 0).getDate()
-    const hariTersisa = Math.max(1, akhirBulan - tglSekarang + 1)
-    const burnPerHari = totalTerpakai > 0 ? Math.round(totalTerpakai / Math.max(1, tglSekarang)) : 0
+    const isBulanIni = tahun === today.getFullYear() && bulan === today.getMonth()
+    const isBulanLalu = tahun < today.getFullYear() || (tahun === today.getFullYear() && bulan < today.getMonth())
+    const hariBerjalan = isBulanIni ? Math.max(1, today.getDate()) : isBulanLalu ? akhirBulan : 1
+    const hariTersisa = isBulanIni ? Math.max(1, akhirBulan - today.getDate() + 1) : isBulanLalu ? 0 : akhirBulan
+    const burnPerHari = totalTerpakai > 0 ? Math.round(totalTerpakai / hariBerjalan) : 0
     const hampirHabis = list.filter((b) => b.hampirHabis).map((b) => ({
       kategoriId: b.kategoriId,
       nama: b.kategoriNama,

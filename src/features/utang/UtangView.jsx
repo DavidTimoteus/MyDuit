@@ -34,42 +34,65 @@ function useUtangList(uid) {
   return list
 }
 
-function hitungJatuhTempoBulanan(iso, terakhirBayar) {
+export function hitungJatuhTempoBulanan(iso, terakhirBayar, nowRef = new Date()) {
   if (!iso) return null
   const tglRef = new Date(`${iso}T00:00:00`)
   if (isNaN(tglRef.getTime())) return null
   const hariTgl = tglRef.getDate()
-  const now = new Date()
+  const now = new Date(nowRef)
   now.setHours(0, 0, 0, 0)
-  
-  // Cek apakah bulan ini sudah ada pembayaran cicilan
+
   let sudahBayarBulanIni = false
+  let targetYear = now.getFullYear()
+  let targetMonth = now.getMonth()
+
   if (terakhirBayar) {
     const tglBayar = new Date(`${terakhirBayar}T00:00:00`)
     if (!isNaN(tglBayar.getTime())) {
-      sudahBayarBulanIni = tglBayar.getFullYear() === now.getFullYear() && tglBayar.getMonth() === now.getMonth()
+      sudahBayarBulanIni =
+        tglBayar.getFullYear() === now.getFullYear() && tglBayar.getMonth() === now.getMonth()
+      if (sudahBayarBulanIni) {
+        targetMonth = now.getMonth() + 1
+      } else {
+        // Jatuh tempo berikutnya adalah 1 bulan setelah pembayaran terakhir.
+        // Bila bulan setelah pembayaran terakhir sudah lewat dari bulan berjalan,
+        // pertahankan bulan tertunggak itu agar tetap terdeteksi Terlambat.
+        const nextAfterBayar = tglBayar.getFullYear() * 12 + tglBayar.getMonth() + 1
+        const currentYm = now.getFullYear() * 12 + now.getMonth()
+        if (nextAfterBayar < currentYm) {
+          targetYear = Math.floor(nextAfterBayar / 12)
+          targetMonth = nextAfterBayar % 12
+        }
+      }
+    }
+  } else {
+    // Belum pernah bayar: bila tanggal referensi jatuh tempo berada di bulan yang sudah lewat,
+    // jangan direset ke bulan ini supaya tunggakan bulan lalu tetap terdeteksi terlambat.
+    const refYm = tglRef.getFullYear() * 12 + tglRef.getMonth()
+    const currentYm = now.getFullYear() * 12 + now.getMonth()
+    if (refYm < currentYm) {
+      targetYear = tglRef.getFullYear()
+      targetMonth = tglRef.getMonth()
     }
   }
 
-  // Jika sudah bayar bulan ini, target jatuh tempo berikutnya adalah bulan depan
-  const targetMonth = sudahBayarBulanIni ? now.getMonth() + 1 : now.getMonth()
-  const targetYear = now.getFullYear()
-  
-  let target = new Date(targetYear, targetMonth, hariTgl)
-  if (target.getMonth() !== (targetMonth % 12)) {
-    target = new Date(targetYear, targetMonth + 1, 0)
+  const normYear = targetYear + Math.floor(targetMonth / 12)
+  const normMonth = ((targetMonth % 12) + 12) % 12
+  let target = new Date(normYear, normMonth, hariTgl)
+  if (target.getMonth() !== normMonth) {
+    target = new Date(normYear, normMonth + 1, 0)
   }
-  
+
   return { target, sudahBayarBulanIni }
 }
 
-function selisihHari(iso, tipe, terakhirBayar) {
+export function selisihHari(iso, tipe, terakhirBayar, nowRef = new Date()) {
   if (!iso) return null
-  const now = new Date()
+  const now = new Date(nowRef)
   now.setHours(0, 0, 0, 0)
 
   if (tipe === 'Cicilan') {
-    const info = hitungJatuhTempoBulanan(iso, terakhirBayar)
+    const info = hitungJatuhTempoBulanan(iso, terakhirBayar, now)
     if (!info?.target) return null
     return Math.round((info.target - now) / 86400000)
   }
@@ -220,7 +243,7 @@ export default function UtangView({ user }) {
   const tampil = useMemo(() => {
     if (filter === 'aktif') return list.filter((t) => !cekLunasUtang(t))
     if (filter === 'lunas') return list.filter((t) => cekLunasUtang(t))
-    if (filter === 'terlambat') return list.filter((t) => !cekLunasUtang(t) && selisihHari(t.tglJatuhTempo) < 0)
+    if (filter === 'terlambat') return list.filter((t) => !cekLunasUtang(t) && selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) < 0)
     return list
   }, [list, filter])
 
@@ -233,7 +256,7 @@ export default function UtangView({ user }) {
     const bobot = (t) => {
       const lunas = cekLunasUtang(t)
       if (lunas) return 3
-      const h = selisihHari(t.tglJatuhTempo)
+      const h = selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
       if (h === null) return 2
       if (h < 0) return 0
       return 1
@@ -242,8 +265,8 @@ export default function UtangView({ user }) {
       const ba = bobot(a), bb = bobot(b)
       if (ba !== bb) return ba - bb
       // Di grup yang sama: paling mendesak (hari terkecil) dulu.
-      const ha = selisihHari(a.tglJatuhTempo)
-      const hb = selisihHari(b.tglJatuhTempo)
+      const ha = selisihHari(a.tglJatuhTempo, a.tipe, a.terakhirBayar)
+      const hb = selisihHari(b.tglJatuhTempo, b.tipe, b.terakhirBayar)
       if (ha !== null && hb !== null && ha !== hb) return ha - hb
       if (ha !== null && hb === null) return -1
       if (ha === null && hb !== null) return 1
@@ -274,7 +297,7 @@ export default function UtangView({ user }) {
     const persenLunas = totalAwal > 0 ? Math.round((terbayar / totalAwal) * 100) : 0
     const jatuhTempo = aktif
       .filter((t) => t.tglJatuhTempo)
-      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: t.sisa || 0, hari: selisihHari(t.tglJatuhTempo) }))
+      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: t.sisa || 0, hari: selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) }))
       .sort((a, b) => a.hari - b.hari)
     return {
       totalSisa, totalAwal, terbayar, persenLunas,
