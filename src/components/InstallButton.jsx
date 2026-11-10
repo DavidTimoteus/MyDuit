@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { canInstall, isIOS, isStandalone, onInstallAvailable, promptInstall } from '../lib/pwa.js'
 
 // Tombol "Install App".
@@ -60,8 +61,8 @@ export default function InstallButton({ variant = 'sidebar' }) {
         )}
       </button>
 
-      {hint && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-5 backdrop-blur-sm" onClick={() => setHint(false)}>
+      {hint && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-5 backdrop-blur-sm" onClick={() => setHint(false)}>
           <div className="clay-card w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-primary">ios_share</span>
             <p className="mt-2 text-sm font-bold text-slate-800">Pasang MyDuit di iPhone</p>
@@ -73,7 +74,8 @@ export default function InstallButton({ variant = 'sidebar' }) {
               Mengerti
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   )

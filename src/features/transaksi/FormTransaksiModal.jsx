@@ -780,6 +780,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 <input
                   id="tx-sumber-baru"
                   type="text"
+                  maxLength={120}
                   value={sumberBaru}
                   onChange={(e) => setSumberBaru(e.target.value)}
                   placeholder="mis. GoPay"
@@ -818,6 +819,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               onChange={setKategoriNama}
               placeholder="Pilih atau ketik kategori..."
               required
+              inputProps={{ maxLength: 100 }}
               // Filter kategori berdasarkan JENIS transaksi (pengeluaran → hanya
               // kategori jenis pengeluaran; pemasukan → hanya pemasukan). Untuk
               // mode edit/salin, jika kategori sumber tidak masuk filter (mis.
@@ -848,6 +850,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             <input
               id="tx-catatan"
               type="text"
+              maxLength={500}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               placeholder="Keterangan opsional"

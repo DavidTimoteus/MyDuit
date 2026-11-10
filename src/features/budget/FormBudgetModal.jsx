@@ -61,7 +61,7 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-blue w-full max-w-sm rounded-[24px] p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">

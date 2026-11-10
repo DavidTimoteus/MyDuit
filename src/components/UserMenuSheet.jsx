@@ -32,8 +32,8 @@ export default function UserMenuSheet({
   negara,
 }) {
   const sheetRef = useRef(null)
-  
   const btnRef = useRef(null)
+  const wasOpenRef = useRef(false)
 
   // Tutup saat tekan Escape — perilaku dasar dialog yang sering hilang.
   useEffect(() => {
@@ -48,10 +48,10 @@ export default function UserMenuSheet({
     return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  // Kembalikan fokus ke pemicu saat ditutup, supaya navigasi keyboard tidak
-  // terjebak di dalam sheet yang sudah tidak ada di DOM.
+  // Kembalikan fokus ke pemicu hanya setelah sheet ditutup dari kondisi terbuka.
   useEffect(() => {
-    if (!open) btnRef.current?.focus()
+    if (wasOpenRef.current && !open) btnRef.current?.focus()
+    wasOpenRef.current = open
   }, [open])
 
   if (!open) return null

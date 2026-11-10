@@ -175,6 +175,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
             <label className="block text-[11px] font-semibold text-slate-600">Catatan</label>
             <input
               type="text"
+              maxLength={500}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               placeholder="Catatan opsional"

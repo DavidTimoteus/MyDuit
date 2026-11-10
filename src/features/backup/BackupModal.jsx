@@ -115,7 +115,7 @@ export default function BackupModal({ open, onClose, uid }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral w-full max-w-sm p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800">Backup & Pulihkan</h3>

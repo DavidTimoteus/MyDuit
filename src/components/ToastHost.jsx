@@ -21,7 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  * mengumumkannya tanpa merebut fokus.
  */
 
-const DURASI = { error: 8000, success: 3500, info: 4500 }
+const DURASI = { error: 8000, warning: 6000, success: 3500, info: 4500 }
 
 const GAYA = {
   error: {
@@ -29,6 +29,12 @@ const GAYA = {
     tile: 'clay-icon-tile clay-key-danger',
     icon: 'error',
     judul: 'Gagal',
+  },
+  warning: {
+    wrap: 'clay-card clay-key-amber',
+    tile: 'clay-icon-tile clay-key-amber',
+    icon: 'warning',
+    judul: 'Perhatian',
   },
   success: {
     wrap: 'clay-card clay-key-primary',
@@ -59,7 +65,7 @@ export default function ToastHost() {
   }, [])
 
   const buka = useCallback((detail) => {
-    const type = ['error', 'success', 'info'].includes(detail?.type) ? detail.type : 'info'
+    const type = ['error', 'warning', 'success', 'info'].includes(detail?.type) ? detail.type : 'info'
     const msg = String(detail?.msg ?? '').trim()
     if (!msg) return
 
@@ -100,7 +106,7 @@ export default function ToastHost() {
       </div>
 
       <div
-        className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-3 md:left-1/2 md:right-auto md:w-[420px] md:-translate-x-1/2"
+        className="pointer-events-none fixed inset-x-0 top-3 z-[10100] flex flex-col items-center gap-2 px-3 md:left-1/2 md:right-auto md:w-[420px] md:-translate-x-1/2"
         aria-hidden="true"
       >
         {items.map((t) => {

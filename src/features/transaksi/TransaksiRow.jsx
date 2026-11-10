@@ -6,19 +6,26 @@ import { tambahAkun } from '../../lib/db.js'
 export function ChipAkunBaru({ uid }) {
   const [nama, setNama] = useState('')
   const [saldo, setSaldo] = useState('')
-  const [saving, setSaving] = useState(false)
   const [selesai, setSelesai] = useState(false)
 
-  async function buat(e) {
+  function buat(e) {
     e.preventDefault()
-    if (!nama.trim()) return
-    setSaving(true)
-    try {
-      await tambahAkun(uid, { nama: nama.trim(), saldoAwal: parseNominal(saldo) })
-      setSelesai(true)
-    } finally {
-      setSaving(false)
-    }
+    const namaBersih = nama.trim().slice(0, 120)
+    if (!namaBersih) return
+    const saldoAwal = parseNominal(saldo)
+    setSelesai(true)
+    ;(async () => {
+      try {
+        await tambahAkun(uid, { nama: namaBersih, saldoAwal })
+      } catch (err) {
+        console.warn('[rekening-pertama] gagal:', err?.message ?? err)
+        window.dispatchEvent(
+          new CustomEvent('myduit:toast', {
+            detail: { type: 'error', msg: 'Gagal membuat rekening. Periksa koneksi atau coba lagi.' },
+          }),
+        )
+      }
+    })()
   }
 
   if (selesai) {
@@ -39,6 +46,7 @@ export function ChipAkunBaru({ uid }) {
       <form onSubmit={buat} className="mt-4 space-y-2">
         <input
           value={nama}
+          maxLength={120}
           onChange={(e) => setNama(e.target.value)}
           placeholder="Nama rekening"
           className="clay-field w-full rounded-xl px-3 py-2.5 text-sm font-semibold"
@@ -54,10 +62,10 @@ export function ChipAkunBaru({ uid }) {
           />
         </div>
         <button
-          disabled={saving || !nama.trim()}
+          disabled={!nama.trim()}
           className="clay-btn-primary btn-lg w-full disabled:opacity-60"
         >
-          {saving ? 'Membuat…' : 'Buat Rekening'}
+          Buat Rekening
         </button>
       </form>
     </div>

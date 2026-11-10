@@ -348,6 +348,7 @@ export default function StatistikView({ user }) {
             where("deleted", "==", false),
             where("tanggal", ">=", prevRange.start),
             where("tanggal", "<=", prevRange.end),
+            orderBy("tanggal", "desc"),
           ),
         );
         if (batal) return;
@@ -1029,7 +1030,7 @@ export default function StatistikView({ user }) {
       {/* MODAL DETAIL KATEGORI */}
       {detail && (
         <div
-          className="fixed inset-0 z-[999] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
           onClick={() => setDetail(null)}
         >
           <div

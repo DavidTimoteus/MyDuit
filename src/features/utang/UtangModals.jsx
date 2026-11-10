@@ -83,7 +83,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
@@ -150,6 +150,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
           <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nama pihak</label>
           <input
             value={namaPihak}
+            maxLength={150}
             onChange={(e) => setNamaPihak(e.target.value)}
             placeholder="mis. Kredit Motor / Teman"
             className="clay-input field-lg w-full rounded-2xl px-3 text-sm font-semibold"
@@ -186,6 +187,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Catatan</label>
         <input
           value={deskripsi}
+          maxLength={500}
           onChange={(e) => setDeskripsi(e.target.value)}
           placeholder="opsional"
           className="clay-field mb-4 w-full rounded-xl px-3 py-2.5 text-sm font-semibold placeholder:font-normal placeholder:text-slate-500"
@@ -284,7 +286,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{lunasin ? 'Lunasin' : 'Bayar'} — {utang.namaPihak}</h3>

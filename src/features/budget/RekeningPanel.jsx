@@ -499,7 +499,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
       )}
 
       {hapusTarget && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
           <div className="clay-card w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
             <p className="mt-2 text-sm font-bold text-slate-800">Hapus rekening “{hapusTarget.nama}”?</p>
