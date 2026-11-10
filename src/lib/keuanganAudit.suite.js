@@ -6,6 +6,7 @@ import { konversiBackupGas } from '../features/backup/importGas.js'
 import { aturanAnalitik, hitungPersenPerubahan } from '../features/statistik/_aturan.js'
 import { validasiEndpointOcr } from './ocrProvider.js'
 import { RIWAYAT_AWAL, kurangRiwayat } from '../features/transaksi/mergeRiwayat.js'
+import { parseTanggalInput } from '../components/clay-ui.jsx'
 
 let total = 0
 let lulus = 0
@@ -147,6 +148,25 @@ await cek('mergeRiwayat mereset pendingAdds & deletedIds saat UID berubah', () =
   assert.equal(stBaru.pendingAdds.size, 0)
   assert.equal(stBaru.deletedIds.size, 0)
   assert.equal(stBaru.docs.length, 0)
+})
+
+// 6. Validasi Kalender Ketat pada parseTanggalInput
+await cek('parseTanggalInput menolak tanggal kalender mustahil (anti-rollover 31 Feb -> Mar)', () => {
+  assert.equal(parseTanggalInput('31/02/2026'), null)
+  assert.equal(parseTanggalInput('2026-02-31'), null)
+  assert.equal(parseTanggalInput('31/04/2026'), null)
+  assert.equal(parseTanggalInput('29/02/2025'), null)
+  assert.equal(parseTanggalInput('29022025'), null)
+
+  const kabisat = parseTanggalInput('29/02/2024')
+  assert.equal(kabisat?.getFullYear(), 2024)
+  assert.equal(kabisat?.getMonth(), 1)
+  assert.equal(kabisat?.getDate(), 29)
+
+  const valid = parseTanggalInput('15/08/2026')
+  assert.equal(valid?.getFullYear(), 2026)
+  assert.equal(valid?.getMonth(), 7)
+  assert.equal(valid?.getDate(), 15)
 })
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek audit lolos`)

@@ -10,9 +10,10 @@ const hasil = path.join(keluar, 'keuanganAudit.bundle.mjs')
 await build({
   entryPoints: [path.resolve('src/lib/keuanganAudit.suite.js')],
   bundle: true,
-  external: ['firebase', 'firebase/*', 'xlsx'],
+  external: ['react', 'react-dom', 'firebase', 'firebase/*', 'xlsx', 'flatpickr'],
   format: 'esm',
   platform: 'node',
+  jsx: 'automatic',
   define: { 'import.meta.env': '{}' },
   outfile: hasil,
   logLevel: 'warning',
