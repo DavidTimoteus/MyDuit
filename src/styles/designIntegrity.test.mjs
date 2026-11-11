@@ -145,5 +145,40 @@ const bebasSolidCards =
   !fileStatistikPanel.includes('clay-card clay-key-danger')
 cek('aside: seluruh kartu informasi aside panel bebas dari slab monolitik gelap (solid-* pada clay-card)', bebasSolidCards)
 
+// 24. Neumorphism harus mendefinisikan :hover pada kartu, tombol netral, dan tombol solid
+const neuHoverTerdefinisi =
+  fileCss.includes('[data-theme="neumorphism"] .tx-card-item:hover') &&
+  fileCss.includes('[data-theme="neumorphism"] .neu-card:not(.is-lunas):hover') &&
+  fileCss.includes('[data-theme="neumorphism"] .clay-btn:hover:not(:disabled)') &&
+  fileCss.includes('[data-theme="neumorphism"] .neu-btn-primary:hover:not(:disabled)') &&
+  fileCss.includes('[data-theme="neumorphism"] .neu-btn-danger:hover:not(:disabled)')
+cek('css: tema default neumorphism memiliki aturan :hover eksplisit untuk kartu & tombol', neuHoverTerdefinisi)
+
+// 25. TransaksiRow memakai .tx-actions-reveal animasi halus (bukan display hidden <-> flex)
+const fileTransaksiRow = readFileSync(join(root, 'src/features/transaksi/TransaksiRow.jsx'), 'utf8')
+const aksiRowAnimasiHalus =
+  fileTransaksiRow.includes('tx-actions-reveal') &&
+  !fileTransaksiRow.includes("deleteOpen ? 'flex' : 'hidden'")
+cek('transaksi row: pengungkapan tombol Salin/Hapus memakai .tx-actions-reveal (tanpa lompatan hidden/flex)', aksiRowAnimasiHalus)
+
+// 26. Sistem scroll-triggered & animasi transisi terdefinisi di CSS
+const sistemMotionLengkap =
+  fileCss.includes('.tx-actions-reveal.is-open') &&
+  fileCss.includes('.scroll-reveal-pending.is-revealed') &&
+  fileCss.includes('.sticky-scroll-bar.is-scrolled') &&
+  fileCss.includes('.progress-bar-fill') &&
+  fileCss.includes('clayDropdownUp')
+cek('css: kontrak motion lengkap (tx-actions-reveal, scroll-reveal, sticky-scroll-bar, progress-bar-fill, dropdown flip)', sistemMotionLengkap)
+
+// 27. Tidak ada .clay-btn atau .clay-chip yang memakai transition-colors (mematikan animasi transform/shadow)
+const fileBudgetModal = readFileSync(join(root, 'src/features/budget/FormBudgetModal.jsx'), 'utf8')
+const fileRekeningModal = readFileSync(join(root, 'src/features/budget/FormRekeningModal.jsx'), 'utf8')
+const fileFilterModal = readFileSync(join(root, 'src/features/transaksi/FilterTransaksiModal.jsx'), 'utf8')
+const filePindahModal = readFileSync(join(root, 'src/features/transaksi/ModalPindahSaldo.jsx'), 'utf8')
+const fileMutasiModal = readFileSync(join(root, 'src/features/budget/RiwayatMutasiModal.jsx'), 'utf8')
+const gabunganBtnFiles = [fileFormModal, fileShell, fileTransaksiView, fileBudgetModal, fileRekeningModal, fileFilterModal, filePindahModal, fileMutasiModal].join('\n')
+const tanpaTransitionColorsDiBtn = !/clay-(btn|chip)[^"\n`]*transition-colors/.test(gabunganBtnFiles)
+cek('jsx: tombol .clay-btn/.clay-chip bebas dari transition-colors yang memotong transisi transform/box-shadow', tanpaTransitionColorsDiBtn)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
