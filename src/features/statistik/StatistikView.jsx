@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { getFirebase } from "../../lib/firebase.js";
 import { useAkunKategori } from "../../lib/useAkunKategori.js";
+import { useScrolledState, useScrollReveal } from "../../lib/useScrollEffects.js";
 import {
   detectCurrency,
   detectLocale,
@@ -561,6 +562,10 @@ export default function StatistikView({ user }) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 460,
+          easing: "easeOutQuart",
+        },
         interaction: { mode: "index", intersect: false },
         plugins: {
           legend: { display: false },
@@ -778,9 +783,13 @@ export default function StatistikView({ user }) {
   const labelPeriode =
     mode === "bulanan" ? `${NAMA_BULAN_ID[bulan]} ${tahun}` : `Tahun ${tahun}`;
   const trendTitle = mode === "bulanan" ? "Tren Bulan Ini" : "Tren Tahun Ini";
+  const sectionRef = useRef(null);
+  const contentRef = useRef(null);
+  const headerScrolled = useScrolledState(sectionRef, 6);
+  useScrollReveal(contentRef, [mode, bulan, tahun, loading, ringkas.pemasukan.length, ringkas.pengeluaran.length, saran.length]);
 
   return (
-    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-20">
+    <section ref={sectionRef} className="view-panel-enter mx-auto max-w-3xl px-5 pb-32 md:pb-20">
       {/* Header mobile-only (logo + judul) — navigator periode ada di baris
           terpisah di bawah (pola sama dengan BudgetView) supaya judul tidak
           pernah terpotong. Di desktop header ini tersembunyi. */}
@@ -791,11 +800,11 @@ export default function StatistikView({ user }) {
           Desktop (md+): margin normal mengikuti container max-w-3xl, top-0.
           Soft fade: ::after strip gradient di bawah agar konten scroll halus.
       ─────────────────────────────────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-20
+      <div className={`sticky-scroll-bar ${headerScrolled ? "is-scrolled" : ""} sticky top-0 z-20
                       -mx-5 px-5 md:-mx-6 md:px-6
                       bg-surface
                       pt-3 pb-2 mb-0
-                      relative">
+                      relative`}>
         <header className="stat-header-mobile pb-2 md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="clay-icon-tile clay-key-primary solid-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
@@ -863,7 +872,7 @@ export default function StatistikView({ user }) {
       {/* Spacer untuk mengimbangi after:h-4 fade strip di bawah sticky header */}
       <div className="h-5 md:h-3" aria-hidden="true" />
 
-      <div className="space-y-5 pb-20 md:pb-4 md:pr-3">
+      <div ref={contentRef} className="space-y-5 pb-20 md:pb-4 md:pr-3">
         {/* SUMMARY CARDS (gradient) */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SummaryCard
@@ -896,7 +905,7 @@ export default function StatistikView({ user }) {
         </div>
 
         {/* TREND CHART (Image 2 Reference Style) */}
-        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-5">
+        <div data-reveal="" className="neu-card rounded-2xl bg-[#E5E5E5] p-5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{trendTitle}</h3>
             <div className="flex items-center gap-2 text-xs">
@@ -974,7 +983,7 @@ export default function StatistikView({ user }) {
             tidak ada model, tidak ada API, tidak ada output. Yang tampil
             sekarang adalah hasil aturan murni atas angka yang sudah dihitung,
             jadi bisa diverifikasi dan diuji. Lihat src/features/statistik/_aturan.js */}
-        <div className="clay clay-card clay-key-primary overflow-hidden">
+        <div data-reveal="" className="clay clay-card clay-key-primary overflow-hidden">
           <div className="flex items-center gap-3 border-b border-slate-200/60 px-5 py-4">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl clay-icon-tile clay-key-primary">
               <span className="material-symbols-outlined icon-md text-primary">
@@ -1030,7 +1039,7 @@ export default function StatistikView({ user }) {
       {/* MODAL DETAIL KATEGORI */}
       {detail && (
         <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+          className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
           onClick={() => setDetail(null)}
         >
           <div
@@ -1049,7 +1058,7 @@ export default function StatistikView({ user }) {
               <button
                 onClick={() => setDetail(null)}
                 aria-label="Tutup detail kategori"
-                className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 transition-colors hover:text-slate-900 active:scale-95"
+                className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900"
               >
                 <span className="material-symbols-outlined icon-md">close</span>
               </button>
@@ -1112,7 +1121,7 @@ function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
   const iconTrend =
     pct === null ? "trending_flat" : positif ? "trending_up" : "trending_down";
   return (
-    <div className="neu-card rounded-2xl bg-[#E5E5E5] p-4">
+    <div data-reveal="" className="neu-card rounded-2xl bg-[#E5E5E5] p-4">
       <div className="mb-2 flex items-center gap-2">
         <span
           className={`material-symbols-outlined icon-md ${aksenCls}`}
@@ -1160,7 +1169,7 @@ function KategoriCard({
   const empty = items.length === 0;
   const max = Math.max(1, ...items.map((i) => i.total));
   return (
-    <div className="neu-card rounded-[22px] bg-[#E5E5E5] p-4">
+    <div data-reveal="" className="neu-card rounded-[22px] bg-[#E5E5E5] p-4">
       <div className="mb-3 flex items-center gap-2">
         <span className={`material-symbols-outlined icon-md ${iconColor}`}>
           {icon}
@@ -1196,7 +1205,7 @@ function KategoriCard({
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100">
                   <div
-                    className={`h-full rounded-full ${barColor}`}
+                    className={`progress-bar-fill h-full rounded-full ${barColor}`}
                     style={{ width: `${pct}%` }}
                   ></div>
                 </div>

@@ -69,14 +69,14 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-blue w-full max-w-sm rounded-[24px] p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
             <span className="material-symbols-outlined text-blue-700">account_balance_wallet</span>
             {edit ? 'Edit Rekening' : 'Tambah Rekening'}
           </h3>
-          <button type="button" onClick={onClose} aria-label="Tutup" className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100">
+          <button type="button" onClick={onClose} aria-label="Tutup" className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
@@ -115,7 +115,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
         )}
         {!edit && <div className="mb-2" />}
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
-        <button disabled={saving} className="clay-btn clay-key-blue solid-blue btn-lg w-full text-sm font-extrabold text-white transition-colors disabled:opacity-60">
+        <button disabled={saving} className="clay-btn clay-key-blue solid-blue btn-lg w-full text-sm font-extrabold text-white disabled:opacity-60">
           <span className="material-symbols-outlined icon-sm">save</span>
           {saving ? 'Menyimpan…' : 'Simpan'}
         </button>

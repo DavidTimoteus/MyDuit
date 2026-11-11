@@ -125,14 +125,15 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
 
   return (
     <div
+      data-reveal=""
       onClick={handleClick}
       onDoubleClick={bulkMode ? undefined : onEdit}
-      className={`tx-card-item clay clay-card ${clayKey} relative p-4 flex items-center justify-between gap-3 transition-all cursor-pointer select-none ${
+      className={`tx-card-item clay clay-card ${clayKey} relative p-4 flex items-center justify-between gap-3 cursor-pointer select-none ${
         bulkMode ? `bulk-selectable ${dipilih ? 'bulk-selected' : ''}` : ''
       } ${!bulkMode && deleteOpen ? tintRevealed : ''}`}
     >
       {bulkMode && (
-        <span className="bulk-check w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-all">
+        <span className="bulk-check w-6 h-6 rounded-full flex items-center justify-center shrink-0">
           <span className="material-symbols-outlined icon-xs text-white">check</span>
         </span>
       )}
@@ -158,33 +159,40 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
         <p className="text-[10px] text-slate-500">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
       </div>
       {!bulkMode && (
-        <div className={`shrink-0 ml-2 items-center gap-1.5 ${deleteOpen ? 'flex' : 'hidden'}`}>
-          {!isPindahSaldo && (
+        <div
+          className={`tx-actions-reveal shrink-0 ${deleteOpen ? 'is-open' : ''}`}
+          aria-hidden={!deleteOpen}
+        >
+          <div className="tx-actions-reveal-inner">
+            {!isPindahSaldo && (
+              <button
+                type="button"
+                tabIndex={deleteOpen ? 0 : -1}
+                aria-label="Salin transaksi"
+                title="Salin transaksi"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSalin?.(trans)
+                }}
+                className="salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
+              >
+                <span className="material-symbols-outlined icon-md">content_copy</span>
+              </button>
+            )}
             <button
               type="button"
-              aria-label="Salin transaksi"
-              title="Salin transaksi"
+              tabIndex={deleteOpen ? 0 : -1}
+              aria-label="Hapus transaksi"
+              title="Hapus transaksi"
               onClick={(e) => {
                 e.stopPropagation()
-                onSalin?.(trans)
+                onDelete?.(trans)
               }}
-              className="salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center transition-all touch-manipulation"
+              className="delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
             >
-              <span className="material-symbols-outlined icon-md">content_copy</span>
+              <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
             </button>
-          )}
-          <button
-            type="button"
-            aria-label="Hapus transaksi"
-            title="Hapus transaksi"
-            onClick={(e) => {
-              e.stopPropagation()
-              onDelete?.(trans)
-            }}
-            className="delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center transition-all touch-manipulation"
-          >
-            <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
-          </button>
+          </div>
         </div>
       )}
     </div>

@@ -8,6 +8,7 @@ import FilterTransaksiModal from './FilterTransaksiModal.jsx'
 import { ChipAkunBaru, TransaksiRow } from './TransaksiRow.jsx'
 import { useTransaksi } from './useTransaksi.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useScrolledState, useScrollReveal } from '../../lib/useScrollEffects.js'
 
 const PER_HALAMAN = 20
 const LS_CHIP = 'myduit:tx_chip'
@@ -376,9 +377,13 @@ export default function TransaksiView({ user }) {
   }
 
   const adaAkun = akunList.length > 0
+  const sectionRef = useRef(null)
+  const listRef = useRef(null)
+  const toolbarScrolled = useScrolledState(sectionRef, 6)
+  useScrollReveal(listRef, [loading, pageItems.length, page, slideDir])
 
   return (
-    <section className="mx-auto max-w-3xl px-5 pb-32 md:pb-10">
+    <section ref={sectionRef} className="view-panel-enter mx-auto max-w-3xl px-5 pb-32 md:pb-10">
       <div className="view-section active min-w-0">
 
         {/* Toolbar: responsif mobile — di layar kecil input search baris 1, filter baris 2 */}
@@ -389,11 +394,11 @@ export default function TransaksiView({ user }) {
                            agar saat kartu transaksi di-scroll, bayangannya di sisi
                            kiri-kanan tidak bocor melintasi toolbar.
         ─────────────────────────────────────────────────────────────────────────── */}
-        <div className="sticky top-[52px] md:top-0 z-20
+        <div className={`sticky-scroll-bar ${toolbarScrolled ? 'is-scrolled' : ''} sticky top-[52px] md:top-0 z-20
                         -mx-5 px-5 md:-mx-6 md:px-6
                         bg-surface
                         pt-2.5 pb-2.5 mb-0
-                        relative">
+                        relative`}>
           {/* Header mobile (md:hidden) — logo transaksi + judul embossed */}
           <header className="pb-2.5 md:hidden">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -443,7 +448,7 @@ export default function TransaksiView({ user }) {
                       onClick={() => setJenis(j.id)}
                       aria-label={j.title}
                       title={j.title}
-                      className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
+                      className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center touch-manipulation ${
                         jenis === j.id
                           ? 'clay-key-primary solid-primary text-white'
                           : 'clay-key-neutral bg-surface text-textSecondary hover:bg-slate-200/60 hover:text-slate-800'
@@ -457,7 +462,7 @@ export default function TransaksiView({ user }) {
                   onClick={toggleBulk}
                   aria-label="Pilih banyak transaksi"
                   title="Pilih banyak transaksi"
-                  className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center transition-all active:scale-95 touch-manipulation ${
+                  className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center touch-manipulation ${
                     bulkMode
                       ? 'clay-key-primary solid-primary text-white'
                       : 'clay-key-neutral bg-surface text-textSecondary hover:bg-slate-200/60 hover:text-slate-800'
@@ -584,6 +589,7 @@ export default function TransaksiView({ user }) {
           </div>
         ) : (
           <div
+            ref={listRef}
             key={`tx-page-${page}`}
             className={`-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar ${
               slideDir === 'next'
@@ -630,14 +636,14 @@ export default function TransaksiView({ user }) {
             <div className="flex-1"></div>
             <button
               onClick={toggleBulk}
-              className="clay-btn-secondary clay-btn btn-sm bg-surface text-textSecondary transition-colors hover:bg-gray-200"
+              className="clay-btn-secondary clay-btn btn-sm bg-surface text-textSecondary hover:bg-gray-200"
             >
               Batal
             </button>
             <button
               onClick={() => setBulkHapusOpen(true)}
               disabled={selected.size === 0}
-              className="clay-btn clay-key-danger solid-danger btn-sm text-white transition-colors disabled:opacity-60"
+              className="clay-btn clay-key-danger solid-danger btn-sm text-white disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">delete</span>
               Hapus
@@ -690,14 +696,14 @@ export default function TransaksiView({ user }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setHapusTarget(null)}
-                className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary transition-colors hover:bg-gray-200"
+                className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={konfirmHapus}
                 disabled={hapusLoading}
-                className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white transition-colors disabled:opacity-60"
+                className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white disabled:opacity-60"
               >
                 {hapusLoading ? 'Menghapus…' : 'Ya, Hapus'}
               </button>
@@ -716,14 +722,14 @@ export default function TransaksiView({ user }) {
             <div className="flex gap-3">
               <button
                 onClick={() => setBulkHapusOpen(false)}
-                className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary transition-colors hover:bg-gray-200"
+                className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary hover:bg-gray-200"
               >
                 Batal
               </button>
               <button
                 onClick={konfirmHapusMassal}
                 disabled={hapusLoading}
-                className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white transition-colors disabled:opacity-60"
+                className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white disabled:opacity-60"
               >
                 {hapusLoading ? 'Menghapus…' : 'Ya, Hapus Semua'}
               </button>

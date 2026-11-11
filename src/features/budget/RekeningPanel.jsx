@@ -406,7 +406,8 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           return (
             <div
               key={a.id}
-              className="neu-card rounded-2xl p-4 bg-[#E5E5E5] transition-all duration-200 hover:shadow-[-6px_-6px_14px_rgba(255,255,255,0.9),6px_6px_16px_rgba(0,0,0,0.14)]"
+              data-reveal=""
+              className="neu-card rounded-2xl p-4 bg-[#E5E5E5]"
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -499,8 +500,8 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
       )}
 
       {hapusTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
-          <div className="clay-card w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+          <div className="clay-card clay-sheet w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
             <p className="mt-2 text-sm font-bold text-slate-800">Hapus rekening “{hapusTarget.nama}”?</p>
             <p className="mt-1 text-xs text-slate-500">Riwayat transaksi lama tetap tersimpan.</p>

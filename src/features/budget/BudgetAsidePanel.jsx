@@ -71,7 +71,7 @@ export default function BudgetAsidePanel() {
           </p>
           <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/50">
             <div
-              className={`h-full rounded-full transition-all ${ringkas.lewat ? 'bg-red-500' : 'bg-blue-600'}`}
+              className={`progress-bar-fill h-full rounded-full ${ringkas.lewat ? 'bg-red-500' : 'bg-blue-600'}`}
               style={{ width: `${Math.min(100, Math.max(0, ringkas.persen))}%` }}
             />
           </div>

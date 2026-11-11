@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { onSnapshot, query, where, orderBy, collection } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js'
 import { formatRupiah } from '../../lib/format.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { useBudgetBulan } from './useBudgetBulan.js'
 import BudgetPanel from './BudgetPanel.jsx'
 import FormBudgetModal from './FormBudgetModal.jsx'
@@ -239,11 +240,13 @@ export default function BudgetView({ user }) {
 
   const bisaMundur = !(bulan === 0 && tahun === today.getFullYear() - 1)
   const bisaMaju = !(tahun === today.getFullYear() && bulan >= today.getMonth())
+  const sectionRef = useRef(null)
+  useScrollReveal(sectionRef, [sub, bulan, tahun, ringkasan.list.length, akunList.length])
 
   // Sub-tab Rekening: hero Total Saldo + daftar rekening
   // Sub-tab Budget: navigator + hero Total Budget + daftar budget
   return (
-    <section className="mx-auto max-w-3xl px-4 sm:px-5 pb-2 md:pb-6">
+    <section ref={sectionRef} className="view-panel-enter mx-auto max-w-3xl px-4 sm:px-5 pb-2 md:pb-6">
       {/* Header mobile (md:hidden) — logo savings emerald + judul */}
       <header className="flex items-center gap-2 pt-1 pb-2.5 md:hidden">
         <div className="clay-icon-tile clay-key-primary solid-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white">
@@ -279,9 +282,11 @@ export default function BudgetView({ user }) {
       </div>
 
       {sub === 'rekening' ? (
-        <RekeningPanel uid={uid} transBulan={transBulan} />
+        <div key="sub-rekening" className="view-panel-enter">
+          <RekeningPanel uid={uid} transBulan={transBulan} />
+        </div>
       ) : (
-        <>
+        <div key="sub-budget" className="view-panel-enter">
           {/* Period Navigator (bulan/tahun) */}
           <div className="mb-3 flex shrink-0 items-center justify-center gap-3">
             <button
@@ -327,7 +332,7 @@ export default function BudgetView({ user }) {
             </div>
             <div className="neu-inset mt-3 h-2 w-full overflow-hidden rounded-full bg-[#E5E5E5]">
               <div
-                className={`h-full rounded-full transition-all ${ringkasan.lewat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
+                className={`progress-bar-fill h-full rounded-full ${ringkasan.lewat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
                 style={{ width: `${Math.min(100, ringkasan.persen)}%` }}
               />
             </div>
@@ -356,7 +361,7 @@ export default function BudgetView({ user }) {
             hapusTarget={hapusTarget}
             setHapusTarget={setHapusTarget}
           />
-        </>
+        </div>
       )}
 
       {/* Modal Form Budget */}

@@ -145,7 +145,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
       <div className="mt-2.5 pl-1.5">
         <div className="h-2 w-full overflow-hidden rounded-full neu-inset p-0.5 bg-[#E5E5E5]">
           <div
-            className={`h-full rounded-full transition-all ${st.lunas ? 'bg-[#36AE7C]' : st.terlambat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
+            className={`progress-bar-fill h-full rounded-full ${st.lunas ? 'bg-[#36AE7C]' : st.terlambat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
             style={{ width: `${Math.max(persen > 0 ? 3 : 0, Math.min(100, persen))}%` }}
           />
         </div>
@@ -288,7 +288,7 @@ export default function UtangMobile({
   }
 
   return (
-    <div className="flex flex-col pb-28 pt-2 md:hidden">
+    <div className="view-panel-enter flex flex-col pb-28 pt-2 md:hidden">
       {/* Header mobile (md:hidden) — logo handshake + judul embossed */}
       <header className="pb-2.5">
         <div className="flex items-center justify-between">

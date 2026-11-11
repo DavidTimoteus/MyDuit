@@ -123,7 +123,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
             type="button"
             onClick={onClose}
             aria-label="Tutup"
-            className="clay-chip clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="clay-chip clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
           >
             <span className="material-symbols-outlined icon-lg">close</span>
           </button>
@@ -170,7 +170,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
                 inputMode="numeric"
                 placeholder="0"
                 required
-                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none transition-colors !text-[#187498]"
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none !text-[#187498]"
               />
             </div>
           </div>
@@ -183,7 +183,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               placeholder="Catatan opsional"
-              className="clay-input field-lg w-full text-sm outline-none transition-colors"
+              className="clay-input field-lg w-full text-sm outline-none"
             />
           </div>
 
@@ -193,14 +193,14 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
             <button
               type="button"
               onClick={onClose}
-              className="clay-btn-secondary clay-btn btn-md text-slate-600 transition-colors hover:bg-slate-50"
+              className="clay-btn-secondary clay-btn btn-md text-slate-600 hover:bg-slate-50"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={saving || sama}
-              className="clay-btn clay-key-blue solid-blue btn-md text-white transition-colors disabled:opacity-60"
+              className="clay-btn clay-key-blue solid-blue btn-md text-white disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">sync_alt</span>
               {saving ? 'Memproses…' : 'Pindahkan Saldo'}

@@ -67,14 +67,14 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`Riwayat perubahan ${akun.nama}`}
     >
       <div
-        className="clay-sheet clay-key-primary mutasi-sheet flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-md"
+        className="clay-sheet clay-key-primary mutasi-sheet modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-md"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header: identitas rekening + hero saldo total terkini */}
@@ -94,7 +94,7 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
             <button
               onClick={onClose}
               aria-label="Tutup"
-              className="clay-chip clay-key-neutral flex h-9 w-9 shrink-0 items-center justify-center p-0 text-slate-500 transition-colors hover:text-slate-700"
+              className="clay-chip clay-key-neutral flex h-9 w-9 shrink-0 items-center justify-center p-0 text-slate-500 hover:text-slate-700"
             >
               <span className="material-symbols-outlined icon-md">close</span>
             </button>

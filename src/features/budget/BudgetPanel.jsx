@@ -64,7 +64,7 @@ export default function BudgetPanel({
                 : 'text-[#187498] bg-blue-50'
             const barFill = status === 'lewat' ? 'bg-[#EB5353]' : status === 'waspada' ? 'bg-[#D4AF0D]' : 'bg-[#187498]'
             return (
-              <div key={b.id} className="neu-card rounded-2xl p-4.5 bg-[#E5E5E5] relative transition-all">
+              <div key={b.id} data-reveal="" className="neu-card rounded-2xl p-4.5 bg-[#E5E5E5] relative">
                 <div className="flex min-w-0 items-start justify-between gap-2 mb-2">
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-extrabold leading-snug text-slate-800" title={kategoriNama}>{kategoriNama}</p>
@@ -97,7 +97,7 @@ export default function BudgetPanel({
 
                 <div className="mt-3">
                   <div className="neu-inset h-2 w-full overflow-hidden rounded-full bg-[#E5E5E5]">
-                    <div className={`h-full rounded-full transition-all ${barFill}`} style={{ width: `${lebarBar}%` }} />
+                    <div className={`progress-bar-fill h-full rounded-full ${barFill}`} style={{ width: `${lebarBar}%` }} />
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
                     <span className="font-semibold text-slate-500">Terpakai {formatRupiah(b.terpakai)}</span>
@@ -111,8 +111,8 @@ export default function BudgetPanel({
       </div>
 
       {hapusTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
-          <div className="clay-card w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+          <div className="clay-card clay-sheet w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
             <p className="mt-2 text-sm font-bold text-slate-800">
               Hapus budget "{kategoriList.find((k) => k.id === hapusTarget.kategoriId)?.nama ?? hapusTarget.kategoriNama ?? '?'}"?

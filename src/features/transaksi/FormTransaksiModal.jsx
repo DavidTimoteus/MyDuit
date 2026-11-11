@@ -418,7 +418,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 onClick={beralihKeModeSalin}
                 title="Salin & edit sebagai transaksi baru"
                 aria-label="Salin transaksi"
-                className="clay-chip clay-key-primary solid-primary inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white transition-colors"
+                className="clay-chip clay-key-primary solid-primary inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white"
               >
                 <span className="material-symbols-outlined icon-sm">content_copy</span>
               </button>
@@ -427,7 +427,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               type="button"
               onClick={tutupModal}
               aria-label="Tutup"
-              className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600"
+              className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
             >
               <span className="material-symbols-outlined icon-lg">close</span>
             </button>
@@ -491,7 +491,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 placeholder="0"
                 required
                 autoFocus
-                className={`clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight transition-colors ${
+                className={`clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight ${
                   isPemasukan ? 'tx-nominal-income !text-[#36AE7C]' : 'tx-nominal-expense !text-[#EB5353]'
                 }`}
               />
@@ -631,7 +631,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                   <button
                     type="button"
                     onClick={() => fileUploadRef.current?.click()}
-                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary transition-colors hover:bg-gray-100"
+                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary hover:bg-gray-100"
                   >
                     <span className="material-symbols-outlined icon-md">upload_file</span>
                     Upload Struk
@@ -639,7 +639,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                   <button
                     type="button"
                     onClick={() => fileCameraRef.current?.click()}
-                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary transition-colors hover:bg-gray-100"
+                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary hover:bg-gray-100"
                   >
                     <span className="material-symbols-outlined icon-md">photo_camera</span>
                     Foto Struk
@@ -660,7 +660,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     {scanProses ? (
                       <>
                         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
-                          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${scanProgress}%` }} />
+                          <div className="progress-bar-fill h-full rounded-full bg-primary" style={{ width: `${scanProgress}%` }} />
                         </div>
                         <p className="mt-0.5 text-[10px] text-textSecondary">Membaca struk… {scanProgress}%</p>
                       </>
@@ -871,7 +871,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           <button
             type="submit"
             disabled={saving}
-            className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} btn-lg w-full text-white transition-colors disabled:opacity-60`}
+            className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} btn-lg w-full text-white disabled:opacity-60`}
           >
             <span className="material-symbols-outlined icon-md">save</span>
             {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : mode === 'salin' ? 'Salin & Catat Transaksi' : isPemasukan ? 'Simpan Pemasukan' : 'Simpan Pengeluaran'}
@@ -882,7 +882,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       {/* Modal Panduan Ambil Kunci Gemini Gratis */}
       {showTutorialModal && (
         <div
-          className="fixed inset-0 z-[10001] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+          className="modal-backdrop-wrap fixed inset-0 z-[10001] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
           onClick={() => setShowTutorialModal(false)}
         >
           <div

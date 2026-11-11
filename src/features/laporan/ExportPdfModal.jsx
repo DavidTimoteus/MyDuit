@@ -42,7 +42,7 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
 
   return (
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
-      <div className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">
           <h3 className="text-lg font-extrabold text-slate-800">Export Laporan PDF</h3>
           <button onClick={onClose} aria-label="Tutup" className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:text-slate-600">

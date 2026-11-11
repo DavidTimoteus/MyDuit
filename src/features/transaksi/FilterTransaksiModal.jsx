@@ -70,13 +70,13 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
-      <div className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 pb-4 pt-5">
           <h3 className="text-lg font-bold text-slate-800">Filter Transaksi</h3>
           <button
             onClick={onClose}
             aria-label="Tutup"
-            className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
           >
             <span className="material-symbols-outlined icon-lg">close</span>
           </button>
@@ -117,13 +117,13 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
         <div className="flex shrink-0 gap-3 border-t border-gray-100 px-5 py-4">
           <button
             onClick={onClose}
-            className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary transition-colors"
+            className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary"
           >
             Batal
           </button>
           <button
             onClick={terapkan}
-            className="clay-btn clay-key-primary solid-primary btn-md flex-1 text-white transition-colors"
+            className="clay-btn clay-key-primary solid-primary btn-md flex-1 text-white"
           >
             Terapkan
           </button>

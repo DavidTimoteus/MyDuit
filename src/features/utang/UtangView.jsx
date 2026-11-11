@@ -1,10 +1,11 @@
 import { IS_DEMO_UID, MOCK_UTANG } from '../../lib/mockData.js';
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 import { hapusUtang } from '../../lib/db.js'
 import { getFirebase } from '../../lib/firebase.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
 import UtangMobile from './UtangMobile.jsx'
 
@@ -158,7 +159,8 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
   return (
     <div
-      className={`neu-card rounded-2xl p-4.5 relative transition-all bg-[#E5E5E5] ${lunas ? 'is-lunas' : ''}`}
+      data-reveal=""
+      className={`neu-card rounded-2xl p-4.5 relative bg-[#E5E5E5] ${lunas ? 'is-lunas' : ''}`}
     >
 
       {/* Baris atas: nama + badge + aksi */}
@@ -207,7 +209,7 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
       <div className="mt-3">
         <div className="h-1.5 w-full overflow-hidden rounded-full neu-inset bg-[#E5E5E5]">
-          <div className={`h-full rounded-full transition-all ${lunas ? 'bg-[#36AE7C]' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
+          <div className={`progress-bar-fill h-full rounded-full ${lunas ? 'bg-[#36AE7C]' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
         </div>
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
           <span className="whitespace-nowrap font-medium text-slate-500">Terbayar {formatRupiah(terbayar)} ({persen}%)</span>
@@ -367,6 +369,8 @@ export default function UtangView({ user }) {
     onEdit: (t) => setFormModal({ open: true, edit: t, mode: t.tipe === 'Cicilan' ? 'cicilan' : 'utang' }),
     onHapus: (t) => setHapusTarget(t),
   }
+  const desktopSectionRef = useRef(null)
+  useScrollReveal(desktopSectionRef, [filter, terurut.length])
 
   return (
     <>
@@ -385,20 +389,20 @@ export default function UtangView({ user }) {
       />
 
       {/* ===== TAMPILAN DESKTOP (grid 2 kolom, semua kartu tampil) ===== */}
-      <section className="mx-auto hidden max-w-3xl px-5 pb-20 pt-4 md:block">
+      <section ref={desktopSectionRef} className="view-panel-enter mx-auto hidden max-w-3xl px-5 pb-20 pt-4 md:block">
       {/* Ringkasan 3 kartu (desktop) */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+        <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
           <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total Utang</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#EB5353] bg-[#E5E5E5]">{ringkasan.aktifCount} aktif</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#EB5353] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalSisa)}</p>
 
         </div>
-        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+        <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
           <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#36AE7C]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Lunas</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#36AE7C] bg-[#E5E5E5]">{ringkasan.lunasCount} item lunas</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#36AE7C] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalLunasNominal)}</p>
 
         </div>
-        <div className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
+        <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
           <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#187498]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Cicilan Aktif</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#187498] bg-[#E5E5E5]">{formatRupiah(ringkasan.totalCicilanPerBulan)}/bln</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#187498] tabular-nums lg:text-2xl mt-1">{ringkasan.cicilanAktif}</p>
 
@@ -473,7 +477,7 @@ export default function UtangView({ user }) {
       />
 
       {hapusTarget && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
+        <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
           <div className="neu-card w-full max-w-xs rounded-3xl bg-[#E5E5E5] p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl neu-inset text-[#EB5353]">
               <span className="material-symbols-outlined text-3xl">delete</span>

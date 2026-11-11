@@ -115,8 +115,8 @@ export default function BackupModal({ open, onClose, uid }) {
   }
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral w-full max-w-sm p-5">
+    <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom w-full max-w-sm p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800">Backup & Pulihkan</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
@@ -178,7 +178,7 @@ export default function BackupModal({ open, onClose, uid }) {
             {loading && progress?.total > 0 && (
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                 <div
-                  className="h-full rounded-full bg-expense transition-all"
+                  className="progress-bar-fill h-full rounded-full bg-expense"
                   style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
                 />
               </div>
