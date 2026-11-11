@@ -232,5 +232,23 @@ const idxLayerSecondOpen = fileCss.indexOf('@layer components {', fileCss.indexO
 const motionCssInsideLayer = idxScrollRevealCss > -1 && idxLayerSecondOpen > -1 && idxScrollRevealCss > idxLayerSecondOpen
 cek('css: aturan kelas motion (.view-panel-enter, .tx-action-pop, .scroll-reveal-*) berada di dalam @layer components', motionCssInsideLayer)
 
+// 30. Performa kartu list: contain: layout style (TANPA contain: paint yang memotong bayangan) & .progress-bar-fill tanpa barGrowX ulang
+const blokContain = fileCss.match(/\.tx-card-item\s*\{[^}]*\}/)?.[0] ?? ''
+const neuCardContain = /contain:\s*layout style;/.test(fileCss)
+const bebasContainPaint = !/\.tx-card-item[^}]*contain:[^;]*paint/.test(fileCss) && !/\.neu-card[^}]*contain:[^;]*paint/.test(fileCss)
+const blokProgressFill = fileCss.match(/\.progress-bar-fill\s*\{[^}]*\}/)?.[0] ?? ''
+const progressBebasBarGrowUlang = !blokProgressFill.includes('barGrowX') && blokProgressFill.includes('transition: width')
+cek('css perf: kartu list memiliki contain: layout style (tanpa paint) & progress-bar-fill transisi halus tanpa barGrowX ulang', blokContain.includes('contain: layout style') && neuCardContain && bebasContainPaint && progressBebasBarGrowUlang)
+
+// 31. Performa list swipe & paginasi: TransaksiView & UtangMobile bebas dari remount key halaman/kartu dan state setDragOffset
+const fileUtangMobile = readFileSync(join(root, 'src/features/utang/UtangMobile.jsx'), 'utf8')
+const txTanpaRemountDanDragState =
+  !fileTransaksiView.includes('key={`tx-page-') &&
+  !fileTransaksiView.includes('setDragOffset')
+const utangTanpaRemountDanDragState =
+  !fileUtangMobile.includes('key={`utang-card-') &&
+  !fileUtangMobile.includes('setDragOffset')
+cek('list perf: TransaksiView & UtangMobile bebas dari remount key wrapper & setDragOffset per touchmove', txTanpaRemountDanDragState && utangTanpaRemountDanDragState)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
