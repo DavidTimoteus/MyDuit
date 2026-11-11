@@ -33,9 +33,23 @@ export function findScrollRoot(node) {
 }
 
 /**
- * Scroll-triggered reveal progresif berbasis IntersectionObserver pada `.main-scroll`.
- * Memakai atribut `data-reveal="pending|revealed"` yang kebal terhadap re-render `className`
- * React, sambil menjaga class `.scroll-reveal-pending` & `.is-revealed` tetap sinkron.
+ * Mengklasifikasikan elemen `[data-reveal]` terhadap viewport `.main-scroll`.
+ * - 'skip'    : elemen tersembunyi (display:none / 0x0), abaikan.
+ * - 'visible' : sudah di dalam atau di atas viewport — wajib tampil instan tanpa opacity:0.
+ * - 'pending' : di bawah lipatan bawah viewport (below the fold) — animasikan saat scroll.
+ */
+export function classifyRevealTarget(elRect, rootRect, marginPx = 8) {
+  if (!elRect || (elRect.width <= 0 && elRect.height <= 0)) return 'skip'
+  const bottomLimit = rootRect?.bottom ?? 800
+  if (elRect.top < bottomLimit - marginPx) return 'visible'
+  return 'pending'
+}
+
+/**
+ * Scroll-triggered reveal self-cleaning berbasis IntersectionObserver pada `.main-scroll`.
+ * Elemen yang sudah terlihat langsung tampil (`opacity: 1`), sedangkan elemen di bawah
+ * lipatan layar beranimasi masuk saat di-scroll lalu membersihkan kelas & transform pada
+ * `animationend` sehingga elemen kembali bersih (`transform: none`).
  */
 export function useScrollReveal(containerRef, deps = []) {
   useEffect(() => {
@@ -47,58 +61,18 @@ export function useScrollReveal(containerRef, deps = []) {
     targets.push(...host.querySelectorAll('[data-reveal]'))
     if (targets.length === 0) return undefined
 
-    const markPending = (el) => {
-      el.setAttribute('data-reveal', 'pending')
-      if (!el.classList.contains('scroll-reveal-pending')) el.classList.add('scroll-reveal-pending')
+    const finishReveal = (el) => {
+      el.classList.remove('scroll-reveal-pending', 'scroll-reveal-run')
+      el.style.removeProperty('--reveal-delay')
+      el.dataset.scrollRevealed = '1'
     }
 
-    const markRevealed = (el, delayMs) => {
-      if (delayMs != null) el.style.setProperty('--reveal-delay', `${delayMs}ms`)
-      el.setAttribute('data-reveal', 'revealed')
-      if (!el.classList.contains('scroll-reveal-pending')) el.classList.add('scroll-reveal-pending')
-      if (!el.classList.contains('is-revealed')) el.classList.add('is-revealed')
-    }
-
-    // Sinkronkan ulang bila re-render React mengganti string `className` elemen `[data-reveal]`
-    const syncClassWithState = (el) => {
-      const state = el.getAttribute('data-reveal')
-      if (state === 'revealed') {
-        if (!el.classList.contains('scroll-reveal-pending')) el.classList.add('scroll-reveal-pending')
-        if (!el.classList.contains('is-revealed')) el.classList.add('is-revealed')
-      } else if (state === 'pending') {
-        if (!el.classList.contains('scroll-reveal-pending')) el.classList.add('scroll-reveal-pending')
-      }
-    }
-
-    let classObserver = null
-    if (typeof MutationObserver === 'function') {
-      classObserver = new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          if (m.type === 'attributes' && m.target) syncClassWithState(m.target)
-        }
-      })
-      targets.forEach((el) => {
-        syncClassWithState(el)
-        classObserver.observe(el, { attributes: true, attributeFilter: ['class'] })
-      })
-    }
-
-    const unrevealed = targets.filter((el) => el.getAttribute('data-reveal') !== 'revealed')
-    if (unrevealed.length === 0) {
-      return () => {
-        classObserver?.disconnect()
-      }
-    }
+    const unrevealed = targets.filter((el) => el.dataset.scrollRevealed !== '1')
+    if (unrevealed.length === 0) return undefined
 
     if (prefersReducedMotion() || typeof IntersectionObserver !== 'function') {
-      unrevealed.forEach((el) => {
-        el.setAttribute('data-reveal', 'revealed')
-        el.classList.remove('scroll-reveal-pending')
-        if (!el.classList.contains('is-revealed')) el.classList.add('is-revealed')
-      })
-      return () => {
-        classObserver?.disconnect()
-      }
+      unrevealed.forEach(finishReveal)
+      return undefined
     }
 
     const scrollRoot = findScrollRoot(host)
@@ -109,108 +83,119 @@ export function useScrollReveal(containerRef, deps = []) {
     const rootRect = getRootRect()
 
     const pendingSet = new Set()
-    const visibleNow = []
+    const activeTimers = new Set()
+
+    const runReveal = (el, delayMs) => {
+      pendingSet.delete(el)
+      el.classList.remove('scroll-reveal-pending')
+      if (delayMs > 0) el.style.setProperty('--reveal-delay', `${delayMs}ms`)
+      else el.style.removeProperty('--reveal-delay')
+      el.classList.add('scroll-reveal-run')
+
+      let settled = false
+      const cleanup = () => {
+        if (settled) return
+        settled = true
+        finishReveal(el)
+      }
+      el.addEventListener('animationend', cleanup, { once: true })
+      const fallbackId = window.setTimeout(() => {
+        activeTimers.delete(fallbackId)
+        cleanup()
+      }, (delayMs || 0) + 420)
+      activeTimers.add(fallbackId)
+    }
 
     for (const el of unrevealed) {
       const rect = el.getBoundingClientRect()
-      if (rect.bottom <= rootRect.top) {
-        markRevealed(el, 0)
-      } else if (rect.top < rootRect.bottom - 8) {
-        markPending(el)
-        visibleNow.push(el)
+      const kind = classifyRevealTarget(rect, rootRect)
+      if (kind === 'skip') continue
+      if (kind === 'visible') {
+        finishReveal(el)
       } else {
-        markPending(el)
+        el.classList.add('scroll-reveal-pending')
         pendingSet.add(el)
       }
     }
 
-    visibleNow.forEach((el, idx) => {
-      el.style.setProperty('--reveal-delay', `${computeRevealDelayMs(idx)}ms`)
-    })
+    if (pendingSet.size === 0) return undefined
 
-    let raf1 = 0
-    let raf2 = 0
-    if (visibleNow.length > 0) {
-      raf1 = window.requestAnimationFrame(() => {
-        raf2 = window.requestAnimationFrame(() => {
-          visibleNow.forEach((el) => markRevealed(el))
-        })
+    // Jaga class pending bila React me-re-render elemen offscreen sebelum masuk viewport.
+    let classObserver = null
+    if (typeof MutationObserver === 'function') {
+      classObserver = new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          const el = m.target
+          if (pendingSet.has(el) && !el.classList.contains('scroll-reveal-pending')) {
+            el.classList.add('scroll-reveal-pending')
+          }
+        }
       })
+      pendingSet.forEach((el) => classObserver.observe(el, { attributes: true, attributeFilter: ['class'] }))
     }
 
     let observer = null
-    let scrollTarget = null
     let scrollRaf = 0
-    let onScrollSweep = null
+    const scrollTarget = scrollRoot || window
 
     const sweepVisible = (marginPx = 24) => {
       if (pendingSet.size === 0) return
       const nowRect = getRootRect()
-      let batchCount = 0
+      let batchIdx = 0
       for (const el of [...pendingSet]) {
         const r = el.getBoundingClientRect()
-        if (r.top < nowRect.bottom + marginPx) {
-          markRevealed(el, computeRevealDelayMs(batchCount, 4, 32))
+        if (r.width <= 0 && r.height <= 0) {
           pendingSet.delete(el)
           observer?.unobserve(el)
-          batchCount++
+          el.classList.remove('scroll-reveal-pending')
+          continue
+        }
+        if (r.top < nowRect.bottom + marginPx) {
+          observer?.unobserve(el)
+          runReveal(el, computeRevealDelayMs(batchIdx, 3, 36))
+          batchIdx++
         }
       }
-      if (pendingSet.size === 0 && scrollTarget && onScrollSweep) {
-        scrollTarget.removeEventListener('scroll', onScrollSweep)
-      }
     }
 
-    if (pendingSet.size > 0) {
-      observer = new IntersectionObserver(
-        (entries) => {
-          let batchCount = 0
-          for (const entry of entries) {
-            if (!entry.isIntersecting) continue
-            const el = entry.target
-            markRevealed(el, computeRevealDelayMs(batchCount, 4, 32))
-            pendingSet.delete(el)
-            observer.unobserve(el)
-            batchCount++
-          }
-          if (pendingSet.size === 0 && scrollTarget && onScrollSweep) {
-            scrollTarget.removeEventListener('scroll', onScrollSweep)
-          }
-        },
-        {
-          root: scrollRoot,
-          threshold: 0.01,
-          rootMargin: '40px 0px 24px 0px',
-        },
-      )
-      pendingSet.forEach((el) => observer.observe(el))
+    observer = new IntersectionObserver(
+      (entries) => {
+        let batchIdx = 0
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const el = entry.target
+          if (!pendingSet.has(el)) continue
+          observer.unobserve(el)
+          runReveal(el, computeRevealDelayMs(batchIdx, 3, 36))
+          batchIdx++
+        }
+      },
+      {
+        root: scrollRoot,
+        threshold: 0.01,
+        rootMargin: '0px 0px 24px 0px',
+      },
+    )
+    pendingSet.forEach((el) => observer.observe(el))
 
-      scrollTarget = scrollRoot || window
-      onScrollSweep = () => {
-        if (scrollRaf || pendingSet.size === 0) return
-        scrollRaf = window.requestAnimationFrame(() => {
-          scrollRaf = 0
-          sweepVisible(24)
-        })
-      }
-      scrollTarget.addEventListener('scroll', onScrollSweep, { passive: true })
+    const onScrollSweep = () => {
+      if (scrollRaf || pendingSet.size === 0) return
+      scrollRaf = window.requestAnimationFrame(() => {
+        scrollRaf = 0
+        sweepVisible(24)
+      })
     }
-
-    // Failsafe: pastikan elemen yang berada di dalam/dekat viewport selalu terungkap.
-    const safetyTimer = window.setTimeout(() => {
-      sweepVisible(60)
-    }, 500)
+    scrollTarget.addEventListener('scroll', onScrollSweep, { passive: true })
 
     return () => {
-      if (raf1) window.cancelAnimationFrame(raf1)
-      if (raf2) window.cancelAnimationFrame(raf2)
       if (scrollRaf) window.cancelAnimationFrame(scrollRaf)
-      window.clearTimeout(safetyTimer)
-      if (scrollTarget && onScrollSweep) {
-        scrollTarget.removeEventListener('scroll', onScrollSweep)
-      }
+      activeTimers.forEach((t) => window.clearTimeout(t))
+      activeTimers.clear()
+      scrollTarget.removeEventListener('scroll', onScrollSweep)
       observer?.disconnect()
       classObserver?.disconnect()
+      // Jangan pernah meninggalkan elemen off-screen terjebak opacity: 0 saat deps berubah/unmount
+      pendingSet.forEach((el) => el.classList.remove('scroll-reveal-pending'))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps)
