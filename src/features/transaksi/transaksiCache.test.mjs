@@ -6,6 +6,7 @@ import {
   buatCacheTransaksiKey,
   invalidateCacheUid,
   mutasiCacheTransaksi,
+  perbaruiCacheLanjutan,
   simpanCacheTransaksi,
 } from './transaksiCache.js'
 
@@ -81,6 +82,21 @@ cek('mutasiCacheTransaksi memperbarui & menghapus dokumen di seluruh cache uid s
 
   invalidateCacheUid(store, 'u1')
   assert.equal(store.size, 0)
+})
+
+cek('perbaruiCacheLanjutan mempertahankan halaman lanjutan (>50 docs) pada cache tanpa terpotong snapshot Top-50', () => {
+  const store = new Map()
+  const key = buatCacheTransaksiKey({ uid: 'u1', jenis: 'semua', range: { start: '2026-10-10', end: '2026-11-11' }, pageSize: 50 })
+  simpanCacheTransaksi(store, key, { docs: sampleDocs, hasMore: true })
+  const lanjutDocs = [
+    ...sampleDocs,
+    { id: 't4-hal4', jenis: 'pengeluaran', jumlah: 15000, tanggal: '2026-10-15', createdAt: '2026-10-15T10:00:00.000Z' },
+  ]
+  perbaruiCacheLanjutan(store, key, { docs: lanjutDocs, hasMore: false, lastDoc: { id: 't4-hal4' } })
+  const hit = ambilCacheTransaksi(store, { uid: 'u1', jenis: 'semua', range: { start: '2026-10-10', end: '2026-11-11' }, pageSize: 50 })
+  assert.equal(hit?.docs.length, 4)
+  assert.equal(hit?.hasMore, false)
+  assert.equal(hit?.lastDoc?.id, 't4-hal4')
 })
 
 console.log(`\nLULUS: ${lulus}/${total} cek lolos`)

@@ -10,6 +10,7 @@ import { useTransaksi } from './useTransaksi.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { portalBody } from '../../lib/portal.js'
+import { evaluasiPenambahanTransaksi } from './transaksiFilter.js'
 
 const PER_HALAMAN = 20
 const LS_CHIP = 'myduit:tx_chip'
@@ -42,7 +43,7 @@ export default function TransaksiView({ user }) {
     }
   })
 
-  function ubahChip(c) {
+  const ubahChip = useCallback((c) => {
     setChip(c)
     setPage(1)
     try {
@@ -51,7 +52,7 @@ export default function TransaksiView({ user }) {
     } catch {
       // storage diblokir
     }
-  }
+  }, [])
   const [jenis, setJenis] = useState('semua')
   const [keyword, setKeyword] = useState('')
   const [rentang, setRentang] = useState({ start: '', end: '' })
@@ -64,12 +65,14 @@ export default function TransaksiView({ user }) {
   const [bulkMode, setBulkMode] = useState(false)
   const [selected, setSelected] = useState(() => new Set())
   const [openDeleteId, setOpenDeleteId] = useState(null)
+  const [justAddedId, setJustAddedId] = useState(null)
+  const justAddedTimerRef = useRef(0)
   const [page, setPage] = useState(1)
 
-  function ubahJenis(j) {
+  const ubahJenis = useCallback((j) => {
     setJenis(j)
     setPage(1)
-  }
+  }, [])
 
   function ubahKeyword(val) {
     setKeyword(val)
@@ -161,31 +164,67 @@ export default function TransaksiView({ user }) {
     return () => window.removeEventListener('myduit:aksi-cepat', onAksi)
   }, [bukaForm])
 
-  // Tangani transaksi baru yang dicatat: jika tanggal atau jenis berada di luar filter aktif,
-  // alihkan filter agar transaksi baru langsung tampak seketika di daftar tanpa reload.
+  const docsEnrichedRef = useRef(docsEnriched)
+  docsEnrichedRef.current = docsEnriched
+  const pageRef = useRef(page)
+  pageRef.current = page
+  const keywordRef = useRef(keyword)
+  keywordRef.current = keyword
+
+  // Tangani transaksi baru / salinan: hanya alihkan filter jika item benar-benar di luar
+  // rentang/jenis aktif. Bila cocok filter, pertahankan halaman aktif (misal Hal. 4)
+  // dengan sorot optimis agar tidak melompat kembali ke Halaman 1 seperti full-refresh.
   useEffect(() => {
     function onTransaksiAdded(e) {
       const item = e?.detail?.item
       if (!item) return
-      if (range && ((range.start && item.tanggal < range.start) || (range.end && item.tanggal > range.end))) {
-        ubahChip('semua')
+      const isRollback = Boolean(e?.detail?.isRollback)
+      const hasil = evaluasiPenambahanTransaksi({
+        docs: docsEnrichedRef.current,
+        item,
+        range,
+        jenis,
+        keyword: keywordRef.current,
+        currentPage: pageRef.current,
+        perHalaman: PER_HALAMAN,
+      })
+      if (hasil.perluResetRange) ubahChip('semua')
+      if (hasil.perluResetJenis) ubahJenis('semua')
+      if (!isRollback) {
+        setJustAddedId(item.id)
+        if (justAddedTimerRef.current) window.clearTimeout(justAddedTimerRef.current)
+        justAddedTimerRef.current = window.setTimeout(() => setJustAddedId(null), 1800)
+
+        if (!hasil.perluResetRange && !hasil.perluResetJenis && hasil.targetPage !== pageRef.current) {
+          const targetP = hasil.targetPage
+          window.dispatchEvent(
+            new CustomEvent('myduit:toast', {
+              detail: {
+                type: 'success',
+                msg: `Transaksi dicatat di Hal. ${targetP}.`,
+                actionLabel: `Lihat Hal. ${targetP}`,
+                onAction: () => {
+                  setPage(targetP)
+                  const scroller = listRef.current?.closest('.main-scroll')
+                  scroller?.scrollTo?.({ top: 0, behavior: 'smooth' })
+                },
+              },
+            }),
+          )
+        }
       }
-      if (jenis !== 'semua' && item.jenis && item.jenis !== jenis) {
-        setJenis('semua')
-      }
-      setPage(1)
     }
     window.addEventListener('myduit:transaksi-added', onTransaksiAdded)
     return () => window.removeEventListener('myduit:transaksi-added', onTransaksiAdded)
-  }, [range, jenis])
+  }, [range, jenis, ubahChip, ubahJenis])
 
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
 
   useEffect(() => {
-    if (page > totalPages) {
+    if (!loading && page > totalPages) {
       setPage(totalPages)
     }
-  }, [page, totalPages])
+  }, [loading, page, totalPages])
   const pageItems = tampil.slice((page - 1) * PER_HALAMAN, page * PER_HALAMAN)
 
   const touchStartX = useRef(null)
@@ -198,6 +237,7 @@ export default function TransaksiView({ user }) {
 
   useEffect(() => () => {
     if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current)
+    if (justAddedTimerRef.current) window.clearTimeout(justAddedTimerRef.current)
   }, [])
 
   function playListSlide(dir) {
@@ -427,7 +467,7 @@ export default function TransaksiView({ user }) {
     } catch (e2) {
       hapusLockRef.current.delete(target.id)
       console.warn('[hapus] gagal:', e2?.message ?? e2)
-      window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: target } }))
+      window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: target, isRollback: true } }))
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
           detail: { type: 'error', msg: 'Gagal menghapus transaksi dari server.' },
@@ -455,7 +495,7 @@ export default function TransaksiView({ user }) {
     } catch (e2) {
       console.warn('[hapus-massal] gagal:', e2?.message ?? e2)
       targets.forEach((t) => {
-        window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: t } }))
+        window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: t, isRollback: true } }))
       })
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
@@ -704,6 +744,7 @@ export default function TransaksiView({ user }) {
                 trans={t}
                 bulkMode={bulkMode}
                 selected={bulkMode && selected.has(t.id)}
+                justAdded={t.id === justAddedId}
                 currencySymbol={currencySymbol}
                 onToggleSelect={toggleSelect}
                 deleteOpen={!bulkMode && openDeleteId === t.id}

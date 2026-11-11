@@ -1774,6 +1774,25 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   animation: txActionPop var(--motion-dur-fast) var(--motion-ease-spring) var(--pop-delay, 0ms) backwards;
 }
 
+@keyframes cardJustAddedGlow {
+  0% {
+    box-shadow:
+      0 0 0 2px rgba(54, 174, 124, 0.55),
+      -8px -8px 20px rgba(255, 255, 255, 0.85),
+       8px  8px 20px rgba(54, 174, 124, 0.25);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(54, 174, 124, 0),
+      -8px -8px 20px rgba(255, 255, 255, 0.75),
+       8px  8px 20px rgba(0, 0, 0, 0.16);
+  }
+}
+
+.tx-card-just-added {
+  animation: cardJustAddedGlow 1.15s ease-out backwards;
+}
+
 /* Scroll-triggered reveal self-cleaning (hanya untuk item below-the-fold) */
 .scroll-reveal-pending {
   opacity: 0;
@@ -2167,6 +2186,26 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   box-shadow:
     0 0.5px 0 var(--clay-lip-btn-primary),
     0 1px 3px rgba(var(--clay-h-primary), 0.20),
+    inset 0 1.5px 3px rgba(0, 0, 0, 0.25);
+}
+
+.clay-chip.solid-danger {
+  background-color: #EB5353;
+  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 100%);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.40);
+  box-shadow:
+    0 2.5px 0 var(--clay-lip-btn-danger),
+    0 4px 10px rgba(var(--clay-h-danger), 0.28),
+    inset 0 1px 1.5px rgba(255, 255, 255, 0.60),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.15);
+}
+.clay-chip.solid-danger:hover { transform: translateY(-1px); }
+.clay-chip.solid-danger:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 0.5px 0 var(--clay-lip-btn-danger),
+    0 1px 3px rgba(var(--clay-h-danger), 0.20),
     inset 0 1.5px 3px rgba(0, 0, 0, 0.25);
 }
 
@@ -3291,6 +3330,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .clay-btn-danger,
 [data-theme="neumorphism"] .neu-btn-danger,
 [data-theme="neumorphism"] .btn-danger,
+[data-theme="neumorphism"] .clay-chip.solid-danger,
 [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab) {
   background-color: #EB5353 !important;
   background-image: none !important;
@@ -3344,6 +3384,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   [data-theme="neumorphism"] .clay-btn.clay-key-danger:hover:not(:disabled),
   [data-theme="neumorphism"] .clay-btn-danger:hover:not(:disabled),
   [data-theme="neumorphism"] .neu-btn-danger:hover:not(:disabled),
+  [data-theme="neumorphism"] .clay-chip.solid-danger:hover:not(:disabled),
   [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
     transform: translateY(-1.5px) !important;
     background-color: #D94343 !important;
@@ -3375,6 +3416,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .clay-btn.clay-key-danger:active:not(:disabled),
 [data-theme="neumorphism"] .clay-btn-danger:active:not(:disabled),
 [data-theme="neumorphism"] .neu-btn-danger:active:not(:disabled),
+[data-theme="neumorphism"] .clay-chip.solid-danger:active:not(:disabled),
 [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab):active:not(:disabled),
 [data-theme="neumorphism"] .clay-btn.clay-key-blue:active:not(:disabled),
 [data-theme="neumorphism"] .clay-chip.solid-blue:active:not(:disabled),

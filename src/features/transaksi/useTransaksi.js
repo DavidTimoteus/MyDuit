@@ -7,6 +7,7 @@ import {
   ambilCacheTransaksi,
   buatCacheTransaksiKey,
   mutasiCacheTransaksi,
+  perbaruiCacheLanjutan,
   simpanCacheTransaksi,
 } from './transaksiCache.js'
 
@@ -27,6 +28,9 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState('')
   const lastDocRef = useRef(null)
+  const cursorStateRef = useRef({ kunci: '', loadedMore: false, exhausted: false })
+  const riwayatRef = useRef(riwayat)
+  riwayatRef.current = riwayat
 
   // Tangani event global penambahan, pembaruan, dan penghapusan transaksi
   // agar seluruh instans useTransaksi (mis. TransaksiView dan RightPanel)
@@ -36,21 +40,27 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
       const ids = e?.detail?.ids || (e?.detail?.id ? [e.detail.id] : null)
       if (ids && ids.length) {
         mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'hapus', ids })
-        dispatch({ type: 'hapus', ids })
+        const aksi = { type: 'hapus', ids }
+        riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+        dispatch(aksi)
       }
     }
     function onTambah(e) {
       const item = e?.detail?.item
       if (item && item.id) {
         mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'tambah', item })
-        dispatch({ type: 'tambah', item })
+        const aksi = { type: 'tambah', item }
+        riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+        dispatch(aksi)
       }
     }
     function onUpdate(e) {
       const item = e?.detail?.item
       if (item && item.id) {
         mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'update', item })
-        dispatch({ type: 'update', item })
+        const aksi = { type: 'update', item }
+        riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+        dispatch(aksi)
       }
     }
     window.addEventListener('myduit:transaksi-deleted', onHapus)
@@ -71,14 +81,26 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
     // 'mulai' membuang dokumen filter sebelumnya (bila kuncinya berbeda).
     // Bila hit cache tersedia (eksak atau turunan filter jenis dari snapshot 'semua' yg lengkap),
     // batch dispatch snapshot langsung di effect yang sama -> 0ms instan tanpa flash spinner.
-    dispatch({ type: 'mulai', kunci })
+    const aksiMulai = { type: 'mulai', kunci }
+    riwayatRef.current = kurangRiwayat(riwayatRef.current, aksiMulai)
+    dispatch(aksiMulai)
     setError('')
-    lastDocRef.current = null
     if (cached) {
-      dispatch({ type: 'snapshot', kunci, list: cached.docs })
+      lastDocRef.current = cached.lastDoc ?? null
+      const loadedMoreFromCache = Boolean(cached.lastDoc || (pageSize > 0 && (cached.docs?.length || 0) > pageSize))
+      cursorStateRef.current = {
+        kunci,
+        loadedMore: loadedMoreFromCache,
+        exhausted: loadedMoreFromCache ? !cached.hasMore : false,
+      }
+      const aksiSnap = { type: 'snapshot', kunci, list: cached.docs }
+      riwayatRef.current = kurangRiwayat(riwayatRef.current, aksiSnap)
+      dispatch(aksiSnap)
       setHasMore(cached.hasMore)
       setLoading(false)
     } else {
+      lastDocRef.current = null
+      cursorStateRef.current = { kunci, loadedMore: false, exhausted: false }
       setLoading(true)
       setHasMore(false)
     }
@@ -91,7 +113,9 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
       if (!cached) {
         simpanCacheTransaksi(globalTransaksiCache, cacheKey, { docs: filtered, hasMore: false })
       }
-      dispatch({ type: 'snapshot', kunci, list: filtered });
+      const aksiDemo = { type: 'snapshot', kunci, list: filtered }
+      riwayatRef.current = kurangRiwayat(riwayatRef.current, aksiDemo)
+      dispatch(aksiDemo);
       setLoading(false);
       return () => {};
     }
@@ -100,12 +124,24 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
       q,
       (snap) => {
         const list = snap.docs.map(docKeTransaksi)
-        const more = Boolean(pageSize && pageSize > 0 && snap.docs.length === pageSize)
-        lastDocRef.current = snap.docs[snap.docs.length - 1] ?? null
-        simpanCacheTransaksi(globalTransaksiCache, cacheKey, { docs: list, hasMore: more })
+        const loadedMore = cursorStateRef.current.kunci === kunci && cursorStateRef.current.loadedMore
+        const more = loadedMore
+          ? !cursorStateRef.current.exhausted
+          : Boolean(pageSize && pageSize > 0 && snap.docs.length === pageSize)
+        if (!loadedMore) {
+          lastDocRef.current = snap.docs[snap.docs.length - 1] ?? null
+        }
+        const aksiSnap = { type: 'snapshot', kunci, list }
+        const nextRiwayat = kurangRiwayat(riwayatRef.current, aksiSnap)
+        riwayatRef.current = nextRiwayat
+        simpanCacheTransaksi(globalTransaksiCache, cacheKey, {
+          docs: loadedMore ? nextRiwayat.docs : list,
+          hasMore: more,
+          lastDoc: loadedMore ? lastDocRef.current : null,
+        })
         // Snapshot hanya mencakup pageSize dokumen pertama (bila dibatasi); reducer yang
         // memutuskan apakah halaman "Muat lagi" ikut dipertahankan.
-        dispatch({ type: 'snapshot', kunci, list })
+        dispatch(aksiSnap)
         setHasMore(more)
         setLoading(false)
       },
@@ -128,21 +164,27 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
     if (!idOrIds) return
     const ids = Array.isArray(idOrIds) ? idOrIds : [idOrIds]
     mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'hapus', ids })
-    dispatch({ type: 'hapus', ids })
+    const aksi = { type: 'hapus', ids }
+    riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+    dispatch(aksi)
     window.dispatchEvent(new CustomEvent('myduit:transaksi-deleted', { detail: { ids } }))
   }, [uid])
 
   const tambahLokal = useCallback((item) => {
     if (!item?.id) return
     mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'tambah', item })
-    dispatch({ type: 'tambah', item })
+    const aksi = { type: 'tambah', item }
+    riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+    dispatch(aksi)
     window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item } }))
   }, [uid])
 
   const updateLokal = useCallback((item) => {
     if (!item?.id) return
     mutasiCacheTransaksi(globalTransaksiCache, uid, { type: 'update', item })
-    dispatch({ type: 'update', item })
+    const aksi = { type: 'update', item }
+    riwayatRef.current = kurangRiwayat(riwayatRef.current, aksi)
+    dispatch(aksi)
     window.dispatchEvent(new CustomEvent('myduit:transaksi-updated', { detail: { item } }))
   }, [uid])
 
@@ -150,14 +192,26 @@ export function useTransaksi(uid, { jenis, range, pageSize = PAGE_SIZE } = {}) {
     if (!uid || !lastDocRef.current || loadingMore) return
     setLoadingMore(true)
     try {
+      const kunci = kunciQuery(uid, jenis, range)
+      const cacheKey = buatCacheTransaksiKey({ uid, jenis, range, pageSize })
       const q = buildTransQuery(uid, { jenis, range, pageSize: PAGE_SIZE, cursor: lastDocRef.current })
       const snap = await getDocs(q)
       const list = snap.docs.map(docKeTransaksi)
       lastDocRef.current = snap.docs[snap.docs.length - 1] ?? lastDocRef.current
+      const hasNext = snap.docs.length === PAGE_SIZE
+      cursorStateRef.current = { kunci, loadedMore: true, exhausted: !hasNext }
       // Dedupe + penanda halaman lanjutan: dokumen di batas halaman bisa
       // muncul lagi kalau ada penulisan baru di antara dua permintaan.
-      dispatch({ type: 'lanjut', kunci: kunciQuery(uid, jenis, range), list })
-      setHasMore(snap.docs.length === PAGE_SIZE)
+      const aksiLanjut = { type: 'lanjut', kunci, list }
+      const nextRiwayat = kurangRiwayat(riwayatRef.current, aksiLanjut)
+      riwayatRef.current = nextRiwayat
+      perbaruiCacheLanjutan(globalTransaksiCache, cacheKey, {
+        docs: nextRiwayat.docs,
+        hasMore: hasNext,
+        lastDoc: lastDocRef.current,
+      })
+      dispatch(aksiLanjut)
+      setHasMore(hasNext)
     } catch (e) {
       setError(e?.message ?? String(e))
     } finally {

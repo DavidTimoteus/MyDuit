@@ -139,15 +139,23 @@ export function kurangRiwayat(state, aksi) {
       const combinedList = [...pendingList.filter((p) => !aksi.list.some((l) => l.id === p.id)), ...aksi.list]
       combinedList.sort(urutkanTransaksi)
 
+      const mergedDocs = gabungSnapshot({
+        prev: state.docs,
+        list: combinedList,
+        adaLanjutan: state.adaLanjutan,
+        deletedIds: state.deletedIds,
+      })
+      // Jika user sedang menelusuri halaman lanjutan (>50 item) dan item optimis bertanggal
+      // lebih tua dari batas Top-50 belum masuk snapshot, sort ulang hasil gabungan agar
+      // item Halaman 4 tidak tersangkut di indeks #50 (Halaman 3).
+      if (state.adaLanjutan && pendingList.length > 0 && mergedDocs.length > aksi.list.length) {
+        mergedDocs.sort(urutkanTransaksi)
+      }
+
       return {
         ...state,
         pendingAdds: pending,
-        docs: gabungSnapshot({
-          prev: state.docs,
-          list: combinedList,
-          adaLanjutan: state.adaLanjutan,
-          deletedIds: state.deletedIds,
-        }),
+        docs: mergedDocs,
       }
     }
     case 'lanjut': {

@@ -126,6 +126,7 @@ export const TransaksiRow = memo(function TransaksiRow({
   trans,
   bulkMode,
   selected,
+  justAdded = false,
   currencySymbol,
   onToggleSelect,
   deleteOpen,
@@ -162,7 +163,7 @@ export const TransaksiRow = memo(function TransaksiRow({
       onDoubleClick={bulkMode ? undefined : () => onEdit?.(trans)}
       className={`tx-card-item clay clay-card ${clayKey} relative p-4 flex items-center justify-between gap-3 cursor-pointer select-none ${
         bulkMode ? `bulk-selectable ${dipilih ? 'bulk-selected' : ''}` : ''
-      } ${!bulkMode && deleteOpen ? tintRevealed : ''}`}
+      } ${!bulkMode && deleteOpen ? tintRevealed : ''} ${justAdded ? 'tx-card-just-added' : ''}`}
     >
       {bulkMode && (
         <span className="bulk-check w-6 h-6 rounded-full flex items-center justify-center shrink-0">

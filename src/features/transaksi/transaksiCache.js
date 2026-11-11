@@ -7,15 +7,20 @@ export function buatCacheTransaksiKey({ uid = '', jenis = 'semua', range = {}, p
   return `${uid}|${jenis}|${range?.start ?? ''}|${range?.end ?? ''}|${pageSize ?? 50}`
 }
 
-export function simpanCacheTransaksi(store, key, { docs = [], hasMore = false } = {}) {
+export function simpanCacheTransaksi(store, key, { docs = [], hasMore = false, lastDoc = null } = {}) {
   if (!store || !key) return
   if (store.has(key)) store.delete(key)
-  store.set(key, { docs, hasMore: Boolean(hasMore) })
+  const payload = lastDoc ? { docs, hasMore: Boolean(hasMore), lastDoc } : { docs, hasMore: Boolean(hasMore) }
+  store.set(key, payload)
   while (store.size > MAX_CACHE_KEYS) {
     const oldestKey = store.keys().next().value
     if (oldestKey === undefined) break
     store.delete(oldestKey)
   }
+}
+
+export function perbaruiCacheLanjutan(store, key, { docs = [], hasMore = false, lastDoc = null } = {}) {
+  simpanCacheTransaksi(store, key, { docs, hasMore, lastDoc })
 }
 
 export function ambilCacheTransaksi(store, { uid = '', jenis = 'semua', range = {}, pageSize = 50 } = {}) {

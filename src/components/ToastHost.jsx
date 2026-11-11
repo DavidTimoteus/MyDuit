@@ -75,10 +75,12 @@ export default function ToastHost() {
     const type = ['error', 'warning', 'success', 'info'].includes(detail?.type) ? detail.type : 'info'
     const msg = String(detail?.msg ?? '').trim()
     if (!msg) return
+    const actionLabel = typeof detail?.actionLabel === 'string' ? detail.actionLabel.trim() : ''
+    const onAction = typeof detail?.onAction === 'function' ? detail.onAction : null
 
     const id = ++idRef.current
     // Maksimal 3 toast supaya layar mobile tidak tertutup tumpukan notifikasi.
-    setItems((prev) => [...prev.slice(-2), { id, type, msg, exiting: false }])
+    setItems((prev) => [...prev.slice(-2), { id, type, msg, actionLabel, onAction, exiting: false }])
 
     const timer = setTimeout(() => tutup(id), DURASI[type] ?? 4000)
     timers.current.set(id, timer)
@@ -133,6 +135,21 @@ export default function ToastHost() {
                 <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">{g.judul}</p>
                 <p className="mt-0.5 break-words text-[13px] font-semibold leading-snug text-slate-800">{t.msg}</p>
               </div>
+              {t.actionLabel && t.onAction && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      t.onAction()
+                    } finally {
+                      tutup(t.id)
+                    }
+                  }}
+                  className="clay-chip clay-key-primary shrink-0 self-center rounded-full px-3 py-1 text-[11px] font-extrabold text-primary"
+                >
+                  {t.actionLabel}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => tutup(t.id)}

@@ -150,6 +150,31 @@ cek('createdAtMillis: mengekstrak milidetik dari objek Timestamp', createdAtMill
 cek('createdAtMillis: mengekstrak milidetik dari string ISO', createdAtMillis(baruOptimis.createdAt), 1762675000000)
 cek('createdAtMillis: fallback aman untuk nilai null/undefined', createdAtMillis(null), 0)
 
+// ===== Bug Halaman 4: salinan item tua (di luar Top-50 snapshot) WAJIB tetap di posisi kronologis Hal. 4 =====
+const K_PERIODE = 'u1|semua|2026-10-10|2026-11-11'
+let hal4State = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_PERIODE })
+const top50Periode = Array.from({ length: 50 }, (_, k) =>
+  trx(`p${k}`, k < 25 ? '2026-11-10' : '2026-10-25'),
+)
+const lanjutHal4 = Array.from({ length: 30 }, (_, k) =>
+  trx(`l${k}`, k < 15 ? '2026-10-18' : '2026-10-12'),
+)
+hal4State = kurangRiwayat(hal4State, { type: 'snapshot', kunci: K_PERIODE, list: top50Periode })
+hal4State = kurangRiwayat(hal4State, { type: 'lanjut', kunci: K_PERIODE, list: lanjutHal4 })
+// User menyalin item di Halaman 4 (tanggal 2026-10-15 -> berada antara l14 18 Okt dan l15 12 Okt -> indeks >= 65!)
+const salinanHal4 = {
+  id: 'copy_hal4',
+  tanggal: '2026-10-15',
+  jumlah: 50000,
+  createdAt: '2026-11-11T08:00:00.000Z',
+}
+hal4State = kurangRiwayat(hal4State, { type: 'tambah', item: salinanHal4 })
+const idxSebelumSnapshot = hal4State.docs.findIndex((t) => t.id === 'copy_hal4')
+// Beberapa milidetik kemudian onSnapshot Top-50 masuk (tidak memuat copy_hal4 karena 15 Okt < 25 Okt)
+hal4State = kurangRiwayat(hal4State, { type: 'snapshot', kunci: K_PERIODE, list: top50Periode })
+const idxSesudahSnapshot = hal4State.docs.findIndex((t) => t.id === 'copy_hal4')
+cek('salinan Halaman 4 tetap di posisi Halaman 4 (>=65, tidak meloncat ke indeks #50) pasca snapshot Top-50', [idxSebelumSnapshot, idxSesudahSnapshot], [65, 65])
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${lulus + galat.length} cek lolos`)
 if (galat.length) {
   console.log(galat.map((g) => `  - ${g}`).join('\n'))
