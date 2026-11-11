@@ -63,12 +63,12 @@ export default function UserMenuSheet({
   const iconCls = 'clay-icon-tile clay-key-neutral flex h-10 w-10 shrink-0 items-center justify-center'
 
   return (
-    <div className="fixed inset-0 z-[70] md:hidden" role="dialog" aria-modal="true" aria-label="Menu pengguna">
-      <div className="absolute inset-0 bg-slate-900/40" onClick={onClose} />
+    <div className="modal-backdrop-wrap fixed inset-0 z-[70] md:hidden" role="dialog" aria-modal="true" aria-label="Menu pengguna">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
 
       <div
         ref={sheetRef}
-        className="clay clay-sheet clay-key-neutral absolute inset-x-0 bottom-0 flex flex-col gap-2 rounded-b-none rounded-t-[28px] px-4 pb-6 pt-3"
+        className="clay clay-sheet clay-key-neutral modal-sheet-bottom absolute inset-x-0 bottom-0 flex flex-col gap-2 rounded-b-none rounded-t-[28px] px-4 pb-6 pt-3"
       >
         {/* Gagang tarik */}
         <div className="mx-auto mb-1 h-1.5 w-11 rounded-full bg-slate-300" aria-hidden="true" />

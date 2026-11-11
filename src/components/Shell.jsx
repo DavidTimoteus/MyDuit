@@ -5,6 +5,7 @@ import ModulSkeleton from "./ModulSkeleton.jsx";
 import UserMenuSheet from "./UserMenuSheet.jsx";
 // Theme locked to Neumorphism
 import { getFirebase } from "../lib/firebase.js";
+import { useScrolledState } from "../lib/useScrollEffects.js";
 import {
   detectCountryInfo,
   simpanNegaraManual,
@@ -157,7 +158,7 @@ function SidebarInsightStatistik() {
   return (
     <div
       id="sidebarStatistikInsightCard"
-      className="clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="view-panel-enter clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex items-center gap-2">
         <span
@@ -220,7 +221,7 @@ function SidebarInsightBudget() {
   return (
     <div
       id="sidebarBudgetInsightCard"
-      className="clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="view-panel-enter clay clay-card clay-key-blue mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex min-w-0 items-center gap-2">
         <span
@@ -245,7 +246,7 @@ function SidebarInsightBudget() {
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
             <div
-              className={`h-full rounded-full transition-all ${persen > 100 ? "bg-red-400" : persen >= 80 ? "bg-amber-400" : "bg-primary"}`}
+              className={`progress-bar-fill h-full rounded-full ${persen > 100 ? "bg-red-400" : persen >= 80 ? "bg-amber-400" : "bg-primary"}`}
               style={{ width: `${Math.min(100, persen)}%` }}
             />
           </div>
@@ -300,7 +301,7 @@ function SidebarInsightUtang() {
   return (
     <div
       id="sidebarUtangInfoCard"
-      className="clay clay-card clay-key-danger mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
+      className="view-panel-enter clay clay-card clay-key-danger mt-2 flex w-full min-w-0 flex-col gap-2 rounded-[18px] p-4"
     >
       <div className="flex items-center gap-2">
         <span
@@ -358,11 +359,11 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
   }
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="clay-sheet clay-key-primary flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm"
+        className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">
@@ -444,6 +445,7 @@ export default function Shell({ user }) {
   const [filterLabel, setFilterLabel] = useState("Hari Ini");
   const aktif = TABS.find((t) => t.id === tab);
   const mainScrollRef = useRef(null);
+  const mobileHeaderScrolled = useScrolledState(mainScrollRef, 6);
 
   // Info negara + mata uang untuk indikator lokasi di sidebar kiri.
   // Sumber: pilihan manual pengguna (localStorage) > timezone perangkat.
@@ -651,7 +653,7 @@ export default function Shell({ user }) {
           memakai pager satu-kartu-per-halaman supaya semua muat. Di luar itu
           (dan di desktop) tetap bisa scroll normal. */}
       <main className="flex-1 min-w-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
-        <div className="min-w-0 md:h-full md:overflow-y-auto md:pr-2 md:rounded-[28px]">
+        <div className="min-w-0 md:h-full md:overflow-hidden md:pr-2 md:rounded-[28px]">
           <div
             ref={mainScrollRef}
             className="main-scroll max-w-3xl mx-auto relative w-full min-w-0 overflow-x-hidden px-4 md:max-w-none md:px-6 md:mx-0 md:bg-transparent md:h-full md:overflow-y-auto overflow-y-auto"
@@ -670,16 +672,13 @@ export default function Shell({ user }) {
             Di tab lain (Budget/Rekening, Utang, Statistik), modul memiliki header mobile sendiri.
             -mx-4 px-4: bleed ke tepi layar penuh karena parent main-scroll punya px-4. */}
             {tab === "transaksi" && (
-              <header className="sticky top-0 z-30 flex items-center justify-between gap-2
-                                 -mx-4 px-4 md:hidden
-                                 py-2 bg-surface
-                                 relative">
+              <header className={`sticky-scroll-bar ${mobileHeaderScrolled ? "is-scrolled" : ""} sticky top-0 z-30 flex items-center justify-between gap-2 -mx-4 px-4 md:hidden py-2 bg-surface relative`}>
                 <button
                   type="button"
                   onClick={() => setLokasiOpen(true)}
                   title="Ubah lokasi & mata uang"
                   aria-label="Ubah lokasi & mata uang"
-                  className="clay-chip flex h-9 shrink-0 items-center gap-1.5 rounded-full border-none px-3 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 active:scale-95"
+                  className="clay-chip flex h-9 shrink-0 items-center gap-1.5 rounded-full border-none px-3 text-xs font-bold text-slate-700"
                   style={{ border: "none", outline: "none" }}
                 >
                   <span className="text-sm leading-none">{countryFlag}</span>
@@ -703,7 +702,7 @@ export default function Shell({ user }) {
                       )
                     }
                     aria-label="Filter Transaksi"
-                    className="clay-chip flex min-w-0 h-9 shrink-0 items-center gap-1 rounded-full bg-surfaceContainerLowest px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 active:scale-95"
+                    className="clay-chip flex min-w-0 h-9 shrink-0 items-center gap-1 rounded-full bg-surfaceContainerLowest px-3 text-xs font-semibold text-slate-700"
                   >
                     <span className="material-symbols-outlined icon-md text-incomeText">
                       tune
@@ -718,7 +717,7 @@ export default function Shell({ user }) {
                     }
                     title="Cetak Laporan PDF"
                     aria-label="Cetak Laporan PDF"
-                    className="clay-chip flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-red-500 transition-colors hover:bg-red-50 active:scale-95"
+                    className="clay-chip flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-none text-red-500"
                     style={{ border: "none", outline: "none" }}
                   >
                     <span className="material-symbols-outlined icon-md">
@@ -734,7 +733,7 @@ export default function Shell({ user }) {
                     onClick={() => setUserMenuOpen(true)}
                     aria-label="Menu pengguna"
                     aria-haspopup="dialog"
-                    className="clay-chip flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 active:scale-95"
+                    className="clay-chip flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-600"
                   >
                     <span className="material-symbols-outlined icon-lg">
                       account_circle
@@ -1007,7 +1006,7 @@ export default function Shell({ user }) {
                       ? "Aksi Statistik & Ekspor"
                       : "Aksi Cepat Transaksi"
               }
-              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full text-white transition-all duration-200 active:scale-95 touch-manipulation ${
+              className={`clay-fab group relative z-10 flex h-14 w-14 items-center justify-center rounded-full text-white touch-manipulation ${
                 tab === "budget"
                   ? "clay-key-blue solid-blue bg-[#187498]"
                   : tab === "utang"

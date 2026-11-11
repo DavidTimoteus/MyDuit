@@ -24,8 +24,8 @@ export default function ModulSkeleton() {
 
       {/* Placeholder toolbar */}
       <div className="clay-card-soft mb-4 flex items-center gap-3 px-4 py-3">
-        <div className="h-4 w-32 animate-pulse rounded-full bg-slate-200/70" />
-        <div className="ml-auto h-9 w-24 animate-pulse rounded-full bg-slate-200/50" />
+        <div className="neu-skeleton-shimmer h-4 w-32 rounded-full" />
+        <div className="neu-skeleton-shimmer ml-auto h-9 w-24 rounded-full" />
       </div>
 
       {/* Placeholder baris data */}
@@ -36,12 +36,12 @@ export default function ModulSkeleton() {
             className="clay-card-soft flex items-center gap-3 px-4 py-3.5"
             style={{ opacity: 1 - i * 0.08 }}
           >
-            <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-slate-200/70" />
+            <div className="neu-skeleton-shimmer h-9 w-9 shrink-0 rounded-full" />
             <div className="min-w-0 flex-1">
-              <div className="h-3.5 w-2/5 animate-pulse rounded-full bg-slate-200/80" />
-              <div className="mt-2 h-3 w-3/5 animate-pulse rounded-full bg-slate-200/50" />
+              <div className="neu-skeleton-shimmer h-3.5 w-2/5 rounded-full" />
+              <div className="neu-skeleton-shimmer mt-2 h-3 w-3/5 rounded-full" />
             </div>
-            <div className="h-4 w-20 shrink-0 animate-pulse rounded-full bg-slate-200/70" />
+            <div className="neu-skeleton-shimmer h-4 w-20 shrink-0 rounded-full" />
           </div>
         ))}
       </div>

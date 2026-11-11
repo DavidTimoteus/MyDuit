@@ -78,7 +78,7 @@ function useDismiss(open, close, listRef, triggerRef) {
 }
 
 const TRIGGER_BASE =
-  'clay-input field-lg w-full text-sm focus:outline-none transition-colors cursor-pointer'
+  'clay-input field-lg w-full text-sm focus:outline-none cursor-pointer'
 
 // ===== Dropdown clay — pengganti popup native <select> =====
 export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih', className = '', ...rest }) {
@@ -140,7 +140,7 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
             choose(hl)
           } else if (e.key === 'Tab' && open) setOpen(false)
         }}
-        className={`${TRIGGER_BASE} clay-select-trigger flex items-center justify-between gap-2 text-left ${className}`}
+        className={`${TRIGGER_BASE} clay-select-trigger ${open ? 'is-open' : ''} flex items-center justify-between gap-2 text-left ${className}`}
       >
         <span className={`truncate ${selected ? 'font-medium text-slate-800' : 'text-slate-500'}`}>
           {selected ? selected.label : placeholder}
@@ -150,7 +150,13 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
       {open &&
         pos &&
         createPortal(
-          <div ref={listRef} role="listbox" className="clay-select-list" style={pos}>
+          <div
+            ref={listRef}
+            role="listbox"
+            data-placement={pos.top === 'auto' ? 'top' : 'bottom'}
+            className="clay-select-list"
+            style={pos}
+          >
             {options.length === 0 && <div className="clay-select-option is-empty">Tidak ada pilihan</div>}
             {options.map((o, i) => (
               <div
@@ -230,7 +236,12 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
       {open &&
         pos &&
         createPortal(
-          <div ref={listRef} className="clay-select-list" style={pos}>
+          <div
+            ref={listRef}
+            data-placement={pos.top === 'auto' ? 'top' : 'bottom'}
+            className="clay-select-list"
+            style={pos}
+          >
             {matches.length === 0 ? (
               <div className="clay-select-option is-empty">
                 {kw ? `Ketik enter utk pakai "${value}"` : 'Belum ada kategori'}
@@ -483,7 +494,7 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
   return (
     <div
       ref={wrapRef}
-      className="clay-input field-lg flex w-full cursor-text items-center gap-2.5 text-sm font-semibold text-slate-800 transition-colors"
+      className="clay-input field-lg flex w-full cursor-text items-center gap-2.5 text-sm font-semibold text-slate-800"
     >
       <button
         ref={btnRef}

@@ -53,15 +53,22 @@ const GAYA = {
 export default function ToastHost() {
   const [items, setItems] = useState([])
   const timers = useRef(new Map())
+  const exitTimers = useRef(new Map())
   const idRef = useRef(0)
 
   const tutup = useCallback((id) => {
-    setItems((prev) => prev.filter((t) => t.id !== id))
     const timer = timers.current.get(id)
     if (timer) {
       clearTimeout(timer)
       timers.current.delete(id)
     }
+    if (exitTimers.current.has(id)) return
+    setItems((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)))
+    const exitTimer = setTimeout(() => {
+      exitTimers.current.delete(id)
+      setItems((prev) => prev.filter((t) => t.id !== id))
+    }, 180)
+    exitTimers.current.set(id, exitTimer)
   }, [])
 
   const buka = useCallback((detail) => {
@@ -71,7 +78,7 @@ export default function ToastHost() {
 
     const id = ++idRef.current
     // Maksimal 3 toast supaya layar mobile tidak tertutup tumpukan notifikasi.
-    setItems((prev) => [...prev.slice(-2), { id, type, msg }])
+    setItems((prev) => [...prev.slice(-2), { id, type, msg, exiting: false }])
 
     const timer = setTimeout(() => tutup(id), DURASI[type] ?? 4000)
     timers.current.set(id, timer)
@@ -84,10 +91,13 @@ export default function ToastHost() {
     // mengganti `timers.current`, dan membaca `.current` langsung di cleanup
     // berarti membersihkan map yang salah (timer bocor).
     const peta = timers.current
+    const petaExit = exitTimers.current
     return () => {
       window.removeEventListener('myduit:toast', onToast)
       for (const t of peta.values()) clearTimeout(t)
+      for (const t of petaExit.values()) clearTimeout(t)
       peta.clear()
+      petaExit.clear()
     }
   }, [buka])
 
@@ -114,7 +124,7 @@ export default function ToastHost() {
           return (
             <div
               key={t.id}
-              className={`${g.wrap} pointer-events-auto flex w-full items-start gap-3 px-3.5 py-3`}
+              className={`${g.wrap} ${t.exiting ? 'toast-exit' : 'toast-enter'} pointer-events-auto flex w-full items-start gap-3 px-3.5 py-3`}
             >
               <span className={`${g.tile} flex h-9 w-9 shrink-0 items-center justify-center`}>
                 <span className="material-symbols-outlined icon-md">{g.icon}</span>
