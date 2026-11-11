@@ -1,5 +1,5 @@
 import { IS_DEMO_UID, MOCK_UTANG } from '../../lib/mockData.js';
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 import { hapusUtang } from '../../lib/db.js'
@@ -108,16 +108,16 @@ export function selisihHari(iso, tipe, terakhirBayar, nowRef = new Date()) {
   return Math.round((target - now) / 86400000)
 }
 
-function infoJatuhTempo(iso, tipe, terakhirBayar) {
+function infoJatuhTempo(iso, tipe, terakhirBayar, nowRef = new Date(), precomputedHari) {
   if (!iso) return { teks: 'Tanpa jatuh tempo', cls: 'text-slate-500', hari: null }
-  const d = selisihHari(iso, tipe, terakhirBayar)
+  const d = precomputedHari !== undefined ? precomputedHari : selisihHari(iso, tipe, terakhirBayar, nowRef)
   const tglRef = new Date(`${iso}T00:00:00`)
   const hariTgl = !isNaN(tglRef.getTime()) ? tglRef.getDate() : ''
 
   if (tipe === 'Cicilan') {
-    const info = hitungJatuhTempoBulanan(iso, terakhirBayar)
+    const info = hitungJatuhTempoBulanan(iso, terakhirBayar, nowRef)
     if (info?.sudahBayarBulanIni) {
-      return { teks: `Bulan ini lunas • Tempo brikutnya tgl ${hariTgl} (${d} hr lagi)`, cls: 'text-incomeText font-bold', hari: d }
+      return { teks: `Bulan ini lunas • Tempo berikutnya tgl ${hariTgl} (${d} hr lagi)`, cls: 'text-incomeText font-bold', hari: d }
     }
     const awalan = `Tempo bulanan tgl ${hariTgl}`
     if (d < 0) return { teks: `${awalan} (Telat ${-d} hari)`, cls: 'text-expenseText font-bold', hari: d }
@@ -138,16 +138,70 @@ export function cekLunasUtang(t) {
   return String(t.status || '').trim().toLowerCase() === 'lunas' || (Number(t.sisa) || 0) <= 0
 }
 
-export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
-  const lunas = cekLunasUtang(t)
+/**
+ * Pre-komputasi metadata status/jatuh tempo utang & cicilan 1× per item (O(N))
+ * agar filter, sort O(N log N), dan render kartu tidak mengulang Date math ratusan kali.
+ */
+export function perkayaUtangList(list, nowRef = new Date()) {
+  const now = new Date(nowRef)
+  now.setHours(0, 0, 0, 0)
+  return (list || []).map((t) => {
+    const lunas = cekLunasUtang(t)
+    if (lunas) {
+      return {
+        ...t,
+        _lunas: true,
+        _hari: null,
+        _jatuh: { teks: 'Sudah lunas', cls: 'text-slate-500', hari: null },
+      }
+    }
+    const hari = selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar, now)
+    const jatuh = infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar, now, hari)
+    return {
+      ...t,
+      _lunas: false,
+      _hari: hari,
+      _jatuh: jatuh,
+    }
+  })
+}
+
+export function filterDanUrutUtang(enrichedList, filter = 'semua') {
+  let tampil = enrichedList || []
+  if (filter === 'aktif') tampil = tampil.filter((t) => !t._lunas)
+  else if (filter === 'lunas') tampil = tampil.filter((t) => t._lunas)
+  else if (filter === 'terlambat') tampil = tampil.filter((t) => !t._lunas && t._hari !== null && t._hari < 0)
+
+  const bobot = (t) => {
+    if (t._lunas) return 3
+    if (t._hari === null || t._hari === undefined) return 2
+    if (t._hari < 0) return 0
+    return 1
+  }
+
+  return [...tampil].sort((a, b) => {
+    const ba = bobot(a), bb = bobot(b)
+    if (ba !== bb) return ba - bb
+    const ha = a._hari, hb = b._hari
+    if (ha !== null && hb !== null && ha !== hb) return ha - hb
+    if (ha !== null && hb === null) return -1
+    if (ha === null && hb !== null) return 1
+    return (b.sisa || 0) - (a.sisa || 0)
+  })
+}
+
+export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTag, onBayar, onLunasin, onEdit, onHapus }) {
+  const lunas = t._lunas !== undefined ? t._lunas : cekLunasUtang(t)
   const totalUtang = Math.max(0, Number(t.total) || 0)
   const sisaUtang = lunas ? 0 : Math.max(0, Number(t.sisa) || 0)
   const terbayar = Math.max(0, totalUtang - sisaUtang)
   const persen = totalUtang > 0 ? Math.min(100, Math.round((terbayar / totalUtang) * 100)) : 0
-  const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
+  const hari = lunas ? null : (t._hari !== undefined ? t._hari : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar))
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
-  const jatuh = lunas ? { teks: 'Sudah lunas', cls: 'text-slate-500' } : infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
+  const jatuh = lunas
+    ? { teks: 'Sudah lunas', cls: 'text-slate-500' }
+    : (t._jatuh || infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar))
 
   const labelStatus = lunas ? 'Lunas' : terlambat ? 'Terlambat' : mendekati ? 'Segera' : 'Aktif'
   const badgeCls = lunas
@@ -180,10 +234,10 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-          <button onClick={onEdit} aria-label="Edit utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
+          <button onClick={() => onEdit?.(t)} aria-label="Edit utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-slate-900 active:scale-95">
             <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
-          <button onClick={onHapus} aria-label="Hapus utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
+          <button onClick={() => onHapus?.(t)} aria-label="Hapus utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95">
             <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
         </div>
@@ -200,8 +254,8 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
         </div>
         {!lunas && (
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={onLunasin} className="neu-btn h-9 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-all active:scale-95">Lunasin</button>
-            <button onClick={onBayar} className="neu-btn-primary solid-primary h-9 px-4 rounded-xl text-white font-bold text-xs transition-all active:scale-95">Bayar</button>
+            <button onClick={() => onLunasin?.(t)} className="neu-btn h-9 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-[color,transform,box-shadow] duration-150 active:scale-95">Lunasin</button>
+            <button onClick={() => onBayar?.(t)} className="neu-btn-primary solid-primary h-9 px-4 rounded-xl text-white font-bold text-xs transition-[transform,box-shadow,filter] duration-150 active:scale-95">Bayar</button>
           </div>
         )}
       </div>
@@ -210,7 +264,10 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
 
       <div className="mt-3">
         <div className="h-1.5 w-full overflow-hidden rounded-full neu-inset bg-[#E5E5E5]">
-          <div className={`progress-bar-fill h-full rounded-full ${lunas ? 'bg-[#36AE7C]' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`} style={{ width: `${Math.min(100, persen)}%` }} />
+          <div
+            className={`progress-bar-fill h-full w-full rounded-full ${lunas ? 'bg-[#36AE7C]' : terlambat ? 'bg-red-500' : 'bg-blue-500'}`}
+            style={{ transform: `scaleX(${Math.min(1, Math.max(0, persen / 100))})` }}
+          />
         </div>
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
           <span className="whitespace-nowrap font-medium text-slate-500">Terbayar {formatRupiah(terbayar)} ({persen}%)</span>
@@ -223,7 +280,7 @@ export function KartuUtang({ t, onBayar, onLunasin, onEdit, onHapus }) {
       </div>
     </div>
   )
-}
+})
 
 export default function UtangView({ user }) {
   const uid = user.uid
@@ -250,50 +307,17 @@ export default function UtangView({ user }) {
     return () => window.removeEventListener('myduit:utang-add', onAdd)
   }, [])
 
-  const tampil = useMemo(() => {
-    if (filter === 'aktif') return list.filter((t) => !cekLunasUtang(t))
-    if (filter === 'lunas') return list.filter((t) => cekLunasUtang(t))
-    if (filter === 'terlambat') return list.filter((t) => !cekLunasUtang(t) && selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) < 0)
-    return list
-  }, [list, filter])
-
-  // Urutan tampil: yang PERLU PERHATIAN lebih dulu. Sebelumnya daftar mengikuti
-  // urutan createdAt (terbaru dulu) sehingga utang yang sudah terlambat justru
-  // berada di paling bawah — user harus scroll untuk melihat hal mendesak.
-  // Prioritas: 1) terlambat (paling lama telat dulu), 2) mendekati jatuh tempo,
-  // 3) aktif tanpa jatuh tempo, 4) lunas (di akhir, terbaru dulu).
-  const terurut = useMemo(() => {
-    const bobot = (t) => {
-      const lunas = cekLunasUtang(t)
-      if (lunas) return 3
-      const h = selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
-      if (h === null) return 2
-      if (h < 0) return 0
-      return 1
-    }
-    return [...tampil].sort((a, b) => {
-      const ba = bobot(a), bb = bobot(b)
-      if (ba !== bb) return ba - bb
-      // Di grup yang sama: paling mendesak (hari terkecil) dulu.
-      const ha = selisihHari(a.tglJatuhTempo, a.tipe, a.terakhirBayar)
-      const hb = selisihHari(b.tglJatuhTempo, b.tipe, b.terakhirBayar)
-      if (ha !== null && hb !== null && ha !== hb) return ha - hb
-      if (ha !== null && hb === null) return -1
-      if (ha === null && hb !== null) return 1
-      // Lunas: nominal terbesar dulu agar tidak terasa acak.
-      return (b.sisa || 0) - (a.sisa || 0)
-    })
-  }, [tampil])
+  const listEnriched = useMemo(() => perkayaUtangList(list), [list])
+  const terurut = useMemo(() => filterDanUrutUtang(listEnriched, filter), [listEnriched, filter])
 
   const ringkasan = useMemo(() => {
     let totalSisa = 0, totalAwal = 0, cicilanAktif = 0, lunasCount = 0, totalLunasNominal = 0, totalCicilanPerBulan = 0
     const aktif = []
-    for (const t of list) {
-      const l = cekLunasUtang(t)
+    for (const t of listEnriched) {
       const tot = Math.max(0, Number(t.total) || 0)
       const sisa = Math.max(0, Number(t.sisa) || 0)
       totalAwal += tot
-      if (l) {
+      if (t._lunas) {
         lunasCount++
         totalLunasNominal += tot
       } else {
@@ -308,9 +332,8 @@ export default function UtangView({ user }) {
     const terbayar = Math.max(0, totalAwal - totalSisa)
     const persenLunas = totalAwal > 0 ? Math.min(100, Math.round((terbayar / totalAwal) * 100)) : 0
     const jatuhTempo = aktif
-      .filter((t) => t.tglJatuhTempo)
-      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: Math.max(0, Number(t.sisa) || 0), hari: selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar) }))
-      .filter((t) => t.hari !== null)
+      .filter((t) => t.tglJatuhTempo && t._hari !== null)
+      .map((t) => ({ id: t.id, nama: t.namaPihak, sisa: Math.max(0, Number(t.sisa) || 0), hari: t._hari }))
       .sort((a, b) => a.hari - b.hari)
     return {
       totalSisa, totalAwal, terbayar, persenLunas,
@@ -321,7 +344,7 @@ export default function UtangView({ user }) {
       jatuhTempo,
       aktif,
     }
-  }, [list])
+  }, [listEnriched])
 
   // Emit ke sidebar kanan + sidebar kiri
   useEffect(() => {
@@ -362,14 +385,14 @@ export default function UtangView({ user }) {
     }
   }
 
-  // Aksi bersama untuk kartu desktop maupun mobile — satu sumber agar
-  // perilaku kedua tampilan tidak pernah menyimpang.
-  const aksiKartu = {
+  // Aksi bersama untuk kartu desktop maupun mobile — stabil lewat useMemo
+  // agar memo(KartuUtang) & memo(KartuUtangMobile) tidak re-render sia-sia.
+  const aksiKartu = useMemo(() => ({
     onBayar: (t) => setBayarModal({ open: true, utang: t, lunasin: false }),
     onLunasin: (t) => setBayarModal({ open: true, utang: t, lunasin: true }),
     onEdit: (t) => setFormModal({ open: true, edit: t, mode: t.tipe === 'Cicilan' ? 'cicilan' : 'utang' }),
     onHapus: (t) => setHapusTarget(t),
-  }
+  }), [])
   const desktopSectionRef = useRef(null)
   useScrollReveal(desktopSectionRef, [filter, terurut.length])
 
@@ -418,7 +441,7 @@ export default function UtangView({ user }) {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`h-8.5 px-3.5 text-xs font-bold rounded-xl transition-all ${
+              className={`h-8.5 px-3.5 text-xs font-bold rounded-xl transition-[color,transform,box-shadow] duration-150 ${
                 active
                   ? f.id === 'terlambat'
                     ? 'neu-well text-[#EB5353]'
@@ -447,10 +470,11 @@ export default function UtangView({ user }) {
             <KartuUtang
               key={t.id}
               t={t}
-              onBayar={() => aksiKartu.onBayar(t)}
-              onLunasin={() => aksiKartu.onLunasin(t)}
-              onEdit={() => aksiKartu.onEdit(t)}
-              onHapus={() => aksiKartu.onHapus(t)}
+              currencyTag={formatRupiah(0)}
+              onBayar={aksiKartu.onBayar}
+              onLunasin={aksiKartu.onLunasin}
+              onEdit={aksiKartu.onEdit}
+              onHapus={aksiKartu.onHapus}
             />
           ))
         )}

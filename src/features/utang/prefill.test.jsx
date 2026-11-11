@@ -13,7 +13,7 @@ import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import { formatRibuanInput } from '../../lib/format.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
-import { selisihHari } from './UtangView.jsx'
+import { filterDanUrutUtang, perkayaUtangList, selisihHari } from './UtangView.jsx'
 
 const galat = []
 let total = 0
@@ -102,6 +102,30 @@ cek('cicilan sudah bayar bulan ini: jatuh tempo bergeser ke bulan depan (>0 hari
 // Cicilan dibuat September (tgl 15), belum pernah dibayar -> tetap terdeteksi terlambat di bulan November (<0 hari)
 const hariTunggak = selisihHari('2026-09-15', 'Cicilan', '', nowNov)
 cek('cicilan belum pernah dibayar sejak bulan lalu: tetap terlambat (<0 hari)', '', () => hariTunggak < 0)
+
+// ===== 6. Pre-komputasi O(N) Utang & Cicilan (anti-lag sort & render) =====
+const rawUtang = [
+  { id: 'u-lunas', namaPihak: 'Lunas', total: 1000000, sisa: 0, status: 'Lunas', tipe: 'Utang', tglJatuhTempo: '2026-10-01' },
+  { id: 'u-telat', namaPihak: 'Telat', total: 1000000, sisa: 500000, status: 'Belum Lunas', tipe: 'Utang', tglJatuhTempo: '2026-11-05' },
+  { id: 'u-dekat', namaPihak: 'Dekat', total: 2000000, sisa: 1000000, status: 'Belum Lunas', tipe: 'Utang', tglJatuhTempo: '2026-11-15' },
+]
+const enrichedUtang = perkayaUtangList(rawUtang, nowNov)
+cek('perkayaUtangList membekali _lunas, _hari, dan _jatuh tanpa mutasi input', '', () => (
+  enrichedUtang.length === 3 &&
+  enrichedUtang[0]._lunas === true &&
+  enrichedUtang[1]._hari === -5 &&
+  enrichedUtang[2]._hari === 5 &&
+  enrichedUtang[1]._jatuh?.teks?.includes('Telat') &&
+  rawUtang[1]._hari === undefined
+))
+const urutAktif = filterDanUrutUtang(enrichedUtang, 'semua')
+cek('filterDanUrutUtang menempatkan Telat lebih dulu, lalu Dekat, lalu Lunas paling akhir', '', () => (
+  urutAktif.map((u) => u.id).join(',') === 'u-telat,u-dekat,u-lunas'
+))
+const hanyaTelat = filterDanUrutUtang(enrichedUtang, 'terlambat')
+cek('filterDanUrutUtang terlambat hanya menyertakan tagihan belum lunas dengan _hari < 0', '', () => (
+  hanyaTelat.length === 1 && hanyaTelat[0].id === 'u-telat'
+))
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${total - galat.length}/${total} cek lolos`)
 if (galat.length) throw new Error(`Prefill form utang/bayar gagal: ${galat.join(' | ')}`)

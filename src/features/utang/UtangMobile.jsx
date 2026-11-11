@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 import { cekLunasUtang, hitungJatuhTempoBulanan, selisihHari } from './UtangView.jsx'
 
@@ -17,8 +17,8 @@ const FILTERS = [
 ]
 
 function statusKartu(t) {
-  const lunas = cekLunasUtang(t)
-  const hari = lunas ? null : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar)
+  const lunas = t._lunas !== undefined ? t._lunas : cekLunasUtang(t)
+  const hari = lunas ? null : (t._hari !== undefined ? t._hari : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar))
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
   if (lunas)
@@ -59,6 +59,7 @@ function statusKartu(t) {
 }
 
 function teksJatuhTempo(t, st) {
+  if (t._jatuh?.teks) return t._jatuh.teks
   if (st.lunas) return 'Sudah lunas'
   if (!t.tglJatuhTempo) return 'Tanpa jatuh tempo'
   const d = st.hari
@@ -85,14 +86,14 @@ function teksJatuhTempo(t, st) {
   return `${awalan} (${d} hari lagi)`
 }
 
-function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
+const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _currencyTag, onBayar, onLunasin, onEdit, onHapus }) {
   const st = statusKartu(t)
   const terbayar = Math.max(0, (t.total || 0) - (t.sisa || 0))
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
 
   return (
     <div
-      className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-all bg-[#E5E5E5] ${st.lunas ? 'is-lunas' : ''}`}
+      className={`neu-card rounded-2xl relative overflow-hidden p-4 transition-[background-color,box-shadow] duration-150 bg-[#E5E5E5] ${st.lunas ? 'is-lunas' : ''}`}
     >
 
       <span className={`absolute inset-y-0 left-0 w-1.5 ${st.aksen}`} aria-hidden="true" />
@@ -112,16 +113,16 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
             {st.label}
           </span>
           <button
-            onClick={onEdit}
+            onClick={() => onEdit?.(t)}
             aria-label={`Edit ${t.namaPihak}`}
-            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all active:scale-95"
+            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 active:scale-95"
           >
             <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
           <button
-            onClick={onHapus}
+            onClick={() => onHapus?.(t)}
             aria-label={`Hapus ${t.namaPihak}`}
-            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95"
+            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95"
           >
             <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
@@ -145,8 +146,8 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
       <div className="mt-2.5 pl-1.5">
         <div className="h-2 w-full overflow-hidden rounded-full neu-inset p-0.5 bg-[#E5E5E5]">
           <div
-            className={`progress-bar-fill h-full rounded-full ${st.lunas ? 'bg-[#36AE7C]' : st.terlambat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
-            style={{ width: `${Math.max(persen > 0 ? 3 : 0, Math.min(100, persen))}%` }}
+            className={`progress-bar-fill h-full w-full rounded-full ${st.lunas ? 'bg-[#36AE7C]' : st.terlambat ? 'bg-[#EB5353]' : 'bg-[#187498]'}`}
+            style={{ transform: `scaleX(${Math.max(persen > 0 ? 0.03 : 0, Math.min(1, persen / 100))})` }}
           />
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
@@ -179,14 +180,14 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
       {!st.lunas && (
         <div className="mt-3.5 flex items-center justify-end gap-2 border-t border-slate-300/40 pt-2.5 pl-1.5">
           <button
-            onClick={onLunasin}
-            className="neu-btn h-8.5 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-all active:scale-95"
+            onClick={() => onLunasin?.(t)}
+            className="neu-btn h-8.5 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-[color,transform,box-shadow] duration-150 active:scale-95"
           >
             Lunasin
           </button>
           <button
-            onClick={onBayar}
-            className="neu-btn-primary solid-primary h-8.5 px-4 rounded-xl text-white font-bold text-xs transition-all active:scale-95"
+            onClick={() => onBayar?.(t)}
+            className="neu-btn-primary solid-primary h-8.5 px-4 rounded-xl text-white font-bold text-xs transition-[transform,box-shadow,filter] duration-150 active:scale-95"
           >
             Bayar
           </button>
@@ -194,7 +195,7 @@ function KartuUtangMobile({ t, onBayar, onLunasin, onEdit, onHapus }) {
       )}
     </div>
   )
-}
+})
 
 export default function UtangMobile({
   ringkasan,
@@ -207,25 +208,76 @@ export default function UtangMobile({
   onHapus,
 }) {
   const [halaman, setHalaman] = useState(0)
-  const [slideDir, setSlideDir] = useState(null)
-  const [dragOffset, setDragOffset] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
+  const cardWrapRef = useRef(null)
+  const dragXRef = useRef(0)
+  const dragRafRef = useRef(0)
 
-  // Reset ke halaman 0 bila filter berubah
-  useEffect(() => {
-    setHalaman(0)
-    setSlideDir(null)
-    setDragOffset(0)
-  }, [filter])
+  useEffect(() => () => {
+    if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current)
+  }, [])
 
   const total = terurut.length
   const idx = Math.min(Math.max(0, halaman), Math.max(0, total - 1))
   const kartuAktif = terurut[idx]
+  const currencyTag = formatRupiah(0)
+
+  function playCardSlide(dir) {
+    const el = cardWrapRef.current
+    if (!el || typeof el.animate !== 'function') return
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+      const fromX = dir === 'next' ? 14 : -14
+      el.animate(
+        [
+          { opacity: 0.3, transform: `translate3d(${fromX}px, 0, 0)` },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+        ],
+        { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      )
+    } catch {
+      // abaikan bila WAAPI tidak didukung
+    }
+  }
+
+  function resetDragStyles() {
+    if (dragRafRef.current) {
+      cancelAnimationFrame(dragRafRef.current)
+      dragRafRef.current = 0
+    }
+    const prevX = dragXRef.current
+    dragXRef.current = 0
+    const el = cardWrapRef.current
+    if (!el) return 0
+    el.style.willChange = ''
+    el.style.transform = ''
+    return prevX
+  }
+
+  function snapBackCardDrag() {
+    const prevX = resetDragStyles()
+    const el = cardWrapRef.current
+    if (!el || !prevX || typeof el.animate !== 'function') return
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+      el.animate(
+        [{ transform: `translate3d(${prevX}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }],
+        { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+      )
+    } catch {
+      // abaikan
+    }
+  }
+
+  function pilihFilter(id) {
+    setHalaman(0)
+    setFilter(id)
+  }
 
   function pindah(baru) {
     if (baru < 0 || baru >= total || baru === idx) return
-    setSlideDir(baru > idx ? 'next' : 'prev')
+    const dir = baru > idx ? 'next' : 'prev'
     setHalaman(baru)
+    playCardSlide(dir)
   }
 
   const touchStartX = useRef(null)
@@ -237,7 +289,7 @@ export default function UtangMobile({
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
-    setIsDragging(true)
+    dragXRef.current = 0
   }
 
   function handleTouchMove(e) {
@@ -250,24 +302,31 @@ export default function UtangMobile({
     if (!isHorizontalSwipe.current) {
       if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
         isHorizontalSwipe.current = true
+        if (cardWrapRef.current) cardWrapRef.current.style.willChange = 'transform'
       } else if (Math.abs(diffY) > 10) {
         touchStartX.current = null
         touchStartY.current = null
-        setDragOffset(0)
-        setIsDragging(false)
+        resetDragStyles()
         return
       }
     }
 
     if (isHorizontalSwipe.current) {
-      setDragOffset(diffX * 0.4)
+      dragXRef.current = diffX * 0.4
+      if (!dragRafRef.current) {
+        dragRafRef.current = window.requestAnimationFrame(() => {
+          dragRafRef.current = 0
+          if (cardWrapRef.current && isHorizontalSwipe.current) {
+            cardWrapRef.current.style.transform = `translate3d(${dragXRef.current}px, 0, 0)`
+          }
+        })
+      }
     }
   }
 
   function handleTouchEnd(e) {
     if (touchStartX.current === null || touchStartY.current === null) {
-      setDragOffset(0)
-      setIsDragging(false)
+      snapBackCardDrag()
       return
     }
     const touch = e.changedTouches[0]
@@ -275,16 +334,18 @@ export default function UtangMobile({
     const diffY = touch.clientY - touchStartY.current
     touchStartX.current = null
     touchStartY.current = null
-    setDragOffset(0)
-    setIsDragging(false)
+    const wasSwipe = isHorizontalSwipe.current
+    isHorizontalSwipe.current = false
 
-    if (Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
-      if (diffX < 0) {
-        pindah(idx + 1)
-      } else {
-        pindah(idx - 1)
+    if (wasSwipe && Math.abs(diffX) > 40 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+      const targetIdx = diffX < 0 ? idx + 1 : idx - 1
+      if (targetIdx >= 0 && targetIdx < total) {
+        resetDragStyles()
+        pindah(targetIdx)
+        return
       }
     }
+    snapBackCardDrag()
   }
 
   return (
@@ -351,9 +412,9 @@ export default function UtangMobile({
           return (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => pilihFilter(f.id)}
               aria-pressed={active}
-              className={`h-8.5 shrink-0 px-3.5 text-xs font-bold rounded-xl transition-all ${
+              className={`h-8.5 shrink-0 px-3.5 text-xs font-bold rounded-xl transition-[color,transform,box-shadow] duration-150 ${
                 active
                   ? f.id === 'terlambat'
                     ? 'neu-well text-[#EB5353]'
@@ -381,30 +442,22 @@ export default function UtangMobile({
       ) : (
         <div className="pt-1 flex flex-col gap-3">
           <div
-            key={`utang-card-${kartuAktif?.id || idx}`}
+            ref={cardWrapRef}
+            data-utang-swipe=""
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{
-              touchAction: 'pan-y',
-              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
-              transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-            className={`w-full ${
-              slideDir === 'next'
-                ? 'page-transition-next'
-                : slideDir === 'prev'
-                  ? 'page-transition-prev'
-                  : ''
-            }`}
+            onTouchCancel={snapBackCardDrag}
+            style={{ touchAction: 'pan-y', contain: 'layout style' }}
+            className="w-full min-h-[282px]"
           >
             <KartuUtangMobile
-              key={kartuAktif.id}
               t={kartuAktif}
-              onBayar={() => onBayar(kartuAktif)}
-              onLunasin={() => onLunasin(kartuAktif)}
-              onEdit={() => onEdit(kartuAktif)}
-              onHapus={() => onHapus(kartuAktif)}
+              currencyTag={currencyTag}
+              onBayar={onBayar}
+              onLunasin={onLunasin}
+              onEdit={onEdit}
+              onHapus={onHapus}
             />
           </div>
 
@@ -416,17 +469,17 @@ export default function UtangMobile({
                 onClick={() => pindah(idx - 1)}
                 disabled={idx === 0}
                 aria-label="Kartu sebelumnya"
-                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-[color,transform,box-shadow,opacity] duration-150 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
               >
                 <span className="material-symbols-outlined icon-md">chevron_left</span>
               </button>
 
               <div className="flex flex-col items-center gap-1.5">
-                <span className="neu-inset rounded-full px-3.5 py-1 font-mono text-xs font-bold text-slate-700 bg-[#E5E5E5] tabular-nums">
+                <span className="neu-inset min-w-[68px] text-center rounded-full px-3.5 py-1 font-mono text-xs font-bold text-slate-700 bg-[#E5E5E5] tabular-nums">
                   {idx + 1} dari {total}
                 </span>
                 {total <= 6 && (
-                  <div className="flex items-center gap-1.5" role="tablist" aria-label="Pilih kartu">
+                  <div className="flex items-center gap-2.5" role="tablist" aria-label="Pilih kartu">
                     {terurut.map((item, i) => (
                       <button
                         key={item.id || i}
@@ -434,10 +487,10 @@ export default function UtangMobile({
                         onClick={() => pindah(i)}
                         aria-label={`Ke kartu ${i + 1}`}
                         aria-current={i === idx ? 'page' : undefined}
-                        className={`transition-all duration-200 ${
+                        className={`h-1.5 w-2 rounded-full transition-[transform,background-color] duration-200 ${
                           i === idx
-                            ? 'h-1.5 w-5 rounded-full bg-[#EB5353] shadow-sm'
-                            : 'h-1.5 w-1.5 rounded-full bg-slate-400/40'
+                            ? 'scale-x-[2.2] bg-[#EB5353] shadow-sm'
+                            : 'scale-x-75 bg-slate-400/45'
                         }`}
                       />
                     ))}
@@ -450,7 +503,7 @@ export default function UtangMobile({
                 onClick={() => pindah(idx + 1)}
                 disabled={idx === total - 1}
                 aria-label="Kartu berikutnya"
-                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
+                className="neu-btn flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-2xl bg-[#E5E5E5] text-slate-700 transition-[color,transform,box-shadow,opacity] duration-150 active:scale-95 disabled:opacity-30 disabled:pointer-events-none"
               >
                 <span className="material-symbols-outlined icon-md">chevron_right</span>
               </button>
