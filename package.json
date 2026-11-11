@@ -19,7 +19,7 @@
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "check:format": "node src/lib/format.check.mjs",
     "test:ocr": "node src/lib/ocrStruk.test.mjs",
-    "test:filter": "node src/features/transaksi/mergeRiwayat.test.mjs",
+    "test:filter": "node src/features/transaksi/mergeRiwayat.test.mjs && node src/features/transaksi/transaksiCache.test.mjs",
     "test:riwayat": "node src/features/budget/riwayatSaldo.test.mjs",
     "test:render": "node src/features/budget/render.test.mjs",
     "test:events": "node src/lib/eventContract.test.mjs",
