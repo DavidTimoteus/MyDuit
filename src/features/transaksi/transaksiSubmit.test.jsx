@@ -3,6 +3,7 @@
 import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
+import { evaluasiPenambahanTransaksi } from './transaksiFilter.js'
 import { dedupeKategori } from '../../lib/useAkunKategori.js'
 import { deltaSaldo } from '../../lib/db.js'
 import { parseNominal } from '../../lib/format.js'
@@ -216,6 +217,57 @@ const htmlSalinIn = renderToString(
 
 cek('modal salin pemasukan: judul "Salin Pemasukan"', htmlSalinIn.includes('Salin Pemasukan'))
 cek('modal salin pemasukan: label rekening penerima kontekstual', htmlSalinIn.includes('Rekening Tujuan / Penerima'))
+
+// ===== 7. Penataan Card Web (Grid 2 Kolom) & Tombol Kalkulator Nominal =====
+cek('modal pengeluaran web: memakai tata letak grid 2-kolom sm:grid-cols-2 agar pas tanpa scroll', htmlPengeluaran.includes('sm:grid-cols-2') && htmlPengeluaran.includes('sm:max-w-[540px]'))
+cek('modal pengeluaran: menampilkan tombol pemicu kalkulator nominal', htmlPengeluaran.includes('aria-label="Buka kalkulator nominal"'))
+cek('modal pemasukan: menampilkan tombol pemicu kalkulator nominal', htmlPemasukan.includes('aria-label="Buka kalkulator nominal"'))
+
+// ===== 8. Preservasi Halaman 4 Saat Salin / Tambah dalam Filter Periode =====
+const docsPeriode = Array.from({ length: 80 }, (_, idx) => ({
+  id: `tx-${idx}`,
+  jenis: idx % 2 === 0 ? 'pengeluaran' : 'pemasukan',
+  tanggal: idx < 60 ? '2026-11-05' : '2026-10-15',
+  jumlah: 25000,
+  createdAt: new Date(2026, 10, 11, 12, 0, 80 - idx).toISOString(),
+}))
+const rangePeriode = { start: '2026-10-10', end: '2026-11-11' }
+
+const evalSalinHal4 = evaluasiPenambahanTransaksi({
+  docs: docsPeriode,
+  item: { id: 'tx-copy-hal4', jenis: 'pengeluaran', tanggal: '2026-10-15', jumlah: 25000, createdAt: '2026-11-11T15:00:00.000Z' },
+  range: rangePeriode,
+  jenis: 'semua',
+  keyword: '',
+  currentPage: 4,
+  perHalaman: 20,
+})
+cek('salin di Halaman 4 (10/10-11/11): tidak reset filter dan tetap mempertahankan Halaman 4',
+  !evalSalinHal4.perluResetRange && !evalSalinHal4.perluResetJenis && evalSalinHal4.nextPage === 4 && evalSalinHal4.targetPage === 4)
+
+const evalTambahHariIniDiHal4 = evaluasiPenambahanTransaksi({
+  docs: docsPeriode,
+  item: { id: 'tx-new-today', jenis: 'pemasukan', tanggal: '2026-11-11', jumlah: 500000, createdAt: '2026-11-11T15:00:00.000Z' },
+  range: rangePeriode,
+  jenis: 'semua',
+  keyword: '',
+  currentPage: 4,
+  perHalaman: 20,
+})
+cek('tambah baru hari ini saat di Halaman 4 (dalam periode): tetap di Halaman 4 & targetPage=1',
+  !evalTambahHariIniDiHal4.perluResetRange && !evalTambahHariIniDiHal4.perluResetJenis && evalTambahHariIniDiHal4.nextPage === 4 && evalTambahHariIniDiHal4.targetPage === 1)
+
+const evalLuarPeriode = evaluasiPenambahanTransaksi({
+  docs: docsPeriode,
+  item: { id: 'tx-outside', jenis: 'pengeluaran', tanggal: '2026-09-01', jumlah: 10000, createdAt: '2026-11-11T15:00:00.000Z' },
+  range: rangePeriode,
+  jenis: 'semua',
+  keyword: '',
+  currentPage: 4,
+  perHalaman: 20,
+})
+cek('tambah di luar periode 10/10-11/11: memberi sinyal reset range & kembali ke halaman 1',
+  evalLuarPeriode.perluResetRange === true && evalLuarPeriode.nextPage === 1)
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji transaksiSubmit gagal: ${galat.join(' | ')}`)

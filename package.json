@@ -29,7 +29,7 @@
     "test:image": "node src/lib/imageFilters.test.mjs",
     "test:gemini": "node src/lib/geminiOcr.test.mjs",
     "test:provider": "node src/lib/ocrProvider.test.mjs",
-    "test:transaksi": "node src/features/transaksi/transaksiSubmit.test.mjs",
+    "test:transaksi": "node src/features/transaksi/transaksiSubmit.test.mjs && node src/features/transaksi/kalkulatorNominal.test.mjs",
     "test:popup": "node src/components/popupBoundary.test.mjs",
     "test:design": "node src/styles/designIntegrity.test.mjs",
     "test:theme": "node src/lib/theme.check.mjs && node src/styles/themeContract.test.mjs",

@@ -5,6 +5,7 @@ import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-u
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { matikanOcr } from '../../lib/ocrStruk.js'
+import { evaluasiEkspresiNominal, formatEkspresiPreview, sisipTokenKalkulator } from './kalkulatorNominal.js'
 import {
   scanDokumenKeuangan,
   bacaOcrConfig,
@@ -40,6 +41,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [calcOpen, setCalcOpen] = useState(false)
+  const [calcExpr, setCalcExpr] = useState('')
+  const [calcErr, setCalcErr] = useState('')
   const fileUploadRef = useRef(null)
   const fileCameraRef = useRef(null)
 
@@ -79,6 +83,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     submittedRef.current = false
     setError('')
     setSaving(false)
+    setCalcOpen(false)
+    setCalcExpr('')
+    setCalcErr('')
     // Bersihkan sisa hasil scan dari sesi sebelumnya
     setScan(null)
     setScanHasil(null)
@@ -288,10 +295,61 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     onSalin?.(drafSalinan)
   }
 
+  function bukaKalkulatorDengan(initialOp = '') {
+    const angkaAwal = parseNominal(jumlah)
+    const dasar = angkaAwal > 0 ? String(angkaAwal) : ''
+    const nextExpr = initialOp ? sisipTokenKalkulator(dasar, initialOp) : dasar
+    setCalcExpr(nextExpr)
+    setCalcErr('')
+    setCalcOpen(true)
+  }
+
+  function toggleKalkulator() {
+    if (calcOpen) {
+      setCalcOpen(false)
+      setCalcErr('')
+      return
+    }
+    bukaKalkulatorDengan('')
+  }
+
+  function tekanKeypad(token) {
+    setCalcErr('')
+    if (token === '=') {
+      const res = evaluasiEkspresiNominal(calcExpr)
+      if (!res.ok) {
+        setCalcErr(res.error)
+        return
+      }
+      if (res.dibulatkan <= 0) {
+        setCalcErr('Hasil harus lebih dari 0.')
+        return
+      }
+      setJumlah(formatRibuanInput(String(res.dibulatkan)))
+      setCalcExpr(String(res.dibulatkan))
+      setCalcOpen(false)
+      setError('')
+      return
+    }
+    setCalcExpr((prev) => sisipTokenKalkulator(prev, token))
+  }
+
   async function submit(e) {
     e.preventDefault()
     if (submittedRef.current) return
-    const n = parseNominal(jumlah)
+    let n = parseNominal(jumlah)
+    if (calcOpen && calcExpr.trim()) {
+      const calcRes = evaluasiEkspresiNominal(calcExpr)
+      if (!calcRes.ok) {
+        setCalcErr(calcRes.error)
+        return setError(calcRes.error)
+      }
+      if (calcRes.dibulatkan <= 0) {
+        setCalcErr('Hasil harus lebih dari 0.')
+        return setError('Nominal harus lebih dari nol.')
+      }
+      n = calcRes.dibulatkan
+    }
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
@@ -406,8 +464,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     <>
       {portalBody(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={tutupModal}>
-      <div className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 pb-2 pt-4">
+      <div className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[92vh] w-full max-w-md sm:max-w-[540px] flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 sm:px-5 pb-2 pt-3.5">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
             <span className={`material-symbols-outlined icon-lg shrink-0 ${isPemasukan ? 'text-primary' : 'text-danger'}`}>
               {isPemasukan ? 'trending_up' : 'trending_down'}
@@ -438,7 +496,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
         </div>
 
         {/* Segmented Clay Toggle: Pengeluaran vs Pemasukan (Bespoke tactile track) */}
-        <div className="px-4 pt-2.5 pb-1">
+        <div className="px-4 sm:px-5 pt-2 pb-1">
           <div className="clay-segmented-track">
             <button
               type="button"
@@ -467,18 +525,23 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
         </div>
 
-        <form onSubmit={submit} className="min-h-0 space-y-2.5 overflow-y-auto px-4 py-2">
+        <form onSubmit={submit} className="min-h-0 space-y-2.5 sm:space-y-2 overflow-y-auto px-4 sm:px-5 py-2.5">
           {mode === 'salin' && (
             <div className="flex items-start gap-2 rounded-xl border border-sky-200/80 bg-sky-50/90 px-3 py-2 text-[11px] font-medium text-sky-800">
               <span className="material-symbols-outlined icon-sm mt-px shrink-0 text-sky-600">content_copy</span>
               <span>Mode salin: sesuaikan data di bawah, lalu simpan sebagai transaksi baru tanpa mengubah transaksi asli.</span>
             </div>
           )}
-          {/* Hero Input Nominal (Paling Atas: Tak Tertutup Keyboard Virtual Mobile, Teks Kontras Tinggi) */}
+          {/* Hero Input Nominal (Paling Atas: Tak Tertutup Keyboard Virtual Mobile, Teks Kontras Tinggi + Kalkulator Sederhana) */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="tx-jumlah" className="block text-[11px] font-bold tracking-wide uppercase text-textSecondary">
-              Nominal Transaksi ({simbolUang()})
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="tx-jumlah" className="block text-[11px] font-bold tracking-wide uppercase text-textSecondary">
+                Nominal Transaksi ({simbolUang()})
+              </label>
+              <span className="hidden sm:inline text-[10px] font-medium text-slate-400">
+                Ketik + − × ÷ atau tekan ikon untuk hitung
+              </span>
+            </div>
             <div className="relative flex items-center">
               <span className={`pointer-events-none absolute left-3.5 text-base font-extrabold font-mono transition-colors ${
                 isPemasukan ? 'text-[#36AE7C]' : 'text-[#EB5353]'
@@ -489,56 +552,212 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 id="tx-jumlah"
                 type="text"
                 value={jumlah}
-                onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
+                onChange={(e) => {
+                  if (calcOpen) return
+                  setJumlah(formatRibuanInput(e.target.value))
+                }}
+                onKeyDown={(e) => {
+                  if (['+', '-', '*', '/'].includes(e.key)) {
+                    e.preventDefault()
+                    if (!calcOpen) bukaKalkulatorDengan(e.key)
+                    else tekanKeypad(e.key)
+                  } else if (e.key === '=') {
+                    e.preventDefault()
+                    if (calcOpen) tekanKeypad('=')
+                    else toggleKalkulator()
+                  } else if (calcOpen && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                    if (/^[0-9]$/.test(e.key) || e.key === ',') {
+                      e.preventDefault()
+                      tekanKeypad(e.key)
+                    } else if (e.key === 'Backspace') {
+                      e.preventDefault()
+                      tekanKeypad('DEL')
+                    } else if (e.key === 'Delete') {
+                      e.preventDefault()
+                      tekanKeypad('C')
+                    }
+                  }
+                }}
                 inputMode="numeric"
                 placeholder="0"
                 required
                 autoFocus
-                className={`clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight ${
+                className={`clay-input field-lg w-full rounded-2xl pl-11 pr-12 text-xl font-black font-mono tracking-tight ${
                   isPemasukan ? 'tx-nominal-income !text-[#36AE7C]' : 'tx-nominal-expense !text-[#EB5353]'
                 }`}
               />
+              <button
+                type="button"
+                onClick={toggleKalkulator}
+                title="Kalkulator nominal (+ − × ÷)"
+                aria-label="Buka kalkulator nominal"
+                aria-expanded={calcOpen}
+                className={`clay-chip absolute right-2 flex h-8 w-8 items-center justify-center rounded-xl touch-manipulation ${
+                  calcOpen
+                    ? (isPemasukan ? 'solid-primary text-white' : 'solid-danger text-white')
+                    : 'clay-key-neutral text-slate-600'
+                }`}
+              >
+                <span className="material-symbols-outlined icon-md">calculate</span>
+              </button>
             </div>
+
+            {/* Kalkulator Sederhana (+, -, ×, ÷) selaras tema Neumorphism & Claymorphism */}
+            {calcOpen && (() => {
+              const live = calcExpr.trim() ? evaluasiEkspresiNominal(calcExpr) : null
+              return (
+                <div
+                  role="region"
+                  aria-label="Kalkulator nominal sederhana"
+                  tabIndex={-1}
+                  onKeyDown={(e) => {
+                    if (/^[0-9]$/.test(e.key)) {
+                      e.preventDefault()
+                      tekanKeypad(e.key)
+                    } else if (['+', '-', '*', '/', ',', '.'].includes(e.key)) {
+                      e.preventDefault()
+                      tekanKeypad(e.key)
+                    } else if (e.key === 'Backspace') {
+                      e.preventDefault()
+                      tekanKeypad('DEL')
+                    } else if (e.key === 'Enter' || e.key === '=') {
+                      e.preventDefault()
+                      tekanKeypad('=')
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault()
+                      setCalcOpen(false)
+                    }
+                  }}
+                  className="accordion-slide-down neu-inset mt-1.5 space-y-2 rounded-2xl bg-[#E5E5E5] p-2.5 outline-none"
+                >
+                  <div className="neu-well flex items-center justify-between gap-2 rounded-xl bg-[#E5E5E5] px-3 py-1.5">
+                    <span className="min-w-0 truncate font-mono text-xs font-bold text-slate-600">
+                      {formatEkspresiPreview(calcExpr) || '0'}
+                    </span>
+                    <span className={`shrink-0 font-mono text-sm font-black ${
+                      calcErr || (live && (!live.ok || live.dibulatkan <= 0))
+                        ? 'text-[#EB5353]'
+                        : isPemasukan
+                          ? 'text-[#36AE7C]'
+                          : 'text-[#EB5353]'
+                    }`}>
+                      {calcErr
+                        ? calcErr
+                        : live && live.ok
+                          ? (live.dibulatkan > 0 ? `= ${simbolUang()} ${formatRibuanInput(String(live.dibulatkan))}` : `= ${live.dibulatkan}`)
+                          : live && !live.ok
+                            ? live.error
+                            : ''}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { k: 'C', label: 'C', cls: 'text-[#EB5353]', aria: 'Bersihkan hitungan' },
+                      { k: 'DEL', label: '⌫', cls: 'text-slate-600', aria: 'Hapus karakter terakhir' },
+                      { k: '/', label: '÷', cls: 'text-[#187498]', aria: 'Bagi' },
+                      { k: '*', label: '×', cls: 'text-[#187498]', aria: 'Kali' },
+                      { k: '7', label: '7' },
+                      { k: '8', label: '8' },
+                      { k: '9', label: '9' },
+                      { k: '-', label: '−', cls: 'text-[#187498]', aria: 'Kurang' },
+                      { k: '4', label: '4' },
+                      { k: '5', label: '5' },
+                      { k: '6', label: '6' },
+                      { k: '+', label: '+', cls: 'text-[#187498]', aria: 'Tambah' },
+                      { k: '1', label: '1' },
+                      { k: '2', label: '2' },
+                      { k: '3', label: '3' },
+                      { k: ',', label: ',', aria: 'Koma desimal' },
+                      { k: '0', label: '0' },
+                      { k: '000', label: '000' },
+                    ].map((btn) => (
+                      <button
+                        key={btn.k}
+                        type="button"
+                        onClick={() => tekanKeypad(btn.k)}
+                        aria-label={btn.aria || btn.label}
+                        className="clay-btn clay-btn-secondary flex h-9 items-center justify-center rounded-xl font-mono text-sm font-extrabold touch-manipulation"
+                      >
+                        <span className={btn.cls || 'text-slate-700'}>{btn.label}</span>
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => tekanKeypad('=')}
+                      aria-label="Hitung dan terapkan hasil ke nominal"
+                      className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} col-span-2 flex h-9 items-center justify-center gap-1 rounded-xl text-xs font-extrabold text-white touch-manipulation`}
+                    >
+                      <span className="font-mono text-sm">=</span>
+                      <span>Terapkan</span>
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
           {/* Scan Struk / Foto — HANYA mode tambah pengeluaran (GAS menyembunyikannya saat edit / pemasukan).
-              OCR berjalan 100% di browser: total, tanggal, jenis, dan merchant terisi otomatis. */}
+              Di web (sm:) ditata 1 baris ringkas agar modal muat 1 layar tanpa scrolling. */}
           {mode === 'add' && !isPemasukan && (
-            <div className="neu-inset flex flex-col gap-2 rounded-2xl p-3 bg-[#E5E5E5]">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined icon-sm text-[#EB5353]">document_scanner</span>
-                <label className="text-[11px] font-semibold text-textSecondary">Scan Struk / Foto Transaksi</label>
-                {scanHasil?.engine === 'gemini-flash' ? (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <span className="material-symbols-outlined icon-2xs">smart_toy</span>
-                    Gemini Flash AI (99%)
-                  </span>
-                ) : scanHasil?.engine === 'pp-ocrv4' ? (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
-                    <span className="material-symbols-outlined icon-2xs">psychology</span>
-                    PP-OCRv4 AI
-                  </span>
-                ) : scanHasil?.engine === 'unlimited-ocr' ? (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-                    <span className="material-symbols-outlined icon-2xs">smart_toy</span>
-                    Unlimited-OCR AI
-                  </span>
-                ) : scanHasil?.confidence > 0 ? (
-                  <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
-                    <span className="material-symbols-outlined icon-2xs">bolt</span>
-                    Lokal ({Math.round(scanHasil.confidence)}%)
-                  </span>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => setShowOcrConfig((s) => !s)}
-                  title="Pengaturan Engine OCR"
-                  aria-label="Pengaturan Engine OCR"
-                  className={`neu-btn flex h-7 w-7 items-center justify-center rounded-full bg-[#E5E5E5] transition-all active:scale-95 ${
-                    showOcrConfig ? 'text-[#36AE7C]' : 'text-slate-500 hover:text-slate-800'
-                  } ${!scanHasil ? 'ml-auto' : ''}`}
-                >
-                  <span className="material-symbols-outlined icon-xs">tune</span>
-                </button>
+            <div className="neu-inset flex flex-col gap-2 rounded-2xl p-2.5 sm:px-3 sm:py-2 bg-[#E5E5E5]">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="material-symbols-outlined icon-sm shrink-0 text-[#EB5353]">document_scanner</span>
+                  <label className="truncate text-[11px] font-semibold text-textSecondary">Scan Struk</label>
+                  {scanHasil?.engine === 'gemini-flash' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <span className="material-symbols-outlined icon-2xs">smart_toy</span>
+                      Gemini AI
+                    </span>
+                  ) : scanHasil?.engine === 'pp-ocrv4' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      <span className="material-symbols-outlined icon-2xs">psychology</span>
+                      PP-OCRv4
+                    </span>
+                  ) : scanHasil?.engine === 'unlimited-ocr' ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                      <span className="material-symbols-outlined icon-2xs">smart_toy</span>
+                      Unlimited AI
+                    </span>
+                  ) : scanHasil?.confidence > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
+                      <span className="material-symbols-outlined icon-2xs">bolt</span>
+                      {Math.round(scanHasil.confidence)}%
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => setShowOcrConfig((s) => !s)}
+                    title="Pengaturan Engine OCR"
+                    aria-label="Pengaturan Engine OCR"
+                    className={`neu-btn ml-auto sm:ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] transition-transform active:scale-95 ${
+                      showOcrConfig ? 'text-[#36AE7C]' : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined icon-xs">tune</span>
+                  </button>
+                </div>
+
+                {!scanProses && (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => fileUploadRef.current?.click()}
+                      className="clay-btn-secondary clay-btn btn-sm flex-1 sm:flex-initial bg-surface text-textSecondary hover:bg-gray-100 px-3"
+                    >
+                      <span className="material-symbols-outlined icon-sm">upload_file</span>
+                      Upload Struk
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fileCameraRef.current?.click()}
+                      className="clay-btn-secondary clay-btn btn-sm flex-1 sm:flex-initial bg-surface text-textSecondary hover:bg-gray-100 px-3"
+                    >
+                      <span className="material-symbols-outlined icon-sm">photo_camera</span>
+                      Foto Struk
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Panel Pengaturan Engine OCR */}
@@ -629,27 +848,6 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
               )}
 
-              {!scanProses && (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileUploadRef.current?.click()}
-                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary hover:bg-gray-100"
-                  >
-                    <span className="material-symbols-outlined icon-md">upload_file</span>
-                    Upload Struk
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => fileCameraRef.current?.click()}
-                    className="clay-btn-secondary clay-btn btn-sm flex-1 bg-surface text-textSecondary hover:bg-gray-100"
-                  >
-                    <span className="material-symbols-outlined icon-md">photo_camera</span>
-                    Foto Struk
-                  </button>
-                </div>
-              )}
-
               {/* Pratinjau + progress OCR */}
               {scan && (
                 <div className="flex items-center gap-2.5 rounded-lg bg-surface p-2">
@@ -713,29 +911,30 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tx-tanggal" className="block text-[11px] font-semibold text-textSecondary">Tanggal</label>
-            <ClayDateInput id="tx-tanggal" value={tanggal} onChange={setTanggal} />
-          </div>
+          {/* Grid 2 Kolom di Web (sm:) supaya kartu Catat Pengeluaran/Pemasukan muat 1 layar tanpa scroll */}
+          <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-2">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tx-tanggal" className="block text-[11px] font-semibold text-textSecondary">Tanggal</label>
+              <ClayDateInput id="tx-tanggal" value={tanggal} onChange={setTanggal} />
+            </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tx-akun" className="block text-[11px] font-semibold text-textSecondary">
-              {isPemasukan ? 'Rekening Tujuan / Penerima' : 'Sumber / Rekening'}
-            </label>
-            <ClaySelect
-              id="tx-akun"
-              value={akunId}
-              onChange={setAkunId}
-              placeholder="Pilih Sumber/Akun"
-              options={akunList.map((a) => ({ value: a.id, label: a.nama }))}
-            />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tx-akun" className="block text-[11px] font-semibold text-textSecondary">
+                {isPemasukan ? 'Rekening Tujuan / Penerima' : 'Sumber / Rekening'}
+              </label>
+              <ClaySelect
+                id="tx-akun"
+                value={akunId}
+                onChange={setAkunId}
+                placeholder="Pilih Sumber/Akun"
+                options={akunList.map((a) => ({ value: a.id, label: a.nama }))}
+              />
+            </div>
 
-            {/* Strok terdeteksi provider pembayaran (GoPay/SeaBank/SPayLater/...)
-                yang BELUM ada di daftar rekening user. Bukan menebak diam-diam:
-                user dikonfirmasi dulu, dan rekening baru benar-benar tersimpan
-                ke Firestore sebelum dipakai sebagai akun transaksi. */}
+            {/* Struk terdeteksi provider pembayaran (GoPay/SeaBank/SPayLater/...)
+                yang BELUM ada di daftar rekening user. */}
             {sumberSaran && !sumberMenyimpan && (
-              <div className="clay-key-info mt-1 rounded-2xl p-3">
+              <div className="clay-key-info sm:col-span-2 rounded-2xl p-3">
                 <div className="flex items-start gap-2">
                   <span
                     className="material-symbols-outlined icon-sm shrink-0 text-info"
@@ -777,7 +976,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             )}
 
             {sumberMenyimpan && (
-              <div className="mt-1 flex flex-col gap-2">
+              <div className="flex flex-col gap-2 sm:col-span-2">
                 <label
                   htmlFor="tx-sumber-baru"
                   className="block text-[11px] font-semibold text-slate-600"
@@ -816,53 +1015,53 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tx-kategori" className="block text-[11px] font-semibold text-textSecondary">Kategori</label>
-            <ClayCombobox
-              id="tx-kategori"
-              value={kategoriNama}
-              onChange={setKategoriNama}
-              placeholder="Pilih atau ketik kategori..."
-              required
-              inputProps={{ maxLength: 100 }}
-              // Filter kategori berdasarkan JENIS transaksi (pengeluaran → hanya
-              // kategori jenis pengeluaran; pemasukan → hanya pemasukan). Untuk
-              // mode edit/salin, jika kategori sumber tidak masuk filter (mis.
-              // data legacy jenis berbeda), tetap sertakan agar tidak hilang opsi.
-              options={(() => {
-                const sesuaiJenis = (kategoriList || []).filter((k) => k && k.jenis === jenis && k.nama)
-                if ((mode === 'edit' || mode === 'salin') && sumber?.kategoriId) {
-                  const ada = sesuaiJenis.some((k) => k.id === sumber.kategoriId)
-                  if (!ada) {
-                    const sumberKat = (kategoriList || []).find((k) => k?.id === sumber.kategoriId)
-                    if (sumberKat?.nama) return [{ value: sumberKat.id, label: sumberKat.nama + ' (lama)' }, ...sesuaiJenis]
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tx-kategori" className="block text-[11px] font-semibold text-textSecondary">Kategori</label>
+              <ClayCombobox
+                id="tx-kategori"
+                value={kategoriNama}
+                onChange={setKategoriNama}
+                placeholder="Pilih atau ketik kategori..."
+                required
+                inputProps={{ maxLength: 100 }}
+                // Filter kategori berdasarkan JENIS transaksi (pengeluaran → hanya
+                // kategori jenis pengeluaran; pemasukan → hanya pemasukan). Untuk
+                // mode edit/salin, jika kategori sumber tidak masuk filter (mis.
+                // data legacy jenis berbeda), tetap sertakan agar tidak hilang opsi.
+                options={(() => {
+                  const sesuaiJenis = (kategoriList || []).filter((k) => k && k.jenis === jenis && k.nama)
+                  if ((mode === 'edit' || mode === 'salin') && sumber?.kategoriId) {
+                    const ada = sesuaiJenis.some((k) => k.id === sumber.kategoriId)
+                    if (!ada) {
+                      const sumberKat = (kategoriList || []).find((k) => k?.id === sumber.kategoriId)
+                      if (sumberKat?.nama) return [{ value: sumberKat.id, label: sumberKat.nama + ' (lama)' }, ...sesuaiJenis]
+                    }
                   }
-                }
-                return sesuaiJenis
-              })().map((k) => ({ value: k.id, label: String(k?.nama ?? '') }))}
-            />
-          </div>
-
-          {akunList.length === 0 && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-600">
-              <span className="material-symbols-outlined icon-xs mt-px shrink-0">error</span>
-              <span>Belum ada rekening. Tambahkan rekening dulu sebagai sumber akun.</span>
+                  return sesuaiJenis
+                })().map((k) => ({ value: k.id, label: String(k?.nama ?? '') }))}
+              />
             </div>
-          )}
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="tx-catatan" className="block text-[11px] font-semibold text-textSecondary">Keterangan</label>
-            <input
-              id="tx-catatan"
-              type="text"
-              maxLength={500}
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              placeholder="Keterangan opsional"
-              className="clay-input field-lg w-full text-sm"
-            />
+            <div className="flex flex-col gap-1">
+              <label htmlFor="tx-catatan" className="block text-[11px] font-semibold text-textSecondary">Keterangan</label>
+              <input
+                id="tx-catatan"
+                type="text"
+                maxLength={500}
+                value={catatan}
+                onChange={(e) => setCatatan(e.target.value)}
+                placeholder="Keterangan opsional"
+                className="clay-input field-lg w-full text-sm"
+              />
+            </div>
+
+            {akunList.length === 0 && (
+              <div className="sm:col-span-2 flex items-start gap-2 rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-600">
+                <span className="material-symbols-outlined icon-xs mt-px shrink-0">error</span>
+                <span>Belum ada rekening. Tambahkan rekening dulu sebagai sumber akun.</span>
+              </div>
+            )}
           </div>
 
           {error && (

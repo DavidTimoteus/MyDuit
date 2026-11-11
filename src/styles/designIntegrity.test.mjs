@@ -250,5 +250,12 @@ const utangTanpaRemountDanDragState =
   !fileUtangMobile.includes('setDragOffset')
 cek('list perf: TransaksiView & UtangMobile bebas dari remount key wrapper & setDragOffset per touchmove', txTanpaRemountDanDragState && utangTanpaRemountDanDragState)
 
+// 32. Kalkulator nominal aman CSP (bebas eval/Function), FormTransaksiModal responsif 2-kolom web, & .tx-card-just-added di @layer components
+const fileKalkulator = readFileSync(join(root, 'src/features/transaksi/kalkulatorNominal.js'), 'utf8')
+const kalkulatorAmanCsp = !/\beval\s*\(/.test(fileKalkulator) && !/new\s+Function\b/.test(fileKalkulator)
+const modalWebDuaKolom = fileFormModal.includes('sm:grid-cols-2') && fileFormModal.includes('sm:max-w-[540px]')
+const justAddedInsideLayer = fileCss.indexOf('.tx-card-just-added') > idxLayerSecondOpen
+cek('keamanan & ux transaksi: kalkulator bebas eval, modal web 2-kolom anti-scroll, dan .tx-card-just-added di @layer components', kalkulatorAmanCsp && modalWebDuaKolom && justAddedInsideLayer)
+
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
