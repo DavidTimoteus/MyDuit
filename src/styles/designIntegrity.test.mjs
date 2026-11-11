@@ -154,21 +154,38 @@ const neuHoverTerdefinisi =
   fileCss.includes('[data-theme="neumorphism"] .neu-btn-danger:hover:not(:disabled)')
 cek('css: tema default neumorphism memiliki aturan :hover eksplisit untuk kartu & tombol', neuHoverTerdefinisi)
 
-// 25. TransaksiRow memakai .tx-actions-reveal animasi halus (bukan display hidden <-> flex)
+// 25. TransaksiRow memakai hidden saat tertutup (tanpa celah flex 12px) & .tx-action-pop pegas saat terbuka (tanpa clipping shadow)
 const fileTransaksiRow = readFileSync(join(root, 'src/features/transaksi/TransaksiRow.jsx'), 'utf8')
-const aksiRowAnimasiHalus =
-  fileTransaksiRow.includes('tx-actions-reveal') &&
-  !fileTransaksiRow.includes("deleteOpen ? 'flex' : 'hidden'")
-cek('transaksi row: pengungkapan tombol Salin/Hapus memakai .tx-actions-reveal (tanpa lompatan hidden/flex)', aksiRowAnimasiHalus)
+const aksiRowZeroGap =
+  fileTransaksiRow.includes("deleteOpen ? 'flex items-center gap-1.5 ml-2 shrink-0' : 'hidden'") &&
+  fileTransaksiRow.includes('tx-action-pop') &&
+  !fileTransaksiRow.includes('tx-actions-reveal')
+cek('transaksi row: bebas celah flex 12px (hidden saat tutup) & memakai .tx-action-pop bebas clipping', aksiRowZeroGap)
 
-// 26. Sistem scroll-triggered & animasi transisi terdefinisi di CSS
-const sistemMotionLengkap =
-  fileCss.includes('.tx-actions-reveal.is-open') &&
-  fileCss.includes('.scroll-reveal-pending.is-revealed') &&
-  fileCss.includes('.sticky-scroll-bar.is-scrolled') &&
+// 26. Arsitektur Zero-Trap Motion di CSS (viewFadeIn tanpa transform, modal stabil, FAB speed-dial :not(.fab-dial-btn), tombol specificity rendah)
+const blokViewEnter = fileCss.match(/\.view-panel-enter\s*\{[^}]*\}/)?.[0] ?? ''
+const viewEnterBebasTransform = blokViewEnter.includes('viewFadeIn') && !fileCss.includes('@keyframes viewEnter')
+const modalSheetBebasScaleJump = !/\.modal-backdrop-wrap\s+\.clay-sheet[^}]*animation:\s*modalCardIn/.test(fileCss)
+const btnSpecificityRendah = fileCss.includes('button:hover:where(') && fileCss.includes('button:active:where(')
+const fabSpeedDialIsolated =
+  fileCss.includes('[data-theme="neumorphism"] .clay-fab:not(.fab-dial-btn)') &&
+  fileCss.includes('.clay-fab.solid-primary:not(.fab-dial-btn)') &&
+  !fileCss.includes('animate-toast-unlayered')
+const stickyBebasBoxCutoff =
+  !fileTransaksiView.includes('sticky-scroll-bar') &&
+  !readFileSync(join(root, 'src/features/statistik/StatistikView.jsx'), 'utf8').includes('sticky-scroll-bar')
+const zeroTrapCssContract =
+  viewEnterBebasTransform &&
+  modalSheetBebasScaleJump &&
+  btnSpecificityRendah &&
+  fabSpeedDialIsolated &&
+  stickyBebasBoxCutoff &&
+  fileCss.includes('.tx-action-pop') &&
+  fileCss.includes('.scroll-reveal-pending') &&
+  fileCss.includes('.scroll-reveal-run') &&
   fileCss.includes('.progress-bar-fill') &&
   fileCss.includes('clayDropdownUp')
-cek('css: kontrak motion lengkap (tx-actions-reveal, scroll-reveal, sticky-scroll-bar, progress-bar-fill, dropdown flip)', sistemMotionLengkap)
+cek('css: kontrak Zero-Trap Motion (viewFadeIn bebas transform, FAB :not(.fab-dial-btn), specificity :where, reveal self-cleaning)', zeroTrapCssContract)
 
 // 27. Tidak ada .clay-btn atau .clay-chip yang memakai transition-colors (mematikan animasi transform/shadow)
 const fileBudgetModal = readFileSync(join(root, 'src/features/budget/FormBudgetModal.jsx'), 'utf8')
@@ -179,6 +196,41 @@ const fileMutasiModal = readFileSync(join(root, 'src/features/budget/RiwayatMuta
 const gabunganBtnFiles = [fileFormModal, fileShell, fileTransaksiView, fileBudgetModal, fileRekeningModal, fileFilterModal, filePindahModal, fileMutasiModal].join('\n')
 const tanpaTransitionColorsDiBtn = !/clay-(btn|chip)[^"\n`]*transition-colors/.test(gabunganBtnFiles)
 cek('jsx: tombol .clay-btn/.clay-chip bebas dari transition-colors yang memotong transisi transform/box-shadow', tanpaTransitionColorsDiBtn)
+
+// 28. Seluruh modal fitur di-portal ke document.body agar tidak terperangkap overflow/stacking ancestor
+const fileUtangModals = readFileSync(join(root, 'src/features/utang/UtangModals.jsx'), 'utf8')
+const fileStatistikView = readFileSync(join(root, 'src/features/statistik/StatistikView.jsx'), 'utf8')
+const fileBudgetListPanel = readFileSync(join(root, 'src/features/budget/BudgetPanel.jsx'), 'utf8')
+const fileRekeningPanel = readFileSync(join(root, 'src/features/budget/RekeningPanel.jsx'), 'utf8')
+const fileExportPdf = readFileSync(join(root, 'src/features/laporan/ExportPdfModal.jsx'), 'utf8')
+const fileBackupModal = readFileSync(join(root, 'src/features/backup/BackupModal.jsx'), 'utf8')
+const fileUserMenu = readFileSync(join(root, 'src/components/UserMenuSheet.jsx'), 'utf8')
+const modalFilesToCheck = [
+  ['FormTransaksiModal', fileFormModal],
+  ['ModalPindahSaldo', filePindahModal],
+  ['FilterTransaksiModal', fileFilterModal],
+  ['TransaksiView', fileTransaksiView],
+  ['FormBudgetModal', fileBudgetModal],
+  ['FormRekeningModal', fileRekeningModal],
+  ['RiwayatMutasiModal', fileMutasiModal],
+  ['BudgetPanel', fileBudgetListPanel],
+  ['RekeningPanel', fileRekeningPanel],
+  ['UtangModals', fileUtangModals],
+  ['UtangView', fileUtangView],
+  ['StatistikView', fileStatistikView],
+  ['ExportPdfModal', fileExportPdf],
+  ['BackupModal', fileBackupModal],
+  ['UserMenuSheet', fileUserMenu],
+  ['Shell', fileShell],
+]
+const missingPortal = modalFilesToCheck.filter(([, txt]) => !txt.includes('portalBody(')).map(([n]) => n)
+cek(`modal isolation: seluruh modal fitur memakai portalBody() ke document.body (${modalFilesToCheck.length - missingPortal.length}/${modalFilesToCheck.length})`, missingPortal.length === 0, missingPortal.length ? `tanpa portalBody: ${missingPortal.join(', ')}` : '')
+
+// 29. Blok aturan motion komponen di index.css wajib berada di dalam @layer components (bukan unlayered setelah keyframes)
+const idxScrollRevealCss = fileCss.indexOf('.scroll-reveal-pending')
+const idxLayerSecondOpen = fileCss.indexOf('@layer components {', fileCss.indexOf('@keyframes modalBackdropFadeIn'))
+const motionCssInsideLayer = idxScrollRevealCss > -1 && idxLayerSecondOpen > -1 && idxScrollRevealCss > idxLayerSecondOpen
+cek('css: aturan kelas motion (.view-panel-enter, .tx-action-pop, .scroll-reveal-*) berada di dalam @layer components', motionCssInsideLayer)
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${lulus}/${total} cek lolos`)
 if (galat.length) throw new Error(`Uji designIntegrity gagal: ${galat.join(' | ')}`)
