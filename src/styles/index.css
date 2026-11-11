@@ -153,6 +153,8 @@ textarea:focus-visible,
   --motion-dur-instant: 120ms;                            /* Micro-toggle & ikon */
   --motion-dur-fast:    180ms;                            /* Tombol, chip, kartu hover/touch */
   --motion-dur-normal:  240ms;                            /* Modal, sheet, dropdown */
+  --motion-dur-slow:    340ms;                            /* Scroll-reveal & transisi kartu */
+  --motion-dur-bar:     520ms;                            /* Pertumbuhan progress bar */
 
   /* ===== ICON SIZE TOKENS (skala tetap — larang ukuran acak) ===== */
   --icon-2xs: 12px;
@@ -276,20 +278,31 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Global button hover/active — fisika responsif sinkron */
+/* Global button hover/active — fisika responsif sinkron, aman dari sticky hover mobile */
 button {
   cursor: pointer;
-  transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring),
+    opacity var(--motion-dur-fast) ease;
+}
+button:disabled,
+button[aria-disabled="true"] {
+  cursor: not-allowed;
 }
 .btn {
   height: 48px;
   padding: 0 16px;
   border: none;
 }
-button:hover {
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  button:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+  }
 }
-button:active {
+button:active:not(:disabled):not([aria-disabled="true"]) {
   transform: scale(0.97) translateY(1px);
 }
 
@@ -509,16 +522,22 @@ button:active {
 
 /* ===== MODAL BACKDROP & CHOREOGRAPHY ===== */
 .modal-backdrop-wrap {
-  animation: modalBackdropFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: modalBackdropFadeIn var(--motion-dur-fast) var(--motion-ease-spring) both;
   will-change: opacity;
 }
 
 .modal-backdrop-wrap .clay-sheet,
 .modal-backdrop-wrap .neu-card,
 .modal-backdrop-wrap .neu-sheet {
-  animation: modalCardIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: modalCardIn var(--motion-dur-normal) var(--motion-ease-spring) both;
   will-change: transform, opacity;
   transform-origin: center center;
+}
+@media (max-width: 639px) {
+  .modal-backdrop-wrap .modal-sheet-bottom {
+    animation: sheetSlideUp 260ms var(--motion-ease-spring) both;
+    transform-origin: bottom center;
+  }
 }
 
 /* ===== SHEET / MODAL (Level 5 Elevation - Product UI Styleguide) ===== */
@@ -722,27 +741,47 @@ button:active {
     inset 0 2px 4px rgba(0, 0, 0, 0.25) !important;
 }
 
-/* Default / Neumorphism Sidebar Nav Buttons (matching Image 4) */
+/* Default / Neumorphism Sidebar Nav Buttons (matching Image 4, 4-slot shadow anti-snap) */
 [data-theme="neumorphism"] .sidebar-nav-btn {
-  background: transparent !important;
+  background-color: transparent !important;
   background-image: none !important;
   border: none !important;
   color: #64748B !important;
-  box-shadow: none !important;
   border-radius: 16px !important;
-  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
-}
-[data-theme="neumorphism"] .sidebar-nav-btn:hover:not(.is-active) {
-  background: #E5E5E5 !important;
-  color: #0F172A !important;
   box-shadow:
-    -3px -3px 8px rgba(255, 255, 255, 0.90),
-     3px  3px 8px rgba(0, 0, 0, 0.12) !important;
-  transform: translateY(-1px) !important;
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring) !important;
+}
+.sidebar-nav-btn .material-symbols-outlined {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-nav-btn:hover .material-symbols-outlined {
+    transform: scale(1.09);
+  }
+  [data-theme="neumorphism"] .sidebar-nav-btn:hover:not(.is-active) {
+    background-color: #E5E5E5 !important;
+    color: #0F172A !important;
+    box-shadow:
+      -3px -3px 8px rgba(255, 255, 255, 0.90),
+       3px  3px 8px rgba(0, 0, 0, 0.12),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+    transform: translateY(-1px) !important;
+  }
 }
 [data-theme="neumorphism"] .sidebar-nav-btn:active {
   transform: scale(0.98) !important;
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
     inset -2px -2px 5px rgba(255, 255, 255, 0.85),
     inset  2px  2px 5px rgba(0, 0, 0, 0.16) !important;
 }
@@ -753,14 +792,20 @@ button:active {
   color: #36AE7C !important;
   border-radius: 16px !important;
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
     inset -3px -3px 6px rgba(255, 255, 255, 0.95),
     inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
   transform: translateY(0) !important;
 }
-[data-theme="neumorphism"] .sidebar-nav-btn.is-active:hover {
-  box-shadow:
-    inset -3.5px -3.5px 7px rgba(255, 255, 255, 0.98),
-    inset  3.5px  3.5px 7px rgba(13, 39, 80, 0.22) !important;
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .sidebar-nav-btn.is-active:hover {
+    box-shadow:
+       0px  0px 0px rgba(255, 255, 255, 0),
+       0px  0px 0px rgba(0, 0, 0, 0),
+      inset -3.5px -3.5px 7px rgba(255, 255, 255, 0.98),
+      inset  3.5px  3.5px 7px rgba(13, 39, 80, 0.22) !important;
+  }
 }
 
 /* ===== BUTTON CETAK PDF (referensi Image 2) =====
@@ -779,20 +824,34 @@ button:active {
   color: #EB5353 !important;
   box-shadow:
     3px 3px 7px rgba(166, 171, 189, 0.55),
-    -3px -3px 7px rgba(255, 255, 255, 0.85);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    -3px -3px 7px rgba(255, 255, 255, 0.85),
+    inset 0 0 0 rgba(166, 171, 189, 0),
+    inset 0 0 0 rgba(255, 255, 255, 0);
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring), color var(--motion-dur-fast) ease;
 }
-.pdf-action-btn:hover {
-  background-color: #E5E5E5 !important;
-  color: #EB5353 !important;
-  box-shadow:
-    4px 4px 9px rgba(166, 171, 189, 0.65),
-    -4px -4px 9px rgba(255, 255, 255, 0.95);
-  transform: translateY(-1px);
+.pdf-action-btn .material-symbols-outlined {
+  transition: transform var(--motion-dur-fast) var(--motion-ease-spring);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pdf-action-btn:hover {
+    background-color: #E5E5E5 !important;
+    color: #C73838 !important;
+    box-shadow:
+      4px 4px 10px rgba(166, 171, 189, 0.68),
+      -4px -4px 10px rgba(255, 255, 255, 0.95),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0);
+    transform: translateY(-1.5px);
+  }
+  .pdf-action-btn:hover .material-symbols-outlined {
+    transform: scale(1.1) rotate(-4deg);
+  }
 }
 .pdf-action-btn:active {
   transform: scale(0.94) !important;
   box-shadow:
+    0 0 0 rgba(166, 171, 189, 0),
+    0 0 0 rgba(255, 255, 255, 0),
     inset 2.5px 2.5px 5px rgba(166, 171, 189, 0.6),
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.85) !important;
 }
@@ -1225,8 +1284,17 @@ button:active {
 .clay-select-trigger {
   /* FIX: sebelumnya tanpa border-radius -> dropdown select tampil lancip */
   border-radius: var(--clay-r-input) !important;
+  transition:
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    transform var(--motion-dur-fast) var(--motion-ease-spring);
 }
-.clay-select-trigger .material-symbols-outlined { transition: transform 0.2s ease; }
+.clay-select-trigger:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.clay-select-trigger .material-symbols-outlined {
+  transition: transform var(--motion-dur-normal) var(--motion-ease-spring);
+}
 .clay-select-trigger.is-open .material-symbols-outlined { transform: rotate(180deg); }
 .clay-select-list {
   position: fixed;
@@ -1238,9 +1306,6 @@ button:active {
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
   overscroll-behavior: contain !important;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
   border-radius: var(--clay-r-input);
   background: #f7faf8;
   border: 1px solid rgba(255, 255, 255, 0.85);
@@ -1250,8 +1315,12 @@ button:active {
     0 20px 40px -8px rgba(0, 0, 0, 0.14),
     inset 1.5px 1.5px 2px rgba(255, 255, 255, 0.95);
   transform-origin: top center;
-  animation: clayDropdownIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: clayDropdownIn var(--motion-dur-fast) var(--motion-ease-spring) both;
   will-change: transform, opacity;
+}
+.clay-select-list[data-placement="top"] {
+  transform-origin: bottom center;
+  animation-name: clayDropdownUp;
 }
 .clay-select-list::-webkit-scrollbar {
   width: 6px;
@@ -1267,9 +1336,21 @@ button:active {
   font-weight: 500;
   color: #334155;
   cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
+  transition:
+    transform var(--motion-dur-instant) var(--motion-ease-spring),
+    background-color var(--motion-dur-instant) ease,
+    color var(--motion-dur-instant) ease,
+    box-shadow var(--motion-dur-instant) ease;
 }
-.clay-select-option:hover { background: rgba(var(--clay-h-primary), 0.08); }
+@media (hover: hover) and (pointer: fine) {
+  .clay-select-option:hover:not(.is-disabled):not(.is-empty) {
+    background: rgba(var(--clay-h-primary), 0.08);
+    transform: translateX(2px);
+  }
+}
+.clay-select-option:active:not(.is-disabled):not(.is-empty) {
+  transform: scale(0.985);
+}
 .clay-select-option.is-highlighted {
   background: rgba(var(--clay-h-primary), 0.14);
   color: var(--color-primary);
@@ -1372,14 +1453,29 @@ button:active {
   box-shadow:
     3px 3px 8px rgba(var(--clay-h), 0.18),
     -3px -3px 8px rgba(255, 255, 255, 0.6),
-    inset 1px 1px 3px rgba(255, 255, 255, 0.5),
-    inset -2px -2px 4px rgba(var(--clay-h), 0.1) !important;
+    inset 0 0 0 rgba(0, 0, 0, 0),
+    inset 0 0 0 rgba(255, 255, 255, 0) !important;
   border: none !important;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) ease !important;
 }
-.clay-pagination-arrow:active {
+@media (hover: hover) and (pointer: fine) {
+  .clay-pagination-arrow:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow:
+      4px 4px 10px rgba(var(--clay-h), 0.24),
+      -4px -4px 10px rgba(255, 255, 255, 0.85),
+      inset 0 0 0 rgba(0, 0, 0, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
+  }
+}
+.clay-pagination-arrow:active:not(:disabled) {
   transform: scale(0.9);
   box-shadow:
+    0 0 0 rgba(var(--clay-h), 0),
+    0 0 0 rgba(255, 255, 255, 0),
     inset 2px 2px 6px rgba(0, 0, 0, 0.2),
     inset -2px -2px 6px rgba(255, 255, 255, 0.3) !important;
 }
@@ -1500,15 +1596,30 @@ button:active {
   pointer-events: none;
   z-index: 30;
   touch-action: manipulation;
-  transition: transform var(--motion-dur-normal) var(--motion-ease-spring), opacity var(--motion-dur-fast) var(--motion-ease-out);
+  transition:
+    transform var(--motion-dur-normal) var(--motion-ease-spring),
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
+}
+.fab-speed-dial:not(.open) .fab-dial-btn {
+  transition-delay: 0ms !important;
+  transition-duration: 160ms;
 }
 .fab-speed-dial.open .fab-dial-btn {
   transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1);
   opacity: 1;
   pointer-events: auto;
 }
+@media (hover: hover) and (pointer: fine) {
+  .fab-speed-dial.open .fab-dial-btn:hover {
+    transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(1.08);
+  }
+}
 .fab-speed-dial.open .fab-dial-btn:active {
   transform: translate(calc(-50% + var(--tx)), var(--ty)) scale(0.92);
+}
+.clay-fab .material-symbols-outlined {
+  transition: transform var(--motion-dur-normal) var(--motion-ease-spring);
 }
 .fab-icon-open { transform: rotate(45deg); }
 
@@ -1550,8 +1661,161 @@ button:active {
 }
 
 @keyframes clayDropdownIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(-5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes clayDropdownUp {
+  from { opacity: 0; transform: translateY(5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes sheetSlideUp {
+  from { opacity: 0; transform: translate3d(0, 28px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes viewEnter {
+  from { opacity: 0; transform: translate3d(0, 8px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translate3d(0, -14px, 0) scale(0.96); }
+  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  to { opacity: 0; transform: translate3d(0, -10px, 0) scale(0.96); }
+}
+
+@keyframes barGrowX {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes neuShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.view-panel-enter {
+  animation: viewEnter var(--motion-dur-normal) var(--motion-ease-spring) both;
+}
+
+.toast-enter {
+  animation: toastIn var(--motion-dur-normal) var(--motion-ease-spring) both;
+  will-change: transform, opacity;
+}
+
+.toast-exit {
+  animation: toastOut var(--motion-dur-fast) var(--motion-ease-in) both;
+  pointer-events: none !important;
+}
+
+.progress-bar-fill {
+  transform-origin: left center;
+  animation: barGrowX var(--motion-dur-bar) var(--motion-ease-spring) both;
+  transition: width var(--motion-dur-bar) var(--motion-ease-spring), background-color var(--motion-dur-normal) ease;
+}
+
+/* Pengungkapan tombol Salin/Hapus TransaksiRow mulus tanpa lonjakan lebar mendadak */
+.tx-actions-reveal {
+  display: grid;
+  grid-template-columns: 0fr;
+  opacity: 0;
+  margin-left: 0;
+  pointer-events: none;
+  transition:
+    grid-template-columns var(--motion-dur-normal) var(--motion-ease-spring),
+    opacity var(--motion-dur-fast) var(--motion-ease-out),
+    margin-left var(--motion-dur-normal) var(--motion-ease-spring);
+}
+.tx-actions-reveal.is-open {
+  grid-template-columns: 1fr;
+  opacity: 1;
+  margin-left: 0.5rem;
+  pointer-events: auto;
+}
+.tx-actions-reveal-inner {
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 2px;
+}
+.tx-actions-reveal .salin-btn-action,
+.tx-actions-reveal .delete-btn-action {
+  transform: scale(0.84);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) ease;
+}
+.tx-actions-reveal.is-open .salin-btn-action,
+.tx-actions-reveal.is-open .delete-btn-action {
+  transform: scale(1);
+}
+
+/* Scroll-triggered progressive card/item reveal (memakai CSS individual `translate` agar TIDAK bertabrakan dgn `transform` maupun `transition: ... !important` pada kartu) */
+@keyframes scrollRevealIn {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+.scroll-reveal-pending,
+[data-reveal="pending"] {
+  opacity: 0;
+  translate: 0 14px;
+  will-change: opacity, translate;
+}
+.scroll-reveal-pending.is-revealed,
+[data-reveal="revealed"] {
+  opacity: 1;
+  translate: 0 0;
+  animation: scrollRevealIn var(--motion-dur-slow) var(--motion-ease-spring) var(--reveal-delay, 0ms) both;
+}
+.page-transition-next .scroll-reveal-pending,
+.page-transition-prev .scroll-reveal-pending,
+.page-transition-next [data-reveal="pending"],
+.page-transition-prev [data-reveal="pending"] {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* Sticky bar scroll separation */
+.sticky-scroll-bar {
+  transition: box-shadow var(--motion-dur-normal) var(--motion-ease-spring), background-color var(--motion-dur-fast) ease;
+}
+.sticky-scroll-bar.is-scrolled {
+  box-shadow: 0 10px 24px -10px rgba(15, 23, 42, 0.14);
+}
+[data-theme="neumorphism"] .sticky-scroll-bar.is-scrolled {
+  box-shadow: 0 10px 22px -12px rgba(13, 39, 80, 0.22), 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+/* Neumorphic shimmer skeleton */
+.neu-skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(203, 213, 225, 0.35) 25%,
+    rgba(255, 255, 255, 0.72) 50%,
+    rgba(203, 213, 225, 0.35) 75%
+  );
+  background-size: 200% 100%;
+  animation: neuShimmer 1.4s ease-in-out infinite;
 }
 
 /* ===== MODAL & ACCORDION SMOOTH TRANSITION ANIMATIONS ===== */
@@ -2499,7 +2763,61 @@ button:active {
   border: none !important;
   box-shadow:
     -8px -8px 20px rgba(255, 255, 255, 0.75),
-     8px  8px 20px rgba(0, 0, 0, 0.16) !important;
+     8px  8px 20px rgba(0, 0, 0, 0.16),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .tx-card-item:hover,
+  [data-theme="neumorphism"] .neu-card:not(.is-lunas):hover,
+  [data-theme="neumorphism"] .clay-card:not(.is-lunas):hover,
+  [data-theme="neumorphism"] .hero-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      -10px -10px 24px rgba(255, 255, 255, 0.90),
+       10px  10px 24px rgba(0, 0, 0, 0.20),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  }
+  [data-theme="neumorphism"] .modal-backdrop-wrap .neu-card:hover,
+  [data-theme="neumorphism"] .modal-backdrop-wrap .clay-card:hover {
+    transform: none;
+    box-shadow:
+      -8px -8px 20px rgba(255, 255, 255, 0.75),
+       8px  8px 20px rgba(0, 0, 0, 0.16),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  }
+}
+
+[data-theme="neumorphism"] .tx-card-item:active {
+  transform: scale(0.988) translateY(1px) !important;
+  box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.85),
+    inset  3px  3px 6px rgba(13, 39, 80, 0.16) !important;
+}
+
+[data-theme="neumorphism"] .tx-card-item.tx-card-revealed {
+  box-shadow:
+    -4px -4px 12px rgba(255, 255, 255, 0.85),
+     4px  4px 14px rgba(var(--clay-h, var(--clay-h-primary)), 0.22),
+    inset  1.5px  1.5px 4px rgba(255, 255, 255, 0.90),
+    inset -1.5px -1.5px 4px rgba(var(--clay-h, var(--clay-h-primary)), 0.14) !important;
+}
+
+/* Container static surfaces tidak boleh tertekan saat diklik ruang kosongnya */
+[data-theme="neumorphism"] aside > .clay:active,
+[data-theme="neumorphism"] .modal-backdrop-wrap .neu-card:active,
+[data-theme="neumorphism"] .modal-backdrop-wrap .clay-sheet:active,
+[data-theme="neumorphism"] .clay-sheet:active {
+  transform: none !important;
 }
 
 /* Modals & Bottom Sheets (Level 5 Elevation) */
@@ -2601,8 +2919,19 @@ button:active {
   border: none !important;
   border-radius: 9999px !important;
   color: #64748B !important;
-  box-shadow: none !important;
-  transition: all 180ms ease !important;
+  box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring) !important;
+}
+[data-theme="neumorphism"] .clay-segment-item:active {
+  transform: scale(0.97) !important;
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active {
@@ -2610,6 +2939,8 @@ button:active {
   color: #0F172A !important;
   font-weight: 800 !important;
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.92),
     inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18) !important;
   border-radius: 9999px !important;
@@ -2620,7 +2951,9 @@ button:active {
   color: #FFFFFF !important;
   box-shadow:
     -3px -3px 8px rgba(255, 255, 255, 0.70),
-     4px  4px 10px rgba(235, 83, 83, 0.38) !important;
+     4px  4px 10px rgba(235, 83, 83, 0.38),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active.is-income {
@@ -2628,11 +2961,15 @@ button:active {
   color: #FFFFFF !important;
   box-shadow:
     -3px -3px 8px rgba(255, 255, 255, 0.70),
-     4px  4px 10px rgba(54, 174, 124, 0.40) !important;
+     4px  4px 10px rgba(54, 174, 124, 0.40),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
 }
 
-/* 3. NEUMORPHIC BUTTONS & PRESS STATES */
+/* 3. NEUMORPHIC BUTTONS, CHIPS & PRESS STATES (4-slot smooth shadow interpolation) */
 [data-theme="neumorphism"] .clay-btn,
+[data-theme="neumorphism"] .clay-btn-soft,
+[data-theme="neumorphism"] .clay-btn-secondary,
 [data-theme="neumorphism"] .neu-btn {
   background-color: #E5E5E5 !important;
   background-image: none !important;
@@ -2640,17 +2977,42 @@ button:active {
   color: #1E293B !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.80),
-     5px  5px 12px rgba(0, 0, 0, 0.15) !important;
+     5px  5px 12px rgba(0, 0, 0, 0.15),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring) !important;
 }
 
-[data-theme="neumorphism"] .clay-btn:active,
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .clay-btn:hover:not(:disabled):not([aria-disabled="true"]),
+  [data-theme="neumorphism"] .clay-btn-soft:hover:not(:disabled):not([aria-disabled="true"]),
+  [data-theme="neumorphism"] .clay-btn-secondary:hover:not(:disabled):not([aria-disabled="true"]),
+  [data-theme="neumorphism"] .neu-btn:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1.5px) !important;
+    box-shadow:
+      -7px -7px 16px rgba(255, 255, 255, 0.92),
+       7px  7px 16px rgba(0, 0, 0, 0.18),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  }
+}
+
+[data-theme="neumorphism"] .clay-btn:active:not(:disabled):not([aria-disabled="true"]),
 [data-theme="neumorphism"] .clay-btn.is-active,
+[data-theme="neumorphism"] .clay-btn-soft:active:not(:disabled):not([aria-disabled="true"]),
+[data-theme="neumorphism"] .clay-btn-secondary:active:not(:disabled):not([aria-disabled="true"]),
 [data-theme="neumorphism"] .btn-pressed,
-[data-theme="neumorphism"] .neu-btn:active {
+[data-theme="neumorphism"] .neu-btn:active:not(:disabled):not([aria-disabled="true"]) {
   box-shadow:
-    inset -4px -4px 8px rgba(255, 255, 255, 0.80),
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset -4px -4px 8px rgba(255, 255, 255, 0.85),
     inset  4px  4px 8px rgba(13, 39, 80, 0.18) !important;
-  transform: translateY(1px) !important;
+  transform: scale(0.975) translateY(1px) !important;
 }
 
 /* Neumorphic Chips & Filter Pills */
@@ -2663,47 +3025,42 @@ button:active {
   color: #334155 !important;
   box-shadow:
     -4px -4px 10px rgba(255, 255, 255, 0.80),
-     4px  4px 10px rgba(0, 0, 0, 0.14) !important;
+     4px  4px 10px rgba(0, 0, 0, 0.14),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) var(--motion-ease-spring) !important;
 }
 
-[data-theme="neumorphism"] .clay-chip:active,
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .clay-chip:hover:not(:disabled):not([aria-disabled="true"]),
+  [data-theme="neumorphism"] .chip-btn:hover:not(:disabled):not([aria-disabled="true"]),
+  [data-theme="neumorphism"] button.neu-chip:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px) !important;
+    box-shadow:
+      -5px -5px 13px rgba(255, 255, 255, 0.92),
+       5px  5px 13px rgba(0, 0, 0, 0.17),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  }
+}
+
+[data-theme="neumorphism"] .clay-chip:active:not(:disabled):not([aria-disabled="true"]),
 [data-theme="neumorphism"] .clay-chip.is-active,
-[data-theme="neumorphism"] .chip-btn:active {
+[data-theme="neumorphism"] .chip-btn:active:not(:disabled):not([aria-disabled="true"]),
+[data-theme="neumorphism"] button.neu-chip:active:not(:disabled):not([aria-disabled="true"]) {
   box-shadow:
-    inset -3px -3px 6px rgba(255, 255, 255, 0.80),
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.85),
     inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
+  transform: scale(0.96) translateY(1px) !important;
 }
 
-/* Sidebar Nav Buttons */
-/* Sidebar Nav Buttons: Flush when inactive, Sunken Inset Trench when active (matching Image 4) */
-[data-theme="neumorphism"] .sidebar-nav-btn {
-  background: transparent !important;
-  background-image: none !important;
-  border: none !important;
-  color: #64748B !important;
-  box-shadow: none !important;
-  border-radius: 16px !important;
-  transition: all 180ms ease !important;
-}
-
-[data-theme="neumorphism"] .sidebar-nav-btn:hover:not(.is-active) {
-  background: #E5E5E5 !important;
-  color: #0F172A !important;
-  box-shadow:
-    -3px -3px 8px rgba(255, 255, 255, 0.85),
-     3px  3px 8px rgba(0, 0, 0, 0.10) !important;
-}
-
-[data-theme="neumorphism"] .sidebar-nav-btn.is-active {
-  background-color: #E5E5E5 !important;
-  background-image: none !important;
-  border: none !important;
-  color: #36AE7C !important;
-  box-shadow:
-    inset -3px -3px 6px rgba(255, 255, 255, 0.90),
-    inset  3px  3px 6px rgba(13, 39, 80, 0.18) !important;
-  border-radius: 16px !important;
-}
+/* Hapus duplikasi aturan .sidebar-nav-btn di sini — aturan kanonik tunggal ada di bagian Sidebar Nav di atas */
 
 /* Mobile Bottom Dock */
 [data-theme="neumorphism"] .clay-nav,
@@ -2726,12 +3083,16 @@ button:active {
   box-shadow:
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90),
     inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18) !important;
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-spring), transform var(--motion-dur-fast) var(--motion-ease-spring), color var(--motion-dur-fast) ease;
 }
 
 [data-theme="neumorphism"] .nav-icon-wrap.nav-icon-inactive {
   background: transparent !important;
-  box-shadow: none !important;
+  box-shadow:
+    inset 0 0 0 rgba(255, 255, 255, 0),
+    inset 0 0 0 rgba(13, 39, 80, 0) !important;
   color: #64748B !important;
+  transition: box-shadow var(--motion-dur-fast) var(--motion-ease-spring), transform var(--motion-dur-fast) var(--motion-ease-spring), color var(--motion-dur-fast) ease;
 }
 
 /* Central Dome FAB & Speed Dial Buttons */
@@ -2746,7 +3107,12 @@ button:active {
   background-image: linear-gradient(145deg, #42C28D 0%, #2E976B 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
-     7px  7px 18px rgba(46, 151, 107, 0.40) !important;
+     7px  7px 18px rgba(46, 151, 107, 0.40),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring) !important;
 }
 
 [data-theme="neumorphism"] .clay-fab.clay-key-danger {
@@ -2754,7 +3120,9 @@ button:active {
   background-image: linear-gradient(145deg, #F38282 0%, #C73838 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
-     7px  7px 18px rgba(235, 83, 83, 0.40) !important;
+     7px  7px 18px rgba(235, 83, 83, 0.40),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
 }
 
 [data-theme="neumorphism"] .clay-fab.clay-key-blue {
@@ -2762,14 +3130,24 @@ button:active {
   background-image: linear-gradient(145deg, #4B9EBF 0%, #125773 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
-     7px  7px 18px rgba(24, 116, 152, 0.40) !important;
+     7px  7px 18px rgba(24, 116, 152, 0.40),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .clay-fab:hover {
+    transform: translateY(-2px) scale(1.03) !important;
+  }
 }
 
 [data-theme="neumorphism"] .clay-fab:active {
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
     inset -2px -2px 5px rgba(255, 255, 255, 0.40),
     inset  3px  3px 7px rgba(0, 0, 0, 0.30) !important;
-  transform: scale(0.96) !important;
+  transform: scale(0.95) !important;
 }
 
 /* Coin-well icon tiles */
@@ -2897,38 +3275,127 @@ button:active {
      3px  4px 6px rgba(0, 0, 0, 0.14) !important;
 }
 
-/* Color Variants on Neumorphic Action Buttons */
+/* Color Variants on Neumorphic Action Buttons (+ .neu-btn-primary & .neu-btn-danger lengkap) */
 [data-theme="neumorphism"] .clay-btn.clay-key-primary,
+[data-theme="neumorphism"] .clay-btn-primary,
+[data-theme="neumorphism"] .clay-chip.solid-primary,
+[data-theme="neumorphism"] .neu-btn-primary,
 [data-theme="neumorphism"] .btn-primary,
-[data-theme="neumorphism"] .solid-primary {
+[data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab) {
   background-color: #36AE7C !important;
   background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
-     6px  6px 14px rgba(43, 140, 99, 0.40) !important;
+     6px  6px 14px rgba(43, 140, 99, 0.40),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    filter var(--motion-dur-fast) ease !important;
 }
 
 [data-theme="neumorphism"] .clay-btn.clay-key-danger,
+[data-theme="neumorphism"] .clay-btn-danger,
+[data-theme="neumorphism"] .neu-btn-danger,
 [data-theme="neumorphism"] .btn-danger,
-[data-theme="neumorphism"] .solid-danger {
+[data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab) {
   background-color: #EB5353 !important;
   background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
-     6px  6px 14px rgba(235, 83, 83, 0.38) !important;
+     6px  6px 14px rgba(235, 83, 83, 0.38),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    filter var(--motion-dur-fast) ease !important;
 }
 
 [data-theme="neumorphism"] .clay-btn.clay-key-blue,
+[data-theme="neumorphism"] .clay-chip.solid-blue,
+[data-theme="neumorphism"] .neu-btn-primary.solid-blue,
 [data-theme="neumorphism"] .btn-blue,
-[data-theme="neumorphism"] .solid-blue {
+[data-theme="neumorphism"] .solid-blue:not(.fab-dial-btn):not(.clay-fab) {
   background-color: #187498 !important;
   background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
-     6px  6px 14px rgba(24, 116, 152, 0.38) !important;
+     6px  6px 14px rgba(24, 116, 152, 0.38),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    background-color var(--motion-dur-fast) var(--motion-ease-spring),
+    filter var(--motion-dur-fast) ease !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-theme="neumorphism"] .clay-btn.clay-key-primary:hover:not(:disabled),
+  [data-theme="neumorphism"] .clay-btn-primary:hover:not(:disabled),
+  [data-theme="neumorphism"] .clay-chip.solid-primary:hover:not(:disabled),
+  [data-theme="neumorphism"] .neu-btn-primary:hover:not(:disabled),
+  [data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
+    transform: translateY(-1.5px) !important;
+    background-color: #2E9B6D !important;
+    box-shadow:
+      -6px -6px 15px rgba(255, 255, 255, 0.80),
+       8px  8px 18px rgba(43, 140, 99, 0.48),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  }
+  [data-theme="neumorphism"] .clay-btn.clay-key-danger:hover:not(:disabled),
+  [data-theme="neumorphism"] .clay-btn-danger:hover:not(:disabled),
+  [data-theme="neumorphism"] .neu-btn-danger:hover:not(:disabled),
+  [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
+    transform: translateY(-1.5px) !important;
+    background-color: #D94343 !important;
+    box-shadow:
+      -6px -6px 15px rgba(255, 255, 255, 0.80),
+       8px  8px 18px rgba(235, 83, 83, 0.48),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  }
+  [data-theme="neumorphism"] .clay-btn.clay-key-blue:hover:not(:disabled),
+  [data-theme="neumorphism"] .clay-chip.solid-blue:hover:not(:disabled),
+  [data-theme="neumorphism"] .neu-btn-primary.solid-blue:hover:not(:disabled),
+  [data-theme="neumorphism"] .solid-blue:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
+    transform: translateY(-1.5px) !important;
+    background-color: #146484 !important;
+    box-shadow:
+      -6px -6px 15px rgba(255, 255, 255, 0.80),
+       8px  8px 18px rgba(24, 116, 152, 0.48),
+      inset  0px  0px 0px rgba(255, 255, 255, 0),
+      inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
+  }
+}
+
+[data-theme="neumorphism"] .clay-btn.clay-key-primary:active:not(:disabled),
+[data-theme="neumorphism"] .clay-btn-primary:active:not(:disabled),
+[data-theme="neumorphism"] .clay-chip.solid-primary:active:not(:disabled),
+[data-theme="neumorphism"] .neu-btn-primary:active:not(:disabled),
+[data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab):active:not(:disabled),
+[data-theme="neumorphism"] .clay-btn.clay-key-danger:active:not(:disabled),
+[data-theme="neumorphism"] .clay-btn-danger:active:not(:disabled),
+[data-theme="neumorphism"] .neu-btn-danger:active:not(:disabled),
+[data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab):active:not(:disabled),
+[data-theme="neumorphism"] .clay-btn.clay-key-blue:active:not(:disabled),
+[data-theme="neumorphism"] .clay-chip.solid-blue:active:not(:disabled),
+[data-theme="neumorphism"] .neu-btn-primary.solid-blue:active:not(:disabled),
+[data-theme="neumorphism"] .solid-blue:not(.fab-dial-btn):not(.clay-fab):active:not(:disabled) {
+  transform: scale(0.975) translateY(1px) !important;
+  box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.25),
+    inset  3px  3px 7px rgba(0, 0, 0, 0.28) !important;
 }
 
 /* Global Card & Sheet background overrides to ensure ZERO white bleed */
@@ -3017,16 +3484,13 @@ button:active {
     inset -2px -2px 4px rgba(255, 255, 255, 0.70) !important;
 }
 
-/* All buttons & clickable tiles sink IN into the surface when pressed (matching user feedback) */
-[data-theme="neumorphism"] button:active,
-[data-theme="neumorphism"] .neu-btn:active,
-[data-theme="neumorphism"] .clay-btn:active,
-[data-theme="neumorphism"] .clay-chip:active,
-[data-theme="neumorphism"] .pdf-action-btn:active,
-[data-theme="neumorphism"] .sidebar-nav-btn:active,
-[data-theme="neumorphism"] aside button:active {
-  transform: scale(0.98) !important;
+/* Fallback tekan untuk tombol aside / umum tanpa menimpa tombol solid, FAB, chip, atau disabled */
+[data-theme="neumorphism"] button:not(.solid-primary):not(.solid-danger):not(.solid-blue):not(.clay-fab):not(.neu-btn-primary):not(.neu-btn-danger):not(.clay-chip):not(.clay-btn):not(.neu-btn):not(.sidebar-nav-btn):not(.pdf-action-btn):not(.clay-segment-item):not([role="switch"]):not(:disabled):not([aria-disabled="true"]):active,
+[data-theme="neumorphism"] aside button:not(.solid-primary):not(.solid-danger):not(.solid-blue):not(.neu-btn-primary):not(.neu-btn-danger):not(:disabled):not([aria-disabled="true"]):active {
+  transform: scale(0.975) !important;
   box-shadow:
+     0px  0px 0px rgba(0, 0, 0, 0),
+     0px  0px 0px rgba(255, 255, 255, 0),
     inset  2.5px  2.5px 5px rgba(0, 0, 0, 0.22),
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.70) !important;
 }
@@ -3174,19 +3638,23 @@ button:active {
     background: #E5E5E5 !important;
     box-shadow:
       2px 2px 5px rgba(166, 171, 189, 0.45),
-      -2px -2px 5px rgba(255, 255, 255, 0.85) !important;
+      -2px -2px 5px rgba(255, 255, 255, 0.85),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 0 !important;
     flex-shrink: 0 !important;
-    transition: all 0.15s ease !important;
+    transition: transform var(--motion-dur-fast) var(--motion-ease-spring), box-shadow var(--motion-dur-fast) var(--motion-ease-spring) !important;
   }
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-prev-month:hover,
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-months .flatpickr-next-month:hover,
   .flatpickr-months .flatpickr-prev-month:hover,
   .flatpickr-months .flatpickr-next-month:hover {
     box-shadow:
+      0 0 0 rgba(166, 171, 189, 0),
+      0 0 0 rgba(255, 255, 255, 0),
       inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.5),
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.8) !important;
   }
@@ -3298,15 +3766,32 @@ button:active {
     height: 36px !important;
     max-width: 36px !important;
     margin: 2px 0 !important;
-    transition: all 0.15s ease !important;
-  }
-  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day:hover,
-  .flatpickr-calendar .flatpickr-day:hover {
-    background: #E5E5E5 !important;
-    border-color: transparent !important;
     box-shadow:
-      inset 2px 2px 4px rgba(166, 171, 189, 0.5),
-      inset -2px -2px 4px rgba(255, 255, 255, 0.8) !important;
+      0 0 0 rgba(54, 174, 124, 0),
+      0 0 0 rgba(255, 255, 255, 0),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0);
+    transition:
+      transform var(--motion-dur-instant) var(--motion-ease-spring),
+      box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+      background-color var(--motion-dur-fast) ease,
+      color var(--motion-dur-fast) ease !important;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day:hover,
+    .flatpickr-calendar .flatpickr-day:hover {
+      background: #E5E5E5 !important;
+      border-color: transparent !important;
+      box-shadow:
+        0 0 0 rgba(54, 174, 124, 0),
+        0 0 0 rgba(255, 255, 255, 0),
+        inset 2px 2px 4px rgba(166, 171, 189, 0.5),
+        inset -2px -2px 4px rgba(255, 255, 255, 0.8) !important;
+    }
+  }
+  [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day:active,
+  .flatpickr-calendar .flatpickr-day:active {
+    transform: scale(0.92);
   }
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.today,
   .flatpickr-calendar .flatpickr-day.today {
@@ -3314,6 +3799,8 @@ button:active {
     background: #E5E5E5 !important;
     color: #36AE7C !important;
     box-shadow:
+      0 0 0 rgba(54, 174, 124, 0),
+      0 0 0 rgba(255, 255, 255, 0),
       inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.35),
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.75) !important;
   }
@@ -3335,7 +3822,9 @@ button:active {
     font-weight: 800 !important;
     box-shadow:
       3px 3px 8px rgba(54, 174, 124, 0.45),
-      -2px -2px 6px rgba(255, 255, 255, 0.8) !important;
+      -2px -2px 6px rgba(255, 255, 255, 0.8),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
   }
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.prevMonthDay,
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.nextMonthDay,
@@ -3348,20 +3837,32 @@ button:active {
     /* ===== NEUMORPHIC FAB SPEED DIAL & DOME ===== */
   [data-theme="neumorphism"] .fab-dial-btn {
     background-color: #E5E5E5 !important;
+    background-image: none !important;
     border: none !important;
     border-radius: 9999px !important;
     box-shadow:
       4px 4px 10px rgba(166, 171, 189, 0.55),
-      -4px -4px 10px rgba(255, 255, 255, 0.85) !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.2s ease, box-shadow 0.15s ease !important;
+      -4px -4px 10px rgba(255, 255, 255, 0.85),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
+    transition:
+      transform var(--motion-dur-normal) var(--motion-ease-spring),
+      opacity var(--motion-dur-fast) var(--motion-ease-out),
+      box-shadow var(--motion-dur-fast) var(--motion-ease-spring) !important;
   }
-  [data-theme="neumorphism"] .fab-dial-btn:hover {
-    box-shadow:
-      5px 5px 12px rgba(166, 171, 189, 0.65),
-      -5px -5px 12px rgba(255, 255, 255, 0.95) !important;
+  @media (hover: hover) and (pointer: fine) {
+    [data-theme="neumorphism"] .fab-dial-btn:hover {
+      box-shadow:
+        5px 5px 12px rgba(166, 171, 189, 0.65),
+        -5px -5px 12px rgba(255, 255, 255, 0.95),
+        inset 0 0 0 rgba(166, 171, 189, 0),
+        inset 0 0 0 rgba(255, 255, 255, 0) !important;
+    }
   }
   [data-theme="neumorphism"] .fab-dial-btn:active {
     box-shadow:
+      0 0 0 rgba(166, 171, 189, 0),
+      0 0 0 rgba(255, 255, 255, 0),
       inset 2.5px 2.5px 5px rgba(166, 171, 189, 0.6),
       inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.85) !important;
   }
@@ -3417,13 +3918,25 @@ button:active {
     font-weight: 600 !important;
     color: #1E293B !important;
     padding: 10px 14px !important;
-    transition: all 0.15s ease !important;
+    box-shadow:
+      0 0 0 rgba(54, 174, 124, 0),
+      0 0 0 rgba(255, 255, 255, 0),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
+    transition:
+      transform var(--motion-dur-instant) var(--motion-ease-spring),
+      box-shadow var(--motion-dur-instant) ease,
+      background-color var(--motion-dur-instant) ease,
+      color var(--motion-dur-instant) ease !important;
   }
-  [data-theme="neumorphism"] .clay-select-option:hover,
-  [data-theme="neumorphism"] .clay-select-option.is-highlighted {
+  [data-theme="neumorphism"] .clay-select-option:hover:not(.is-disabled):not(.is-empty),
+  [data-theme="neumorphism"] .clay-select-option.is-highlighted:not(.is-disabled):not(.is-empty) {
     background-color: rgba(0, 0, 0, 0.04) !important;
     color: #0F172A !important;
+    transform: translateX(2px);
     box-shadow:
+      0 0 0 rgba(54, 174, 124, 0),
+      0 0 0 rgba(255, 255, 255, 0),
       inset 1.5px 1.5px 3px rgba(166, 171, 189, 0.40),
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.80) !important;
   }
@@ -3433,7 +3946,9 @@ button:active {
     font-weight: 800 !important;
     box-shadow:
       2px 2px 6px rgba(54, 174, 124, 0.40),
-      -1.5px -1.5px 4px rgba(255, 255, 255, 0.75) !important;
+      -1.5px -1.5px 4px rgba(255, 255, 255, 0.75),
+      inset 0 0 0 rgba(166, 171, 189, 0),
+      inset 0 0 0 rgba(255, 255, 255, 0) !important;
   }
 
   /* ===== DATE PICKER & NESTED CAPSULE INPUT SEAMLESS TRANSPARENCY ===== */
@@ -3558,7 +4073,13 @@ button:active {
   color: #64748B !important;
   box-shadow:
     -3px -3px 8px rgba(255, 255, 255, 0.85),
-     3px  3px 8px rgba(0, 0, 0, 0.14) !important;
+     3px  3px 8px rgba(0, 0, 0, 0.14),
+    inset  0px  0px 0px rgba(255, 255, 255, 0),
+    inset  0px  0px 0px rgba(13, 39, 80, 0) !important;
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring),
+    color var(--motion-dur-fast) ease !important;
 }
 [data-theme="neumorphism"] .mutasi-tab.is-aktif {
   background: #E5E5E5 !important;
@@ -3566,6 +4087,8 @@ button:active {
   color: #36AE7C !important;
   font-weight: 800 !important;
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(0, 0, 0, 0),
     inset -3px -3px 7px rgba(255, 255, 255, 0.85),
     inset  3px  3px 7px rgba(13, 39, 80, 0.14) !important;
 }
@@ -3634,29 +4157,36 @@ button:active {
 }
 .bulk-selectable.bulk-selected .bulk-check .material-symbols-outlined {
   display: inline-block !important;
+  animation: checkPop var(--motion-dur-fast) var(--motion-ease-spring) both;
 }
 
 [data-theme="neumorphism"] .bulk-selectable {
   border: 1.5px solid transparent !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    transform var(--motion-dur-fast) var(--motion-ease-spring),
+    border-color var(--motion-dur-fast) ease,
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring);
 }
 [data-theme="neumorphism"] .bulk-selectable.bulk-selected {
   border: 1.5px solid rgba(54, 174, 124, 0.50) !important;
   box-shadow:
     -5px -5px 14px rgba(255, 255, 255, 0.85),
      5px  5px 14px rgba(0, 0, 0, 0.12),
-    inset 0 0 0 1px rgba(54, 174, 124, 0.20) !important;
+    inset 0 0 0 1px rgba(54, 174, 124, 0.20),
+    inset 0 0 0 rgba(0, 0, 0, 0) !important;
   transform: scale(0.995);
 }
 
-/* ===== NEUMORPHIC RADIO BUTTON THEME ===== */
+/* ===== NEUMORPHIC RADIO BUTTON THEME (4-slot smooth morphing) ===== */
 [data-theme="neumorphism"] .clay-radio {
   background-color: #E5E5E5 !important;
   background-image: none !important;
   border: 1px solid rgba(255, 255, 255, 0.8) !important;
   box-shadow:
     -2.5px -2.5px 6px rgba(255, 255, 255, 0.90),
-     2.5px  2.5px 6px rgba(13, 39, 80, 0.15) !important;
+     2.5px  2.5px 6px rgba(13, 39, 80, 0.15),
+    inset  0px  0px 0px rgba(13, 39, 80, 0),
+    inset  0px  0px 0px rgba(255, 255, 255, 0) !important;
   width: 20px !important;
   height: 20px !important;
   border-radius: 9999px !important;
@@ -3665,12 +4195,19 @@ button:active {
   align-items: center !important;
   justify-content: center !important;
   position: relative !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition:
+    transform var(--motion-dur-instant) var(--motion-ease-spring),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-spring) !important;
+}
+[data-theme="neumorphism"] .clay-radio:active {
+  transform: scale(0.9);
 }
 [data-theme="neumorphism"] .clay-radio:checked {
   background-color: #E5E5E5 !important;
   border: none !important;
   box-shadow:
+     0px  0px 0px rgba(255, 255, 255, 0),
+     0px  0px 0px rgba(13, 39, 80, 0),
     inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18),
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90) !important;
 }
@@ -3681,6 +4218,7 @@ button:active {
   border-radius: 9999px !important;
   background-color: #36AE7C !important;
   box-shadow: 0 0 4px rgba(54, 174, 124, 0.5) !important;
+  animation: checkPop var(--motion-dur-fast) var(--motion-ease-spring) both;
 }
 
 /* ===== CARD UTANG / CICILAN LUNAS (NEUMORPHIC HARMONY) ===== */
