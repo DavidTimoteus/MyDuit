@@ -5,7 +5,7 @@ import ModulSkeleton from "./ModulSkeleton.jsx";
 import UserMenuSheet from "./UserMenuSheet.jsx";
 // Theme locked to Neumorphism
 import { getFirebase } from "../lib/firebase.js";
-import { useScrolledState } from "../lib/useScrollEffects.js";
+import { portalBody } from "../lib/portal.js";
 import {
   detectCountryInfo,
   simpanNegaraManual,
@@ -357,7 +357,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
     simpanNegaraManual(code);
     onClose();
   }
-  return (
+  return portalBody(
     <div
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
@@ -426,7 +426,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
   );
 }
 
@@ -445,7 +445,6 @@ export default function Shell({ user }) {
   const [filterLabel, setFilterLabel] = useState("Hari Ini");
   const aktif = TABS.find((t) => t.id === tab);
   const mainScrollRef = useRef(null);
-  const mobileHeaderScrolled = useScrolledState(mainScrollRef, 6);
 
   // Info negara + mata uang untuk indikator lokasi di sidebar kiri.
   // Sumber: pilihan manual pengguna (localStorage) > timezone perangkat.
@@ -672,7 +671,7 @@ export default function Shell({ user }) {
             Di tab lain (Budget/Rekening, Utang, Statistik), modul memiliki header mobile sendiri.
             -mx-4 px-4: bleed ke tepi layar penuh karena parent main-scroll punya px-4. */}
             {tab === "transaksi" && (
-              <header className={`sticky-scroll-bar ${mobileHeaderScrolled ? "is-scrolled" : ""} sticky top-0 z-30 flex items-center justify-between gap-2 -mx-4 px-4 md:hidden py-2 bg-surface relative`}>
+              <header className="sticky top-0 z-30 flex items-center justify-between gap-2 -mx-4 px-4 md:hidden py-2 bg-surface relative">
                 <button
                   type="button"
                   onClick={() => setLokasiOpen(true)}

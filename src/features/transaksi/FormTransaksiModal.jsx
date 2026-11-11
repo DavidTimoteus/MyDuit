@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { matikanOcr } from '../../lib/ocrStruk.js'
 import {
@@ -402,6 +403,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       : (isPemasukan ? 'Catat Pemasukan' : 'Catat Pengeluaran')
 
   return (
+    <>
+      {portalBody(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={tutupModal}>
       <div className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 pb-2 pt-4">
@@ -878,9 +881,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </button>
         </form>
       </div>
+    </div>,
+      )}
 
       {/* Modal Panduan Ambil Kunci Gemini Gratis */}
-      {showTutorialModal && (
+      {showTutorialModal && portalBody(
         <div
           className="modal-backdrop-wrap fixed inset-0 z-[10001] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
           onClick={() => setShowTutorialModal(false)}
@@ -980,8 +985,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
-    </div>
+    </>
   )
 }

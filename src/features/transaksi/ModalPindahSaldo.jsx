@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
 // Modal Pindah Saldo — markup persis GAS #modalPindahSaldo
@@ -111,7 +112,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
 
   const opsiAkun = akunList.map((a) => ({ value: a.id, label: a.nama }))
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <div className="clay-sheet clay-key-blue flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 pb-2 pt-4">
@@ -208,6 +209,6 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
   )
 }

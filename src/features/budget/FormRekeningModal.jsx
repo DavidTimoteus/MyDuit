@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatRibuanInputBertanda, parseNominalBertanda, simbolUang } from '../../lib/format.js'
 import { tambahAkun, updateAkun } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
+import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
 const TIPE_AKUN = ['Rekening Utama', 'Tabungan', 'E-Wallet', 'Lainnya']
@@ -68,7 +69,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     })()
   }
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-blue w-full max-w-sm rounded-[24px] p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -120,6 +121,6 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
           {saving ? 'Menyimpan…' : 'Simpan'}
         </button>
       </form>
-    </div>
+    </div>,
   )
 }

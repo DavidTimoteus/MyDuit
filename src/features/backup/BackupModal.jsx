@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { exportData, restoreData } from './backup.js'
+import { portalBody } from '../../lib/portal.js'
 
 export default function BackupModal({ open, onClose, uid }) {
   const [loading, setLoading] = useState(false)
@@ -114,7 +115,7 @@ export default function BackupModal({ open, onClose, uid }) {
     }
   }
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom w-full max-w-sm p-5">
         <div className="mb-4 flex items-center justify-between">
@@ -200,6 +201,6 @@ export default function BackupModal({ open, onClose, uid }) {
           </p>
         )}
       </div>
-    </div>
+    </div>,
   )
 }

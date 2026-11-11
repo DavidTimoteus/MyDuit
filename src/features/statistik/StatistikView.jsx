@@ -12,7 +12,8 @@ import {
 } from "firebase/firestore";
 import { getFirebase } from "../../lib/firebase.js";
 import { useAkunKategori } from "../../lib/useAkunKategori.js";
-import { useScrolledState, useScrollReveal } from "../../lib/useScrollEffects.js";
+import { useScrollReveal } from "../../lib/useScrollEffects.js";
+import { portalBody } from "../../lib/portal.js";
 import {
   detectCurrency,
   detectLocale,
@@ -785,7 +786,6 @@ export default function StatistikView({ user }) {
   const trendTitle = mode === "bulanan" ? "Tren Bulan Ini" : "Tren Tahun Ini";
   const sectionRef = useRef(null);
   const contentRef = useRef(null);
-  const headerScrolled = useScrolledState(sectionRef, 6);
   useScrollReveal(contentRef, [mode, bulan, tahun, loading, ringkas.pemasukan.length, ringkas.pengeluaran.length, saran.length]);
 
   return (
@@ -800,11 +800,11 @@ export default function StatistikView({ user }) {
           Desktop (md+): margin normal mengikuti container max-w-3xl, top-0.
           Soft fade: ::after strip gradient di bawah agar konten scroll halus.
       ─────────────────────────────────────────────────────────────────────────── */}
-      <div className={`sticky-scroll-bar ${headerScrolled ? "is-scrolled" : ""} sticky top-0 z-20
-                      -mx-5 px-5 md:-mx-6 md:px-6
+      <div className="sticky-fade-bottom sticky top-0 z-20
+                      -mx-9 px-9 md:-mx-6 md:px-6
                       bg-surface
                       pt-3 pb-2 mb-0
-                      relative`}>
+                      relative">
         <header className="stat-header-mobile pb-2 md:hidden">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="clay-icon-tile clay-key-primary solid-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white">
@@ -1037,7 +1037,7 @@ export default function StatistikView({ user }) {
       </div>
 
       {/* MODAL DETAIL KATEGORI */}
-      {detail && (
+      {detail && portalBody(
         <div
           className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
           onClick={() => setDetail(null)}
@@ -1108,7 +1108,7 @@ export default function StatistikView({ user }) {
               </span>
             </div>
           </div>
-        </div>
+        </div>,
       )}
     </section>
   );

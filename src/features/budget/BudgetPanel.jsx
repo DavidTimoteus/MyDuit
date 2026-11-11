@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
 import { hapusBudget } from '../../lib/db.js'
+import { portalBody } from '../../lib/portal.js'
 
 // Daftar budget — paritas dengan ViewBudget.html #budgetLimitList.
 // Terima props dari BudgetView: budgets (sudah dihitung dengan terpakai/persen),
@@ -110,7 +111,7 @@ export default function BudgetPanel({
         )}
       </div>
 
-      {hapusTarget && (
+      {hapusTarget && portalBody(
         <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
           <div className="clay-card clay-sheet w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
@@ -124,7 +125,7 @@ export default function BudgetPanel({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
     </div>
   )

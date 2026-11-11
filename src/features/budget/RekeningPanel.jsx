@@ -5,6 +5,7 @@ import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import FormRekeningModal from './FormRekeningModal.jsx'
 import RiwayatMutasiModal from './RiwayatMutasiModal.jsx'
+import { portalBody } from '../../lib/portal.js'
 
 // Sub-tab Rekening: hero Total Saldo + pagination card-stack + daftar rekening.
 // Paritas dengan GAS ViewBudget.html #budgetRekeningPanel + #rekeningPaginationControls.
@@ -499,7 +500,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         />
       )}
 
-      {hapusTarget && (
+      {hapusTarget && portalBody(
         <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-5 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
           <div className="clay-card clay-sheet w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
@@ -510,7 +511,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
               <button onClick={konfirmHapus} className="clay-btn-danger btn-md text-xs font-bold">Hapus</button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
     </div>
   )

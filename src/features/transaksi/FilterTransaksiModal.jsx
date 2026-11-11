@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { isoHariIni } from '../../lib/format.js'
 import { ClayDateInput } from '../../components/clay-ui.jsx'
+import { portalBody } from '../../lib/portal.js'
 
 const fmt = (iso) =>
   iso ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(new Date(`${iso}T00:00:00`)) : ''
@@ -65,7 +66,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
     </label>
   )
 
-  return (
+  return portalBody(
     <div
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
@@ -129,6 +130,6 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
           </button>
         </div>
       </div>
-    </div>
+    </div>,
   )
 }

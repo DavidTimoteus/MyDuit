@@ -8,7 +8,8 @@ import FilterTransaksiModal from './FilterTransaksiModal.jsx'
 import { ChipAkunBaru, TransaksiRow } from './TransaksiRow.jsx'
 import { useTransaksi } from './useTransaksi.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
-import { useScrolledState, useScrollReveal } from '../../lib/useScrollEffects.js'
+import { useScrollReveal } from '../../lib/useScrollEffects.js'
+import { portalBody } from '../../lib/portal.js'
 
 const PER_HALAMAN = 20
 const LS_CHIP = 'myduit:tx_chip'
@@ -379,7 +380,6 @@ export default function TransaksiView({ user }) {
   const adaAkun = akunList.length > 0
   const sectionRef = useRef(null)
   const listRef = useRef(null)
-  const toolbarScrolled = useScrolledState(sectionRef, 6)
   useScrollReveal(listRef, [loading, pageItems.length, page, slideDir])
 
   return (
@@ -394,11 +394,11 @@ export default function TransaksiView({ user }) {
                            agar saat kartu transaksi di-scroll, bayangannya di sisi
                            kiri-kanan tidak bocor melintasi toolbar.
         ─────────────────────────────────────────────────────────────────────────── */}
-        <div className={`sticky-scroll-bar ${toolbarScrolled ? 'is-scrolled' : ''} sticky top-[52px] md:top-0 z-20
-                        -mx-5 px-5 md:-mx-6 md:px-6
+        <div className="sticky-fade-bottom sticky top-[52px] md:top-0 z-20
+                        -mx-9 px-9 md:-mx-6 md:px-6
                         bg-surface
                         pt-2.5 pb-2.5 mb-0
-                        relative`}>
+                        relative">
           {/* Header mobile (md:hidden) — logo transaksi + judul embossed */}
           <header className="pb-2.5 md:hidden">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -629,7 +629,7 @@ export default function TransaksiView({ user }) {
       </div>
 
       {/* BAR AKSI HAPUS MASSAL — persis GAS #bulkActionBar */}
-      {bulkMode && (
+      {bulkMode && portalBody(
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[9999] px-4 md:bottom-16">
           <div className="clay-sheet clay-key-danger pointer-events-auto mx-auto flex w-full max-w-md items-center gap-3 p-3">
             <span className="shrink-0 text-sm font-bold text-slate-800">{selected.size} dipilih</span>
@@ -649,7 +649,7 @@ export default function TransaksiView({ user }) {
               Hapus
             </button>
           </div>
-        </div>
+        </div>,
       )}
 
 {/* Modal form tambah/edit/salin */}
@@ -687,7 +687,7 @@ export default function TransaksiView({ user }) {
       />
 
       {/* Modal konfirmasi hapus tunggal — persis GAS #deleteModal */}
-      {hapusTarget && (
+      {hapusTarget && portalBody(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setHapusTarget(null)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">warning</span>
@@ -709,11 +709,11 @@ export default function TransaksiView({ user }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
 
       {/* Modal konfirmasi hapus massal — persis GAS #bulkDeleteModal */}
-      {bulkHapusOpen && (
+      {bulkHapusOpen && portalBody(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setBulkHapusOpen(false)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">delete</span>
@@ -735,7 +735,7 @@ export default function TransaksiView({ user }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
     </section>
   )

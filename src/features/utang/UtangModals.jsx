@@ -3,6 +3,7 @@ import { formatNominal, formatRibuanInput, formatRupiah, isoHariIni, parseNomina
 import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
+import { portalBody } from '../../lib/portal.js'
 
 function isoTambahHari(n) {
   const d = new Date()
@@ -89,7 +90,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
     })()
   }
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
@@ -205,7 +206,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
           {saving ? 'Menyimpan…' : 'Simpan'}
         </button>
       </form>
-    </div>
+    </div>,
   )
 }
 
@@ -299,7 +300,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
     })()
   }
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
@@ -370,6 +371,6 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
           </button>
         </div>
       </form>
-    </div>
+    </div>,
   )
 }

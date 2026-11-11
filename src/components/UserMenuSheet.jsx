@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import InstallButton from './InstallButton.jsx'
+import { portalBody } from '../lib/portal.js'
 
 /**
  * UserMenuSheet — lembar menu pengguna untuk layar mobile.
@@ -62,7 +63,7 @@ export default function UserMenuSheet({
     'clay-btn flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-slate-700'
   const iconCls = 'clay-icon-tile clay-key-neutral flex h-10 w-10 shrink-0 items-center justify-center'
 
-  return (
+  return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[70] md:hidden" role="dialog" aria-modal="true" aria-label="Menu pengguna">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
 
@@ -123,7 +124,7 @@ export default function UserMenuSheet({
           Keluar
         </button>
       </div>
-    </div>
+    </div>,
   )
 }
 

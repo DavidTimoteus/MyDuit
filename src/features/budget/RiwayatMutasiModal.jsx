@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { formatRupiah, rangeForFilter, tanggalLabel } from '../../lib/format.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import { ClayDateInput } from '../../components/clay-ui.jsx'
+import { portalBody } from '../../lib/portal.js'
 import { bangunMutasi, ringkasMutasi } from './riwayatSaldo.js'
 
 // Filter rentang: Hari Ini / 7 Hari / 30 Hari (wajib) + Kustom + Semua.
@@ -65,7 +66,7 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
 
   const labelRentang = OPSI_FILTER.find((o) => o.id === chip)?.label ?? ''
 
-  return (
+  return portalBody(
     <div
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
@@ -231,6 +232,6 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
           </button>
         </div>
       </div>
-    </div>
+    </div>,
   )
 }

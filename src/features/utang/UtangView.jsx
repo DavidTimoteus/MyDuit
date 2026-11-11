@@ -6,6 +6,7 @@ import { hapusUtang } from '../../lib/db.js'
 import { getFirebase } from '../../lib/firebase.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
+import { portalBody } from '../../lib/portal.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
 import UtangMobile from './UtangMobile.jsx'
 
@@ -476,7 +477,7 @@ export default function UtangView({ user }) {
         onClose={() => setBayarModal({ open: false, utang: null, lunasin: false })}
       />
 
-      {hapusTarget && (
+      {hapusTarget && portalBody(
         <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={() => setHapusTarget(null)}>
           <div className="neu-card w-full max-w-xs rounded-3xl bg-[#E5E5E5] p-5 text-center shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl neu-inset text-[#EB5353]">
@@ -489,7 +490,7 @@ export default function UtangView({ user }) {
               <button onClick={konfirmHapus} className="neu-btn-danger btn-md text-xs font-bold rounded-xl active:scale-95">Hapus</button>
             </div>
           </div>
-        </div>
+        </div>,
       )}
     </>
   )

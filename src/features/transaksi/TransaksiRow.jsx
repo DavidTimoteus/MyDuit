@@ -156,43 +156,37 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
         <p className={`font-bold ${color} text-[15px] mb-0.5`}>
           {sign}{simbolUang()} {formatNominal(trans.jumlah || 0)}
         </p>
-        <p className="text-[10px] text-slate-500">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
+        <p className="text-[10px] text-slate-500 max-w-[130px] sm:max-w-[200px] truncate">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
       </div>
       {!bulkMode && (
-        <div
-          className={`tx-actions-reveal shrink-0 ${deleteOpen ? 'is-open' : ''}`}
-          aria-hidden={!deleteOpen}
-        >
-          <div className="tx-actions-reveal-inner">
-            {!isPindahSaldo && (
-              <button
-                type="button"
-                tabIndex={deleteOpen ? 0 : -1}
-                aria-label="Salin transaksi"
-                title="Salin transaksi"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onSalin?.(trans)
-                }}
-                className="salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
-              >
-                <span className="material-symbols-outlined icon-md">content_copy</span>
-              </button>
-            )}
+        <div className={deleteOpen ? 'flex items-center gap-1.5 ml-2 shrink-0' : 'hidden'}>
+          {!isPindahSaldo && (
             <button
               type="button"
-              tabIndex={deleteOpen ? 0 : -1}
-              aria-label="Hapus transaksi"
-              title="Hapus transaksi"
               onClick={(e) => {
                 e.stopPropagation()
-                onDelete?.(trans)
+                onSalin?.(trans)
               }}
-              className="delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
+              aria-label="Salin transaksi"
+              title="Salin transaksi"
+              className="tx-action-pop salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
             >
-              <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
+              <span className="material-symbols-outlined icon-md">content_copy</span>
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              onDelete?.(trans)
+            }}
+            aria-label="Hapus transaksi"
+            title="Hapus transaksi"
+            style={{ '--pop-delay': !isPindahSaldo ? '35ms' : '0ms' }}
+            className="tx-action-pop delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
+          >
+            <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
+          </button>
         </div>
       )}
     </div>
