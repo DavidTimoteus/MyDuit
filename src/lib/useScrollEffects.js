@@ -46,6 +46,44 @@ export function classifyRevealTarget(elRect, rootRect, marginPx = 8) {
 }
 
 /**
+ * Fase BACA murni sebelum TULIS DOM untuk mencegah layout thrashing berulang
+ * saat mendaftarkan batch kartu [data-reveal].
+ */
+export function batchClassifyTargets(elements, rootRect, marginPx = 8) {
+  const list = Array.from(elements || [])
+  const rects = list.map((el) => el?.getBoundingClientRect?.() ?? null)
+  const visible = []
+  const pending = []
+  for (let i = 0; i < list.length; i++) {
+    const kind = classifyRevealTarget(rects[i], rootRect, marginPx)
+    if (kind === 'visible') visible.push(list[i])
+    else if (kind === 'pending') pending.push(list[i])
+  }
+  return { visible, pending }
+}
+
+/**
+ * Fase BACA murni saat scroll sweep agar tidak menyelingi getBoundingClientRect()
+ * dengan mutasi class/style antar kartu.
+ */
+export function batchSweepPending(elements, rootRect, marginPx = 24) {
+  const list = Array.from(elements || [])
+  const rects = list.map((el) => el?.getBoundingClientRect?.() ?? null)
+  const bottomLimit = (rootRect?.bottom ?? 800) + marginPx
+  const hidden = []
+  const reveal = []
+  for (let i = 0; i < list.length; i++) {
+    const r = rects[i]
+    if (!r || (r.width <= 0 && r.height <= 0)) {
+      hidden.push(list[i])
+    } else if (r.top < bottomLimit) {
+      reveal.push(list[i])
+    }
+  }
+  return { hidden, reveal }
+}
+
+/**
  * Scroll-triggered reveal self-cleaning berbasis IntersectionObserver pada `.main-scroll`.
  * Elemen yang sudah terlihat langsung tampil (`opacity: 1`), sedangkan elemen di bawah
  * lipatan layar beranimasi masuk saat di-scroll lalu membersihkan kelas & transform pada
@@ -106,16 +144,13 @@ export function useScrollReveal(containerRef, deps = []) {
       activeTimers.add(fallbackId)
     }
 
-    for (const el of unrevealed) {
-      const rect = el.getBoundingClientRect()
-      const kind = classifyRevealTarget(rect, rootRect)
-      if (kind === 'skip') continue
-      if (kind === 'visible') {
-        finishReveal(el)
-      } else {
-        el.classList.add('scroll-reveal-pending')
-        pendingSet.add(el)
-      }
+    const { visible, pending } = batchClassifyTargets(unrevealed, rootRect, 8)
+    for (const el of visible) {
+      finishReveal(el)
+    }
+    for (const el of pending) {
+      el.classList.add('scroll-reveal-pending')
+      pendingSet.add(el)
     }
 
     if (pendingSet.size === 0) return undefined
@@ -141,20 +176,16 @@ export function useScrollReveal(containerRef, deps = []) {
     const sweepVisible = (marginPx = 24) => {
       if (pendingSet.size === 0) return
       const nowRect = getRootRect()
-      let batchIdx = 0
-      for (const el of [...pendingSet]) {
-        const r = el.getBoundingClientRect()
-        if (r.width <= 0 && r.height <= 0) {
-          pendingSet.delete(el)
-          observer?.unobserve(el)
-          el.classList.remove('scroll-reveal-pending')
-          continue
-        }
-        if (r.top < nowRect.bottom + marginPx) {
-          observer?.unobserve(el)
-          runReveal(el, computeRevealDelayMs(batchIdx, 3, 36))
-          batchIdx++
-        }
+      const { hidden, reveal } = batchSweepPending([...pendingSet], nowRect, marginPx)
+      for (const el of hidden) {
+        pendingSet.delete(el)
+        observer?.unobserve(el)
+        el.classList.remove('scroll-reveal-pending')
+      }
+      for (let batchIdx = 0; batchIdx < reveal.length; batchIdx++) {
+        const el = reveal[batchIdx]
+        observer?.unobserve(el)
+        runReveal(el, computeRevealDelayMs(batchIdx, 3, 36))
       }
     }
 

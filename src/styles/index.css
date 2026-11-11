@@ -1361,6 +1361,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 /* ===== KARTU TRANSAKSI (3D Clay Elevation & Press Depth - Styleguide) ===== */
 .tx-card-item {
+  contain: layout style;
   -webkit-tap-highlight-color: transparent;
   transition:
     transform var(--motion-dur-fast) var(--motion-ease-spring),
@@ -1757,8 +1758,15 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 .progress-bar-fill {
   transform-origin: left center;
-  animation: barGrowX var(--motion-dur-bar) var(--motion-ease-spring) backwards;
-  transition: width var(--motion-dur-bar) var(--motion-ease-spring), background-color var(--motion-dur-normal) ease;
+  transition: width var(--motion-dur-normal) var(--motion-ease-spring), transform var(--motion-dur-normal) var(--motion-ease-spring), background-color var(--motion-dur-fast) ease;
+}
+
+.neu-card:not(form) {
+  contain: layout style;
+}
+
+.modal-backdrop-wrap .neu-card {
+  contain: none;
 }
 
 /* Pop pegas tombol Salin & Hapus tanpa overflow:hidden (bayangan neumorphic utuh 100%) */
