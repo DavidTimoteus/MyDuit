@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { parseNominal, isoHariIni, formatRibuanInput, formatNominal, simbolUang } from '../../lib/format.js'
 import { tambahAkun } from '../../lib/db.js'
 
@@ -72,37 +72,68 @@ export function ChipAkunBaru({ uid }) {
   )
 }
 
-// Tanggal relatif ringkas: Hari Ini / Kemarin / "12/08" (persis feel GAS formatTanggalRelatif).
-function tanggalRelatif(iso) {
-  if (!iso) return '-'
-  try {
-    const hari = isoHariIni()
-    if (iso === hari) return 'Hari Ini'
+const TANGGAL_PENDEK_FMT = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' })
+let _hariCache = ''
+let _kemarinCache = ''
+const _tglFormatCache = new Map()
+
+function ambilHariDanKemarin() {
+  const hari = isoHariIni()
+  if (hari !== _hariCache) {
+    _hariCache = hari
     const y = new Date()
     y.setDate(y.getDate() - 1)
-    const kemarin = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
-    if (iso === kemarin) return 'Kemarin'
-    const parts = String(iso).split('T')[0].split('-')
+    _kemarinCache = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
+    _tglFormatCache.clear()
+  }
+  return { hari: _hariCache, kemarin: _kemarinCache }
+}
+
+// Tanggal relatif ringkas: Hari Ini / Kemarin / "12 Agu" (persis feel GAS formatTanggalRelatif).
+function tanggalRelatif(iso) {
+  if (!iso) return '-'
+  const { hari, kemarin } = ambilHariDanKemarin()
+  if (iso === hari) return 'Hari Ini'
+  if (iso === kemarin) return 'Kemarin'
+  const cached = _tglFormatCache.get(iso)
+  if (cached) return cached
+  let formatted = String(iso)
+  try {
+    const parts = formatted.split('T')[0].split('-')
     if (parts.length === 3) {
       const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
       if (!isNaN(d.getTime())) {
-        return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d)
+        formatted = TANGGAL_PENDEK_FMT.format(d)
       }
-    }
-    const dFallback = new Date(iso)
-    if (!isNaN(dFallback.getTime())) {
-      return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(dFallback)
+    } else {
+      const dFallback = new Date(iso)
+      if (!isNaN(dFallback.getTime())) {
+        formatted = TANGGAL_PENDEK_FMT.format(dFallback)
+      }
     }
   } catch {
     // Abaikan error format dan tampilkan nilai asli
   }
-  return String(iso)
+  if (_tglFormatCache.size >= 250) _tglFormatCache.clear()
+  _tglFormatCache.set(iso, formatted)
+  return formatted
 }
 
 // Satu kartu riwayat — markup & interaksi persis GAS renderRiwayatUI():
 // klik = toggle tombol hapus, dblclick = edit; hue shadow ikut jenis
 // (hijau Pemasukan / merah Pengeluaran / biru Pindah Saldo).
-export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, deleteOpen, onToggleDelete, onEdit, onDelete, onSalin }) {
+export const TransaksiRow = memo(function TransaksiRow({
+  trans,
+  bulkMode,
+  selected,
+  currencySymbol,
+  onToggleSelect,
+  deleteOpen,
+  onToggleDelete,
+  onEdit,
+  onDelete,
+  onSalin,
+}) {
   const isPemasukan = trans.jenis === 'pemasukan'
   const isPindahSaldo = trans.jenis === 'pindah saldo'
   const sign = isPindahSaldo ? '' : isPemasukan ? '+' : '-'
@@ -116,7 +147,8 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
     : isPemasukan
       ? 'tx-card-revealed !bg-emerald-50/70'
       : 'tx-card-revealed !bg-red-50/70'
-  const dipilih = !!selected?.has(trans.id)
+  const dipilih = typeof selected === 'boolean' ? selected : !!selected?.has(trans.id)
+  const simbol = currencySymbol || simbolUang()
 
   function handleClick() {
     if (bulkMode) onToggleSelect?.(trans.id)
@@ -127,7 +159,7 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
     <div
       data-reveal=""
       onClick={handleClick}
-      onDoubleClick={bulkMode ? undefined : onEdit}
+      onDoubleClick={bulkMode ? undefined : () => onEdit?.(trans)}
       className={`tx-card-item clay clay-card ${clayKey} relative p-4 flex items-center justify-between gap-3 cursor-pointer select-none ${
         bulkMode ? `bulk-selectable ${dipilih ? 'bulk-selected' : ''}` : ''
       } ${!bulkMode && deleteOpen ? tintRevealed : ''}`}
@@ -154,7 +186,7 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
       </div>
       <div className="text-right shrink-0 flex flex-col items-end">
         <p className={`font-bold ${color} text-[15px] mb-0.5`}>
-          {sign}{simbolUang()} {formatNominal(trans.jumlah || 0)}
+          {sign}{simbol} {formatNominal(trans.jumlah || 0)}
         </p>
         <p className="text-[10px] text-slate-500 max-w-[130px] sm:max-w-[200px] truncate">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
       </div>
@@ -191,4 +223,4 @@ export function TransaksiRow({ trans, bulkMode, selected, onToggleSelect, delete
       )}
     </div>
   )
-}
+})

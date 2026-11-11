@@ -163,7 +163,7 @@ export default function RightPanel({ uid }) {
               <button
                 type="button"
                 onClick={() => aksi('pemasukan')}
-                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#36AE7C]" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
                 <span>Tambah Pemasukan</span>
@@ -171,7 +171,7 @@ export default function RightPanel({ uid }) {
               <button
                 type="button"
                 onClick={() => aksi('pengeluaran')}
-                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#EB5353]" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
                 <span>Tambah Pengeluaran</span>
@@ -179,7 +179,7 @@ export default function RightPanel({ uid }) {
               <button
                 type="button"
                 onClick={() => aksi('pindah-saldo')}
-                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-all hover:text-slate-900 active:scale-98"
+                className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#187498]" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
                 <span>Pindah Saldo</span>

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { isoHariIni, rangeForFilter } from '../../lib/format.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { isoHariIni, rangeForFilter, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, hapusTransaksiMassal, simpanTransaksi } from '../../lib/db.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
@@ -44,6 +44,7 @@ export default function TransaksiView({ user }) {
 
   function ubahChip(c) {
     setChip(c)
+    setPage(1)
     try {
       if (c === 'rentang') localStorage.removeItem(LS_CHIP)
       else localStorage.setItem(LS_CHIP, c)
@@ -65,6 +66,16 @@ export default function TransaksiView({ user }) {
   const [openDeleteId, setOpenDeleteId] = useState(null)
   const [page, setPage] = useState(1)
 
+  function ubahJenis(j) {
+    setJenis(j)
+    setPage(1)
+  }
+
+  function ubahKeyword(val) {
+    setKeyword(val)
+    setPage(1)
+  }
+
   const range = useMemo(
     () => rangeForFilter(chip, rentang),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -72,6 +83,17 @@ export default function TransaksiView({ user }) {
   )
   const { docs, loading, loadingMore, hasMore, error, muatLagi, hapusLokal } = useTransaksi(uid, { jenis, range })
   const { akunList, kategoriList } = useAkunKategori(uid)
+
+  // Delayed loading spinner (140ms) agar hit cache/IndexedDB lokal <140ms tidak membongkar DOM daftar transaksi
+  const [delayedLoading, setDelayedLoading] = useState(false)
+  useEffect(() => {
+    if (!loading) {
+      setDelayedLoading(false)
+      return undefined
+    }
+    const timer = window.setTimeout(() => setDelayedLoading(true), 140)
+    return () => window.clearTimeout(timer)
+  }, [loading])
 
   // Resolve nama kategori/akun dari map snapshot (anti redundansi; fallback legacy)
   const akunById = useMemo(() => Object.fromEntries(akunList.map((a) => [a.id, a])), [akunList])
@@ -90,9 +112,6 @@ export default function TransaksiView({ user }) {
     )
   }, [docsEnriched, keyword])
 
-  // Reset ke halaman 1 tiap filter/pencarian berubah
-  useEffect(() => setPage(1), [chip, jenis, keyword, rentang.start, rentang.end])
-
   // Chip Filter di header mobile (Shell) meminta membuka modal filter
   useEffect(() => {
     const buka = () => setFilterOpen(true)
@@ -105,6 +124,32 @@ export default function TransaksiView({ user }) {
     window.dispatchEvent(new CustomEvent('myduit:filter-label', { detail: { label: filterLabel(chip, rentang) } }))
   }, [chip, rentang])
 
+  const bukaForm = useCallback((mode, doc = null) => {
+    setOpenDeleteId(null)
+    // Pindah saldo BUKAN pemasukan/pengeluaran: field-nya beda (dariId/keId,
+    // tanpa kategori) dan `updateTransaksi` tidak mengenal jenis ini — kalau
+    // dibiarkan, mengeditnya akan menulis akunId yang salah dan merusak saldo.
+    // Jalur edit/salin hanya untuk pemasukan & pengeluaran; transfer harus
+    // dihapus lalu dibuat ulang.
+    if (doc && doc.jenis === 'pindah saldo') {
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: { type: 'info', msg: 'Pindah saldo tidak bisa diedit. Hapus lalu buat ulang bila perlu diubah.' },
+        }),
+      )
+      return
+    }
+    if (doc && doc.utangId && mode === 'edit') {
+      window.dispatchEvent(
+        new CustomEvent('myduit:toast', {
+          detail: { type: 'info', msg: 'Transaksi pembayaran utang tidak bisa diedit. Hapus lalu catat ulang pembayaran.' },
+        }),
+      )
+      return
+    }
+    setModal({ open: true, mode, doc })
+  }, [])
+
   // Aksi Cepat dari panel kanan (event bus — panel terpisah dari state view ini)
   useEffect(() => {
     function onAksi(e) {
@@ -114,7 +159,7 @@ export default function TransaksiView({ user }) {
     }
     window.addEventListener('myduit:aksi-cepat', onAksi)
     return () => window.removeEventListener('myduit:aksi-cepat', onAksi)
-  }, [])
+  }, [bukaForm])
 
   // Tangani transaksi baru yang dicatat: jika tanggal atau jenis berada di luar filter aktif,
   // alihkan filter agar transaksi baru langsung tampak seketika di daftar tanpa reload.
@@ -143,28 +188,79 @@ export default function TransaksiView({ user }) {
   }, [page, totalPages])
   const pageItems = tampil.slice((page - 1) * PER_HALAMAN, page * PER_HALAMAN)
 
-  const [slideDir, setSlideDir] = useState(null)
-  const [dragOffset, setDragOffset] = useState(0)
-  const [isDragging, setIsDragging] = useState(false)
-
-  function prevPage() {
-    if (page > 1) {
-      setSlideDir('prev')
-      setPage((p) => p - 1)
-    }
-  }
-
-  // Gesture swipe horizontal untuk navigasi halaman transaksi di mobile
   const touchStartX = useRef(null)
   const touchStartY = useRef(null)
   const isHorizontalSwipe = useRef(false)
+  const dragXRef = useRef(0)
+  const dragRafRef = useRef(0)
+  const sectionRef = useRef(null)
+  const listRef = useRef(null)
+
+  useEffect(() => () => {
+    if (dragRafRef.current) cancelAnimationFrame(dragRafRef.current)
+  }, [])
+
+  function playListSlide(dir) {
+    const el = listRef.current
+    if (!el || typeof el.animate !== 'function') return
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+      const fromX = dir === 'next' ? 14 : -14
+      el.animate(
+        [
+          { opacity: 0.25, transform: `translate3d(${fromX}px, 0, 0)` },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
+        ],
+        { duration: 180, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      )
+    } catch {
+      // fallback aman bila WAAPI tidak tersedia
+    }
+  }
+
+  function resetDragStyles() {
+    if (dragRafRef.current) {
+      cancelAnimationFrame(dragRafRef.current)
+      dragRafRef.current = 0
+    }
+    const prevX = dragXRef.current
+    dragXRef.current = 0
+    const el = listRef.current
+    if (!el) return 0
+    el.style.willChange = ''
+    el.style.transform = ''
+    return prevX
+  }
+
+  function snapBackListDrag() {
+    const prevX = resetDragStyles()
+    const el = listRef.current
+    if (!el || !prevX || typeof el.animate !== 'function') return
+    try {
+      if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return
+      el.animate(
+        [{ transform: `translate3d(${prevX}px, 0, 0)` }, { transform: 'translate3d(0, 0, 0)' }],
+        { duration: 180, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+      )
+    } catch {
+      // abaikan
+    }
+  }
+
+  function prevPage() {
+    if (page > 1) {
+      setOpenDeleteId(null)
+      setPage((p) => p - 1)
+      playListSlide('prev')
+    }
+  }
 
   function handleTouchStart(e) {
     if (!e.touches || e.touches.length !== 1) return
     touchStartX.current = e.touches[0].clientX
     touchStartY.current = e.touches[0].clientY
     isHorizontalSwipe.current = false
-    setIsDragging(true)
+    dragXRef.current = 0
   }
 
   function handleTouchMove(e) {
@@ -177,24 +273,31 @@ export default function TransaksiView({ user }) {
     if (!isHorizontalSwipe.current) {
       if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
         isHorizontalSwipe.current = true
+        if (listRef.current) listRef.current.style.willChange = 'transform'
       } else if (Math.abs(diffY) > 10) {
         touchStartX.current = null
         touchStartY.current = null
-        setDragOffset(0)
-        setIsDragging(false)
+        resetDragStyles()
         return
       }
     }
 
     if (isHorizontalSwipe.current) {
-      setDragOffset(diffX * 0.35)
+      dragXRef.current = diffX * 0.35
+      if (!dragRafRef.current) {
+        dragRafRef.current = window.requestAnimationFrame(() => {
+          dragRafRef.current = 0
+          if (listRef.current && isHorizontalSwipe.current) {
+            listRef.current.style.transform = `translate3d(${dragXRef.current}px, 0, 0)`
+          }
+        })
+      }
     }
   }
 
   function handleTouchEnd(e) {
     if (touchStartX.current === null || touchStartY.current === null) {
-      setDragOffset(0)
-      setIsDragging(false)
+      snapBackListDrag()
       return
     }
     const touch = e.changedTouches[0]
@@ -202,27 +305,36 @@ export default function TransaksiView({ user }) {
     const diffY = touch.clientY - touchStartY.current
     touchStartX.current = null
     touchStartY.current = null
-    setDragOffset(0)
-    setIsDragging(false)
+    const wasSwipe = isHorizontalSwipe.current
+    isHorizontalSwipe.current = false
 
-    if (Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
-      if (diffX < 0) {
-        if (page < totalPages || hasMore) nextPage()
-      } else {
-        if (page > 1) prevPage()
+    if (wasSwipe && Math.abs(diffX) > 45 && Math.abs(diffX) > Math.abs(diffY) * 1.2) {
+      if (diffX < 0 && (page < totalPages || hasMore)) {
+        resetDragStyles()
+        nextPage()
+        return
+      }
+      if (diffX > 0 && page > 1) {
+        resetDragStyles()
+        prevPage()
+        return
       }
     }
+    snapBackListDrag()
   }
 
   async function nextPage() {
     if (page < totalPages) {
-      setSlideDir('next')
-      return setPage(page + 1)
+      setOpenDeleteId(null)
+      setPage(page + 1)
+      playListSlide('next')
+      return
     }
     if (hasMore && !loadingMore) {
-      setSlideDir('next')
+      setOpenDeleteId(null)
       await muatLagi()
       setPage(page + 1)
+      playListSlide('next')
     }
   }
 
@@ -232,15 +344,17 @@ export default function TransaksiView({ user }) {
     setOpenDeleteId(null)
   }
 
-  function toggleSelect(id) {
+  const toggleSelect = useCallback((id) => {
     setSelected((prev) => {
       const n = new Set(prev)
       if (n.has(id)) n.delete(id)
       else n.add(id)
       return n
     })
-  }
+  }, [])
 
+  const fallbackAkunIdRef = useRef('')
+  fallbackAkunIdRef.current = akunList[0]?.id ?? ''
   const salinLockRef = useRef({ id: null, at: 0 })
   const hapusLockRef = useRef(new Set())
   const bulkHapusLockRef = useRef(false)
@@ -249,7 +363,7 @@ export default function TransaksiView({ user }) {
     if (bulkHapusOpen) bulkHapusLockRef.current = false
   }, [bulkHapusOpen])
 
-  async function handleSalinCepat(trans) {
+  const handleSalinCepat = useCallback(async (trans) => {
     if (!trans || trans.jenis === 'pindah saldo') return
     const now = Date.now()
     if (salinLockRef.current.id === trans.id && now - salinLockRef.current.at < 800) return
@@ -262,7 +376,7 @@ export default function TransaksiView({ user }) {
       jenis: trans.jenis,
       kategoriId: trans.kategoriId ?? '',
       kategoriNama: trans.kategoriNama ?? '',
-      akunId: trans.akunId ?? akunList[0]?.id ?? '',
+      akunId: trans.akunId ?? fallbackAkunIdRef.current ?? '',
       akunNama: trans.akunNama ?? '',
       tanggal: trans.tanggal ?? isoHariIni(),
       catatan: trans.catatan ?? '',
@@ -294,7 +408,7 @@ export default function TransaksiView({ user }) {
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e) } }))
       }
     })()
-  }
+  }, [uid])
 
   async function konfirmHapus() {
     if (!hapusTarget || hapusLockRef.current.has(hapusTarget.id)) return
@@ -351,36 +465,20 @@ export default function TransaksiView({ user }) {
     }
   }
 
-  function bukaForm(mode, doc = null) {
+  const handleToggleDelete = useCallback((id) => {
+    setOpenDeleteId((prev) => (prev === id ? null : id))
+  }, [])
+
+  const handleEditRow = useCallback((tr) => bukaForm('edit', tr), [bukaForm])
+
+  const handleDeleteRow = useCallback((tr) => {
     setOpenDeleteId(null)
-    // Pindah saldo BUKAN pemasukan/pengeluaran: field-nya beda (dariId/keId,
-    // tanpa kategori) dan `updateTransaksi` tidak mengenal jenis ini — kalau
-    // dibiarkan, mengeditnya akan menulis akunId yang salah dan merusak saldo.
-    // Jalur edit/salin hanya untuk pemasukan & pengeluaran; transfer harus
-    // dihapus lalu dibuat ulang.
-    if (doc && doc.jenis === 'pindah saldo') {
-      window.dispatchEvent(
-        new CustomEvent('myduit:toast', {
-          detail: { type: 'info', msg: 'Pindah saldo tidak bisa diedit. Hapus lalu buat ulang bila perlu diubah.' },
-        }),
-      )
-      return
-    }
-    if (doc && doc.utangId && mode === 'edit') {
-      window.dispatchEvent(
-        new CustomEvent('myduit:toast', {
-          detail: { type: 'info', msg: 'Transaksi pembayaran utang tidak bisa diedit. Hapus lalu catat ulang pembayaran.' },
-        }),
-      )
-      return
-    }
-    setModal({ open: true, mode, doc })
-  }
+    setHapusTarget(tr)
+  }, [])
 
   const adaAkun = akunList.length > 0
-  const sectionRef = useRef(null)
-  const listRef = useRef(null)
-  useScrollReveal(listRef, [loading, pageItems.length, page, slideDir])
+  const currencySymbol = simbolUang()
+  useScrollReveal(listRef, [delayedLoading, pageItems.length, page])
 
   return (
     <section ref={sectionRef} className="view-panel-enter mx-auto max-w-3xl px-5 pb-32 md:pb-10">
@@ -419,17 +517,17 @@ export default function TransaksiView({ user }) {
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 icon-lg text-textSecondary pointer-events-none select-none">search</span>
                 <input
                   value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+                  onChange={(e) => ubahKeyword(e.target.value)}
                   placeholder="Cari transaksi..."
                   type="text"
-                  className="clay-input w-full border-none py-2.5 pl-10 pr-10 text-base sm:text-sm transition-all placeholder:text-textSecondary rounded-[16px] touch-manipulation"
+                  className="clay-input w-full border-none py-2.5 pl-10 pr-10 text-base sm:text-sm transition-shadow duration-150 placeholder:text-textSecondary rounded-[16px] touch-manipulation"
                 />
                 {keyword && (
                   <button
                     type="button"
-                    onClick={() => setKeyword('')}
+                    onClick={() => ubahKeyword('')}
                     aria-label="Hapus pencarian"
-                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-all active:scale-90 active:bg-slate-200/60 hover:bg-red-100 hover:text-red-500 touch-manipulation"
+                    className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-[transform,color,background-color] duration-150 active:scale-90 active:bg-slate-200/60 hover:bg-red-100 hover:text-red-500 touch-manipulation"
                     style={{
                       background: 'var(--color-surface, #E5E5E5)',
                       boxShadow: '-3px -3px 8px rgba(255,255,255,.8), 3px 3px 8px rgba(0,0,0,.14)',
@@ -445,7 +543,7 @@ export default function TransaksiView({ user }) {
                   {JENIS_ICONS.map((j) => (
                     <button
                       key={j.id}
-                      onClick={() => setJenis(j.id)}
+                      onClick={() => ubahJenis(j.id)}
                       aria-label={j.title}
                       title={j.title}
                       className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center touch-manipulation ${
@@ -542,7 +640,7 @@ export default function TransaksiView({ user }) {
           <div className="mt-4">
             <ChipAkunBaru uid={uid} />
           </div>
-        ) : loading ? (
+        ) : delayedLoading && pageItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-10 text-sm text-textSecondary">
             <div className="riwayat-dot-spinner" aria-hidden="true">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -551,6 +649,8 @@ export default function TransaksiView({ user }) {
             </div>
             <span>Memuat riwayat kas...</span>
           </div>
+        ) : loading && pageItems.length === 0 ? (
+          <div className="min-h-[240px]" aria-busy="true" />
         ) : pageItems.length === 0 ? (
           <div className="neu-card mx-auto my-6 flex max-w-sm flex-col items-center justify-center rounded-[28px] bg-[#E5E5E5] p-8 text-center">
             <div className="neu-well mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#E5E5E5] text-[#36AE7C]">
@@ -590,38 +690,27 @@ export default function TransaksiView({ user }) {
         ) : (
           <div
             ref={listRef}
-            key={`tx-page-${page}`}
-            className={`-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar ${
-              slideDir === 'next'
-                ? 'page-transition-next'
-                : slideDir === 'prev'
-                  ? 'page-transition-prev'
-                  : ''
-            }`}
+            data-tx-swipe=""
+            className="-mx-4 flex flex-col gap-3 px-4 pb-4 pt-3 hide-scrollbar"
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
-            style={{
-              touchAction: 'pan-y',
-              transform: dragOffset !== 0 ? `translate3d(${dragOffset}px, 0, 0)` : undefined,
-              transition: isDragging ? 'none' : 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
+            onTouchCancel={snapBackListDrag}
+            style={{ touchAction: 'pan-y', contain: 'layout style' }}
           >
-            {pageItems.map((t) => (
+            {pageItems.map((t, i) => (
               <TransaksiRow
-                key={t.id}
+                key={`tx-slot-${i}`}
                 trans={t}
                 bulkMode={bulkMode}
-                selected={selected}
+                selected={bulkMode && selected.has(t.id)}
+                currencySymbol={currencySymbol}
                 onToggleSelect={toggleSelect}
                 deleteOpen={!bulkMode && openDeleteId === t.id}
-                onToggleDelete={(id) => setOpenDeleteId((prev) => (prev === id ? null : id))}
-                onEdit={() => bukaForm('edit', t)}
+                onToggleDelete={handleToggleDelete}
+                onEdit={handleEditRow}
                 onSalin={handleSalinCepat}
-                onDelete={(tr) => {
-                  setOpenDeleteId(null)
-                  setHapusTarget(tr)
-                }}
+                onDelete={handleDeleteRow}
               />
             ))}
           </div>
@@ -683,6 +772,7 @@ export default function TransaksiView({ user }) {
         onApply={({ chip: c, rentang: r }) => {
           ubahChip(c)
           if (r) setRentang(r)
+          setPage(1)
         }}
       />
 
