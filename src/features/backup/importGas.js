@@ -286,7 +286,7 @@ export function konversiBackupGas(wb, XLSX, uid) {
     .join(' · ')
 
   return {
-    json: { app: 'MyDuit', version: 2, sumber: 'gas-xlsx', exportedAt: new Date().toISOString(), uid, data },
+    json: { app: 'MyDuit', version: 2, baseCurrency: 'IDR', sumber: 'gas-xlsx', exportedAt: new Date().toISOString(), uid, data },
     ringkasan,
     catatan,
   }

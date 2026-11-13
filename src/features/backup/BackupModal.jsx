@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { exportData, hapusSemuaData, restoreData } from './backup.js'
+import { exportData, hapusAkunPermanen, hapusSemuaData, restoreData } from './backup.js'
 import { portalBody } from '../../lib/portal.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 export default function BackupModal({ open, onClose, uid }) {
+  const { t } = useBahasa()
   const [loading, setLoading] = useState(false)
   const [aksi, setAksi] = useState(null)
   const [msg, setMsg] = useState(null)
@@ -10,12 +12,14 @@ export default function BackupModal({ open, onClose, uid }) {
   const [progress, setProgress] = useState(null)
   const [dangerOpen, setDangerOpen] = useState(false)
   const [konfirmTeks, setKonfirmTeks] = useState('')
+  const [hapusAkunIkut, setHapusAkunIkut] = useState(false)
   const fileRef = useRef(null)
 
   useEffect(() => {
     if (open) {
       setDangerOpen(false)
       setKonfirmTeks('')
+      setHapusAkunIkut(false)
       setAksi(null)
       setProgress(null)
     }
@@ -141,15 +145,20 @@ export default function BackupModal({ open, onClose, uid }) {
     setMsg(null)
     setProgress({ done: 0, total: 0 })
     try {
-      const res = await hapusSemuaData(uid, (p) => setProgress(p))
+      const res = hapusAkunIkut
+        ? await hapusAkunPermanen(uid, (p) => setProgress(p))
+        : await hapusSemuaData(uid, (p) => setProgress(p))
       setDangerOpen(false)
       setKonfirmTeks('')
+      setHapusAkunIkut(false)
       setPreview(null)
       setMsg({
         type: 'ok',
-        text: res.deleted > 0
-          ? `Hapus total selesai (${res.deleted} dokumen dihapus permanen).`
-          : 'Akun sudah bersih (tidak ada dokumen tersimpan).',
+        text: hapusAkunIkut
+          ? 'Akun & seluruh data berhasil dihapus permanen.'
+          : res.deleted > 0
+            ? `Hapus total selesai (${res.deleted} dokumen dihapus permanen).`
+            : 'Akun sudah bersih (tidak ada dokumen tersimpan).',
       })
     } catch (e) {
       setMsg({ type: 'err', text: e?.message ?? 'Gagal menghapus seluruh data.' })
@@ -164,14 +173,14 @@ export default function BackupModal({ open, onClose, uid }) {
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom max-h-[90vh] w-full max-w-sm overflow-y-auto p-5">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-extrabold text-slate-800">Backup & Pulihkan</h3>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
+          <h3 className="text-base font-extrabold text-slate-800">{t('backup_restore')}</h3>
+          <button onClick={onClose} aria-label={t('tutup')} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
 
         <p className="mb-4 text-xs leading-relaxed text-slate-500">
-          Ekspor semua data ke berkas JSON di perangkatmu. Pemulihan akan menimpa dokumen dengan ID sama — aman untuk pindah device.
+          {t('backup_desc')}
         </p>
 
         <button
@@ -180,11 +189,11 @@ export default function BackupModal({ open, onClose, uid }) {
           className="clay-btn clay-key-primary solid-primary btn-lg mb-2 w-full text-white disabled:opacity-60"
         >
           <span className="material-symbols-outlined icon-md">download</span>
-          Ekspor Data Sekarang
+          {t('ekspor_sekarang')}
         </button>
 
         <div className="my-3 flex items-center gap-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">
-          <span className="h-px flex-1 bg-slate-200" /> atau <span className="h-px flex-1 bg-slate-200" />
+          <span className="h-px flex-1 bg-slate-200" /> {t('atau')} <span className="h-px flex-1 bg-slate-200" />
         </div>
 
         <input ref={fileRef} type="file" accept="application/json,.xlsx,.xls,.csv" onChange={pilihFile} className="hidden" />
@@ -194,7 +203,7 @@ export default function BackupModal({ open, onClose, uid }) {
           className="clay-btn clay-btn-secondary btn-lg w-full text-slate-700 disabled:opacity-60"
         >
           <span className="material-symbols-outlined icon-md">upload</span>
-          Pilih Berkas Backup
+          {t('pilih_berkas')}
         </button>
 
         {preview && (
@@ -254,30 +263,42 @@ export default function BackupModal({ open, onClose, uid }) {
               onClick={() => {
                 setDangerOpen(true)
                 setKonfirmTeks('')
+                setHapusAkunIkut(false)
                 setMsg(null)
               }}
               disabled={loading}
               className="clay-btn clay-btn-secondary btn-md w-full text-xs font-bold text-[#EB5353] hover:bg-red-50 disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">delete_forever</span>
-              Hapus Total Semua Data…
+              {t('hapus_total_btn')}
             </button>
           ) : (
             <div className="neu-inset rounded-2xl bg-red-50/75 p-3.5 border border-red-200/80">
               <div className="flex items-start gap-2">
                 <span className="material-symbols-outlined icon-md mt-0.5 shrink-0 text-[#EB5353]">warning</span>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-extrabold text-red-700">Hapus Semua Data Permanen</h4>
+                  <h4 className="text-xs font-extrabold text-red-700">{t('hapus_permanen_judul')}</h4>
                   <p className="mt-1 text-[11px] leading-relaxed text-red-700/90">
-                    Seluruh transaksi, rekening, kategori, budget, utang, pembayaran, dan log mutasi pada akun ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                    {t('hapus_permanen_desc')}
                   </p>
                   {isOffline && (
                     <p className="mt-1 text-[10px] font-bold text-amber-700">
-                      Anda sedang offline: penghapusan akan mengantre dan diterapkan ke server begitu koneksi kembali.
+                      {t('offline_hapus_note')}
                     </p>
                   )}
                 </div>
               </div>
+
+              <label className="mt-2.5 flex cursor-pointer items-start gap-2 rounded-xl bg-white/75 px-2.5 py-2 text-[11px] font-bold text-red-800">
+                <input
+                  type="checkbox"
+                  checked={hapusAkunIkut}
+                  onChange={(e) => setHapusAkunIkut(e.target.checked)}
+                  disabled={loading}
+                  className="mt-0.5 accent-[#EB5353]"
+                />
+                <span>{t('hapus_akun_label')}</span>
+              </label>
 
               <button
                 type="button"
@@ -286,11 +307,11 @@ export default function BackupModal({ open, onClose, uid }) {
                 className="clay-btn clay-btn-secondary btn-sm mt-2.5 w-full text-[11px] font-bold text-slate-700 disabled:opacity-60"
               >
                 <span className="material-symbols-outlined icon-xs">download</span>
-                {loading && aksi === 'ekspor' ? 'Mengekspor…' : 'Ekspor Backup Dulu (Disarankan)'}
+                {loading && aksi === 'ekspor' ? 'Mengekspor…' : t('ekspor_dulu')}
               </button>
 
               <label className="mt-2.5 block text-[10px] font-bold uppercase tracking-wide text-red-700">
-                Ketik <span className="font-mono underline">HAPUS SEMUA</span> untuk konfirmasi:
+                {t('konfirm_label', { kata: 'HAPUS SEMUA' })}
               </label>
               <input
                 type="text"
@@ -308,11 +329,12 @@ export default function BackupModal({ open, onClose, uid }) {
                   onClick={() => {
                     setDangerOpen(false)
                     setKonfirmTeks('')
+                    setHapusAkunIkut(false)
                   }}
                   disabled={loading}
                   className="clay-btn clay-btn-secondary btn-md text-xs font-bold text-slate-600 disabled:opacity-60"
                 >
-                  Batal
+                  {t('batal')}
                 </button>
                 <button
                   type="button"
@@ -324,7 +346,7 @@ export default function BackupModal({ open, onClose, uid }) {
                     ? progress?.total
                       ? `Menghapus… ${progress.done}/${progress.total}`
                       : 'Menghapus…'
-                    : 'Hapus Total'}
+                    : (hapusAkunIkut ? t('hapus_akun_submit') : t('hapus_total_submit'))}
                 </button>
               </div>
 

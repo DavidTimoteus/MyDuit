@@ -1,15 +1,16 @@
-import { Timestamp, collection, getDocs, writeBatch, doc } from 'firebase/firestore'
-import { getFirebase } from '../../lib/firebase.js'
+import { deleteUser, reauthenticateWithPopup } from 'firebase/auth'
+import { Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { getFirebase, googleProvider } from '../../lib/firebase.js'
 import { kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 import { IS_DEMO_UID } from '../../lib/mockData.js'
-import { resetBasisMataUang } from '../../lib/kurs.js'
+import { bacaBasisMataUang, resetBasisMataUang, sanitasiKursSnapshot, simpanBasisMataUang } from '../../lib/kurs.js'
 
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 const ALLOWLIST_FIELDS = {
   transaksi: new Set([
     'jumlah', 'jenis', 'kategoriId', 'akunId', 'dariId', 'keId',
-    'utangId', 'pembayaranUtangId', 'tanggal', 'catatan',
+    'utangId', 'pembayaranUtangId', 'tanggal', 'catatan', 'kursSnapshot',
     'deleted', 'deletedAt', 'createdAt', 'updatedAt',
   ]),
   akun: new Set(['nama', 'tipe', 'saldo', 'mutasiTerakhir', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
@@ -20,7 +21,7 @@ const ALLOWLIST_FIELDS = {
     'cicilanPerBulan', 'tglJatuhTempo', 'terakhirBayar',
     'deleted', 'deletedAt', 'createdAt', 'updatedAt',
   ]),
-  pembayaranUtang: new Set(['utangId', 'transaksiId', 'akunId', 'jumlah', 'tanggal', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
+  pembayaranUtang: new Set(['utangId', 'transaksiId', 'akunId', 'jumlah', 'tanggal', 'kursSnapshot', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
   mutasiLog: new Set(['akunId', 'aksi', 'delta', 'transaksiId', 'timestamp', 'deleted', 'deletedAt', 'createdAt']),
 }
 
@@ -105,6 +106,11 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
       data.jenis = ['pemasukan', 'pengeluaran', 'pindah saldo'].includes(j) ? j : 'pengeluaran'
       data.tanggal = kanonikTanggal(data.tanggal)
       if (data.catatan !== undefined) data.catatan = String(data.catatan ?? '').slice(0, 500)
+      if (data.kursSnapshot !== undefined) {
+        const snap = sanitasiKursSnapshot(data.kursSnapshot)
+        if (snap) data.kursSnapshot = snap
+        else delete data.kursSnapshot
+      }
       break
     }
     case 'akun': {
@@ -147,6 +153,11 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
       data.jumlah = Math.max(0, parseAngkaEksternal(data.jumlah))
       if (!data.deleted && data.jumlah <= 0) data.deleted = true
       data.tanggal = data.tanggal ? kanonikTanggal(data.tanggal) : kanonikTanggal(null)
+      if (data.kursSnapshot !== undefined) {
+        const snap = sanitasiKursSnapshot(data.kursSnapshot)
+        if (snap) data.kursSnapshot = snap
+        else delete data.kursSnapshot
+      }
       break
     }
     case 'mutasiLog': {
@@ -179,17 +190,33 @@ const KOLEKSI_HAPUS = [...KOLEKSI, 'meta']
 // Firestore membatasi 500 operasi per writeBatch.
 const BATCH_LIMIT = 450
 
-export async function exportData(uid) {
-  uid = uidAktif(uid)
-  const { db } = getFirebase()
+export async function exportData(uid, deps = {}) {
+  uid = uidAktif(uid, deps)
+  const { db } = deps.getFirebase ? deps.getFirebase() : getFirebase()
+  const collectionFn = deps.collection || collection
+  const getDocsFn = deps.getDocs || getDocs
+  const docFn = deps.doc || doc
+  const getDocFn = deps.getDoc || getDoc
+
   const data = {}
   for (const c of KOLEKSI) {
-    const snap = await getDocs(collection(db, 'users', uid, c))
-    data[c] = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+    const snap = await getDocsFn(collectionFn(db, 'users', uid, c))
+    data[c] = (snap?.docs || []).map((d) => ({ id: d.id, ...d.data() }))
   }
+
+  let baseCurrency = bacaBasisMataUang() || 'IDR'
+  try {
+    const metaSnap = await getDocFn(docFn(db, 'users', uid, 'meta', 'mataUang'))
+    const tersimpan = metaSnap?.exists?.() ? String(metaSnap.data()?.baseCurrency || '').toUpperCase() : ''
+    if (/^[A-Z]{3}$/.test(tersimpan)) baseCurrency = tersimpan
+  } catch {
+    // Fallback ke basis aktif lokal
+  }
+
   return {
     app: 'MyDuit',
     version: 1,
+    baseCurrency,
     exportedAt: new Date().toISOString(),
     uid,
     data,
@@ -199,12 +226,18 @@ export async function exportData(uid) {
 // Restore dengan writeBatch.
 //
 // onProgress?: ({ done, total, koleksi }) => void
-export async function restoreData(uid, json, onProgress) {
+export async function restoreData(uid, json, onProgress, deps = {}) {
   if (!json || json.app !== 'MyDuit' || !json.data) {
     throw new Error('Berkas backup tidak valid (bukan file MyDuit).')
   }
-  uid = uidAktif(uid)
-  const { db } = getFirebase()
+  uid = uidAktif(uid, deps)
+  const { db } = deps.getFirebase ? deps.getFirebase() : getFirebase()
+  const docFn = deps.doc || doc
+  const writeBatchFn = deps.writeBatch || writeBatch
+  const serverTimestampFn = deps.serverTimestamp || serverTimestamp
+
+  const basisRaw = String(json.baseCurrency || '').trim().toUpperCase()
+  const basisPulih = /^[A-Z]{3}$/.test(basisRaw) ? basisRaw : 'IDR'
 
   // Kumpulkan & validasi semua operasi tulis dulu sebelum menyentuh Firestore.
   const ops = []
@@ -220,23 +253,31 @@ export async function restoreData(uid, json, onProgress) {
       const { id: _id, ...rest } = item
       const revived = hidupkanTimestamp(rest)
       const cleaned = bersihkanDokumenRestore(c, revived)
-      ops.push({ koleksi: c, ref: doc(db, 'users', uid, c, safeId), data: cleaned })
+      ops.push({ koleksi: c, ref: docFn(db, 'users', uid, c, safeId), data: cleaned })
     }
   }
 
-  const total = ops.length
-  if (total === 0) return 0
+  const totalDok = ops.length
+  if (totalDok === 0) return 0
 
+  ops.push({
+    koleksi: 'meta',
+    ref: docFn(db, 'users', uid, 'meta', 'mataUang'),
+    data: { baseCurrency: basisPulih, updatedAt: serverTimestampFn() },
+  })
+
+  const total = ops.length
   let done = 0
   for (let i = 0; i < total; i += BATCH_LIMIT) {
     const slice = ops.slice(i, i + BATCH_LIMIT)
-    const batch = writeBatch(db)
+    const batch = writeBatchFn(db)
     for (const op of slice) batch.set(op.ref, op.data, { merge: true })
     await batch.commit()
     done += slice.length
-    onProgress?.({ done, total, koleksi: slice[slice.length - 1]?.koleksi })
+    onProgress?.({ done: Math.min(done, totalDok), total: totalDok, koleksi: slice[slice.length - 1]?.koleksi })
   }
-  return done
+  simpanBasisMataUang(basisPulih, { terkunci: true })
+  return totalDok
 }
 
 /**
@@ -291,4 +332,38 @@ export async function hapusSemuaData(uid, onProgress, deps = {}) {
   resetBasisMataUang()
 
   return { deleted: done, total, perKoleksi }
+}
+
+/**
+ * Menghapus seluruh data Firestore + mencabut akun Firebase Auth pengguna secara permanen
+ * (kepatuhan kebijakan Account Deletion Google Play Store).
+ */
+export async function hapusAkunPermanen(uid, onProgress, deps = {}) {
+  const hasilData = await hapusSemuaData(uid, onProgress, deps)
+  const { auth } = deps.getFirebase ? deps.getFirebase() : getFirebase()
+  const user = auth?.currentUser
+  if (!user) throw new Error('Sesi akun tidak ditemukan.')
+  const deleteUserFn = deps.deleteUser || deleteUser
+  const reauthFn = deps.reauthenticateWithPopup || reauthenticateWithPopup
+
+  try {
+    await deleteUserFn(user)
+  } catch (err) {
+    if (err?.code === 'auth/requires-recent-login') {
+      await reauthFn(user, googleProvider)
+      await deleteUserFn(user)
+    } else {
+      throw err
+    }
+  }
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('myduit:negara')
+      localStorage.removeItem('myduit:bahasa')
+    }
+  } catch {
+    // Abaikan di mode privat
+  }
+  return { ...hasilData, accountDeleted: true }
 }
