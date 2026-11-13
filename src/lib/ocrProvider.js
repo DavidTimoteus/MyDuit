@@ -2,8 +2,8 @@
  * ocrProvider.js — Abstraksi Provider OCR Hibrida Tri-Tier MyDuit.
  *
  * Mengimplementasikan arsitektur Adaptive Multi-Tier:
- *  - Unlimited-OCR (SGLang / FastAPI Bridge): Model VLM baidu/Unlimited-OCR
- *    (R-SWA + Gundam Dynamic Crop) via OpenAI /v1/chat/completions atau Bridge /api/v1/parse-receipt.
+ *  - Free Unlimited OCR (Puter.js `puter.ai.img2txt`): Mistral OCR & AWS Textract
+ *    serverless langsung di browser Desktop maupun Mobile tanpa API Key.
  *  - Gemini Vision (Cloud AI): Google Gemini Flash Vision API (BYOK).
  *  - Client Standalone 100% Offline: Tesseract.js dengan Gundam Dynamic Tiling
  *    untuk struk panjang, R-SWA Sliding Window Lookahead, dan N-Gram anti-repetition.
@@ -21,17 +21,40 @@ import {
 } from './ocrStruk.js'
 import { cariBarang, cariPembayar, cariTunai, petakanKategori } from './strukMeta.js'
 import { bacaStrukPpOcr } from './ppocrProvider.js'
-import { parseAngkaEksternal, parseTanggalIsoAman } from './format.js'
+import { parseAngkaEksternal } from './format.js'
 import {
   bacaGeminiKey,
   simpanGeminiKey,
   hapusGeminiKey,
   ujiKoneksiGemini,
   panggilGeminiVision,
-  konversiFileKeBase64,
 } from './geminiOcr.js'
+import {
+  PUTER_PROVIDERS,
+  DEFAULT_PUTER_PROVIDER,
+  bacaPuterProvider,
+  simpanPuterProvider,
+  muatPuterSdk,
+  apakahPuterAktifDiSesi,
+  cekStatusPuterOcr,
+  sambungkanPuterOcr,
+  panggilPuterOcr,
+} from './puterOcr.js'
 
-export { bacaGeminiKey, simpanGeminiKey, hapusGeminiKey, ujiKoneksiGemini }
+export {
+  bacaGeminiKey,
+  simpanGeminiKey,
+  hapusGeminiKey,
+  ujiKoneksiGemini,
+  PUTER_PROVIDERS,
+  DEFAULT_PUTER_PROVIDER,
+  bacaPuterProvider,
+  simpanPuterProvider,
+  muatPuterSdk,
+  apakahPuterAktifDiSesi,
+  cekStatusPuterOcr,
+  sambungkanPuterOcr,
+}
 
 export const DEFAULT_SGLANG_ENDPOINT = 'http://127.0.0.1:30000'
 export const DEFAULT_OCR_ENDPOINT = DEFAULT_SGLANG_ENDPOINT
@@ -75,7 +98,7 @@ export function validasiEndpointOcr(raw) {
 
 /**
  * Baca konfigurasi OCR aktif dari LocalStorage.
- * @returns {{ engine: 'auto'|'gemini'|'ppocr'|'local'|'unlimited', endpoint: string, cropMode: 'gundam'|'base', hasCustomEndpoint: boolean, hasGeminiKey: boolean }}
+ * @returns {{ engine: 'auto'|'gemini'|'ppocr'|'local'|'unlimited', puterProvider: 'mistral'|'aws-textract', endpoint: string, cropMode: 'gundam'|'base', hasCustomEndpoint: boolean, hasGeminiKey: boolean }}
  */
 export function bacaOcrConfig() {
   let engine = 'auto'
@@ -83,6 +106,7 @@ export function bacaOcrConfig() {
   let cropMode = 'gundam'
   let hasCustomEndpoint = false
   let hasGeminiKey = false
+  const puterProvider = bacaPuterProvider()
 
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
@@ -103,17 +127,18 @@ export function bacaOcrConfig() {
   } catch {
     /* abaikan */
   }
-  return { engine, endpoint, cropMode, hasCustomEndpoint, hasGeminiKey }
+  return { engine, puterProvider, endpoint, cropMode, hasCustomEndpoint, hasGeminiKey }
 }
 
 /**
- * Simpan konfigurasi preferensi engine dan endpoint OCR.
- * @param {{ engine?: 'auto'|'gemini'|'ppocr'|'local'|'unlimited', endpoint?: string, cropMode?: 'gundam'|'base' }} config
+ * Simpan konfigurasi preferensi engine OCR.
+ * @param {{ engine?: 'auto'|'gemini'|'ppocr'|'local'|'unlimited', puterProvider?: 'mistral'|'aws-textract', endpoint?: string, cropMode?: 'gundam'|'base' }} config
  */
 export function simpanOcrConfig(config = {}) {
   try {
     if (typeof window !== 'undefined' && window.localStorage) {
       if (config.engine) window.localStorage.setItem(STORAGE_KEY_ENGINE, config.engine)
+      if (config.puterProvider) simpanPuterProvider(config.puterProvider)
       if (config.endpoint) {
         const cleanEp = validasiEndpointOcr(config.endpoint)
         window.localStorage.setItem(STORAGE_KEY_ENDPOINT, cleanEp)
@@ -230,6 +255,42 @@ function bersihHtmlTeks(html) {
 }
 
 /**
+ * Ekstrak item belanja & baris teks polos dari matriks sel tabel (HTML maupun Markdown).
+ */
+function ekstrakBarisTabelKeBarang(rows) {
+  const barang = []
+  const plainLines = []
+  const skipHeader = /^(no|item|nama|deskripsi|barang|produk|menu|qty|jumlah|harga|subtotal|total)$/i
+
+  for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+    const nonEmpty = rows[rIdx].filter(Boolean)
+    if (nonEmpty.length === 0) continue
+    plainLines.push(nonEmpty.join(' '))
+
+    // Lewati baris header pertama
+    if (rIdx === 0 && nonEmpty.every((c) => skipHeader.test(c.trim()))) continue
+
+    // Cari angka terakhir sebagai nominal harga/subtotal bila bukan baris ringkasan total
+    const joined = nonEmpty.join(' ')
+    if (/^(sub\s*total|total|grand total|pajak|ppn|tax|diskon|tunai|cash|kembali)/i.test(joined)) {
+      continue
+    }
+    const angkaKolom = nonEmpty.map((c) => parseAngkaEksternal(c)).filter((v) => v > 0)
+    const teksKolom = nonEmpty.filter((c) => /[a-zA-Z]{2,}/.test(c))
+    if (teksKolom.length > 0 && angkaKolom.length > 0) {
+      const harga = angkaKolom[angkaKolom.length - 1]
+      const kandidatQty = angkaKolom.length >= 2 && angkaKolom[0] <= 99 ? angkaKolom[0] : 1
+      const nama = teksKolom[0].replace(/^\d+[.)]\s*/, '').trim()
+      if (nama && harga >= 100) {
+        barang.push({ nama, qty: kandidatQty, harga })
+      }
+    }
+  }
+
+  return { plainLines, barang }
+}
+
+/**
  * Konversi blok HTML <table> menjadi Markdown Table & ekstrak item belanja jika terdeteksi.
  */
 function konversiTabelHtmlKeMarkdown(htmlTabel) {
@@ -256,45 +317,33 @@ function konversiTabelHtmlKeMarkdown(htmlTabel) {
     ...rows.slice(1).map((r) => `| ${pad(r).join(' | ')} |`),
   ].join('\n')
 
-  // Ekstrak item transaksi sederhana dari baris tabel
-  const barang = []
-  const plainLines = []
-  const skipHeader = /^(no|item|nama|deskripsi|barang|produk|menu|qty|jumlah|harga|subtotal|total)$/i
-  for (let rIdx = 0; rIdx < rows.length; rIdx++) {
-    const r = rows[rIdx]
-    const nonEmpty = r.filter(Boolean)
-    if (nonEmpty.length === 0) continue
-    plainLines.push(nonEmpty.join(' '))
-
-    // Lewati baris header pertama
-    if (rIdx === 0 && nonEmpty.every((c) => skipHeader.test(c.trim()))) continue
-
-    // Cari angka terakhir sebagai nominal harga/subtotal bila bukan baris ringkasan total
-    const joined = nonEmpty.join(' ')
-    if (/^(sub\s*total|total|grand total|pajak|ppn|tax|diskon|tunai|cash|kembali)/i.test(joined)) {
-      continue
-    }
-    const angkaKolom = nonEmpty
-      .map((c) => parseAngkaEksternal(c))
-      .filter((v) => v > 0)
-    const teksKolom = nonEmpty.filter((c) => /[a-zA-Z]{2,}/.test(c))
-    if (teksKolom.length > 0 && angkaKolom.length > 0) {
-      const harga = angkaKolom[angkaKolom.length - 1]
-      const kandidatQty = angkaKolom.length >= 2 && angkaKolom[0] <= 99 ? angkaKolom[0] : 1
-      const nama = teksKolom[0].replace(/^\d+[.)]\s*/, '').trim()
-      if (nama && harga >= 100) {
-        barang.push({ nama, qty: kandidatQty, harga })
-      }
-    }
-  }
-
+  const { plainLines, barang } = ekstrakBarisTabelKeBarang(rows)
   return { markdown: md, plainLines, barang }
 }
 
 /**
- * Porting `process_unlimitedOCR2.py` untuk membersihkan keluaran mentah VLM `baidu/Unlimited-OCR`:
+ * Ekstrak item belanja dari tabel pipe Markdown bawaan (mis. keluaran Puter Mistral OCR).
+ */
+function ekstrakTabelMarkdownKeBarang(teks) {
+  const rows = []
+  for (const baris of String(teks || '').split(/\r?\n/)) {
+    const trim = baris.trim()
+    if (!trim.includes('|') || /^\|?[\s:-|]+\|?$/.test(trim)) continue
+    const cells = trim
+      .replace(/^\|/, '')
+      .replace(/\|$/, '')
+      .split('|')
+      .map((c) => c.trim())
+    if (cells.length >= 2) rows.push(cells)
+  }
+  if (rows.length === 0) return []
+  return ekstrakBarisTabelKeBarang(rows).barang
+}
+
+/**
+ * Membersihkan keluaran mentah VLM/Cloud OCR (Puter Mistral/Textract maupun Unlimited-OCR):
  *  - Menghapus tag grounding `<|ref|>...<|/ref|>`, `<|det|>[[...]]<|/det|>`, `<PAGE>`, `<BLOCK>`
- *  - Mengonversi HTML `<table>...</table>` menjadi tabel Markdown bersih
+ *  - Mengonversi HTML `<table>...</table>` & tabel pipe Markdown ke item belanja
  *  - Mengekstrak entitas keuangan terstruktur MyDuit (merchant, tanggal, total, barang, kategori)
  *
  * @param {string} rawText
@@ -323,10 +372,22 @@ export function parseUnlimitedRawOutput(rawText) {
     .replace(/\n{3,}/g, '\n\n')
     .trim()
 
-  // Bentuk teks datar untuk ekstraktor MyDuit (gabung baris non-tabel + plainLines tabel)
+  // Jika tidak ada HTML <table>, cek apakah keluaran memuat tabel Markdown pipe native
+  if (tableItems.length === 0) {
+    tableItems.push(...ekstrakTabelMarkdownKeBarang(teksMarkdownBersih))
+  }
+
+  // Bentuk teks datar untuk ekstraktor MyDuit (hapus markup heading & separator pipe)
   const teksUntukParser = dedupBarisNgram(
     rekonstruksiTataLetakBaris(
-      [teksMarkdownBersih.replace(/^\|[\s:-|]+\|$/gm, '').replace(/\|/g, ' '), ...plainTambahan].join('\n'),
+      [
+        teksMarkdownBersih
+          .replace(/^\|?[\s:-|]+\|?$/gm, '')
+          .replace(/^#{1,6}\s+/gm, '')
+          .replace(/\*\*/g, '')
+          .replace(/\|/g, ' '),
+        ...plainTambahan,
+      ].join('\n'),
     ),
   )
 
@@ -374,170 +435,39 @@ export function parseUnlimitedRawOutput(rawText) {
 }
 
 /**
- * Kirim file gambar ke API Unlimited-OCR (SGLang OpenAI /v1/chat/completions atau FastAPI Bridge).
- * @param {File|Blob} file
- * @param {string} endpoint
- * @param {number|{ timeoutMs?: number, cropMode?: 'gundam'|'base', status?: object }} [timeoutOrOpts]
- */
-async function panggilUnlimitedOcrApi(file, endpoint, timeoutOrOpts = DEFAULT_OCR_TIMEOUT_MS) {
-  const cleanUrl = validasiEndpointOcr(endpoint)
-  const opts =
-    typeof timeoutOrOpts === 'number' ? { timeoutMs: timeoutOrOpts } : timeoutOrOpts || {}
-  const timeoutMs = opts.timeoutMs || DEFAULT_OCR_TIMEOUT_MS
-  const cropMode = opts.cropMode === 'base' ? 'base' : 'gundam'
-
-  const status = opts.status || (await cekStatusUnlimitedOcr(cleanUrl, 2000))
-  if (!status.online) {
-    throw new Error(`Server Unlimited-OCR tidak aktif di ${cleanUrl}`)
-  }
-
-  // Jalur 1: Server Resmi SGLang / vLLM OpenAI-Compatible (baidu/Unlimited-OCR)
-  if (status.protocol === 'sglang') {
-    const { mimeType, base64Data } = await konversiFileKeBase64(file)
-    const imagesConfig =
-      cropMode === 'base'
-        ? { crop_mode: false, base_size: 1024, image_size: 1024 }
-        : { crop_mode: true, base_size: 1024, image_size: 640 }
-
-    const payload = {
-      model: status.model || 'baidu/Unlimited-OCR',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${base64Data}` } },
-            { type: 'text', text: '<image>document parsing.' },
-          ],
-        },
-      ],
-      temperature: 0,
-      max_tokens: 2048,
-      images_config: imagesConfig,
-    }
-
-    const res = await fetchJsonDenganTimeout(
-      `${cleanUrl}/v1/chat/completions`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload),
-      },
-      timeoutMs,
-    )
-    if (!res.ok) {
-      throw new Error(`SGLang Unlimited-OCR merespons HTTP ${res.status}: ${res.statusText}`)
-    }
-    const json = await res.json()
-    const rawContent = json?.choices?.[0]?.message?.content || ''
-    if (!rawContent.trim()) {
-      throw new Error('Respons VLM Unlimited-OCR kosong.')
-    }
-    const parsed = parseUnlimitedRawOutput(rawContent)
-    return { success: true, engine: 'unlimited-ocr-sglang', data: parsed }
-  }
-
-  // Jalur 2: FastAPI Microservice Bridge (/api/v1/parse-receipt)
-  const formData = new FormData()
-  formData.append('file', file)
-  const res = await fetchJsonDenganTimeout(
-    `${cleanUrl}/api/v1/parse-receipt?crop_mode=${cropMode}`,
-    {
-      method: 'POST',
-      body: formData,
-      headers: { Accept: 'application/json' },
-    },
-    timeoutMs,
-  )
-  if (!res.ok) {
-    throw new Error(`Server OCR merespons HTTP ${res.status}: ${res.statusText}`)
-  }
-  return await res.json()
-}
-
-/**
- * Normalisasi respons dari server Unlimited-OCR ke skema terpadu MyDuit.
- */
-function normalisasiHasilUnlimited(resData) {
-  const d = resData?.data || resData || {}
-  const rawGabung = [d.teks || '', d.markdown || ''].join('\n')
-  const butuhBersihGrounding = /<\|(?:ref|det)\|>|<table\b|<PAGE>|<BLOCK>/i.test(rawGabung)
-
-  // Bila server mengembalikan tag mentah SGLang/HTML, jalankan normalizer process_unlimitedOCR2
-  if (butuhBersihGrounding) {
-    const parsed = parseUnlimitedRawOutput(d.markdown || d.teks || '')
-    const totalNum = parseAngkaEksternal(d.total) || parsed.total
-    return {
-      engine: resData?.engine || 'unlimited-ocr',
-      ...parsed,
-      total: totalNum,
-      totalSumber: d.totalSumber || parsed.totalSumber,
-      psm: 'vlm',
-    }
-  }
-
-  const totalParsed = parseAngkaEksternal(d.total)
-  const total = totalParsed > 0 ? totalParsed : null
-  const barang = Array.isArray(d.barang) ? d.barang : []
-  const merchant = d.merchant || ''
-  const jenis = d.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran'
-  const tanggal = parseTanggalIsoAman(d.tanggal) ? String(d.tanggal).trim().slice(0, 10) : null
-
-  let kategoriNama = d.kategoriNama || ''
-  let kategoriDari = d.kategoriDari || 'unlimited-ocr'
-  let keterangan = d.keterangan || ''
-  let kategoriYakin = d.kategoriYakin ?? true
-
-  if (!kategoriNama) {
-    const peta = petakanKategori({ barang, merchant, jenis })
-    kategoriNama = peta.kategoriNama
-    kategoriDari = peta.kategoriDari
-    keterangan = keterangan || peta.keterangan
-    kategoriYakin = peta.yakin
-  }
-
-  return {
-    engine: resData?.engine || 'unlimited-ocr',
-    teks: d.teks || '',
-    markdown: d.markdown || '',
-    total,
-    totalSumber: d.totalSumber || (total ? `Total ${total.toLocaleString('id-ID')}` : null),
-    tanggal,
-    jenis,
-    merchant,
-    barang,
-    kategoriNama,
-    kategoriDari,
-    kategoriYakin,
-    keterangan: keterangan || merchant || 'Struk',
-    sumberBayar: d.sumberBayar || null,
-    bayarTunai: Boolean(d.bayarTunai),
-    confidence: typeof d.confidence === 'number' ? d.confidence : 95,
-    psm: 'vlm',
-    fotoBuram: Boolean(d.fotoBuram),
-  }
-}
-
-/**
  * Entry point utama pemindaian dokumen keuangan / struk dengan arsitektur Adaptive Multi-Tier.
  *
- * @param {File|Blob} file
+ * @param {File|Blob|string} file
  * @param {object} options
  * @param {'auto'|'gemini'|'ppocr'|'local'|'unlimited'} [options.engine] Mode engine OCR
+ * @param {'mistral'|'aws-textract'} [options.puterProvider] Provider Puter OCR
+ * @param {object} [options.puterInstance] Injeksi mock/instance Puter untuk pengujian
  * @param {string} [options.geminiApiKey] Kunci API Gemini manual (opsional)
- * @param {string} [options.endpoint] URL server Unlimited-OCR (opsional)
- * @param {'gundam'|'base'} [options.cropMode] Mode potongan citra Unlimited-OCR
- * @param {number} [options.timeoutMs] Batas waktu panggil server (default: 30000ms)
  * @param {(p: number) => void} [options.onProgress] Callback progres (0..1)
  * @returns {Promise<object>} Skema hasil terstruktur MyDuit
  */
 export async function scanDokumenKeuangan(file, options = {}) {
   const cfg = bacaOcrConfig()
   const engine = options.engine || cfg.engine || 'auto'
-  const endpoint = options.endpoint || cfg.endpoint || DEFAULT_OCR_ENDPOINT
-  const cropMode = options.cropMode || cfg.cropMode || 'gundam'
+  const puterProvider = options.puterProvider || cfg.puterProvider || DEFAULT_PUTER_PROVIDER
   const geminiKey = (options.geminiApiKey || bacaGeminiKey()).trim()
-  const timeoutMs = options.timeoutMs || DEFAULT_OCR_TIMEOUT_MS
   const onProgress = options.onProgress
+
+  const jalankanPuterOcr = async () => {
+    const puterRes = await panggilPuterOcr(file, {
+      provider: puterProvider,
+      onProgress,
+      puterInstance: options.puterInstance,
+    })
+    const parsed = parseUnlimitedRawOutput(puterRes.teksMentah)
+    onProgress?.(1.0)
+    return {
+      ...parsed,
+      engine: 'puter-ocr',
+      puterProvider: puterRes.provider,
+      psm: 'cloud-ocr',
+    }
+  }
 
   // Mode 1: Eksklusif Gemini Flash Vision
   if (engine === 'gemini') {
@@ -558,40 +488,30 @@ export async function scanDokumenKeuangan(file, options = {}) {
     }
   }
 
-  // Mode 4: Eksklusif Unlimited-OCR Server (SGLang OpenAI / FastAPI Bridge)
+  // Mode 4: Eksklusif Free Unlimited OCR (Puter.js Mistral / AWS Textract)
   if (engine === 'unlimited') {
-    onProgress?.(0.15)
+    onProgress?.(0.1)
     try {
-      const serverRes = await panggilUnlimitedOcrApi(file, endpoint, { timeoutMs, cropMode })
-      onProgress?.(1.0)
-      return normalisasiHasilUnlimited(serverRes)
+      return await jalankanPuterOcr()
     } catch (err) {
-      throw new Error(`Koneksi Unlimited-OCR gagal: ${err.message}. Pastikan server menyala di ${endpoint}`)
+      throw new Error(`Puter Unlimited OCR gagal: ${err.message}`)
     }
   }
 
   // Mode 5: 'auto' (Orkestrasi Cerdas Multi-Tier)
-  // Tahap A: Jika endpoint Unlimited-OCR eksplisit dikonfigurasi dan aktif -> pakai Unlimited-OCR terlebih dulu
-  if (cfg.hasCustomEndpoint || options.endpoint) {
+  const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false
+
+  // Tahap A: Jika Puter sudah tersambung di sesi & online -> gunakan tanpa memicu popup tak terduga
+  if (isOnline && (apakahPuterAktifDiSesi() || options.puterInstance)) {
     try {
-      const statusSrv = await cekStatusUnlimitedOcr(endpoint, 1200)
-      if (statusSrv.online && statusSrv.modelReady !== false) {
-        onProgress?.(0.15)
-        const serverRes = await panggilUnlimitedOcrApi(file, endpoint, {
-          timeoutMs,
-          cropMode,
-          status: statusSrv,
-        })
-        onProgress?.(1.0)
-        return normalisasiHasilUnlimited(serverRes)
-      }
+      onProgress?.(0.1)
+      return await jalankanPuterOcr()
     } catch (err) {
-      console.warn('[ocr-provider] Unlimited-OCR gagal/offline, beralih ke tier berikutnya:', err.message)
+      console.warn('[ocr-provider] Puter OCR gagal, beralih ke tier berikutnya:', err.message)
     }
   }
 
   // Tahap B: Jika ada Kunci Gemini dan perangkat online -> Prioritaskan Gemini Flash Vision
-  const isOnline = typeof navigator === 'undefined' || navigator.onLine !== false
   if (geminiKey && isOnline) {
     try {
       onProgress?.(0.1)
@@ -612,11 +532,9 @@ export async function scanDokumenKeuangan(file, options = {}) {
 }
 
 /**
- * Deteksi profil hardware perangkat pengguna saat ini (Mobile/Desktop, RAM, CPU, WebGPU)
- * untuk menentukan jalur OCR paling realistis:
- *  - baidu/Unlimited-OCR (3.3B PyTorch VLM) belum memiliki runtime ONNX/WebGPU browser,
- *    sehingga hanya berjalan langsung lewat Bridge/SGLang lokal di perangkat ber-GPU (>= 4 GB VRAM 4-bit / >= 8 GB BF16).
- *  - Perangkat Mobile / RAM <= 4 GB otomatis diarahkan ke Gemini Vision atau Lokal Gundam ringan.
+ * Deteksi profil hardware perangkat pengguna saat ini (Mobile/Desktop, RAM, CPU, WebGPU).
+ * Dengan Puter.js Free Unlimited OCR, fitur Unlimited OCR berjalan serverless langsung
+ * di browser Desktop maupun Mobile tanpa GPU atau API Key.
  *
  * @returns {Promise<{ isMobile: boolean, ramGb: number|null, cpuCores: number|null, hasWebGpu: boolean, unlimitedBrowserDirect: boolean, unlimitedBridgeEligible: boolean, recommendedEngine: 'gemini'|'unlimited'|'local', labelPerangkat: string, ringkasan: string }>}
  */
@@ -641,30 +559,25 @@ export async function deteksiKapabilitasPerangkat() {
     hasWebGpu = false
   }
 
-  const ramCukup = ramGb === null || ramGb >= 8
-  const unlimitedBridgeEligible = !isMobile && ramCukup
   const hasGemini = Boolean(bacaGeminiKey())
-
-  let recommendedEngine = 'local'
-  if (hasGemini) recommendedEngine = 'gemini'
-  else if (unlimitedBridgeEligible && hasWebGpu) recommendedEngine = 'unlimited'
+  const isOnline = typeof nav === 'undefined' || nav?.onLine !== false
+  const recommendedEngine = hasGemini ? 'gemini' : isOnline ? 'unlimited' : 'local'
 
   const infoBagian = [isMobile ? 'Mobile' : 'Desktop']
   if (ramGb) infoBagian.push(`RAM ${ramGb} GB+`)
   if (cpuCores) infoBagian.push(`${cpuCores} core`)
   infoBagian.push(hasWebGpu ? 'WebGPU aktif' : 'WebGL/WASM')
 
-  const ringkasan = unlimitedBridgeEligible
-    ? 'Memenuhi syarat Desktop: bisa langsung jalankan baidu/Unlimited-OCR via Bridge/SGLang jika GPU >= 4 GB VRAM (4-bit) / >= 8 GB (BF16), atau Gemini AI & Lokal Gundam.'
-    : 'Perangkat Mobile/RAM terbatas: VLM 3.3B tidak dimuat ke RAM browser untuk cegah crash; gunakan Gemini AI atau Lokal Gundam.'
+  const ringkasan =
+    'Unlimited OCR (Puter AI) berjalan serverless langsung di browser Desktop maupun Mobile tanpa GPU atau API Key.'
 
   return {
     isMobile,
     ramGb,
     cpuCores,
     hasWebGpu,
-    unlimitedBrowserDirect: false,
-    unlimitedBridgeEligible,
+    unlimitedBrowserDirect: true,
+    unlimitedBridgeEligible: !isMobile && (ramGb === null || ramGb >= 8),
     recommendedEngine,
     labelPerangkat: infoBagian.join(' · '),
     ringkasan,
