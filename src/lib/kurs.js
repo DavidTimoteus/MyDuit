@@ -1,6 +1,7 @@
 // Engine konversi mata uang global (*Money Changer*) dengan pembaruan kurs live & cache offline.
 
 export const EVENT_KURS = 'myduit:kurs-update'
+export const EVENT_BASIS_MATA_UANG = 'myduit:basis-update'
 const STORAGE_KURS_CACHE = 'myduit:kurs_cache'
 const STORAGE_BASIS_LOKAL = 'myduit:kurs_basis'
 const TTL_SEGAR_MS = 30_000
@@ -62,6 +63,7 @@ function tulisStorageAman(key, val) {
 
 let _cacheKurs = null
 let _basisCache = undefined
+let _basisTerkunci = false
 let _inflight = null
 
 function muatCacheKurs() {
@@ -100,6 +102,14 @@ export function statusKurs() {
     fetchedAt: c.fetchedAt,
     isFallback: c.isFallback,
     basis: bacaBasisMataUang(),
+    terkunci: _basisTerkunci,
+  }
+}
+
+export function bacaStatusBasis() {
+  return {
+    basis: bacaBasisMataUang(),
+    terkunci: _basisTerkunci,
   }
 }
 
@@ -118,18 +128,31 @@ export function bacaBasisMataUang() {
   return null
 }
 
-export function simpanBasisMataUang(currency) {
+export function simpanBasisMataUang(currency, { terkunci = true } = {}) {
   const code = String(currency || '').trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(code)) return null
   _basisCache = code
+  _basisTerkunci = Boolean(terkunci)
   tulisStorageAman(STORAGE_BASIS_LOKAL, code)
+  emitEventBasis()
   emitEventKurs()
   return code
 }
 
 export function resetBasisMataUang() {
   _basisCache = null
+  _basisTerkunci = false
   tulisStorageAman(STORAGE_BASIS_LOKAL, null)
+  emitEventBasis()
+}
+
+export function emitEventBasis() {
+  if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') return
+  try {
+    window.dispatchEvent(new CustomEvent(EVENT_BASIS_MATA_UANG, { detail: bacaStatusBasis() }))
+  } catch {
+    // Abaikan di environment non-DOM
+  }
 }
 
 export function emitEventKurs() {
@@ -141,10 +164,81 @@ export function emitEventKurs() {
   }
 }
 
-export function ambilRasioKurs(dari, ke) {
+/**
+ * Membersihkan/validasi payload snapshot kurs historis agar aman disimpan ke Firestore
+ * maupun dipulihkan dari file backup eksternal.
+ */
+export function sanitasiKursSnapshot(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const basis = String(raw.basis || '').trim().toUpperCase()
+  if (!/^[A-Z]{3}$/.test(basis)) return null
+  const rawRates = raw.usdKe && typeof raw.usdKe === 'object' ? raw.usdKe : null
+  if (!rawRates) return null
+
+  const usdKe = {}
+  let jumlah = 0
+  for (const [k, v] of Object.entries(rawRates)) {
+    if (jumlah >= 40) break
+    const code = String(k || '').trim().toUpperCase()
+    const num = Number(v)
+    if (/^[A-Z]{3}$/.test(code) && Number.isFinite(num) && num > 0 && num < 1e12) {
+      usdKe[code] = num
+      jumlah++
+    }
+  }
+  if (!usdKe.USD) usdKe.USD = 1
+  if (!usdKe[basis]) return null
+
+  return {
+    basis,
+    usdKe,
+    tanggal: String(raw.tanggal || '').slice(0, 20),
+    sumber: String(raw.sumber || '').slice(0, 60),
+  }
+}
+
+/**
+ * Membentuk snapshot kurs ringan secara sinkron dari cache aktif saat transaksi dicatat,
+ * agar pencatatan historis tetap mempertahankan nilai konversinya walau kurs esok berubah.
+ */
+export function buatSnapshotKurs(basis = bacaBasisMataUang() || 'IDR', tanggal = '') {
+  const { rates, source } = muatCacheKurs()
+  const kodeBasis = /^[A-Z]{3}$/.test(String(basis || '').toUpperCase())
+    ? String(basis).toUpperCase()
+    : 'IDR'
+  const usdKe = {}
+  for (const k of Object.keys(KURS_CADANGAN_USD)) {
+    const val = Number(rates[k] ?? KURS_CADANGAN_USD[k])
+    if (Number.isFinite(val) && val > 0) usdKe[k] = val
+  }
+  if (!usdKe[kodeBasis]) {
+    const r = Number(rates[kodeBasis])
+    if (Number.isFinite(r) && r > 0) usdKe[kodeBasis] = r
+  }
+  usdKe.USD = 1
+  const tgl = tanggal && /^\d{4}-\d{2}-\d{2}$/.test(tanggal)
+    ? tanggal
+    : new Date().toISOString().slice(0, 10)
+  return {
+    basis: kodeBasis,
+    usdKe,
+    tanggal: tgl,
+    sumber: String(source || 'cadangan-offline').slice(0, 60),
+  }
+}
+
+export function ambilRasioKurs(dari, ke, kursSnapshot = null) {
   const a = String(dari || '').trim().toUpperCase()
   const b = String(ke || '').trim().toUpperCase()
   if (!a || !b || a === b) return 1
+  if (kursSnapshot && typeof kursSnapshot === 'object') {
+    const mapSnap = kursSnapshot.usdKe || kursSnapshot.rates || kursSnapshot
+    const sA = Number(mapSnap?.[a])
+    const sB = Number(mapSnap?.[b])
+    if (Number.isFinite(sA) && sA > 0 && Number.isFinite(sB) && sB > 0) {
+      return sB / sA
+    }
+  }
   const { rates } = muatCacheKurs()
   const rA = Number(rates[a])
   const rB = Number(rates[b])
@@ -152,10 +246,10 @@ export function ambilRasioKurs(dari, ke) {
   return rB / rA
 }
 
-export function konversiNilai(nominal, dari, ke) {
+export function konversiNilai(nominal, dari, ke, kursSnapshot = null) {
   const n = Number(nominal)
   if (!Number.isFinite(n) || n === 0) return 0
-  return n * ambilRasioKurs(dari, ke)
+  return n * ambilRasioKurs(dari, ke, kursSnapshot)
 }
 
 async function fetchJsonTimeout(url, timeoutMs = 5000) {
@@ -262,6 +356,7 @@ export async function segarkanKursGlobal({ paksa = false, penyedia = PENYEDIA_KU
 export function _resetCacheKursUntukUji() {
   _cacheKurs = null
   _basisCache = undefined
+  _basisTerkunci = false
   _inflight = null
 }
 

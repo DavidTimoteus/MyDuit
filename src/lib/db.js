@@ -19,8 +19,8 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
-import { MAX_NOMINAL, kanonikTanggal, uangAktif } from './format.js'
-import { bacaBasisMataUang, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
+import { MAX_NOMINAL, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
+import { bacaBasisMataUang, bacaStatusBasis, buatSnapshotKurs, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
 
 function bulatkanKeBasis(nilai) {
   const n = Number(nilai)
@@ -147,6 +147,7 @@ export async function tambahAkun(uid, { nama, saldoAwal = 0, tipe = 'Rekening Ut
       ? { mutasiTerakhir: { delta: saldoInt, keterangan: 'Saldo awal', at: serverTimestamp() } }
       : {}),
   })
+  pastikanBasisTerkunciSetelahTulis(uid).catch(() => {})
   return ref.id
 }
 
@@ -219,14 +220,16 @@ export async function simpanTransaksi(uid, data) {
     throw new Error('Jenis transaksi tidak valid.')
   }
   if (!data?.akunId) throw new Error('Rekening wajib dipilih.')
+  const tglKanonik = kanonikTanggal(data.tanggal)
   const transId = data.id || buatTransaksiId(uid)
   const trans = {
     jumlah: jumlahInt,
     jenis: data.jenis,
     kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
-    tanggal: kanonikTanggal(data.tanggal),
+    tanggal: tglKanonik,
     catatan: potongTeks(data.catatan, 500),
+    kursSnapshot: data.kursSnapshot || buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik),
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
   }
@@ -424,6 +427,7 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
   if (!dariId || !keId) throw new Error('Pilih rekening sumber & tujuan dulu.')
   if (dariId === keId) throw new Error('Rekening sumber & tujuan tidak boleh sama.')
   const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pindah saldo')
+  const tglKanonik = kanonikTanggal(tanggal)
   const transId = id || buatTransaksiId(uid)
   const trans = {
     jumlah: jumlahInt,
@@ -432,8 +436,9 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
     akunId: dariId,
     dariId,
     keId,
-    tanggal: kanonikTanggal(tanggal),
+    tanggal: tglKanonik,
     catatan: potongTeks(catatan, 500),
+    kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik),
     deleted: false,
     createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
   }
@@ -692,6 +697,7 @@ export async function simpanBudget(uid, { id, kategoriId, limitNominal, bulan, t
     deleted: false,
     createdAt: serverTimestamp(),
   })
+  pastikanBasisTerkunciSetelahTulis(uid).catch(() => {})
   return ref.id
 }
 
@@ -757,6 +763,7 @@ export async function simpanUtang(uid, { id, namaPihak, deskripsi, total, tipe, 
     deleted: false,
     createdAt: serverTimestamp(),
   })
+  pastikanBasisTerkunciSetelahTulis(uid).catch(() => {})
   return ref.id
 }
 
@@ -831,6 +838,7 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
   const sisaSebelum = Math.max(0, angkaAman(utang.sisa))
   const sisaBaru = Math.max(0, sisaSebelum - jumlahInt)
   const tglKanonik = kanonikTanggal(tanggal)
+  const snapKurs = buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik)
   if (IS_DEMO_UID(uid)) {
     const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran')
     const txId = id || buatTransaksiId(uid)
@@ -843,6 +851,7 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
       utangId: utang.id,
       tanggal: tglKanonik,
       catatan: ket,
+      kursSnapshot: snapKurs,
       deleted: false,
       createdAt: new Date().toISOString(),
     })
@@ -867,6 +876,7 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
     jumlah: jumlahInt,
     tanggal: tglKanonik,
     akunId: akun.id,
+    kursSnapshot: snapKurs,
     deleted: false,
     createdAt: serverTimestamp(),
   })
@@ -879,6 +889,7 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
     pembayaranUtangId: bayarRef.id,
     tanggal: tglKanonik,
     catatan: ket,
+    kursSnapshot: snapKurs,
     deleted: false,
     createdAt: serverTimestamp(),
   })
@@ -898,13 +909,60 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
 }
 
 /**
- * Menentukan dan menyimpan `baseCurrency` kanonik untuk akun agar pengubahan lokasi
- * bekerja layaknya *Money Changer* non-destruktif terhadap seluruh catatan di Firestore.
+ * Menetapkan mata uang dasar kanonik (`users/{uid}/meta/mataUang`) dan
+ * menyinkronkan pilihan lokasi awal bila tersedia di katalog NEGARA.
+ */
+export async function tetapkanMataUangDasar(uid, currency, { paksa = false, sinkronLokasi = true } = {}) {
+  const kode = String(currency || '').trim().toUpperCase()
+  if (!/^[A-Z]{3}$/.test(kode)) throw new Error('Kode mata uang tidak valid.')
+  if (!uid) return 'IDR'
+  if (IS_DEMO_UID(uid)) {
+    simpanBasisMataUang(kode, { terkunci: true })
+    if (sinkronLokasi) {
+      const kNeg = negaraUntukMataUang(kode)
+      if (kNeg) simpanNegaraManual(kNeg)
+    }
+    return kode
+  }
+  const { db } = getFirebase()
+  const metaRef = doc(db, 'users', uid, 'meta', 'mataUang')
+  if (!paksa) {
+    try {
+      const existing = await getDoc(metaRef)
+      const lama = existing.exists() ? String(existing.data()?.baseCurrency || '').toUpperCase() : ''
+      if (/^[A-Z]{3}$/.test(lama)) {
+        simpanBasisMataUang(lama, { terkunci: true })
+        return lama
+      }
+    } catch {
+      // Lanjut menulis optimis (offline-first)
+    }
+  }
+  simpanBasisMataUang(kode, { terkunci: true })
+  if (sinkronLokasi) {
+    const kNeg = negaraUntukMataUang(kode)
+    if (kNeg) simpanNegaraManual(kNeg)
+  }
+  await setDoc(metaRef, { baseCurrency: kode, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {})
+  return kode
+}
+
+async function pastikanBasisTerkunciSetelahTulis(uid) {
+  if (!uid || IS_DEMO_UID(uid)) return
+  if (bacaStatusBasis().terkunci) return
+  const basisAktif = uangAktif().currency || bacaBasisMataUang() || 'IDR'
+  await tetapkanMataUangDasar(uid, basisAktif, { sinkronLokasi: false })
+}
+
+/**
+ * Menentukan `baseCurrency` kanonik akun. Jika akun masih 100% kosong (`!punyaData`)
+ * dan belum memiliki `meta/mataUang`, penguncian ditunda (`terkunci: false`)
+ * agar UI onboarding dapat menawarkan pilihan mata uang dasar pertama kali.
  */
 export async function inisialisasiMataUangDasar(uid) {
   if (!uid) return 'IDR'
   if (IS_DEMO_UID(uid)) {
-    simpanBasisMataUang('IDR')
+    simpanBasisMataUang('IDR', { terkunci: true })
     segarkanKursGlobal().catch(() => {})
     return 'IDR'
   }
@@ -918,7 +976,7 @@ export async function inisialisasiMataUangDasar(uid) {
     const snap = await getDoc(metaRef)
     const tersimpan = snap.exists() ? String(snap.data()?.baseCurrency || '').toUpperCase() : ''
     if (/^[A-Z]{3}$/.test(tersimpan)) {
-      simpanBasisMataUang(tersimpan)
+      simpanBasisMataUang(tersimpan, { terkunci: true })
       return tersimpan
     }
 
@@ -932,14 +990,20 @@ export async function inisialisasiMataUangDasar(uid) {
         break
       }
     }
-    const basis = punyaData ? 'IDR' : (uangAktif().currency || 'IDR')
-    simpanBasisMataUang(basis)
-    await setDoc(metaRef, { baseCurrency: basis, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {})
-    return basis
+    if (punyaData) {
+      simpanBasisMataUang('IDR', { terkunci: true })
+      await setDoc(metaRef, { baseCurrency: 'IDR', updatedAt: serverTimestamp() }, { merge: true }).catch(() => {})
+      return 'IDR'
+    }
+
+    // Akun masih kosong: tandai provisional agar penawaran mata uang awal muncul
+    const provisional = uangAktif().currency || 'IDR'
+    simpanBasisMataUang(provisional, { terkunci: false })
+    return provisional
   } catch (err) {
     console.warn('[db] Gagal membaca meta/mataUang, gunakan basis IDR:', err?.message)
     const fallback = bacaBasisMataUang() || 'IDR'
-    simpanBasisMataUang(fallback)
+    simpanBasisMataUang(fallback, { terkunci: true })
     return fallback
   }
 }

@@ -115,6 +115,57 @@ cek('Money Changer formatRupiah + sanitizeKetikNominal + round-trip USD <-> IDR'
   assert.equal(fmt.formatInputTampil(masukIdr), '191.625')
 })
 
+// 4. Snapshot kurs historis (1 USD = 18000 hari ini, besok menguat jadi 15000):
+//    transaksi lama tetap memakai kurs historis 18000, transaksi baru mengikuti 15000.
+{
+  const fetchAsli = globalThis.fetch
+  try {
+    kurs._resetCacheKursUntukUji()
+    delete _store['myduit:kurs_cache']
+    kurs.simpanBasisMataUang('IDR', { terkunci: true })
+    assert.deepEqual(kurs.bacaStatusBasis(), { basis: 'IDR', terkunci: true })
+
+    // Hari ini: 1 USD = 18000 IDR
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ rates: { USD: 1, IDR: 18000, SGD: 1.35, EUR: 0.92 } }),
+    })
+    await kurs.segarkanKursGlobal({ paksa: true })
+    const snapHari1 = kurs.buatSnapshotKurs('IDR', '2026-11-13')
+
+    // Besok: IDR menguat 1 USD = 15000 IDR
+    globalThis.fetch = async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ rates: { USD: 1, IDR: 15000, SGD: 1.32, EUR: 0.90 } }),
+    })
+    await kurs.segarkanKursGlobal({ paksa: true })
+    const snapHari2 = kurs.buatSnapshotKurs('IDR', '2026-11-14')
+
+    fmt.simpanNegaraManual('US')
+    // Transaksi lama 18000 IDR tetap US$1 (kurs historis 18000), bukan US$1.20!
+    assert.equal(fmt.formatRupiah(18000, { kursSnapshot: snapHari1 }), 'US$1')
+    assert.equal(fmt.formatInputTampil(18000, { kursSnapshot: snapHari1 }), '1')
+    // Transaksi baru 15000 IDR tampil US$1 sesuai kurs hari ke-2 (15000)
+    assert.equal(fmt.formatRupiah(15000, { kursSnapshot: snapHari2 }), 'US$1')
+    // Saldo tanpa snapshot (live spot): 18000 IDR di hari ke-2 bernilai US$1.2
+    assert.equal(fmt.formatRupiah(18000), 'US$1.2')
+
+    // Sanitasi snapshot menolak payload korup & menerima payload valid
+    assert.equal(kurs.sanitasiKursSnapshot(null), null)
+    assert.equal(kurs.sanitasiKursSnapshot({ basis: 'INVALID', usdKe: { IDR: 16000 } }), null)
+    assert.equal(kurs.sanitasiKursSnapshot(snapHari1)?.usdKe?.IDR, 18000)
+
+    // Reset ke mode provisional
+    kurs.resetBasisMataUang()
+    assert.deepEqual(kurs.bacaStatusBasis(), { basis: null, terkunci: false })
+    lulus++
+  } finally {
+    globalThis.fetch = fetchAsli
+  }
+}
+
 // Reset bersih
 kurs.resetBasisMataUang()
 fmt.simpanNegaraManual('')

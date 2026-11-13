@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { EVENT_LOKASI, uangAktif } from './format.js'
-import { EVENT_KURS } from './kurs.js'
+import { EVENT_BASIS_MATA_UANG, EVENT_KURS } from './kurs.js'
 
 /**
  * Hook reaktif untuk memicu render ulang komponen saat lokasi/mata uang
@@ -13,9 +13,11 @@ export function useKursVersi() {
     const bump = () => setVer((v) => v + 1)
     window.addEventListener(EVENT_KURS, bump)
     window.addEventListener(EVENT_LOKASI, bump)
+    window.addEventListener(EVENT_BASIS_MATA_UANG, bump)
     return () => {
       window.removeEventListener(EVENT_KURS, bump)
       window.removeEventListener(EVENT_LOKASI, bump)
+      window.removeEventListener(EVENT_BASIS_MATA_UANG, bump)
     }
   }, [])
 

@@ -34,9 +34,21 @@ service cloud.firestore {
         && (!keys.hasAny(['updatedAt']) || d.updatedAt is timestamp);
     }
 
+    function validKursSnapshot(d) {
+      return !('kursSnapshot' in d) || d.kursSnapshot == null || (
+        d.kursSnapshot is map
+        && d.kursSnapshot.keys().hasOnly(['basis', 'usdKe', 'tanggal', 'sumber'])
+        && (!('basis' in d.kursSnapshot) || (d.kursSnapshot.basis is string && d.kursSnapshot.basis.matches('^[A-Z]{3}$')))
+        && (!('usdKe' in d.kursSnapshot) || (d.kursSnapshot.usdKe is map && d.kursSnapshot.usdKe.keys().size() <= 40))
+        && (!('tanggal' in d.kursSnapshot) || (d.kursSnapshot.tanggal is string && d.kursSnapshot.tanggal.size() <= 20))
+        && (!('sumber' in d.kursSnapshot) || (d.kursSnapshot.sumber is string && d.kursSnapshot.sumber.size() <= 60))
+      );
+    }
+
     function validTransaksi(isCreate) {
       let d = request.resource.data;
       return validBase()
+        && validKursSnapshot(d)
         && (!isCreate || (
           'deleted' in d && d.deleted is bool &&
           'jumlah' in d && (d.deleted == true || d.jumlah > 0) &&
@@ -111,6 +123,7 @@ service cloud.firestore {
     function validPembayaranUtang(isCreate) {
       let d = request.resource.data;
       return validBase()
+        && validKursSnapshot(d)
         && (!isCreate || ('deleted' in d && d.deleted is bool && 'jumlah' in d && (d.deleted == true || d.jumlah > 0)))
         && (!('jumlah' in d) || (d.jumlah is number && d.jumlah >= 0 && d.jumlah <= maxNum()))
         && (!('tanggal' in d) || (d.tanggal is string && d.tanggal.size() <= 32));

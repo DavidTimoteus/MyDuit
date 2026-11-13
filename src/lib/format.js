@@ -47,12 +47,27 @@ export const NEGARA = {
   TH: { nama: 'Thailand', bendera: '🇹🇭', currency: 'THB', symbol: '฿', locale: 'th-TH' },
   VN: { nama: 'Vietnam', bendera: '🇻🇳', currency: 'VND', symbol: '₫', locale: 'vi-VN' },
   IN: { nama: 'India', bendera: '🇮🇳', currency: 'INR', symbol: '₹', locale: 'en-IN' },
+  CN: { nama: 'Tiongkok', bendera: '🇨🇳', currency: 'CNY', symbol: '¥', locale: 'zh-CN' },
   JP: { nama: 'Jepang', bendera: '🇯🇵', currency: 'JPY', symbol: '¥', locale: 'ja-JP' },
+  KR: { nama: 'Korea Selatan', bendera: '🇰🇷', currency: 'KRW', symbol: '₩', locale: 'ko-KR' },
   US: { nama: 'Amerika Serikat', bendera: '🇺🇸', currency: 'USD', symbol: 'US$', locale: 'en-US' },
+  EU: { nama: 'Eropa (EUR)', bendera: '🇪🇺', currency: 'EUR', symbol: '€', locale: 'de-DE' },
   GB: { nama: 'Inggris', bendera: '🇬🇧', currency: 'GBP', symbol: '£', locale: 'en-GB' },
   AU: { nama: 'Australia', bendera: '🇦🇺', currency: 'AUD', symbol: 'A$', locale: 'en-AU' },
   NZ: { nama: 'Selandia Baru', bendera: '🇳🇿', currency: 'NZD', symbol: 'NZ$', locale: 'en-NZ' },
   CA: { nama: 'Kanada', bendera: '🇨🇦', currency: 'CAD', symbol: 'C$', locale: 'en-CA' },
+}
+
+export function negaraUntukMataUang(currency) {
+  const target = String(currency || '').trim().toUpperCase()
+  if (!target) return ''
+  if (target === 'IDR') return 'ID'
+  if (target === 'USD') return 'US'
+  if (target === 'EUR') return 'EU'
+  for (const [kode, info] of Object.entries(NEGARA)) {
+    if (info.currency === target) return kode
+  }
+  return ''
 }
 
 // ===== Lokasi manual (dipilih pengguna, menang atas deteksi timezone) =====
@@ -149,24 +164,29 @@ export function simbolUang() {
 }
 
 // ===== Money Changer: konversi tampilan & input <-> basis akun =====
-export function rasioKursTampil() {
-  const basis = bacaBasisMataUang()
+export function rasioKursTampil(kursSnapshot = null) {
+  const basisSnap = kursSnapshot?.basis && /^[A-Z]{3}$/.test(String(kursSnapshot.basis).toUpperCase())
+    ? String(kursSnapshot.basis).toUpperCase()
+    : null
+  const basis = basisSnap || bacaBasisMataUang()
   const { currency } = uangAktif()
-  return basis && basis !== currency ? ambilRasioKurs(basis, currency) : 1
+  return basis && basis !== currency ? ambilRasioKurs(basis, currency, kursSnapshot) : 1
 }
 
-export function konversiUntukTampil(n) {
+export function konversiUntukTampil(n, kursSnapshot = null) {
   const v = Number(n) || 0
-  const r = rasioKursTampil()
+  const r = rasioKursTampil(kursSnapshot)
   const res = r === 1 ? v : v * r
   return Math.abs(res) < 1e-9 ? 0 : res
 }
 
-export function konversiKeBasis(n) {
+export function konversiKeBasis(n, kursSnapshot = null) {
   const v = Number(n) || 0
-  const r = rasioKursTampil()
+  const r = rasioKursTampil(kursSnapshot)
   const raw = r === 1 ? v : v / r
-  const basis = bacaBasisMataUang() || 'IDR'
+  const basis = (kursSnapshot?.basis && /^[A-Z]{3}$/.test(String(kursSnapshot.basis).toUpperCase()))
+    ? String(kursSnapshot.basis).toUpperCase()
+    : (bacaBasisMataUang() || 'IDR')
   const d = desimalMataUang(basis)
   const faktor = d > 0 ? 10 ** d : 1
   const res = Math.round(raw * faktor) / faktor
@@ -181,9 +201,9 @@ function jumlahDesimalFormat(currency, absVal) {
 }
 
 // Angka bergrup tanpa simbol ("1.234.500" / "73.49") mengikuti locale & kurs aktif.
-export function formatNominal(n) {
+export function formatNominal(n, { kursSnapshot = null } = {}) {
   const { currency, locale } = uangAktif()
-  const v = konversiUntukTampil(n)
+  const v = konversiUntukTampil(n, kursSnapshot)
   const dec = jumlahDesimalFormat(currency, Math.abs(v))
   return v.toLocaleString(locale, { maximumFractionDigits: dec })
 }
@@ -222,10 +242,10 @@ export function symbolForCurrency(currency) {
 
 // Formatter nominal utama seluruh app: pakai simbol, kurs aktif, & grouping mata uang aktif.
 // (Nama historis "Rupiah" dipertahankan agar call site tidak perlu diubah.)
-export function formatRupiah(n, { tanda = false } = {}) {
+export function formatRupiah(n, { tanda = false, kursSnapshot = null } = {}) {
   const { currency, locale } = uangAktif()
   const sym = symbolForCurrency(currency)
-  const v = konversiUntukTampil(n)
+  const v = konversiUntukTampil(n, kursSnapshot)
   const absVal = Math.abs(v)
   const abs = absVal.toLocaleString(locale, { maximumFractionDigits: jumlahDesimalFormat(currency, absVal) })
   // Simbol menempel ke angka tanpa spasi (konvensi "Rp1.000"): kolom nominal
@@ -398,12 +418,12 @@ export function parseInputTampilBertanda(str) {
   return negatif ? -abs : abs
 }
 
-export function formatInputTampil(nilaiDasar) {
+export function formatInputTampil(nilaiDasar, { kursSnapshot = null } = {}) {
   if (nilaiDasar === '' || nilaiDasar === null || nilaiDasar === undefined) return ''
   const num = Number(nilaiDasar)
   if (!Number.isFinite(num) || num <= 0) return ''
   const { currency, locale } = uangAktif()
-  const v = konversiUntukTampil(num)
+  const v = konversiUntukTampil(num, kursSnapshot)
   const dMaks = desimalMataUang(currency)
   const faktor = dMaks > 0 ? 10 ** dMaks : 1
   const dibulat = Math.round(v * faktor) / faktor
@@ -476,22 +496,35 @@ export function kanonikTanggal(val) {
   return isoHariIni()
 }
 
-// Label grup tanggal: Hari Ini / Kemarin / "Senin, 12 Mei 2026"
-export function tanggalLabel(iso) {
-  const hari = isoHariIni()
-  if (iso === hari) return 'Hari Ini'
-  const y = new Date()
-  y.setDate(y.getDate() - 1)
-  if (iso === isoDari(y)) return 'Kemarin'
-  const d = parseTanggalIsoAman(iso)
-  if (!d) return iso || 'Tanpa tanggal'
-  return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+function bahasaTanggalAktif(lang) {
+  if (lang === 'en' || lang === 'id') return lang
+  try {
+    const tersimpan = typeof localStorage !== 'undefined' ? localStorage.getItem('myduit:bahasa') : null
+    if (tersimpan === 'en') return 'en'
+  } catch {
+    // Abaikan di mode privat
+  }
+  return 'id'
 }
 
-export function tanggalPendek(iso) {
+// Label grup tanggal: Hari Ini / Kemarin / "Senin, 12 Mei 2026"
+export function tanggalLabel(iso, lang = null) {
+  const b = bahasaTanggalAktif(lang)
+  const hari = isoHariIni()
+  if (iso === hari) return b === 'en' ? 'Today' : 'Hari Ini'
+  const y = new Date()
+  y.setDate(y.getDate() - 1)
+  if (iso === isoDari(y)) return b === 'en' ? 'Yesterday' : 'Kemarin'
+  const d = parseTanggalIsoAman(iso)
+  if (!d) return iso || (b === 'en' ? 'No date' : 'Tanpa tanggal')
+  return new Intl.DateTimeFormat(b === 'en' ? 'en-US' : 'id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+}
+
+export function tanggalPendek(iso, lang = null) {
+  const b = bahasaTanggalAktif(lang)
   const d = parseTanggalIsoAman(iso)
   if (!d) return iso || '—'
-  return new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(d)
+  return new Intl.DateTimeFormat(b === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'short' }).format(d)
 }
 
 // Rentang tanggal untuk chip filter. 'semua' -> null (tanpa batas).
