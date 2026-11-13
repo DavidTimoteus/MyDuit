@@ -107,6 +107,22 @@ function apakahErrorModelTidakTersedia(status, msg) {
   )
 }
 
+function apakahErrorTransientServer(status, msg) {
+  if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) {
+    return true
+  }
+  const s = String(msg || '').toLowerCase()
+  return (
+    s.includes('high demand') ||
+    s.includes('overloaded') ||
+    s.includes('unavailable') ||
+    s.includes('resource exhausted') ||
+    s.includes('quota') ||
+    s.includes('rate limit') ||
+    s.includes('try again later')
+  )
+}
+
 function apakahErrorKunciDitolak(status, msg) {
   if (status === 401) return true
   const s = String(msg || '').toLowerCase()
@@ -124,14 +140,15 @@ function daftarKandidatAwal() {
 }
 
 /**
- * Penemuan dinamis model Flash aktif langsung dari endpoint `/v1beta/models`.
- * Berguna bila Google menghentikan model lama agar kunci baru tetap langsung bekerja.
+ * Validasi kunci via `GET /v1beta/models` sekaligus mengekstrak daftar model Flash aktif.
+ * Endpoint listing ini tidak terdampak spike `503` pada inference `generateContent`.
  * @param {string} apiKey
- * @returns {Promise<string[]>}
  */
-export async function temukanModelFlashAktif(apiKey) {
+export async function validasiKunciViaDaftarModels(apiKey) {
   const key = String(apiKey || '').trim()
-  if (!key) return []
+  if (!key) {
+    return { ok: false, authRejected: true, status: 400, message: 'Kunci API kosong.', models: [] }
+  }
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), 5000)
   try {
@@ -141,10 +158,21 @@ export async function temukanModelFlashAktif(apiKey) {
       headers: { Accept: 'application/json', 'x-goog-api-key': key },
     })
     clearTimeout(timer)
-    if (!res.ok) return []
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}))
+      const message = errData?.error?.message || `HTTP ${res.status}`
+      return {
+        ok: false,
+        authRejected: apakahErrorKunciDitolak(res.status, message),
+        transient: apakahErrorTransientServer(res.status, message),
+        status: res.status,
+        message,
+        models: [],
+      }
+    }
     const json = await res.json().catch(() => null)
     const list = Array.isArray(json?.models) ? json.models : []
-    return list
+    const models = list
       .filter(
         (m) =>
           Array.isArray(m?.supportedGenerationMethods) &&
@@ -153,10 +181,22 @@ export async function temukanModelFlashAktif(apiKey) {
       )
       .map((m) => String(m.name).replace(/^models\//, ''))
       .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
-  } catch {
+    return { ok: true, authRejected: false, status: 200, message: '', models }
+  } catch (err) {
     clearTimeout(timer)
-    return []
+    return { ok: false, authRejected: false, transient: true, status: 0, message: err.message, models: [] }
   }
+}
+
+/**
+ * Penemuan dinamis model Flash aktif langsung dari endpoint `/v1beta/models`.
+ * Berguna bila Google menghentikan model lama agar kunci baru tetap langsung bekerja.
+ * @param {string} apiKey
+ * @returns {Promise<string[]>}
+ */
+export async function temukanModelFlashAktif(apiKey) {
+  const res = await validasiKunciViaDaftarModels(apiKey)
+  return res.ok ? res.models : []
 }
 
 async function pingModelGemini(model, key, payload) {
@@ -186,8 +226,9 @@ async function pingModelGemini(model, key, payload) {
 
 /**
  * Validasi dan uji koneksi kunci API Gemini dengan auto-cascade & discovery model aktif.
+ * Tetap mengesahkan kunci bila `/v1beta/models` 200 OK meski model inference sedang 503 high demand.
  * @param {string} apiKey
- * @returns {Promise<{ ok: boolean, model?: string, message: string }>}
+ * @returns {Promise<{ ok: boolean, model?: string, limitedByDemand?: boolean, message: string }>}
  */
 export async function ujiKoneksiGemini(apiKey) {
   const key = (apiKey || bacaGeminiKey()).trim()
@@ -195,16 +236,22 @@ export async function ujiKoneksiGemini(apiKey) {
     return { ok: false, message: 'Kunci API kosong. Silakan masukkan kunci API Anda.' }
   }
 
+  // 1. Validasi kunci langsung pada listing model (kebal terhadap high-demand model tertentu)
+  const infoKunci = await validasiKunciViaDaftarModels(key)
+  if (infoKunci.authRejected) {
+    return { ok: false, message: `Gagal memverifikasi kunci: ${infoKunci.message}` }
+  }
+
   const testPayload = {
     contents: [{ parts: [{ text: 'Balas dengan kata "OK" saja jika kunci aktif.' }] }],
   }
 
-  const dicoba = new Set()
+  // Utamakan cache, model Flash aktif dari akun Google user, lalu cascade cadangan
+  const kandidat = [...new Set([_modelAktifCache, ...infoKunci.models, ...GEMINI_FLASH_CASCADE].filter(Boolean))]
   let lastErr = null
-  let perluDiscovery = false
+  let sawTransient = false
 
-  for (const model of daftarKandidatAwal()) {
-    dicoba.add(model)
+  for (const model of kandidat) {
     const r = await pingModelGemini(model, key, testPayload)
     if (r.ok) {
       _modelAktifCache = model
@@ -214,28 +261,25 @@ export async function ujiKoneksiGemini(apiKey) {
     if (apakahErrorKunciDitolak(r.status, r.message)) {
       return { ok: false, message: `Gagal memverifikasi kunci: ${r.message}` }
     }
-    if (apakahErrorModelTidakTersedia(r.status, r.message)) {
-      perluDiscovery = true
+    if (apakahErrorTransientServer(r.status, r.message)) {
+      sawTransient = true
     }
   }
 
-  // Bila model hardcoded retired/404, cari model Flash aktif dari API Google
-  if (perluDiscovery) {
-    const dinamis = await temukanModelFlashAktif(key)
-    for (const model of dinamis) {
-      if (dicoba.has(model)) continue
-      dicoba.add(model)
-      const r = await pingModelGemini(model, key, testPayload)
-      if (r.ok) {
-        _modelAktifCache = model
-        return { ok: true, model, message: `Kunci API valid! Gemini Vision (${model}) siap digunakan.` }
-      }
-      lastErr = r
-      if (apakahErrorKunciDitolak(r.status, r.message)) break
+  if (infoKunci.ok && sawTransient) {
+    if (infoKunci.models[0]) _modelAktifCache = infoKunci.models[0]
+    return {
+      ok: true,
+      limitedByDemand: true,
+      model: infoKunci.models[0] || DEFAULT_GEMINI_MODEL,
+      message: 'Kunci API valid & tersimpan! Server Google sedang padat sementara (high demand), silakan coba scan lagi nanti.',
     }
   }
 
-  return { ok: false, message: `Gagal memverifikasi kunci: ${lastErr?.message || 'Koneksi terputus'}` }
+  return {
+    ok: false,
+    message: `Gagal memverifikasi kunci: ${lastErr?.message || infoKunci.message || 'Koneksi terputus'}`,
+  }
 }
 
 /**
@@ -328,7 +372,9 @@ Aturan Ekstraksi:
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         const errMsg = errJson?.error?.message || `HTTP ${res.status}`
-        if (apakahErrorModelTidakTersedia(res.status, errMsg)) butuhDiscovery = true
+        if (apakahErrorModelTidakTersedia(res.status, errMsg) || apakahErrorTransientServer(res.status, errMsg)) {
+          butuhDiscovery = true
+        }
         const err = new Error(`${model}: ${errMsg}`)
         err.authRejected = apakahErrorKunciDitolak(res.status, errMsg)
         throw err
