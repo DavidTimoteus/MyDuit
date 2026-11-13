@@ -512,6 +512,7 @@ export default function Shell({ user }) {
       localStorage.removeItem("myduit_gemini_api_key");
       localStorage.removeItem("myduit_ocr_engine");
       localStorage.removeItem("myduit_ocr_endpoint");
+      localStorage.removeItem("myduit_ocr_crop_mode");
       localStorage.removeItem("myduit:tx_chip");
     } catch (e) {
       console.warn("bersihkan penanda lokal gagal:", e?.message);

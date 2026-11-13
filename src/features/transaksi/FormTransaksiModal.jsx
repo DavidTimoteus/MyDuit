@@ -10,6 +10,8 @@ import {
   scanDokumenKeuangan,
   bacaOcrConfig,
   simpanOcrConfig,
+  cekStatusUnlimitedOcr,
+  DEFAULT_OCR_ENDPOINT,
   bacaGeminiKey,
   simpanGeminiKey,
   hapusGeminiKey,
@@ -53,7 +55,14 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [scanProgress, setScanProgress] = useState(0)
   const [scanHasil, setScanHasil] = useState(null) // hasil bacaStruk()
   const [scanPesan, setScanPesan] = useState('') // info/kesalahan OCR
-  const [ocrEnginePref, setOcrEnginePref] = useState(() => bacaOcrConfig().engine)
+  const [ocrEnginePref, setOcrEnginePref] = useState(() => {
+    const e = bacaOcrConfig().engine
+    return e === 'ppocr' ? 'local' : e
+  })
+  const [ocrEndpoint, setOcrEndpoint] = useState(() => bacaOcrConfig().endpoint)
+  const [ocrCropMode, setOcrCropMode] = useState(() => bacaOcrConfig().cropMode)
+  const [ocrStatusMsg, setOcrStatusMsg] = useState('')
+  const [ocrTesting, setOcrTesting] = useState(false)
   const [showOcrConfig, setShowOcrConfig] = useState(false)
   const [geminiKeyInput, setGeminiKeyInput] = useState(() => bacaGeminiKey())
   const [geminiStatus, setGeminiStatus] = useState('')
@@ -68,11 +77,20 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [tambahAkunBusy, setTambahAkunBusy] = useState(false)
   const masihTerpasang = useRef(true)
   const submittedRef = useRef(false)
+  const scanUrlRef = useRef(null)
+
+  useEffect(() => {
+    scanUrlRef.current = scan?.url || null
+  }, [scan])
 
   useEffect(() => {
     masihTerpasang.current = true
     return () => {
       masihTerpasang.current = false
+      if (scanUrlRef.current) {
+        URL.revokeObjectURL(scanUrlRef.current)
+        scanUrlRef.current = null
+      }
       // Worker Tesseract memakan memori; lepas saat modal dilepas.
       matikanOcr()
     }
@@ -87,6 +105,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setCalcExpr('')
     setCalcErr('')
     // Bersihkan sisa hasil scan dari sesi sebelumnya
+    if (scanUrlRef.current) {
+      URL.revokeObjectURL(scanUrlRef.current)
+      scanUrlRef.current = null
+    }
     setScan(null)
     setScanHasil(null)
     setScanPesan('')
@@ -173,6 +195,31 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setGeminiStatus('Kunci API berhasil dihapus.')
   }
 
+  async function simpanDanCekUnlimited() {
+    const raw = ocrEndpoint.trim() || DEFAULT_OCR_ENDPOINT
+    setOcrTesting(true)
+    setOcrStatusMsg('Mengecek server Unlimited-OCR...')
+    try {
+      simpanOcrConfig({ endpoint: raw, cropMode: ocrCropMode })
+      setOcrEndpoint(bacaOcrConfig().endpoint)
+      const status = await cekStatusUnlimitedOcr(raw, 2500)
+      if (!masihTerpasang.current) return
+      if (status.online) {
+        const ketModel = status.model ? ` (${status.model})` : ''
+        const siapText = status.modelReady === false
+          ? ' — server aktif, tetapi bobot VLM belum dimuat (fallback otomatis aktif).'
+          : ` — siap dipakai [${status.protocol === 'sglang' ? 'SGLang VLM' : 'Bridge'}].`
+        setOcrStatusMsg(`Terhubung ke ${status.engine}${ketModel}${siapText}`)
+      } else {
+        setOcrStatusMsg(`Server tidak aktif di ${raw}. Mode Auto akan otomatis memakai Gemini/Lokal.`)
+      }
+    } catch (err) {
+      if (masihTerpasang.current) setOcrStatusMsg(err?.message || 'URL endpoint tidak valid.')
+    } finally {
+      if (masihTerpasang.current) setOcrTesting(false)
+    }
+  }
+
   async function prosesStruk(e) {
     const file = e.target.files?.[0]
     e.target.value = '' // izinkan pilih file yang sama dua kali
@@ -186,6 +233,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       return
     }
 
+    if (scanUrlRef.current) {
+      URL.revokeObjectURL(scanUrlRef.current)
+      scanUrlRef.current = null
+    }
     setScanPesan('')
     setScanHasil(null)
     setSumberSaran(null)
@@ -193,12 +244,16 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setSumberMenyimpan(false)
     setScanProses(true)
     setScanProgress(0)
-    setScan({ nama: file.name, url: URL.createObjectURL(file) })
+    const objekUrl = URL.createObjectURL(file)
+    scanUrlRef.current = objekUrl
+    setScan({ nama: file.name, url: objekUrl })
 
     try {
       const hasil = await scanDokumenKeuangan(file, {
         engine: ocrEnginePref,
         geminiApiKey: geminiKeyInput,
+        endpoint: ocrEndpoint,
+        cropMode: ocrCropMode,
         onProgress: (p) => {
           if (masihTerpasang.current) setScanProgress(Math.round(p * 100))
         },
@@ -243,7 +298,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       if (hasil.keterangan) bagian.push(`Keterangan: ${hasil.keterangan}.`)
       if (hasil.sumberBayar?.nama && !(akunList || []).some((a) => (a?.nama ?? "").toLowerCase().includes(String(hasil.sumberBayar.nama).toLowerCase())))
         bagian.push(`Rekening ${hasil.sumberBayar.nama} belum ada — bisa ditambah di bawah.`)
-      if (hasil.bayarTunai) bagian.push('Dibayar tunai, jadi tidak perlu pilih rekening? Tetap pilih rekening yang dipakai Receive.')
+      if (hasil.bayarTunai) bagian.push('Pembayaran tunai terdeteksi — pastikan rekening Kas / Dompet dipilih.')
 
       if (!hasil.total || hasil.total <= 0) {
         if (hasil.fotoBuram) {
@@ -258,7 +313,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       }
     } catch (err) {
       console.warn('[scan-struk] gagal:', err?.message ?? err)
-      if (masihTerpasang.current) setScanPesan('Gagal membaca struk. Coba foto yang lebih terang & tegak, atau isi manual.')
+      if (masihTerpasang.current) setScanPesan(err?.message ? `Gagal membaca struk: ${err.message}` : 'Gagal membaca struk. Coba foto yang lebih terang & tegak, atau isi manual.')
     } finally {
       if (masihTerpasang.current) setScanProses(false)
     }
@@ -266,14 +321,31 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
   function terapkanUlang() {
     if (!scanHasil) return
-    if (scanHasil.total) setJumlah(formatRibuanInput(String(scanHasil.total)))
+    if (scanHasil.total && scanHasil.total > 0) setJumlah(formatRibuanInput(String(scanHasil.total)))
     if (scanHasil.tanggal) setTanggal(scanHasil.tanggal)
     if (scanHasil.jenis) setJenis(scanHasil.jenis)
-    if (scanHasil.merchant) setCatatan((c) => c || scanHasil.merchant)
+    if (scanHasil.kategoriNama) setKategoriNama(scanHasil.kategoriNama)
+    const teksKeterangan = scanHasil.keterangan || scanHasil.merchant
+    if (teksKeterangan) setCatatan(teksKeterangan)
+    if (scanHasil.sumberBayar?.nama) {
+      const cocok = (akunList || []).find((a) =>
+        (a?.nama ?? '').toLowerCase().includes(String(scanHasil.sumberBayar.nama).toLowerCase()),
+      )
+      if (cocok) {
+        setAkunId(cocok.id)
+        setSumberSaran(null)
+      } else {
+        setSumberSaran(scanHasil.sumberBayar)
+        setSumberBaru(scanHasil.sumberBayar.nama)
+      }
+    }
   }
 
   function tutupModal() {
-    if (scan?.url) URL.revokeObjectURL(scan.url)
+    if (scanUrlRef.current) {
+      URL.revokeObjectURL(scanUrlRef.current)
+      scanUrlRef.current = null
+    }
     onClose()
   }
 
@@ -709,15 +781,15 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       <span className="material-symbols-outlined icon-2xs">smart_toy</span>
                       Gemini AI
                     </span>
-                  ) : scanHasil?.engine === 'pp-ocrv4' ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
-                      <span className="material-symbols-outlined icon-2xs">psychology</span>
-                      PP-OCRv4
-                    </span>
-                  ) : scanHasil?.engine === 'unlimited-ocr' ? (
+                  ) : scanHasil?.engine === 'unlimited-ocr' || scanHasil?.engine === 'unlimited-ocr-sglang' ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                       <span className="material-symbols-outlined icon-2xs">smart_toy</span>
                       Unlimited AI
+                    </span>
+                  ) : scanHasil?.engine === 'tesseract-gundam' && scanHasil?.confidence > 0 ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-bold text-sky-800">
+                      <span className="material-symbols-outlined icon-2xs">view_agenda</span>
+                      Gundam {Math.round(scanHasil.confidence)}%
                     </span>
                   ) : scanHasil?.confidence > 0 ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
@@ -730,7 +802,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     onClick={() => setShowOcrConfig((s) => !s)}
                     title="Pengaturan Engine OCR"
                     aria-label="Pengaturan Engine OCR"
-                    className={`neu-btn ml-auto sm:ml-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] transition-transform active:scale-95 ${
+                    className={`neu-btn ml-auto sm:ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] transition-transform active:scale-95 ${
                       showOcrConfig ? 'text-[#36AE7C]' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
@@ -767,20 +839,20 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     <span>Pilihan Engine OCR:</span>
                     <span className="text-[10px] text-slate-500 font-medium">
                       {ocrEnginePref === 'auto'
-                        ? (geminiKeyInput ? 'Auto (Gemini AI Prioritas)' : 'Auto (On-Device Cerdas)')
-                        : ocrEnginePref === 'gemini'
-                          ? 'Google Gemini Vision (Cloud)'
-                          : ocrEnginePref === 'ppocr'
-                            ? 'PP-OCRv4 Mobile (On-Device)'
-                            : 'Tesseract (Lokal Offline)'}
+                        ? (geminiKeyInput ? 'Auto (Server/Gemini/Lokal)' : 'Auto (Server/Lokal Gundam)')
+                        : ocrEnginePref === 'unlimited'
+                          ? 'baidu/Unlimited-OCR (VLM)'
+                          : ocrEnginePref === 'gemini'
+                            ? 'Google Gemini Vision (Cloud)'
+                            : 'Lokal Offline (Gundam + Tesseract)'}
                     </span>
                   </div>
                   <div className="neu-inset grid grid-cols-4 gap-1 p-1 rounded-xl bg-[#E5E5E5]">
                     {[
                       { id: 'auto', label: 'Auto Cerdas' },
+                      { id: 'unlimited', label: 'Unlimited' },
                       { id: 'gemini', label: 'Gemini AI' },
-                      { id: 'ppocr', label: 'PP-OCR' },
-                      { id: 'local', label: 'Tesseract' },
+                      { id: 'local', label: 'Lokal' },
                     ].map((opt) => (
                       <button
                         key={opt.id}
@@ -799,6 +871,59 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       </button>
                     ))}
                   </div>
+
+                  {/* Konfigurasi Endpoint Unlimited-OCR (SGLang :30000 / Bridge :8000) */}
+                  {(ocrEnginePref === 'unlimited' || ocrEnginePref === 'auto') && (
+                    <div className="border-t border-black/5 pt-2 mt-0.5 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-slate-800">Server Unlimited-OCR (SGLang / Bridge):</span>
+                        <div className="inline-flex rounded-lg bg-black/5 p-0.5 text-[9.5px] font-bold">
+                          {[
+                            { id: 'gundam', label: 'Gundam' },
+                            { id: 'base', label: 'Base' },
+                          ].map((cm) => (
+                            <button
+                              key={cm.id}
+                              type="button"
+                              onClick={() => {
+                                setOcrCropMode(cm.id)
+                                simpanOcrConfig({ cropMode: cm.id })
+                              }}
+                              className={`rounded-md px-2 py-0.5 transition-all ${
+                                ocrCropMode === cm.id
+                                  ? 'bg-white text-[#36AE7C] shadow-sm'
+                                  : 'text-slate-500 hover:text-slate-800'
+                              }`}
+                            >
+                              {cm.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="url"
+                          placeholder={DEFAULT_OCR_ENDPOINT}
+                          value={ocrEndpoint}
+                          onChange={(e) => setOcrEndpoint(e.target.value)}
+                          className="neu-inset flex-1 rounded-xl bg-[#E5E5E5] px-3 py-1.5 text-[11px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={simpanDanCekUnlimited}
+                          disabled={ocrTesting}
+                          className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[11px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
+                        >
+                          {ocrTesting ? '...' : 'Cek Koneksi'}
+                        </button>
+                      </div>
+                      {ocrStatusMsg && (
+                        <p className={`text-[9.5px] font-medium ${ocrStatusMsg.startsWith('Terhubung') ? 'text-emerald-700' : 'text-slate-600'}`}>
+                          {ocrStatusMsg}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Kunci API Gemini Section */}
                   <div className="border-t border-black/5 pt-2 mt-0.5">

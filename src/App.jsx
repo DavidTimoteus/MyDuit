@@ -11,7 +11,7 @@ import { migrasiNormalisasi } from './lib/db.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
 
-const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_endpoint', 'myduit:tx_chip', 'myduit:negara']
+const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_endpoint', 'myduit_ocr_crop_mode', 'myduit:tx_chip', 'myduit:negara']
 
 function LayarSetup({ error }) {
   return (
