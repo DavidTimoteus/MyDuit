@@ -6,6 +6,8 @@ import {
   hapusGeminiKey,
   konversiFileKeBase64,
   panggilGeminiVision,
+  ujiKoneksiGemini,
+  DEFAULT_GEMINI_MODEL,
 } from './geminiOcr.js'
 
 let lulus = 0
@@ -57,6 +59,46 @@ try {
   threwNoKey = e.message.includes('Kunci API')
 }
 cek('panggilGeminiVision throw error jika tanpa key', threwNoKey, true)
+cek('DEFAULT_GEMINI_MODEL menggunakan model aktif >= gemini-3.8-flash', DEFAULT_GEMINI_MODEL, 'gemini-3.8-flash')
+
+// 5. Uji auto-cascade & dynamic discovery jika model default retired/404 dengan mock fetch
+const fetchAsli = globalThis.fetch
+try {
+  let percobaan = []
+  globalThis.fetch = async (url, init = {}) => {
+    const sUrl = String(url)
+    if (sUrl.includes('/models?')) {
+      return { ok: false, status: 404, json: async () => ({}) }
+    }
+    if (sUrl.endsWith('/v1beta/models') && (!init.method || init.method === 'GET')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          models: [
+            { name: 'models/gemini-3.9-flash', supportedGenerationMethods: ['generateContent'] },
+          ],
+        }),
+      }
+    }
+    percobaan.push(sUrl)
+    if (sUrl.includes('gemini-3.9-flash:generateContent')) {
+      return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: 'OK' }] } }] }) }
+    }
+    return {
+      ok: false,
+      status: 404,
+      statusText: 'Not Found',
+      json: async () => ({ error: { message: 'This model is no longer available.' } }),
+    }
+  }
+
+  const hasilUji = await ujiKoneksiGemini('AQ.DummyExpressKey123')
+  cek('ujiKoneksiGemini fallback ke dynamic model aktif saat model hardcoded 404', hasilUji.ok, true)
+  cek('ujiKoneksiGemini menemukan model dinamis gemini-3.9-flash', hasilUji.model, 'gemini-3.9-flash')
+} finally {
+  globalThis.fetch = fetchAsli
+}
 
 console.log(`\n=== UJI GEMINI OCR: ${lulus} lulus, ${gagal} gagal ===`)
 if (gagal) {

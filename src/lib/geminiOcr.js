@@ -1,17 +1,27 @@
 /**
- * geminiOcr.js — Adapter Vision AI Google Gemini (Gemini 2.0 Flash / 1.5 Flash).
+ * geminiOcr.js — Adapter Vision AI Google Gemini (Gemini 3.8 Flash & Auto-Discovery).
  *
  * Menggunakan direct REST API serverless resmi dari Google AI Studio:
  *  - 100% Client-side: Memanggil generativelanguage.googleapis.com langsung dari browser.
- *  - Kunci API (BYOK) disimpan aman di LocalStorage pengguna.
- *  - Mengembalikan JSON terstruktur native tanpa regex parsers.
+ *  - Kunci API (BYOK, format AIza... maupun AQ....) disimpan di LocalStorage pengguna.
+ *  - Auto-cascade ke model Flash terbaru + dynamic model discovery (/v1beta/models)
+ *    apabila model default pensiun/deprecated oleh Google.
+ *  - Mengembalikan JSON terstruktur native tanpa regex parser rentan.
  */
 
 import { parseAngkaEksternal, parseTanggalIsoAman } from './format.js'
 
 export const STORAGE_KEY_GEMINI_KEY = 'myduit_gemini_api_key'
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash'
-export const FALLBACK_GEMINI_MODEL = 'gemini-1.5-flash'
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.8-flash'
+export const FALLBACK_GEMINI_MODEL = 'gemini-3.6-flash'
+export const GEMINI_FLASH_CASCADE = [
+  DEFAULT_GEMINI_MODEL,
+  FALLBACK_GEMINI_MODEL,
+  'gemini-3.5-flash',
+  'gemini-3.1-flash-lite',
+]
+
+let _modelAktifCache = ''
 
 /**
  * Baca kunci API Gemini dari LocalStorage.
@@ -85,22 +95,75 @@ export async function konversiFileKeBase64(file) {
   })
 }
 
+function apakahErrorModelTidakTersedia(status, msg) {
+  if (status === 404 || status === 410) return true
+  const s = String(msg || '').toLowerCase()
+  return (
+    s.includes('no longer available') ||
+    s.includes('not found') ||
+    s.includes('not supported') ||
+    s.includes('deprecated') ||
+    s.includes('retired')
+  )
+}
+
+function apakahErrorKunciDitolak(status, msg) {
+  if (status === 401) return true
+  const s = String(msg || '').toLowerCase()
+  return (
+    s.includes('api key not valid') ||
+    s.includes('api_key_invalid') ||
+    s.includes('invalid api key') ||
+    s.includes('permission denied') ||
+    s.includes('unauthenticated')
+  )
+}
+
+function daftarKandidatAwal() {
+  return [...new Set([_modelAktifCache, ...GEMINI_FLASH_CASCADE].filter(Boolean))]
+}
+
 /**
- * Validasi dan uji koneksi kunci API Gemini.
+ * Penemuan dinamis model Flash aktif langsung dari endpoint `/v1beta/models`.
+ * Berguna bila Google menghentikan model lama agar kunci baru tetap langsung bekerja.
  * @param {string} apiKey
- * @returns {Promise<{ ok: boolean, message: string }>}
+ * @returns {Promise<string[]>}
  */
-export async function ujiKoneksiGemini(apiKey) {
-  const key = (apiKey || bacaGeminiKey()).trim()
-  if (!key) {
-    return { ok: false, message: 'Kunci API kosong. Silakan masukkan kunci API Anda.' }
-  }
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent`
+export async function temukanModelFlashAktif(apiKey) {
+  const key = String(apiKey || '').trim()
+  if (!key) return []
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 5000)
   try {
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 7000)
+    const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models', {
+      method: 'GET',
+      signal: controller.signal,
+      headers: { Accept: 'application/json', 'x-goog-api-key': key },
+    })
+    clearTimeout(timer)
+    if (!res.ok) return []
+    const json = await res.json().catch(() => null)
+    const list = Array.isArray(json?.models) ? json.models : []
+    return list
+      .filter(
+        (m) =>
+          Array.isArray(m?.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent') &&
+          /gemini-\d.*flash/i.test(String(m?.name || '')),
+      )
+      .map((m) => String(m.name).replace(/^models\//, ''))
+      .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }))
+  } catch {
+    clearTimeout(timer)
+    return []
+  }
+}
 
+async function pingModelGemini(model, key, payload) {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 7000)
+  try {
     const res = await fetch(endpoint, {
       method: 'POST',
       signal: controller.signal,
@@ -108,22 +171,71 @@ export async function ujiKoneksiGemini(apiKey) {
         'Content-Type': 'application/json',
         'x-goog-api-key': key,
       },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: 'Balas dengan kata "OK" saja jika kunci aktif.' }] }],
-      }),
+      body: JSON.stringify(payload),
     })
     clearTimeout(timer)
-
-    if (res.ok) {
-      return { ok: true, message: 'Kunci API valid! Gemini Vision siap digunakan.' }
-    }
-
+    if (res.ok) return { ok: true }
     const errData = await res.json().catch(() => ({}))
     const msg = errData?.error?.message || `HTTP ${res.status}: ${res.statusText}`
-    return { ok: false, message: `Gagal memverifikasi kunci: ${msg}` }
+    return { ok: false, status: res.status, message: msg }
   } catch (err) {
-    return { ok: false, message: `Koneksi gagal: ${err.message}` }
+    clearTimeout(timer)
+    return { ok: false, status: 0, message: err.message }
   }
+}
+
+/**
+ * Validasi dan uji koneksi kunci API Gemini dengan auto-cascade & discovery model aktif.
+ * @param {string} apiKey
+ * @returns {Promise<{ ok: boolean, model?: string, message: string }>}
+ */
+export async function ujiKoneksiGemini(apiKey) {
+  const key = (apiKey || bacaGeminiKey()).trim()
+  if (!key) {
+    return { ok: false, message: 'Kunci API kosong. Silakan masukkan kunci API Anda.' }
+  }
+
+  const testPayload = {
+    contents: [{ parts: [{ text: 'Balas dengan kata "OK" saja jika kunci aktif.' }] }],
+  }
+
+  const dicoba = new Set()
+  let lastErr = null
+  let perluDiscovery = false
+
+  for (const model of daftarKandidatAwal()) {
+    dicoba.add(model)
+    const r = await pingModelGemini(model, key, testPayload)
+    if (r.ok) {
+      _modelAktifCache = model
+      return { ok: true, model, message: `Kunci API valid! Gemini Vision (${model}) siap digunakan.` }
+    }
+    lastErr = r
+    if (apakahErrorKunciDitolak(r.status, r.message)) {
+      return { ok: false, message: `Gagal memverifikasi kunci: ${r.message}` }
+    }
+    if (apakahErrorModelTidakTersedia(r.status, r.message)) {
+      perluDiscovery = true
+    }
+  }
+
+  // Bila model hardcoded retired/404, cari model Flash aktif dari API Google
+  if (perluDiscovery) {
+    const dinamis = await temukanModelFlashAktif(key)
+    for (const model of dinamis) {
+      if (dicoba.has(model)) continue
+      dicoba.add(model)
+      const r = await pingModelGemini(model, key, testPayload)
+      if (r.ok) {
+        _modelAktifCache = model
+        return { ok: true, model, message: `Kunci API valid! Gemini Vision (${model}) siap digunakan.` }
+      }
+      lastErr = r
+      if (apakahErrorKunciDitolak(r.status, r.message)) break
+    }
+  }
+
+  return { ok: false, message: `Gagal memverifikasi kunci: ${lastErr?.message || 'Koneksi terputus'}` }
 }
 
 /**
@@ -190,11 +302,12 @@ Aturan Ekstraksi:
     },
   }
 
-  // Model cascade: Coba Gemini 2.0 Flash dulu, fallback ke Gemini 1.5 Flash
-  const models = [DEFAULT_GEMINI_MODEL, FALLBACK_GEMINI_MODEL]
+  // Model cascade: Coba Gemini 3.8 Flash dulu, cascade ke Flash lain & discovery dinamis bila model retired
+  const dicoba = new Set()
   let lastError = null
+  let butuhDiscovery = false
 
-  for (const model of models) {
+  async function panggilSatuModel(model) {
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), 12000)
@@ -215,7 +328,10 @@ Aturan Ekstraksi:
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}))
         const errMsg = errJson?.error?.message || `HTTP ${res.status}`
-        throw new Error(`${model}: ${errMsg}`)
+        if (apakahErrorModelTidakTersedia(res.status, errMsg)) butuhDiscovery = true
+        const err = new Error(`${model}: ${errMsg}`)
+        err.authRejected = apakahErrorKunciDitolak(res.status, errMsg)
+        throw err
       }
 
       options.onProgress?.(0.9)
@@ -223,13 +339,39 @@ Aturan Ekstraksi:
       const rawText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text
       if (!rawText) throw new Error('Respons Gemini kosong.')
 
+      _modelAktifCache = model
       const parsed = JSON.parse(rawText)
       options.onProgress?.(1.0)
       return normalisasiHasilGemini(parsed)
     } catch (err) {
       clearTimeout(timer)
+      throw err
+    }
+  }
+
+  for (const model of daftarKandidatAwal()) {
+    dicoba.add(model)
+    try {
+      return await panggilSatuModel(model)
+    } catch (err) {
       lastError = err
       console.warn(`[gemini-ocr] Gagal pada ${model}:`, err.message)
+      if (err.authRejected) break
+    }
+  }
+
+  if (butuhDiscovery && !lastError?.authRejected) {
+    const dinamis = await temukanModelFlashAktif(key)
+    for (const model of dinamis) {
+      if (dicoba.has(model)) continue
+      dicoba.add(model)
+      try {
+        return await panggilSatuModel(model)
+      } catch (err) {
+        lastError = err
+        console.warn(`[gemini-ocr] Gagal pada model dinamis ${model}:`, err.message)
+        if (err.authRejected) break
+      }
     }
   }
 
