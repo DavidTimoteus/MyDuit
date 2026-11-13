@@ -6,7 +6,17 @@
 //  - 'subtotal' tidak boleh dianggap 'total'
 //  - ambil angka SETELAH kata kunci ("Tunai 50.000 Kembali 5.000")
 // Jalankan: node src/lib/ocrStruk.test.mjs
-import { cariTotal, cariTanggal, parseAngkaID, cariJenis, cariMerchant, rekonstruksiTataLetakBaris, susunMarkdownStruk } from './ocrStruk.js'
+import {
+  cariTotal,
+  cariTanggal,
+  parseAngkaID,
+  cariJenis,
+  cariMerchant,
+  rekonstruksiTataLetakBaris,
+  susunMarkdownStruk,
+  hitungIrisanGundam,
+  dedupBarisNgram,
+} from './ocrStruk.js'
 
 let lulus = 0
 let gagal = 0
@@ -95,6 +105,41 @@ const mdHasil = susunMarkdownStruk({
 cek('markdown struk memuat header ringkasan', mdHasil.includes('### 🧾 Ringkasan Struk Transaksi'), true)
 cek('markdown struk memuat tabel rincian item', mdHasil.includes('| No | Item / Deskripsi | Qty | Harga Satuan | Subtotal |'), true)
 cek('markdown struk memuat item roti gandum', mdHasil.includes('Roti Gandum'), true)
+
+// ---------- Gundam Dynamic Tiling (baidu/Unlimited-OCR) ----------
+const gundamPendek = hitungIrisanGundam(800, 900)
+cek('struk pendek memakai 1 pass base', gundamPendek.length, 1)
+cek('label struk pendek adalah base', gundamPendek[0].label, 'base')
+
+const gundamTinggi = hitungIrisanGundam(800, 2200)
+cek('struk tinggi (2.75x) memakai 2 tile Gundam', gundamTinggi.length, 2)
+cek('tile terakhir menutup penuh hingga tinggi citra', gundamTinggi[1].sy + gundamTinggi[1].sh, 2200)
+cek('tile 1 dan tile 2 memiliki overlap', gundamTinggi[0].sy + gundamTinggi[0].sh > gundamTinggi[1].sy, true)
+
+const gundamEkstrem = hitungIrisanGundam(800, 3400)
+cek('struk sangat tinggi (4.25x) memakai 3 tile Gundam', gundamEkstrem.length, 3)
+
+// ---------- dedupBarisNgram (NGramPerReqLogitsProcessor port) ----------
+const hasilDedupOverlap = dedupBarisNgram([
+  'INDOMARET SUDIRMAN',
+  'Roti Tawar Sari 18.000',
+  'Kopi Kenangan 22.000',
+  'Roti Tawar Sari 18.000',
+  'Kopi Kenangan 22.000',
+  'TOTAL 40.000',
+].join('\n'))
+cek('dedupBarisNgram menghapus blok overlap batas tile', hasilDedupOverlap.split('\n').length, 4)
+
+const hasilDedupSingleItem = dedupBarisNgram([
+  'WARUNG NUSANTARA',
+  'Es Teh Manis 5.000',
+  'Es Teh Manis 5.000',
+  'TOTAL 10.000',
+].join('\n'))
+cek('dedupBarisNgram menjaga item tunggal berulang sah', hasilDedupSingleItem.split('\n').filter((l) => l.includes('Es Teh')).length, 2)
+
+const hasilDedupLoopToken = dedupBarisNgram('TOTAL 50.000 TOTAL 50.000 TOTAL 50.000 TOTAL 50.000')
+cek('dedupBarisNgram memutus loop token internal', hasilDedupLoopToken, 'TOTAL 50.000')
 
 // ---------- laporan ----------
 console.log(`\n=== UJI PARSER OCR: ${lulus} lulus, ${gagal} gagal ===`)

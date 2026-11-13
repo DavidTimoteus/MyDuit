@@ -54,9 +54,12 @@ export async function kompresCitraAman(file, maxDim = 1600, quality = 0.85) {
     const img = await muatGambar(file)
     const w0 = img.naturalWidth || img.width
     const h0 = img.naturalHeight || img.height
-    if (w0 <= maxDim && h0 <= maxDim) return file
+    const isTall = h0 / Math.max(1, w0) >= 2.2
+    const maxW = isTall ? 1400 : maxDim
+    const maxH = isTall ? 3800 : maxDim
+    if (w0 <= maxW && h0 <= maxH) return file
 
-    const skala = Math.min(maxDim / w0, maxDim / h0)
+    const skala = Math.min(maxW / w0, maxH / h0, 1)
     const w = Math.round(w0 * skala)
     const h = Math.round(h0 * skala)
 
@@ -789,7 +792,27 @@ export function cariMerchant(teks) {
 }
 
 /**
- * Fungsi utama: terima File gambar → kembalikan hasil terstruktur.
+ * Potong satu irisan (strip) vertikal dari citra sumber ke canvas beresolusi aman.
+ */
+function potongStripCanvas(img, sy, sh, maxPix = 1_200_000) {
+  const w0 = img.naturalWidth || img.width || 1200
+  let s = Math.max(1, 1400 / w0)
+  if (w0 * s * sh * s > maxPix) {
+    s *= Math.sqrt(maxPix / (w0 * s * sh * s))
+  }
+  const cw = Math.max(1, Math.round(w0 * s))
+  const ch = Math.max(1, Math.round(sh * s))
+  const cv = document.createElement('canvas')
+  cv.width = cw
+  cv.height = ch
+  cv.getContext('2d').drawImage(img, 0, sy, w0, sh, 0, 0, cw, ch)
+  return cv
+}
+
+/**
+ * Fungsi utama: terima File gambar -> kembalikan hasil terstruktur.
+ * Mengadopsi strategi Gundam Dynamic Tiling untuk struk tinggi agar
+ * resolusi teks per bagian tetap tajam di bawah batas RAM 1.6 MP mobile.
  * @returns {Promise<{teks, total, tanggal, jenis, merchant, confidence}>}
  */
 export async function bacaStruk(file, onProgress) {
@@ -797,21 +820,58 @@ export async function bacaStruk(file, onProgress) {
   // guna menghemat alokasi memori RAM HP Android
   const fileAman = await kompresCitraAman(file, 1600, 0.85)
   const img = await muatGambar(fileAman)
-  // Multi-perspektif preprocessing mutakhir:
-  //  - mutakhir (Auto-deskew + CLAHE shadow removal + Unsharp mask)
-  //  - crop+Sauvola: foto HP berlatar ramai/gelap/miring
-  //  - Sauvola adaptif: pencahayaan tidak merata
-  //  - Otsu binarization: teks struk termal pudar/kontras rendah
-  //  - kontras global: struk digital/scan bersih
-  const varian = [
-    praProsesMutakhir(praProsesAdaptif(img, 1600)),
-    praProsesCrop(img, 1600),
-    praProsesOtsu(img, 1600),
-    praProses(img, 1500),
-  ]
-  const hasil = await jalankanOcr(varian, onProgress)
-  const teksAsli = hasil.teks || ''
-  const teks = rekonstruksiTataLetakBaris(teksAsli)
+  const w0 = img.naturalWidth || img.width || 1200
+  const h0 = img.naturalHeight || img.height || 1200
+  const irisan = hitungIrisanGundam(w0, h0)
+
+  let teksAsli = ''
+  let confRata = 0
+  let psmAkhir = 6
+  const pakaiGundam = irisan.length > 1
+
+  if (pakaiGundam) {
+    // Gundam Mode lokal: baca per irisan vertikal tumpang tindih secara sekuensial
+    const potonganTeks = []
+    let sumConf = 0
+    for (let i = 0; i < irisan.length; i++) {
+      const tile = irisan[i]
+      const stripCv = potongStripCanvas(img, tile.sy, tile.sh)
+      const varianTile = [
+        praProsesMutakhir(praProsesAdaptif(stripCv, 1400)),
+        praProsesOtsu(stripCv, 1400),
+      ]
+      const baseProg = i / irisan.length
+      const spanProg = 1 / irisan.length
+      const hasilTile = await jalankanOcr(varianTile, (p) => {
+        onProgress?.(Math.min(0.99, baseProg + p * spanProg))
+      })
+      if (hasilTile.teks) potonganTeks.push(hasilTile.teks)
+      sumConf += hasilTile.conf || 0
+      psmAkhir = hasilTile.psm ?? psmAkhir
+    }
+    teksAsli = potonganTeks.join('\n')
+    confRata = Math.round(sumConf / irisan.length)
+  } else {
+    // Multi-perspektif preprocessing mutakhir:
+    //  - mutakhir (Auto-deskew + CLAHE shadow removal + Unsharp mask)
+    //  - crop+Sauvola: foto HP berlatar ramai/gelap/miring
+    //  - Sauvola adaptif: pencahayaan tidak merata
+    //  - Otsu binarization: teks struk termal pudar/kontras rendah
+    //  - kontras global: struk digital/scan bersih
+    const varian = [
+      praProsesMutakhir(praProsesAdaptif(img, 1600)),
+      praProsesCrop(img, 1600),
+      praProsesOtsu(img, 1600),
+      praProses(img, 1500),
+    ]
+    const hasil = await jalankanOcr(varian, onProgress)
+    teksAsli = hasil.teks || ''
+    confRata = hasil.conf
+    psmAkhir = hasil.psm
+  }
+
+  const teksTanpaDuplikat = dedupBarisNgram(teksAsli)
+  const teks = rekonstruksiTataLetakBaris(teksTanpaDuplikat)
 
   const { total, sumber } = cariTotal(teks)
   const merchant = cariMerchant(teks)
@@ -858,10 +918,129 @@ export async function bacaStruk(file, onProgress) {
     keterangan: peta.keterangan,
     sumberBayar: pembayar, // { nama, jenis:'dompet'|'bank' } atau null
     bayarTunai: tunai,
-    confidence: hasil.conf,
-    psm: hasil.psm,
+    confidence: confRata,
+    psm: psmAkhir,
+    modeProses: pakaiGundam ? 'gundam' : 'base',
+    tileCount: irisan.length,
     fotoBuram,
   }
+}
+
+/**
+ * Hitung koordinat irisan vertikal Gundam Dynamic Tiling (terinspirasi baidu/Unlimited-OCR).
+ * Memecah struk tinggi (h/w >= 2.2 dan h >= 1200) menjadi 2-3 strip tumpang tindih 12%
+ * agar teks kecil tidak ikut hancur saat dikompresi oleh batas piksel perangkat.
+ *
+ * @param {number} width
+ * @param {number} height
+ * @returns {Array<{ index: number, sy: number, sh: number, label: string }>}
+ */
+export function hitungIrisanGundam(width, height) {
+  const w = Number(width) || 0
+  const h = Number(height) || 0
+  if (w <= 0 || h <= 0) return []
+
+  const aspect = h / w
+  if (aspect < 2.2 || h < 1200) {
+    return [{ index: 0, sy: 0, sh: h, label: 'base' }]
+  }
+
+  const stripCount = aspect >= 3.4 ? 3 : 2
+  const dasar = h / stripCount
+  const overlap = Math.round(dasar * 0.12)
+  const tiles = []
+
+  for (let i = 0; i < stripCount; i++) {
+    const rawStart = Math.floor(i * dasar) - (i > 0 ? overlap : 0)
+    const sy = Math.max(0, rawStart)
+    const rawEnd = i === stripCount - 1 ? h : Math.ceil((i + 1) * dasar) + overlap
+    const ey = Math.min(h, rawEnd)
+    tiles.push({
+      index: i,
+      sy,
+      sh: Math.max(1, ey - sy),
+      label: `gundam-tile-${i + 1}`,
+    })
+  }
+  return tiles
+}
+
+/**
+ * Penjaga anti-pengulangan n-gram baris (terinspirasi NGramPerReqLogitsProcessor
+ * dari baidu/Unlimited-OCR). Menghapus duplikasi blok batas antar irisan (seam overlap)
+ * atau loop derau kertas termal tanpa membuang item pembelian kembar tunggal.
+ *
+ * @param {string} teks
+ * @param {number} [ngramSize=2]
+ * @returns {string}
+ */
+export function dedupBarisNgram(teks, ngramSize = 2) {
+  if (!teks) return ''
+  const mentah = String(teks)
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+
+  if (mentah.length === 0) return ''
+
+  const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').replace(/[^a-z0-9 ]/g, '').trim()
+
+  // Tahap 1: hilangkan pengulangan token internal pada satu baris (loop n-gram >= 2 token berulang 3x+)
+  const bersihToken = mentah.map((line) => {
+    const tokens = line.split(/\s+/)
+    if (tokens.length < 6) return line
+    for (let n = 2; n <= 5; n++) {
+      if (tokens.length < n * 3) continue
+      const unit = tokens.slice(0, n).join(' ').toLowerCase()
+      let sameCount = 1
+      for (let pos = n; pos + n <= tokens.length; pos += n) {
+        if (tokens.slice(pos, pos + n).join(' ').toLowerCase() === unit) sameCount++
+        else break
+      }
+      if (sameCount >= 3) {
+        return tokens.slice(0, n).join(' ')
+      }
+    }
+    return line
+  })
+
+  if (bersihToken.length <= 1) return bersihToken.join('\n')
+
+  // Tahap 2: hapus blok multi-baris n-gram yang berulang di jendela batas potongan (14 baris terakhir)
+  const n = Math.max(1, ngramSize)
+  const seenBlocks = []
+  const out = []
+
+  for (let i = 0; i < bersihToken.length; i++) {
+    const line = bersihToken[i]
+    const nl = norm(line)
+
+    // Hapus pengulangan baris identik beruntun ke-3 dst (loop karakter termal rusak)
+    if (
+      nl.length >= 4 &&
+      out.length >= 2 &&
+      norm(out[out.length - 1]) === nl &&
+      norm(out[out.length - 2]) === nl
+    ) {
+      continue
+    }
+
+    // Cek apakah potongan N baris mulai dari posisi i sudah muncul tepat di jendela terakhir (seam overlap)
+    if (n >= 2 && i + n <= bersihToken.length) {
+      const blok = bersihToken.slice(i, i + n).map(norm)
+      const kunciBlok = blok.join('\n')
+      const bermakna = blok.every((b) => b.length >= 4)
+      if (bermakna && seenBlocks.slice(-14).includes(kunciBlok)) {
+        i += n - 1
+        continue
+      }
+      if (bermakna) seenBlocks.push(kunciBlok)
+    }
+
+    out.push(line)
+  }
+
+  return out.join('\n')
 }
 
 /**
