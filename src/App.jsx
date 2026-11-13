@@ -1,17 +1,20 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { signOut } from 'firebase/auth'
 import { clearIndexedDbPersistence, terminate } from 'firebase/firestore'
+import { AppLockScreen } from './components/AppLockGate.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import Shell from './components/Shell.jsx'
 import Splash from './components/Splash.jsx'
 import ToastHost from './components/ToastHost.jsx'
 import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
+import { IDLE_LOCK_MS, LS_APP_LOCK, isAppLockAktif } from './lib/appLock.js'
 import { getFirebase, isFirebaseConfigured } from './lib/firebase.js'
 import { inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
 
-const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_puter_provider', 'myduit_ocr_endpoint', 'myduit_ocr_crop_mode', 'myduit:tx_chip', 'myduit:negara', 'myduit:kurs_basis']
+const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_puter_provider', 'myduit_ocr_endpoint', 'myduit_ocr_crop_mode', 'myduit:tx_chip', 'myduit:negara', 'myduit:kurs_basis', LS_APP_LOCK]
 
 function LayarSetup({ error }) {
   return (
@@ -33,6 +36,23 @@ export default function App() {
   const { status, user, error } = useAuth()
   const [splashReady, setSplashReady] = useState(false)
   const [uidBersih, setUidBersih] = useState('')
+  const [terkunciPin, setTerkunciPin] = useState(() => isAppLockAktif())
+  const hiddenAtRef = useRef(0)
+
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now()
+      } else if (document.visibilityState === 'visible') {
+        if (hiddenAtRef.current && Date.now() - hiddenAtRef.current >= IDLE_LOCK_MS && isAppLockAktif()) {
+          setTerkunciPin(true)
+        }
+        hiddenAtRef.current = 0
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
 
   // Begitu auth selesai ditentukan (user login / unauth / error),
   // splash langsung ditandai siap agar Shell/AuthScreen dapat dimount.
@@ -124,12 +144,22 @@ export default function App() {
         ) : !user ? (
           <AuthScreen />
         ) : uidBersih === user.uid ? (
-          // Satu langganan akun+kategori untuk seluruh modul (lihat
-          // useAkunKategori.js). Dibungkus di sini, bukan di dalam Shell, supaya
-          // tetap aktif saat tab berganti.
-          <AkunKategoriProvider uid={user.uid}>
-            <Shell user={user} />
-          </AkunKategoriProvider>
+          terkunciPin && isAppLockAktif() ? (
+            <AppLockScreen
+              onUnlocked={() => setTerkunciPin(false)}
+              onForgotSignOut={() => {
+                setTerkunciPin(false)
+                signOut(getFirebase().auth).catch(() => {})
+              }}
+            />
+          ) : (
+            // Satu langganan akun+kategori untuk seluruh modul (lihat
+            // useAkunKategori.js). Dibungkus di sini, bukan di dalam Shell, supaya
+            // tetap aktif saat tab berganti.
+            <AkunKategoriProvider uid={user.uid}>
+              <Shell user={user} />
+            </AkunKategoriProvider>
+          )
         ) : null
       )}
     </>

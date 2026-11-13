@@ -76,6 +76,22 @@ export const KAMUS = {
     pdf_ai_judul: 'Sertakan Catatan & Analisis',
     pdf_ai_desc: 'Ringkasan rasio tabungan, pengeluaran terbesar, dan utang di akhir laporan.',
     cetak_pdf: 'Unduh Laporan PDF',
+
+    // App Lock (PIN Keamanan)
+    pin_label: 'Keamanan · Kunci PIN',
+    pin_status_aktif: 'Aktif',
+    pin_status_nonaktif: 'Nonaktif',
+    pin_atur: 'Pasang PIN',
+    pin_matikan: 'Matikan',
+    pin_judul_setup: 'Buat PIN 6 Digit',
+    pin_judul_konfirm: 'Ulangi PIN 6 Digit',
+    pin_judul_matikan: 'Masukkan PIN Saat Ini',
+    pin_judul_buka: 'MyDuit Terkunci',
+    pin_desc_buka: 'Masukkan 6 digit PIN keamanan perangkat untuk melanjutkan.',
+    pin_tidak_cocok: 'PIN konfirmasi tidak cocok. Coba lagi.',
+    pin_salah: 'PIN salah. Sisa {sisa} percobaan.',
+    pin_cooldown: 'Terlalu banyak percobaan. Tunggu {detik} detik.',
+    pin_lupa_keluar: 'Lupa PIN? Keluar Akun',
   },
   en: {
     tagline: 'Track · Monitor · Control',
@@ -144,6 +160,22 @@ export const KAMUS = {
     pdf_ai_judul: 'Include Notes & Insights',
     pdf_ai_desc: 'Summary of savings ratio, top expenses, and debts at the end of the report.',
     cetak_pdf: 'Download PDF Report',
+
+    // App Lock (Security PIN)
+    pin_label: 'Security · App PIN',
+    pin_status_aktif: 'Enabled',
+    pin_status_nonaktif: 'Off',
+    pin_atur: 'Set PIN',
+    pin_matikan: 'Turn Off',
+    pin_judul_setup: 'Create 6-Digit PIN',
+    pin_judul_konfirm: 'Confirm 6-Digit PIN',
+    pin_judul_matikan: 'Enter Current PIN',
+    pin_judul_buka: 'MyDuit Locked',
+    pin_desc_buka: 'Enter your 6-digit device security PIN to continue.',
+    pin_tidak_cocok: 'Confirmation PIN does not match. Try again.',
+    pin_salah: 'Incorrect PIN. {sisa} attempts left.',
+    pin_cooldown: 'Too many attempts. Wait {detik}s.',
+    pin_lupa_keluar: 'Forgot PIN? Sign Out',
   },
 }
 

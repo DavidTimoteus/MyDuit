@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app'
+import { ReCaptchaV3Provider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, getAuth } from 'firebase/auth'
 import {
   initializeFirestore,
@@ -40,6 +41,19 @@ export function getFirebase() {
       )
     }
     app = initializeApp(firebaseConfig)
+    // Optional Firebase App Check (reCAPTCHA v3) — aktif bila site key dikonfigurasi
+    // di web/PWA; dilewati di Electron desktop atau saat offline agar tidak memblokir.
+    const appCheckKey = import.meta.env?.VITE_FIREBASE_APPCHECK_SITE_KEY
+    if (appCheckKey && typeof window !== 'undefined' && !window.myduitDesktop) {
+      try {
+        initializeAppCheck(app, {
+          provider: new ReCaptchaV3Provider(appCheckKey),
+          isTokenAutoRefreshEnabled: true,
+        })
+      } catch {
+        // Abaikan bila offline/lingkungan non-web
+      }
+    }
     auth = getAuth(app)
     db = initializeFirestore(
       app,

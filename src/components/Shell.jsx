@@ -25,6 +25,8 @@ import {
   statusKurs,
 } from "../lib/kurs.js";
 import { BAHASAS, useBahasa } from "../lib/i18n.js";
+import { hapusAppLockPaksa, isAppLockAktif } from "../lib/appLock.js";
+import { AppLockSetupModal } from "./AppLockGate.jsx";
 
 // Lazy-load per modul. Shell merender 4 tab + 4 aside panel; sebelumnya semuanya
 // masuk bundle utama, jadi chart.js (via StatistikView) ikut terunduh walau user
@@ -366,11 +368,14 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
   const [infoKurs, setInfoKurs] = useState(() => statusKurs());
   const [statusBasis, setStatusBasis] = useState(() => bacaStatusBasis());
   const [memuat, setMemuat] = useState(false);
+  const [pinAktif, setPinAktif] = useState(() => isAppLockAktif());
+  const [pinModal, setPinModal] = useState({ open: false, mode: "enable" });
 
   useEffect(() => {
     if (!open) return;
     setInfoKurs(statusKurs());
     setStatusBasis(bacaStatusBasis());
+    setPinAktif(isAppLockAktif());
     const onKurs = () => setInfoKurs(statusKurs());
     const onBasis = () => setStatusBasis(bacaStatusBasis());
     window.addEventListener(EVENT_KURS, onKurs);
@@ -471,6 +476,27 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
           </div>
         </div>
 
+        {/* Keamanan Kunci PIN Lokal */}
+        <div className="shrink-0 border-b border-slate-100/80 px-5 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="material-symbols-outlined icon-sm text-[#187498]">lock</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 truncate">
+              {tr("pin_label")}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPinModal({ open: true, mode: pinAktif ? "disable" : "enable" })}
+            className={`neu-chip flex h-7 items-center gap-1 rounded-full px-3 text-[11px] font-bold transition-all ${
+              pinAktif
+                ? "bg-emerald-100 text-emerald-800 hover:bg-red-50 hover:text-red-700"
+                : "text-slate-700 hover:text-slate-900"
+            }`}
+          >
+            <span>{pinAktif ? `${tr("pin_status_aktif")} · ${tr("pin_matikan")}` : tr("pin_atur")}</span>
+          </button>
+        </div>
+
         {/* Penjelasan Basis Database vs Lensa Tampilan */}
         <div className="shrink-0 border-b border-slate-100/80 bg-blue-50/70 px-5 py-2 text-[11px] font-semibold leading-snug text-blue-800">
           {!statusBasis.terkunci
@@ -550,6 +576,12 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
             {tr("deteksi_otomatis")}
           </button>
         </div>
+        <AppLockSetupModal
+          open={pinModal.open}
+          mode={pinModal.mode}
+          onClose={() => setPinModal({ open: false, mode: "enable" })}
+          onStatusChange={(next) => setPinAktif(next)}
+        />
       </div>
     </div>,
   );
@@ -636,6 +668,7 @@ export default function Shell({ user }) {
     const uid = auth.currentUser?.uid;
     await signOut(auth);
     resetBasisMataUang();
+    hapusAppLockPaksa();
 
     // Bersihkan penanda migrasi milik user yang keluar saja.
     //

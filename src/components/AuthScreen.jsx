@@ -1,4 +1,4 @@
-import { signInWithPopup } from 'firebase/auth'
+import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth'
 import { useState } from 'react'
 import { getFirebase, googleProvider } from '../lib/firebase.js'
 
@@ -39,7 +39,15 @@ export default function AuthScreen() {
     setLoading(true)
     try {
       const { auth } = getFirebase()
-      await signInWithPopup(auth, googleProvider)
+      const desktop = typeof window !== 'undefined' ? window.myduitDesktop : null
+      if (desktop?.hasLoopbackClient && typeof desktop.loginGoogleLoopback === 'function') {
+        const res = await desktop.loginGoogleLoopback()
+        if (!res?.idToken) throw new Error(res?.error || 'Login Google melalui browser batal.')
+        const cred = GoogleAuthProvider.credential(res.idToken)
+        await signInWithCredential(auth, cred)
+      } else {
+        await signInWithPopup(auth, googleProvider)
+      }
       // onAuthStateChanged di App akan mengambil alih.
     } catch (e) {
       setError(PESAN_ERROR[e?.code] ?? e?.message ?? 'Gagal masuk. Coba lagi.')
