@@ -1,7 +1,7 @@
 {
   "hosting": {
     "public": "dist",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": ["firebase.json", ".git/**", ".env*", "**/node_modules/**"],
     "rewrites": [
       { "source": "/assets/**", "destination": "/404.html" },
       { "source": "**", "destination": "/index.html" }
@@ -45,6 +45,14 @@
       {
         "source": "/manifest.webmanifest",
         "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Access-Control-Allow-Origin", "value": "*" },
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
       }
     ]
   },

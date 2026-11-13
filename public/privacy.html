@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — MyDuit</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f5;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #1b4332;
+      --accent-soft: #ecfdf5;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 24px 16px 56px;
+    }
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+    .meta {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    h2 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+      color: var(--accent);
+    }
+    p, li {
+      color: #334155;
+      font-size: 15px;
+    }
+    ul {
+      padding-left: 20px;
+      margin: 8px 0 14px;
+    }
+    .box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 14px 0;
+    }
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+    }
+    a { color: var(--accent); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="badge">MyDuit · Kebijakan Privasi &amp; Privacy Policy</span>
+      <h1>Privacy Policy — MyDuit</h1>
+      <p class="meta">Effective Date: November 13, 2026 · App URL: https://myduit001.web.app</p>
+    </header>
+
+    <p>
+      <strong>MyDuit</strong> is an offline-first personal finance application designed to help users record
+      income, expenses, account balances, monthly budgets, debts, and PDF financial reports. We collect only
+      the minimum data strictly required to authenticate your account and synchronize your financial records
+      across your devices.
+    </p>
+
+    <h2>1. Information We Collect</h2>
+    <ul>
+      <li>
+        <strong>Google Account Authentication (Firebase Authentication):</strong> When you sign in with Google,
+        we receive your basic profile identifier (<code>uid</code>), display name, email address, and profile photo
+        URL strictly to identify and isolate your private ledger.
+      </li>
+      <li>
+        <strong>Financial Records (Cloud Firestore):</strong> Transactions, accounts, custom categories, budgets,
+        debt records, base currency preference, and historical FX snapshots that you choose to enter are stored
+        under your private user path (<code>users/{uid}/...</code>) protected by Firebase Security Rules.
+      </li>
+      <li>
+        <strong>Local Device Preferences:</strong> UI language, selected display currency lens, and filter presets
+        are saved locally in your browser/app storage (<code>localStorage</code> and IndexedDB for offline sync).
+      </li>
+      <li>
+        <strong>Camera / Receipt Images (Optional):</strong> Only used when you explicitly open the receipt scanner.
+        By default, optical character recognition (OCR) runs locally on your device via Tesseract.js and receipt
+        images are <strong>not uploaded</strong> to our servers. If you configure your own Gemini API key or external
+        OCR option, the receipt image is sent directly from your device to that provider according to their policy.
+      </li>
+    </ul>
+
+    <h2>2. Third-Party Services Used</h2>
+    <ul>
+      <li><strong>Google Firebase (Auth &amp; Cloud Firestore):</strong> Authentication and encrypted cloud synchronization.</li>
+      <li><strong>Public Exchange Rate Feeds (open.er-api.com / api.frankfurter.dev):</strong> Fetches anonymous daily currency conversion rates with zero user identifiers transmitted.</li>
+    </ul>
+    <p>We do <strong>not</strong> run advertising SDKs, sell personal data, or share financial records with third-party data brokers.</p>
+
+    <h2>3. Data Security</h2>
+    <p>
+      All data in transit uses HTTPS/TLS encryption. Firestore access is restricted strictly to the authenticated
+      owner (<code>request.auth.uid == uid</code>) with schema validation rules.
+    </p>
+
+    <h2>4. Account &amp; Data Deletion</h2>
+    <div class="box">
+      <p style="margin-top:0">
+        You can delete all of your financial data and permanently delete your MyDuit account directly inside the app at any time:
+      </p>
+      <ol style="margin-bottom:0">
+        <li>Open <strong>MyDuit</strong> and sign in with your Google account.</li>
+        <li>Click <strong>Backup &amp; Restore</strong> (or <em>Cadangkan &amp; Pulihkan</em>) in the navigation/header.</li>
+        <li>Open the <strong>Delete All Data</strong> tab.</li>
+        <li>Check <em>"Also permanently delete my Google login account from MyDuit"</em> (optional if you want full account removal) and confirm the deletion phrase.</li>
+      </ol>
+    </div>
+    <p>
+      If you no longer have access to the app and need data removal assistance, contact the developer via the
+      repository contact page:
+      <a href="https://github.com/DavidTimoteus/MyDuit/issues" rel="noopener noreferrer">github.com/DavidTimoteus/MyDuit</a>.
+    </p>
+
+    <h2>5. Ringkasan Bahasa Indonesia</h2>
+    <p>
+      MyDuit hanya menyimpan data login Google (nama, email, UID) serta catatan keuangan yang Anda buat sendiri di ruang
+      Cloud Firestore pribadi Anda. Pemindaian struk bawaan diproses langsung di perangkat Anda tanpa mengunggah foto
+      struk ke server kami. Anda dapat mengekspor seluruh data ke JSON maupun menghapus total seluruh data dan akun
+      kapan saja melalui menu <strong>Cadangkan &amp; Pulihkan → Hapus Total</strong>.
+    </p>
+
+    <footer>
+      <span>&copy; 2026 MyDuit</span>
+      <span>
+        <a href="/terms.html">Terms of Service</a> ·
+        <a href="/">Open MyDuit App</a>
+      </span>
+    </footer>
+  </main>
+</body>
+</html>
+
