@@ -1,0 +1,61 @@
+{
+  "name": "myduit-desktop",
+  "version": "2.3.0",
+  "private": true,
+  "description": "Windows Desktop distribution for MyDuit personal finance app.",
+  "author": "David Timoteus",
+  "license": "MIT",
+  "main": "main.cjs",
+  "scripts": {
+    "prepare-web": "node scripts/prepare-web.mjs",
+    "start": "node scripts/prepare-web.mjs && electron .",
+    "dist": "node scripts/prepare-web.mjs && electron-builder --win nsis portable",
+    "dist:local": "node scripts/prepare-web.mjs && electron-builder --win nsis portable -c.win.signAndEditExecutable=false"
+  },
+  "devDependencies": {
+    "electron": "^35.1.2",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "app.web.myduit001.desktop",
+    "productName": "MyDuit",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "package.json",
+      "desktop-config.json",
+      "www/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MyDuit",
+      "artifactName": "MyDuit-${version}-win-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "MyDuit-${version}-win-portable.${ext}"
+    }
+  }
+}
+

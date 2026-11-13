@@ -46,6 +46,16 @@ MyDuitApp.md
 TEST_FULL_APP_MOBILE.md
 TEST_MOBILE_REPORT.md
 *.apk
+*.aab
+*.jks
+*.keystore
+desktop/node_modules/
+desktop/release/
+desktop/www/
+desktop/build/
+desktop/desktop-config.json
+mobile/twa/app/build/
+mobile/twa/.gradle/
 
 # Jejak harness uji render (screenshot + harness versi lama) — bukan bagian aplikasi
 snapshots/
