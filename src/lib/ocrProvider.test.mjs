@@ -6,6 +6,7 @@ import {
   DEFAULT_OCR_ENDPOINT,
   DEFAULT_SGLANG_ENDPOINT,
   cekStatusUnlimitedOcr,
+  deteksiKapabilitasPerangkat,
   parseUnlimitedRawOutput,
   scanDokumenKeuangan,
   bacaGeminiKey,
@@ -180,6 +181,11 @@ simpanGeminiKey('AIzaSyTestKey')
 cek('bacaGeminiKey via provider tersimpan', bacaGeminiKey(), 'AIzaSyTestKey')
 cek('hasGeminiKey terbaca di config', bacaOcrConfig().hasGeminiKey, true)
 hapusGeminiKey()
+
+// 7. Uji deteksiKapabilitasPerangkat aman di Node tanpa browser API
+const profilDev = await deteksiKapabilitasPerangkat()
+cek('deteksiKapabilitasPerangkat mengembalikan ringkasan non-kosong', Boolean(profilDev.ringkasan), true)
+cek('deteksiKapabilitasPerangkat jujur unlimitedBrowserDirect adalah false', profilDev.unlimitedBrowserDirect, false)
 
 // Laporan hasil uji
 console.log(`\n=== UJI OCR PROVIDER: ${lulus} lulus, ${gagal} gagal ===`)

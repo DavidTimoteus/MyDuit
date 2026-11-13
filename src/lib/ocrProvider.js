@@ -189,6 +189,12 @@ export async function cekStatusUnlimitedOcr(endpoint = DEFAULT_OCR_ENDPOINT, tim
           online: true,
           protocol: 'bridge',
           modelReady: data.model_loaded !== false,
+          hardwareEligible: data.hardware_eligible,
+          tier: data.tier || null,
+          quantization: data.quantization || null,
+          vramGb: typeof data.vram_gb === 'number' ? data.vram_gb : null,
+          ramGb: typeof data.ram_gb === 'number' ? data.ram_gb : null,
+          reason: data.reason || '',
           model: 'baidu/Unlimited-OCR',
           engine: data.engine || 'Unlimited-OCR Bridge',
           version: data.version || '1.0.0',
@@ -602,5 +608,65 @@ export async function scanDokumenKeuangan(file, options = {}) {
     ...hasilLokal,
     engine: hasilLokal.modeProses === 'gundam' ? 'tesseract-gundam' : 'tesseract-local',
     fallbackReason: 'auto_fallback_tesseract',
+  }
+}
+
+/**
+ * Deteksi profil hardware perangkat pengguna saat ini (Mobile/Desktop, RAM, CPU, WebGPU)
+ * untuk menentukan jalur OCR paling realistis:
+ *  - baidu/Unlimited-OCR (3.3B PyTorch VLM) belum memiliki runtime ONNX/WebGPU browser,
+ *    sehingga hanya berjalan langsung lewat Bridge/SGLang lokal di perangkat ber-GPU (>= 4 GB VRAM 4-bit / >= 8 GB BF16).
+ *  - Perangkat Mobile / RAM <= 4 GB otomatis diarahkan ke Gemini Vision atau Lokal Gundam ringan.
+ *
+ * @returns {Promise<{ isMobile: boolean, ramGb: number|null, cpuCores: number|null, hasWebGpu: boolean, unlimitedBrowserDirect: boolean, unlimitedBridgeEligible: boolean, recommendedEngine: 'gemini'|'unlimited'|'local', labelPerangkat: string, ringkasan: string }>}
+ */
+export async function deteksiKapabilitasPerangkat() {
+  const nav = typeof navigator !== 'undefined' ? navigator : null
+  const ua = String(nav?.userAgent || '')
+  const coarse =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(pointer: coarse)').matches
+      : false
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) || coarse
+  const ramGb = typeof nav?.deviceMemory === 'number' ? nav.deviceMemory : null
+  const cpuCores = typeof nav?.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : null
+
+  let hasWebGpu = false
+  try {
+    if (nav?.gpu && typeof nav.gpu.requestAdapter === 'function') {
+      const adapter = await nav.gpu.requestAdapter()
+      hasWebGpu = Boolean(adapter)
+    }
+  } catch {
+    hasWebGpu = false
+  }
+
+  const ramCukup = ramGb === null || ramGb >= 8
+  const unlimitedBridgeEligible = !isMobile && ramCukup
+  const hasGemini = Boolean(bacaGeminiKey())
+
+  let recommendedEngine = 'local'
+  if (hasGemini) recommendedEngine = 'gemini'
+  else if (unlimitedBridgeEligible && hasWebGpu) recommendedEngine = 'unlimited'
+
+  const infoBagian = [isMobile ? 'Mobile' : 'Desktop']
+  if (ramGb) infoBagian.push(`RAM ${ramGb} GB+`)
+  if (cpuCores) infoBagian.push(`${cpuCores} core`)
+  infoBagian.push(hasWebGpu ? 'WebGPU aktif' : 'WebGL/WASM')
+
+  const ringkasan = unlimitedBridgeEligible
+    ? 'Memenuhi syarat Desktop: bisa langsung jalankan baidu/Unlimited-OCR via Bridge/SGLang jika GPU >= 4 GB VRAM (4-bit) / >= 8 GB (BF16), atau Gemini AI & Lokal Gundam.'
+    : 'Perangkat Mobile/RAM terbatas: VLM 3.3B tidak dimuat ke RAM browser untuk cegah crash; gunakan Gemini AI atau Lokal Gundam.'
+
+  return {
+    isMobile,
+    ramGb,
+    cpuCores,
+    hasWebGpu,
+    unlimitedBrowserDirect: false,
+    unlimitedBridgeEligible,
+    recommendedEngine,
+    labelPerangkat: infoBagian.join(' · '),
+    ringkasan,
   }
 }

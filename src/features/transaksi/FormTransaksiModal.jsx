@@ -11,6 +11,7 @@ import {
   bacaOcrConfig,
   simpanOcrConfig,
   cekStatusUnlimitedOcr,
+  deteksiKapabilitasPerangkat,
   DEFAULT_OCR_ENDPOINT,
   bacaGeminiKey,
   simpanGeminiKey,
@@ -64,6 +65,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [ocrStatusMsg, setOcrStatusMsg] = useState('')
   const [ocrTesting, setOcrTesting] = useState(false)
   const [showOcrConfig, setShowOcrConfig] = useState(false)
+  const [profilPerangkat, setProfilPerangkat] = useState(null)
   const [geminiKeyInput, setGeminiKeyInput] = useState(() => bacaGeminiKey())
   const [geminiStatus, setGeminiStatus] = useState('')
   const [geminiTesting, setGeminiTesting] = useState(false)
@@ -82,6 +84,17 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   useEffect(() => {
     scanUrlRef.current = scan?.url || null
   }, [scan])
+
+  useEffect(() => {
+    if (!showOcrConfig || profilPerangkat) return
+    let aktif = true
+    deteksiKapabilitasPerangkat().then((info) => {
+      if (aktif && masihTerpasang.current) setProfilPerangkat(info)
+    })
+    return () => {
+      aktif = false
+    }
+  }, [showOcrConfig, profilPerangkat])
 
   useEffect(() => {
     masihTerpasang.current = true
@@ -178,7 +191,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       const res = await ujiKoneksiGemini(key)
       if (res.ok) {
         simpanGeminiKey(key)
-        setGeminiStatus('Kunci API valid & aktif! Gemini Vision siap digunakan.')
+        setGeminiStatus(res.message || 'Kunci API valid & aktif! Gemini Vision siap digunakan.')
       } else {
         setGeminiStatus(res.message || 'Kunci API tidak valid. Periksa kembali.')
       }
@@ -206,9 +219,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       if (!masihTerpasang.current) return
       if (status.online) {
         const ketModel = status.model ? ` (${status.model})` : ''
+        const ketHw = status.reason ? ` (${status.reason})` : ''
         const siapText = status.modelReady === false
-          ? ' — server aktif, tetapi bobot VLM belum dimuat (fallback otomatis aktif).'
-          : ` — siap dipakai [${status.protocol === 'sglang' ? 'SGLang VLM' : 'Bridge'}].`
+          ? ` — server aktif, tetapi bobot VLM belum dimuat${ketHw}.`
+          : ` — siap dipakai [${status.protocol === 'sglang' ? 'SGLang VLM' : `Bridge ${status.quantization || ''}`.trim()}].`
         setOcrStatusMsg(`Terhubung ke ${status.engine}${ketModel}${siapText}`)
       } else {
         setOcrStatusMsg(`Server tidak aktif di ${raw}. Mode Auto akan otomatis memakai Gemini/Lokal.`)
@@ -921,6 +935,22 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         <p className={`text-[9.5px] font-medium ${ocrStatusMsg.startsWith('Terhubung') ? 'text-emerald-700' : 'text-slate-600'}`}>
                           {ocrStatusMsg}
                         </p>
+                      )}
+                      {profilPerangkat && (
+                        <div className="rounded-xl bg-black/[0.04] px-2.5 py-2 text-[9.5px] leading-relaxed text-slate-600">
+                          <div className="flex items-center justify-between font-bold text-slate-700">
+                            <span>Perangkat: {profilPerangkat.labelPerangkat}</span>
+                            <span className={profilPerangkat.unlimitedBridgeEligible ? 'text-emerald-700' : 'text-amber-700'}>
+                              {profilPerangkat.unlimitedBridgeEligible ? 'Syarat Bridge GPU OK' : 'Mode Ringan'}
+                            </span>
+                          </div>
+                          <p className="mt-0.5">{profilPerangkat.ringkasan}</p>
+                          {profilPerangkat.unlimitedBridgeEligible && (
+                            <p className="mt-1 font-mono text-[9px] text-slate-500">
+                              Jalankan lokal: <code>python services/unlimited-ocr/run_server.py --auto</code>
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
