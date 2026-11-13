@@ -1,7 +1,8 @@
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from '../../lib/mockData.js'
-import { uangAktif } from '../../lib/format.js'
+import { formatNominal, uangAktif } from '../../lib/format.js'
+import { ambilRasioKurs, bacaBasisMataUang, statusKurs } from '../../lib/kurs.js'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -13,7 +14,7 @@ function simbolPdf() {
   return SIMBOL_WINANSI.test(symbol) ? symbol : `${currency} `
 }
 
-const rp = (n) => `${simbolPdf()}${(Number(n) || 0).toLocaleString(uangAktif().locale)}`
+const rp = (n) => `${simbolPdf()}${formatNominal(n)}`
 const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
 // Palet laporan profesional (RGB untuk jsPDF).
@@ -261,7 +262,24 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   // Judul dokumen
   teks(doc, 'Laporan Keuangan Bulanan', M, y, { size: 16, bold: true, warna: C.tinta })
   y += 6.5
-  teks(doc, `Periode ${data.label}`, M, y, { size: 10.5, warna: C.redup })
+  const { currency } = uangAktif()
+  const basis = bacaBasisMataUang()
+  if (basis && basis !== currency) {
+    const kursInfo = statusKurs()
+    const perUnit = ambilRasioKurs(currency, basis)
+    const labelKurs = perUnit >= 1
+      ? `1 ${currency} = ${perUnit.toLocaleString('id-ID', { maximumFractionDigits: 2 })} ${basis}`
+      : `1 ${basis} = ${ambilRasioKurs(basis, currency).toLocaleString('en-US', { maximumFractionDigits: 4 })} ${currency}`
+    teks(
+      doc,
+      `Periode ${data.label} · Mata uang ${currency} (${labelKurs}, ${kursInfo.isFallback ? 'kurs cadangan' : kursInfo.source})`,
+      M,
+      y,
+      { size: 9, warna: C.redup },
+    )
+  } else {
+    teks(doc, `Periode ${data.label}`, M, y, { size: 10.5, warna: C.redup })
+  }
   y += 11
 
   // ================= RINGKASAN (3 metrik, tanpa kotak warna) =================

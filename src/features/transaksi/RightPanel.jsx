@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { isoHariIni, formatNominal, simbolUang } from '../../lib/format.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 
@@ -19,6 +20,7 @@ function rangeBulanIni() {
 // Total Saldo (gradient hijau) · Pengeluaran Hari Ini · Top Kategori (badge jenis)
 // · Aksi Cepat 3 tombol gradient penuh (Pemasukan/Pengeluaran/Pindah Saldo).
 export default function RightPanel({ uid }) {
+  useKursVersi()
   const { akunList, kategoriList } = useAkunKategori(uid)
   const bulan = useMemo(rangeBulanIni, [])
   // Gunakan pageSize: 0 (tanpa batas 50 dokumen) agar perhitungan Surplus/Defisit

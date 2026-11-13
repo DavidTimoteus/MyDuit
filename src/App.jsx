@@ -7,11 +7,11 @@ import ToastHost from './components/ToastHost.jsx'
 import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
 import { getFirebase, isFirebaseConfigured } from './lib/firebase.js'
-import { migrasiNormalisasi } from './lib/db.js'
+import { inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
 
-const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_puter_provider', 'myduit_ocr_endpoint', 'myduit_ocr_crop_mode', 'myduit:tx_chip', 'myduit:negara']
+const KUNCI_PREF_SESI = ['myduit_gemini_api_key', 'myduit_ocr_engine', 'myduit_ocr_puter_provider', 'myduit_ocr_endpoint', 'myduit_ocr_crop_mode', 'myduit:tx_chip', 'myduit:negara', 'myduit:kurs_basis']
 
 function LayarSetup({ error }) {
   return (
@@ -87,6 +87,12 @@ export default function App() {
       batal = true
     }
   }, [user?.uid])
+
+  // Inisialisasi basis mata uang akun & tarik kurs global live saat online
+  useEffect(() => {
+    if (!user?.uid || uidBersih !== user.uid) return
+    inisialisasiMataUangDasar(user.uid)
+  }, [user?.uid, uidBersih])
 
   // Migrasi anti-redundansi sekali per user (hanya saat splash sudah lewat
   // supaya tidak memblokir loading utama).

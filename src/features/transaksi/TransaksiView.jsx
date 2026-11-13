@@ -8,6 +8,7 @@ import FilterTransaksiModal from './FilterTransaksiModal.jsx'
 import { ChipAkunBaru, TransaksiRow } from './TransaksiRow.jsx'
 import { useTransaksi } from './useTransaksi.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { portalBody } from '../../lib/portal.js'
 import { evaluasiPenambahanTransaksi } from './transaksiFilter.js'
@@ -517,6 +518,7 @@ export default function TransaksiView({ user }) {
   }, [])
 
   const adaAkun = akunList.length > 0
+  const kursVer = useKursVersi()
   const currencySymbol = simbolUang()
   useScrollReveal(listRef, [delayedLoading, pageItems.length, page])
 
@@ -746,6 +748,7 @@ export default function TransaksiView({ user }) {
                 selected={bulkMode && selected.has(t.id)}
                 justAdded={t.id === justAddedId}
                 currencySymbol={currencySymbol}
+                kursVer={kursVer}
                 onToggleSelect={toggleSelect}
                 deleteOpen={!bulkMode && openDeleteId === t.id}
                 onToggleDelete={handleToggleDelete}

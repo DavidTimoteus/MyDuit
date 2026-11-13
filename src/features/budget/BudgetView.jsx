@@ -5,6 +5,7 @@ import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js'
 import { formatRupiah } from '../../lib/format.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { useBudgetBulan } from './useBudgetBulan.js'
 import BudgetPanel from './BudgetPanel.jsx'
@@ -31,6 +32,7 @@ function labelPeriode(bulan, tahun) {
 // - Hero "Total Saldo" (gradient biru) atau "Total Budget" (gradient biru)
 // - Daftar (Rekening list atau Budget list)
 export default function BudgetView({ user }) {
+  useKursVersi()
   const uid = user.uid
   const [sub, setSub] = useState('rekening')
 

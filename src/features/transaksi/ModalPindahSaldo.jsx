@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -36,7 +36,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
   async function submit(e) {
     e.preventDefault()
     if (submittedRef.current) return
-    const n = parseNominal(jumlah)
+    const n = konversiKeBasis(parseInputTampil(jumlah))
     if (!dariId || !keId) return setError('Pilih rekening sumber & tujuan dulu.')
     if (sama) return setError('Rekening sumber & tujuan tidak boleh sama.')
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
@@ -167,8 +167,8 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               <input
                 type="text"
                 value={jumlah}
-                onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
-                inputMode="numeric"
+                onChange={(e) => setJumlah(sanitizeKetikNominal(e.target.value))}
+                inputMode="decimal"
                 placeholder="0"
                 required
                 className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none !text-[#187498]"

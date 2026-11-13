@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 
 // Panel kanan khusus tab Budget (desktop only). Render di Shell dengan
 // `tab === 'budget'`. Subscribe ringkasan via event `myduit:budget-update`
@@ -14,6 +15,7 @@ import { formatRupiah } from '../../lib/format.js'
 //   - Perlu Perhatian (warning card list budget yang hampir/melebihi limit)
 //   - Aksi Cepat — tombol Tambah Rekening / Budget (tinggi btn-md agar tidak gepeng)
 export default function BudgetAsidePanel() {
+  useKursVersi()
   const [data, setData] = useState(null)
 
   useEffect(() => {

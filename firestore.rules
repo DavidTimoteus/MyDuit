@@ -124,9 +124,11 @@ service cloud.firestore {
 
     function validMeta() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['done', 'at'])
+      return d.keys().hasOnly(['done', 'at', 'baseCurrency', 'updatedAt'])
         && (!('done' in d) || d.done is bool)
-        && (!('at' in d) || d.at is timestamp || (d.at is string && d.at.size() <= 40));
+        && (!('at' in d) || d.at is timestamp || (d.at is string && d.at.size() <= 40))
+        && (!('baseCurrency' in d) || (d.baseCurrency is string && d.baseCurrency.matches('^[A-Z]{3}$')))
+        && (!('updatedAt' in d) || d.updatedAt is timestamp || (d.updatedAt is string && d.updatedAt.size() <= 40));
     }
 
     match /users/{uid}/transaksi/{docId} {

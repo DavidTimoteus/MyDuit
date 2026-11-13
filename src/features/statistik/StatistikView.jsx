@@ -20,9 +20,11 @@ import {
   formatCurrency,
   formatNominal,
   formatRupiah,
+  konversiUntukTampil,
   simbolUang,
   EVENT_LOKASI,
 } from "../../lib/format.js";
+import { EVENT_KURS } from "../../lib/kurs.js";
 
 import { aturanAnalitik, hitungPersenPerubahan } from "./_aturan.js";
 const NAMA_BULAN_ID = [
@@ -161,7 +163,11 @@ export default function StatistikView({ user }) {
     };
     sync();
     window.addEventListener(EVENT_LOKASI, sync);
-    return () => window.removeEventListener(EVENT_LOKASI, sync);
+    window.addEventListener(EVENT_KURS, sync);
+    return () => {
+      window.removeEventListener(EVENT_LOKASI, sync);
+      window.removeEventListener(EVENT_KURS, sync);
+    };
   }, []);
 
   // Fetch range aktif — onSnapshot supaya offline persistence langsung serve dari cache
@@ -515,7 +521,7 @@ export default function StatistikView({ user }) {
           {
             type: "bar",
             label: "Pemasukan",
-            data: tren.dataIn,
+            data: tren.dataIn.map((v) => konversiUntukTampil(v)),
             backgroundColor: gradIn,
             hoverBackgroundColor: "rgba(54, 174, 124, 1.0)",
             borderRadius: 12,
@@ -528,7 +534,7 @@ export default function StatistikView({ user }) {
           {
             type: "bar",
             label: "Pengeluaran",
-            data: tren.dataOut.map((v) => -Math.abs(v || 0)),
+            data: tren.dataOut.map((v) => -Math.abs(konversiUntukTampil(v))),
             backgroundColor: gradOut,
             hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
             borderRadius: 12,
@@ -543,7 +549,7 @@ export default function StatistikView({ user }) {
                 {
                   type: "line",
                   label: "Saldo",
-                  data: tren.dataSaldo,
+                  data: tren.dataSaldo.map((v) => konversiUntukTampil(v)),
                   borderColor: "#187498",
                   backgroundColor: gradSaldo,
                   fill: true,

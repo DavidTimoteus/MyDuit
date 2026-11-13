@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatRibuanInputBertanda, parseNominalBertanda, simbolUang } from '../../lib/format.js'
+import { formatInputTampilBertanda, konversiKeBasis, parseInputTampilBertanda, sanitizeKetikNominalBertanda, simbolUang } from '../../lib/format.js'
 import { tambahAkun, updateAkun } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -29,7 +29,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     setKunciLama(kunci)
     setNama(edit?.nama ?? '')
     setTipe(edit?.tipe ?? TIPE_AKUN[0])
-    setSaldo(edit?.saldo !== undefined ? formatRibuanInputBertanda(edit.saldo) : '')
+    setSaldo(edit?.saldo !== undefined ? formatInputTampilBertanda(edit.saldo) : '')
     setError('')
   }
 
@@ -42,7 +42,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
     submittedRef.current = true
     const namaSnap = nama.trim()
     const tipeSnap = tipe
-    const saldoSnap = parseNominalBertanda(saldo)
+    const saldoSnap = konversiKeBasis(parseInputTampilBertanda(saldo))
     const editSnap = edit
 
     // OPTIMISTIC: tutup modal sekarang, commit Firestore di background.
@@ -103,7 +103,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
           <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
           <input
             value={saldo}
-            onChange={(e) => setSaldo(formatRibuanInputBertanda(e.target.value))}
+            onChange={(e) => setSaldo(sanitizeKetikNominalBertanda(e.target.value))}
             inputMode="text"
             placeholder="0"
             className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"

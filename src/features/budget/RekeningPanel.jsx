@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
 import { hapusAkun } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import FormRekeningModal from './FormRekeningModal.jsx'
 import RiwayatMutasiModal from './RiwayatMutasiModal.jsx'
@@ -74,6 +75,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
   }, [transBulan])
 
   const [modal, setModal] = useState({ open: false, edit: null })
+  useKursVersi()
 
   // Listen event buka tambah rekening dari FAB bottom nav
   useEffect(() => {

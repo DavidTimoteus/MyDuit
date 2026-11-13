@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { hapusBudget } from '../../lib/db.js'
 import { portalBody } from '../../lib/portal.js'
 
@@ -17,6 +18,7 @@ export default function BudgetPanel({
   hapusTarget,
   setHapusTarget,
 }) {
+  useKursVersi()
   const [hapusLoading, setHapusLoading] = useState(false)
 
   async function konfirmHapus() {

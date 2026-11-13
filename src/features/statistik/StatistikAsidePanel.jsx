@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatRupiah, parseTanggalIsoAman } from '../../lib/format.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 
 // Panel kanan khusus tab Statistik (desktop only). Render di Shell dengan
 // `tab === 'statistik'`. Subscribe ringkasan via event `myduit:statistik-update`
@@ -12,6 +13,7 @@ import { formatRupiah, parseTanggalIsoAman } from '../../lib/format.js'
 //   - 1 Baris metrik cepat 3-kolom (menggantikan tumpukan kartu yang sebelumnya berjejal)
 //   - Bebas dari penumpukan konten, bebas tabrakan bayangan, dan ramah pembacaan
 export default function StatistikAsidePanel() {
+  useKursVersi()
   const [data, setData] = useState(null)
 
   useEffect(() => {

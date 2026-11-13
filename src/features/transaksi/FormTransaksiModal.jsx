@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatNominal, formatRibuanInput, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatInputTampil, formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
+import { desimalMataUang, konversiNilai } from '../../lib/kurs.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -19,6 +20,22 @@ import {
   muatPuterSdk,
 } from '../../lib/ocrProvider.js'
 
+function bulatkanUntukTampil(nilai) {
+  const { currency } = uangAktif()
+  const d = desimalMataUang(currency)
+  const f = d > 0 ? 10 ** d : 1
+  return Math.round((Number(nilai) || 0) * f) / f
+}
+
+function formatHasilOcrTampil(totalIdr) {
+  const { currency, locale } = uangAktif()
+  const d = desimalMataUang(currency)
+  const val = konversiNilai(totalIdr, 'IDR', currency)
+  const f = d > 0 ? 10 ** d : 1
+  const dibulat = Math.round(val * f) / f
+  return dibulat > 0 ? dibulat.toLocaleString(locale, { maximumFractionDigits: d }) : ''
+}
+
 // Modal Catat / Edit / Salin transaksi — mendukung Pemasukan & Pengeluaran
 // dengan Segmented Clay Toggle interaktif, penyesuaian label rekening dinamis,
 // dan pemindaian struk otomatis (OCR) pada pengeluaran.
@@ -28,7 +45,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     isEditAtauSalin ? (sumber.jenis ?? 'pengeluaran') : (sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
   )
   const [jumlah, setJumlah] = useState(() =>
-    isEditAtauSalin ? formatRibuanInput(String(sumber.jumlah ?? '')) : ''
+    isEditAtauSalin ? formatInputTampil(sumber.jumlah) : ''
   )
   const [kategoriNama, setKategoriNama] = useState(() =>
     isEditAtauSalin ? (sumber.kategoriNama ?? '') : ''
@@ -137,7 +154,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setScanProgress(0)
     if ((mode === 'edit' || mode === 'salin') && sumber) {
       setJenis(sumber.jenis ?? 'pengeluaran')
-      setJumlah(formatRibuanInput(String(sumber.jumlah ?? '')))
+      setJumlah(formatInputTampil(sumber.jumlah))
       setKategoriNama(sumber.kategoriNama ?? '')
       setAkunId(sumber.akunId ?? akunList[0]?.id ?? '')
       setTanggal(sumber.tanggal ?? isoHariIni())
@@ -281,7 +298,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
       // Isi otomatis: hanya timpa field yang belum diisi user (jangan ganggu
       // ketikan manual), kecuali nominal & tanggal yang memang target scan.
-      if (hasil.total && hasil.total > 0) setJumlah(formatRibuanInput(String(hasil.total)))
+      if (hasil.total && hasil.total > 0) setJumlah(formatHasilOcrTampil(hasil.total))
       if (hasil.tanggal) setTanggal(hasil.tanggal)
       if (hasil.jenis) setJenis(hasil.jenis)
 
@@ -311,7 +328,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       }
 
       const bagian = []
-      if (hasil.total && hasil.total > 0) bagian.push(`Total ${formatRibuanInput(String(hasil.total))}.`)
+      if (hasil.total && hasil.total > 0) bagian.push(`Total ${formatHasilOcrTampil(hasil.total)}.`)
       if (hasil.kategoriNama) bagian.push(`Kategori disarankan: ${hasil.kategoriNama}.`)
       if (hasil.keterangan) bagian.push(`Keterangan: ${hasil.keterangan}.`)
       if (hasil.sumberBayar?.nama && !(akunList || []).some((a) => (a?.nama ?? "").toLowerCase().includes(String(hasil.sumberBayar.nama).toLowerCase())))
@@ -339,7 +356,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
   function terapkanUlang() {
     if (!scanHasil) return
-    if (scanHasil.total && scanHasil.total > 0) setJumlah(formatRibuanInput(String(scanHasil.total)))
+    if (scanHasil.total && scanHasil.total > 0) setJumlah(formatHasilOcrTampil(scanHasil.total))
     if (scanHasil.tanggal) setTanggal(scanHasil.tanggal)
     if (scanHasil.jenis) setJenis(scanHasil.jenis)
     if (scanHasil.kategoriNama) setKategoriNama(scanHasil.kategoriNama)
@@ -370,7 +387,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   // Beralih dari mode Edit ke mode Salin agar pengguna dapat meninjau
   // dan menyunting draf salinan terlebih dahulu sebelum mencatat transaksi baru.
   function beralihKeModeSalin() {
-    const nominalSaatIni = parseNominal(jumlah)
+    const nominalSaatIni = konversiKeBasis(parseInputTampil(jumlah))
     const jumlahSalinan = nominalSaatIni > 0 ? nominalSaatIni : (Number(sumber?.jumlah) || 0)
     const drafSalinan = {
       ...sumber,
@@ -386,7 +403,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   }
 
   function bukaKalkulatorDengan(initialOp = '') {
-    const angkaAwal = parseNominal(jumlah)
+    const angkaAwal = parseInputTampil(jumlah)
     const dasar = angkaAwal > 0 ? String(angkaAwal) : ''
     const nextExpr = initialOp ? sisipTokenKalkulator(dasar, initialOp) : dasar
     setCalcExpr(nextExpr)
@@ -411,12 +428,14 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
         setCalcErr(res.error)
         return
       }
-      if (res.dibulatkan <= 0) {
+      const hasilTampil = bulatkanUntukTampil(res.nilai)
+      if (hasilTampil <= 0) {
         setCalcErr('Hasil harus lebih dari 0.')
         return
       }
-      setJumlah(formatRibuanInput(String(res.dibulatkan)))
-      setCalcExpr(String(res.dibulatkan))
+      const { currency, locale } = uangAktif()
+      setJumlah(hasilTampil.toLocaleString(locale, { maximumFractionDigits: desimalMataUang(currency) }))
+      setCalcExpr(String(hasilTampil))
       setCalcOpen(false)
       setError('')
       return
@@ -427,19 +446,21 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   async function submit(e) {
     e.preventDefault()
     if (submittedRef.current) return
-    let n = parseNominal(jumlah)
+    let nTampil = parseInputTampil(jumlah)
     if (calcOpen && calcExpr.trim()) {
       const calcRes = evaluasiEkspresiNominal(calcExpr)
       if (!calcRes.ok) {
         setCalcErr(calcRes.error)
         return setError(calcRes.error)
       }
-      if (calcRes.dibulatkan <= 0) {
+      const hasilTampil = bulatkanUntukTampil(calcRes.nilai)
+      if (hasilTampil <= 0) {
         setCalcErr('Hasil harus lebih dari 0.')
         return setError('Nominal harus lebih dari nol.')
       }
-      n = calcRes.dibulatkan
+      nTampil = hasilTampil
     }
+    const n = konversiKeBasis(nTampil)
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
@@ -644,7 +665,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 value={jumlah}
                 onChange={(e) => {
                   if (calcOpen) return
-                  setJumlah(formatRibuanInput(e.target.value))
+                  setJumlah(sanitizeKetikNominal(e.target.value))
                 }}
                 onKeyDown={(e) => {
                   if (['+', '-', '*', '/'].includes(e.key)) {
@@ -656,7 +677,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     if (calcOpen) tekanKeypad('=')
                     else toggleKalkulator()
                   } else if (calcOpen && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                    if (/^[0-9]$/.test(e.key) || e.key === ',') {
+                    if (/^[0-9]$/.test(e.key) || e.key === ',' || e.key === '.') {
                       e.preventDefault()
                       tekanKeypad(e.key)
                     } else if (e.key === 'Backspace') {
@@ -668,7 +689,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     }
                   }
                 }}
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder="0"
                 required
                 autoFocus
@@ -734,7 +755,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       {calcErr
                         ? calcErr
                         : live && live.ok
-                          ? (live.dibulatkan > 0 ? `= ${simbolUang()} ${formatRibuanInput(String(live.dibulatkan))}` : `= ${live.dibulatkan}`)
+                          ? (() => {
+                              const tampil = bulatkanUntukTampil(live.nilai)
+                              const { currency, locale } = uangAktif()
+                              return tampil > 0
+                                ? `= ${simbolUang()} ${tampil.toLocaleString(locale, { maximumFractionDigits: desimalMataUang(currency) })}`
+                                : `= ${tampil}`
+                            })()
                           : live && !live.ok
                             ? live.error
                             : ''}
@@ -1017,7 +1044,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 <div className="flex flex-wrap items-center gap-1.5">
                   {scanHasil.total ? (
                     <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
-                      Nominal: {formatRibuanInput(String(scanHasil.total))}
+                      Nominal: {formatHasilOcrTampil(scanHasil.total)}
                     </span>
                   ) : null}
                   {scanHasil.tanggal && (

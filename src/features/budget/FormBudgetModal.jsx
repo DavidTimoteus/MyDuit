@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatRibuanInput, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatInputTampil, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { simpanBudget } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -25,7 +25,7 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
   if (kunci !== kunciLama) {
     setKunciLama(kunci)
     setKategoriId(edit?.kategoriId ?? '')
-    setLimit(formatRibuanInput(String(edit?.limitNominal ?? '')))
+    setLimit(edit?.limitNominal ? formatInputTampil(edit.limitNominal) : '')
     setError('')
   }
 
@@ -37,7 +37,7 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
     e.preventDefault()
     if (submittedRef.current) return
     const kat = opsi.find((k) => k.id === kategoriId)
-    const n = parseNominal(limit)
+    const n = konversiKeBasis(parseInputTampil(limit))
     if (!kat) return setError('Pilih kategori dulu.')
     if (n <= 0) return setError('Limit harus lebih dari nol.')
     submittedRef.current = true
@@ -98,8 +98,8 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
           </span>
           <input
             value={limit}
-            onChange={(e) => setLimit(formatRibuanInput(e.target.value))}
-            inputMode="numeric"
+            onChange={(e) => setLimit(sanitizeKetikNominal(e.target.value))}
+            inputMode="decimal"
             placeholder="0"
             className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-sm font-semibold outline-none placeholder:text-slate-500"
           />

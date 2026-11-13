@@ -19,10 +19,19 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
-import { MAX_NOMINAL, kanonikTanggal } from './format.js'
+import { MAX_NOMINAL, kanonikTanggal, uangAktif } from './format.js'
+import { bacaBasisMataUang, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
+
+function bulatkanKeBasis(nilai) {
+  const n = Number(nilai)
+  if (!Number.isFinite(n)) return NaN
+  const d = desimalMataUang(bacaBasisMataUang() || 'IDR')
+  const faktor = d > 0 ? 10 ** d : 1
+  return Math.round(n * faktor) / faktor
+}
 
 function wajibAngkaPositif(nilai, label = 'Nominal') {
-  const n = Math.round(Number(nilai))
+  const n = bulatkanKeBasis(nilai)
   if (!Number.isFinite(n) || n <= 0 || n > MAX_NOMINAL) {
     throw new Error(`${label} tidak valid (harus lebih dari nol).`)
   }
@@ -30,9 +39,9 @@ function wajibAngkaPositif(nilai, label = 'Nominal') {
 }
 
 function angkaAman(nilai) {
-  const n = Number(nilai)
+  const n = bulatkanKeBasis(nilai)
   if (!Number.isFinite(n)) return 0
-  return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(n)))
+  return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, n))
 }
 
 function potongTeks(nilai, maks) {
@@ -886,4 +895,51 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
   })
   await batch.commit()
   return txId
+}
+
+/**
+ * Menentukan dan menyimpan `baseCurrency` kanonik untuk akun agar pengubahan lokasi
+ * bekerja layaknya *Money Changer* non-destruktif terhadap seluruh catatan di Firestore.
+ */
+export async function inisialisasiMataUangDasar(uid) {
+  if (!uid) return 'IDR'
+  if (IS_DEMO_UID(uid)) {
+    simpanBasisMataUang('IDR')
+    segarkanKursGlobal().catch(() => {})
+    return 'IDR'
+  }
+
+  // Ambil kurs live di latar belakang secepatnya saat online
+  segarkanKursGlobal().catch(() => {})
+
+  try {
+    const { db } = getFirebase()
+    const metaRef = doc(db, 'users', uid, 'meta', 'mataUang')
+    const snap = await getDoc(metaRef)
+    const tersimpan = snap.exists() ? String(snap.data()?.baseCurrency || '').toUpperCase() : ''
+    if (/^[A-Z]{3}$/.test(tersimpan)) {
+      simpanBasisMataUang(tersimpan)
+      return tersimpan
+    }
+
+    // Akun lama tanpa marker meta/mataUang dianggap berbasis IDR bila sudah memiliki data
+    let punyaData = false
+    for (const kol of ['transaksi', 'akun', 'utang', 'budget']) {
+      const q = query(userCol(uid, kol), fbLimit(1))
+      const ada = await getDocs(q)
+      if (!ada.empty) {
+        punyaData = true
+        break
+      }
+    }
+    const basis = punyaData ? 'IDR' : (uangAktif().currency || 'IDR')
+    simpanBasisMataUang(basis)
+    await setDoc(metaRef, { baseCurrency: basis, updatedAt: serverTimestamp() }, { merge: true }).catch(() => {})
+    return basis
+  } catch (err) {
+    console.warn('[db] Gagal membaca meta/mataUang, gunakan basis IDR:', err?.message)
+    const fallback = bacaBasisMataUang() || 'IDR'
+    simpanBasisMataUang(fallback)
+    return fallback
+  }
 }

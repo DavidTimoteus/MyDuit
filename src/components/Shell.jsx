@@ -13,7 +13,15 @@ import {
   parseTanggalIsoAman,
   NEGARA,
   EVENT_LOKASI,
+  uangAktif,
 } from "../lib/format.js";
+import {
+  EVENT_KURS,
+  ambilRasioKurs,
+  resetBasisMataUang,
+  segarkanKursGlobal,
+  statusKurs,
+} from "../lib/kurs.js";
 
 // Lazy-load per modul. Shell merender 4 tab + 4 aside panel; sebelumnya semuanya
 // masuk bundle utama, jadi chart.js (via StatistikView) ikut terunduh walau user
@@ -346,15 +354,56 @@ function SidebarInsightUtang() {
   );
 }
 
-// Modal pilih lokasi — dibuka dari foto profil (sidebar kiri / header mobile).
+// Modal pilih lokasi & Money Changer — dibuka dari foto profil (sidebar kiri / header mobile).
 // Hasil pilihan dipakai detectCurrency() & detectCountryInfo() lewat localStorage.
 function LokasiModal({ open, onClose, aktifCode, otomatis }) {
+  const [infoKurs, setInfoKurs] = useState(() => statusKurs());
+  const [memuat, setMemuat] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setInfoKurs(statusKurs());
+    const onKurs = () => setInfoKurs(statusKurs());
+    window.addEventListener(EVENT_KURS, onKurs);
+    let batal = false;
+    setMemuat(true);
+    segarkanKursGlobal({ paksa: true })
+      .then(() => {
+        if (!batal) setInfoKurs(statusKurs());
+      })
+      .finally(() => {
+        if (!batal) setMemuat(false);
+      });
+    return () => {
+      batal = true;
+      window.removeEventListener(EVENT_KURS, onKurs);
+    };
+  }, [open]);
+
   if (!open) return null;
   const daftar = Object.entries(NEGARA).sort((a, b) =>
     a[1].nama.localeCompare(b[1].nama),
   );
+  const basis = infoKurs.basis || "IDR";
+  const aktifCurrency = uangAktif().currency || "IDR";
+  const patokanKe = aktifCurrency !== basis ? aktifCurrency : (basis === "USD" ? "IDR" : "USD");
+  const laju = ambilRasioKurs("USD", patokanKe === "USD" ? basis : patokanKe);
+  const labelKurs =
+    patokanKe === "IDR" || basis === "IDR"
+      ? `1 USD ≈ Rp${Math.round(ambilRasioKurs("USD", "IDR")).toLocaleString("id-ID")}`
+      : `1 USD ≈ ${laju.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${patokanKe === "USD" ? basis : patokanKe}`;
+
+  function perbaruiManual() {
+    if (memuat) return;
+    setMemuat(true);
+    segarkanKursGlobal({ paksa: true })
+      .then(() => setInfoKurs(statusKurs()))
+      .finally(() => setMemuat(false));
+  }
+
   function pilih(code) {
     simpanNegaraManual(code);
+    segarkanKursGlobal({ paksa: true }).catch(() => {});
     onClose();
   }
   return portalBody(
@@ -369,12 +418,12 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">
           <div className="min-w-0">
             <h3 className="text-lg font-extrabold text-slate-800">
-              Lokasi & Mata Uang
+              Lokasi & Money Changer
             </h3>
             <p className="mt-0.5 text-[11px] font-semibold text-textSecondary">
               {otomatis
-                ? "Saat ini terdeteksi otomatis dari perangkat"
-                : "Saat ini diatur manual"}
+                ? "Deteksi otomatis perangkat · Nilai terkonversi langsung"
+                : `Diatur manual · Basis data akun: ${basis}`}
             </p>
           </div>
           <button
@@ -383,6 +432,39 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
             className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:text-slate-600"
           >
             <span className="material-symbols-outlined icon-lg">close</span>
+          </button>
+        </div>
+
+        {/* Kartu Kurs Global Live */}
+        <div className="shrink-0 border-b border-slate-100/80 bg-slate-50/70 px-5 py-2.5 flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`inline-block h-1.5 w-1.5 rounded-full ${infoKurs.isFallback ? "bg-amber-500" : "bg-emerald-500"}`}
+              />
+              <span className="font-mono text-[11px] font-bold text-slate-700 truncate">
+                {labelKurs}
+              </span>
+            </div>
+            <p className="text-[10px] font-semibold text-slate-400 truncate">
+              {memuat
+                ? "Memperbarui kurs global…"
+                : infoKurs.isFallback
+                  ? "Kurs cadangan offline"
+                  : `Kurs live · ${infoKurs.source}`}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={perbaruiManual}
+            disabled={memuat}
+            title="Perbarui kurs terbaru"
+            className="neu-chip flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold text-slate-600 hover:text-slate-900 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined icon-xs ${memuat ? "animate-spin" : ""}`}>
+              refresh
+            </span>
+            Kurs
           </button>
         </div>
         <div className="space-y-2 overflow-y-auto px-5 py-4">
@@ -448,14 +530,22 @@ export default function Shell({ user }) {
 
   // Info negara + mata uang untuk indikator lokasi di sidebar kiri.
   // Sumber: pilihan manual pengguna (localStorage) > timezone perangkat.
+  const [, setKursVer] = useState(0);
   const [countryInfo, setCountryInfo] = useState(() =>
     detectCountryInfo(navigator.language || "id-ID"),
   );
   useEffect(() => {
-    const onLokasi = () =>
+    const onLokasi = () => {
       setCountryInfo(detectCountryInfo(navigator.language || "id-ID"));
+      setKursVer((v) => v + 1);
+    };
+    const onKurs = () => setKursVer((v) => v + 1);
     window.addEventListener(EVENT_LOKASI, onLokasi);
-    return () => window.removeEventListener(EVENT_LOKASI, onLokasi);
+    window.addEventListener(EVENT_KURS, onKurs);
+    return () => {
+      window.removeEventListener(EVENT_LOKASI, onLokasi);
+      window.removeEventListener(EVENT_KURS, onKurs);
+    };
   }, []);
   const countryFlag = countryInfo.bendera;
   const countryNama = countryInfo.nama;
@@ -481,7 +571,10 @@ export default function Shell({ user }) {
   }, []);
 
   useEffect(() => {
-    const on = () => setOnline(true);
+    const on = () => {
+      setOnline(true);
+      segarkanKursGlobal({ paksa: true }).catch(() => {});
+    };
     const off = () => setOnline(false);
     window.addEventListener("online", on);
     window.addEventListener("offline", off);
@@ -495,6 +588,7 @@ export default function Shell({ user }) {
     const { auth } = getFirebase();
     const uid = auth.currentUser?.uid;
     await signOut(auth);
+    resetBasisMataUang();
 
     // Bersihkan penanda migrasi milik user yang keluar saja.
     //

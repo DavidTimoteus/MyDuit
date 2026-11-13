@@ -1,5 +1,5 @@
 import { memo, useState } from 'react'
-import { parseNominal, isoHariIni, formatRibuanInput, formatNominal, simbolUang } from '../../lib/format.js'
+import { formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { tambahAkun } from '../../lib/db.js'
 
 // Form mini "buat rekening pertama" — modul rekening lengkap di Fase 3.
@@ -12,7 +12,7 @@ export function ChipAkunBaru({ uid }) {
     e.preventDefault()
     const namaBersih = nama.trim().slice(0, 120)
     if (!namaBersih) return
-    const saldoAwal = parseNominal(saldo)
+    const saldoAwal = konversiKeBasis(parseInputTampil(saldo))
     setSelesai(true)
     ;(async () => {
       try {
@@ -55,8 +55,8 @@ export function ChipAkunBaru({ uid }) {
           <span className="text-sm font-bold text-slate-500">{simbolUang()}</span>
           <input
             value={saldo}
-            onChange={(e) => setSaldo(formatRibuanInput(e.target.value))}
-            inputMode="numeric"
+            onChange={(e) => setSaldo(sanitizeKetikNominal(e.target.value))}
+            inputMode="decimal"
             placeholder="Saldo awal (opsional)"
             className="w-full bg-transparent text-sm font-semibold outline-none placeholder:font-normal placeholder:text-slate-500"
           />
@@ -128,6 +128,7 @@ export const TransaksiRow = memo(function TransaksiRow({
   selected,
   justAdded = false,
   currencySymbol,
+  kursVer: _kursVer,
   onToggleSelect,
   deleteOpen,
   onToggleDelete,

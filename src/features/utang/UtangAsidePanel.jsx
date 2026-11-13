@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 
 // Panel kanan khusus tab Utang (desktop only). Render di Shell dengan `tab === 'utang'`.
 // Subscribe ringkasan via event `myduit:utang-update` dari UtangView.
@@ -11,6 +12,7 @@ import { formatRupiah } from '../../lib/format.js'
 //   - Statistik Cepat (total cicilan aktif, rata-rata per bulan, utang aktif)
 //   - Aksi Cepat (Utang / Cicilan)
 export default function UtangAsidePanel() {
+  useKursVersi()
   const [data, setData] = useState(null)
 
   useEffect(() => {

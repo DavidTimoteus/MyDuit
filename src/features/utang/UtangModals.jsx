@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatNominal, formatRibuanInput, formatRupiah, isoHariIni, parseNominal, simbolUang } from '../../lib/format.js'
+import { formatInputTampil, formatNominal, formatRupiah, isoHariIni, konversiKeBasis, konversiUntukTampil, parseInputTampil, rasioKursTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -40,8 +40,8 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
     setKunciLama(kunci)
     setNamaPihak(edit?.namaPihak ?? '')
     setTipe(edit?.tipe ?? (mode === 'cicilan' ? 'Cicilan' : 'Utang'))
-    setTotal(formatRibuanInput(String(edit?.total ?? '')))
-    setCicilan(formatRibuanInput(String(edit?.cicilanPerBulan ?? '')))
+    setTotal(edit?.total ? formatInputTampil(edit.total) : '')
+    setCicilan(edit?.cicilanPerBulan ? formatInputTampil(edit.cicilanPerBulan) : '')
     setTgl(edit?.tglJatuhTempo ?? isoTambahHari(30))
     setDeskripsi(edit?.deskripsi ?? '')
     setError('')
@@ -52,7 +52,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
   async function submit(e) {
     e.preventDefault()
     if (submittedRef.current) return
-    const n = parseNominal(total)
+    const n = konversiKeBasis(parseInputTampil(total))
     if (!namaPihak.trim()) return setError('Nama pihak wajib diisi.')
     if (n <= 0) return setError('Total harus lebih dari nol.')
     submittedRef.current = true
@@ -62,7 +62,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
     const namaSnap = namaPihak.trim()
     const deskSnap = deskripsi.trim()
     const tipeSnap = tipe
-    const cicilanSnap = parseNominal(cicilan)
+    const cicilanSnap = konversiKeBasis(parseInputTampil(cicilan))
     const tglSnap = tgl
 
     // OPTIMISTIC: tutup modal sekarang, commit Firestore di background.
@@ -145,8 +145,8 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
             </span>
             <input
               value={total}
-              onChange={(e) => setTotal(formatRibuanInput(e.target.value))}
-              inputMode="numeric"
+              onChange={(e) => setTotal(sanitizeKetikNominal(e.target.value))}
+              inputMode="decimal"
               placeholder="0"
               required
               className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight tx-nominal-expense !text-[#EB5353]"
@@ -176,8 +176,8 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               </span>
               <input
                 value={cicilan}
-                onChange={(e) => setCicilan(formatRibuanInput(e.target.value))}
-                inputMode="numeric"
+                onChange={(e) => setCicilan(sanitizeKetikNominal(e.target.value))}
+                inputMode="decimal"
                 placeholder="0"
                 className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight !text-[#187498]"
               />
@@ -230,7 +230,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
   if (kunci !== kunciLama) {
     setKunciLama(kunci)
     const defaultNominal = utang ? (lunasin ? utang.sisa : utang.cicilanPerBulan || utang.sisa) : 0
-    setJumlah(formatRibuanInput(String(defaultNominal ?? '')))
+    setJumlah(defaultNominal ? formatInputTampil(defaultNominal) : '')
     setTanggal(isoHariIni())
     setAkunId(akunList[0]?.id ?? '')
     setError('')
@@ -238,8 +238,16 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
   if (!open || !utang) return null
 
-  const n = parseNominal(jumlah)
-  const sisaBaru = Math.max(0, (utang.sisa || 0) - n)
+  const sisaAsli = Number(utang.sisa) || 0
+  const nTampil = parseInputTampil(jumlah)
+  const nRawBasis = konversiKeBasis(nTampil)
+  const tepatSisa =
+    rasioKursTampil() !== 1 &&
+    nTampil > 0 &&
+    (sanitizeKetikNominal(jumlah) === formatInputTampil(sisaAsli) ||
+      (nRawBasis > sisaAsli && nTampil <= konversiUntukTampil(sisaAsli) + 0.005))
+  const n = tepatSisa ? sisaAsli : nRawBasis
+  const sisaBaru = Math.max(0, sisaAsli - n)
   const akun = akunList.find((a) => a.id === akunId)
 
   async function submit(e) {
@@ -322,8 +330,8 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
           </span>
           <input
             value={jumlah}
-            onChange={(e) => setJumlah(formatRibuanInput(e.target.value))}
-            inputMode="numeric"
+            onChange={(e) => setJumlah(sanitizeKetikNominal(e.target.value))}
+            inputMode="decimal"
             placeholder="0"
             className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 font-mono text-xl font-black text-slate-900 outline-none tabular-nums placeholder:text-slate-400"
           />
@@ -357,7 +365,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
           {!lunasin && (
             <button
               type="button"
-              onClick={() => setJumlah(formatRibuanInput(String(utang.sisa || 0)))}
+              onClick={() => setJumlah(formatInputTampil(utang.sisa || 0))}
               className="neu-btn btn-lg rounded-2xl bg-[#E5E5E5] text-slate-700 font-extrabold text-xs transition-all active:scale-95"
             >
               Lunasin ({formatRupiah(utang.sisa || 0)})

@@ -1,4 +1,5 @@
-// Helper format & tanggal (konvensi Indonesia, Rupiah integer).
+// Helper format & tanggal (konvensi lokal aktif + konversi kurs Money Changer).
+import { ambilRasioKurs, bacaBasisMataUang, desimalMataUang } from './kurs.js'
 
 // ===== DETEKSI CURRENCY dari lokasi akun Google =====
 // Firebase Auth tidak menyimpan negara pengguna secara eksplisit, jadi kita
@@ -147,9 +148,44 @@ export function simbolUang() {
   return uangAktif().symbol
 }
 
-// Angka bergrup tanpa simbol ("1.234.500") mengikuti locale aktif.
+// ===== Money Changer: konversi tampilan & input <-> basis akun =====
+export function rasioKursTampil() {
+  const basis = bacaBasisMataUang()
+  const { currency } = uangAktif()
+  return basis && basis !== currency ? ambilRasioKurs(basis, currency) : 1
+}
+
+export function konversiUntukTampil(n) {
+  const v = Number(n) || 0
+  const r = rasioKursTampil()
+  const res = r === 1 ? v : v * r
+  return Math.abs(res) < 1e-9 ? 0 : res
+}
+
+export function konversiKeBasis(n) {
+  const v = Number(n) || 0
+  const r = rasioKursTampil()
+  const raw = r === 1 ? v : v / r
+  const basis = bacaBasisMataUang() || 'IDR'
+  const d = desimalMataUang(basis)
+  const faktor = d > 0 ? 10 ** d : 1
+  const res = Math.round(raw * faktor) / faktor
+  if (!Number.isFinite(res)) return 0
+  return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, res))
+}
+
+function jumlahDesimalFormat(currency, absVal) {
+  const maksDes = desimalMataUang(currency)
+  if (maksDes > 0 && absVal > 0 && absVal < 0.01) return 4
+  return maksDes
+}
+
+// Angka bergrup tanpa simbol ("1.234.500" / "73.49") mengikuti locale & kurs aktif.
 export function formatNominal(n) {
-  return (Number(n) || 0).toLocaleString(uangAktif().locale)
+  const { currency, locale } = uangAktif()
+  const v = konversiUntukTampil(n)
+  const dec = jumlahDesimalFormat(currency, Math.abs(v))
+  return v.toLocaleString(locale, { maximumFractionDigits: dec })
 }
 
 // Format nominal sesuai currency: "Rp 1.000" / "US$ 1.000" / "S$ 1.000", dst.
@@ -157,16 +193,17 @@ export function formatNominal(n) {
 export function formatCurrency(n, currency = 'IDR', locale = 'id-ID', { compact = false } = {}) {
   const v = Number(n) || 0
   const abs = Math.abs(v)
+  const maksDes = jumlahDesimalFormat(currency, abs)
   try {
     if (compact) {
       // Ubah jadi format ribuan ringkas: "1rb", "2,5jt"
       if (abs >= 1e9) return `${(v / 1e9).toLocaleString(locale, { maximumFractionDigits: 1 })}M`
       if (abs >= 1e6) return `${(v / 1e6).toLocaleString(locale, { maximumFractionDigits: 1 })}jt`
       if (abs >= 1e3) return `${(v / 1e3).toLocaleString(locale, { maximumFractionDigits: 1 })}rb`
-      return v.toLocaleString(locale)
+      return v.toLocaleString(locale, { maximumFractionDigits: maksDes })
     }
     const sym = symbolForCurrency(currency)
-    return `${sym} ${v.toLocaleString(locale)}`
+    return `${sym} ${v.toLocaleString(locale, { maximumFractionDigits: maksDes })}`
   } catch {
     return `${v.toLocaleString(locale)}`
   }
@@ -183,13 +220,14 @@ export function symbolForCurrency(currency) {
   return map[currency] || currency
 }
 
-// Formatter nominal utama seluruh app: pakai simbol & grouping mata uang aktif.
+// Formatter nominal utama seluruh app: pakai simbol, kurs aktif, & grouping mata uang aktif.
 // (Nama historis "Rupiah" dipertahankan agar call site tidak perlu diubah.)
 export function formatRupiah(n, { tanda = false } = {}) {
   const { currency, locale } = uangAktif()
   const sym = symbolForCurrency(currency)
-  const v = Number(n) || 0
-  const abs = Math.abs(v).toLocaleString(locale)
+  const v = konversiUntukTampil(n)
+  const absVal = Math.abs(v)
+  const abs = absVal.toLocaleString(locale, { maximumFractionDigits: jumlahDesimalFormat(currency, absVal) })
   // Simbol menempel ke angka tanpa spasi (konvensi "Rp1.000"): kolom nominal
   // jadi rapat dan tidak bolak-balik lebar saat negara diganti.
   if (tanda) return `${v < 0 ? '−' : '+'} ${sym}${abs}`
@@ -256,7 +294,7 @@ export function formatRibuanInput(str) {
   return v ? v.toLocaleString(uangAktif().locale) : ''
 }
 
-// Untuk input koreksi saldo bertanda (mempertahankan tanda '-' & angka '0')
+// Untuk input korreksi saldo bertanda (mempertahankan tanda '-' & angka '0')
 export function formatRibuanInputBertanda(str) {
   if (typeof str === 'number') {
     if (!Number.isFinite(str)) return ''
@@ -271,6 +309,120 @@ export function formatRibuanInputBertanda(str) {
   const v = parseNominal(raw)
   if (!v) return raw.includes('0') ? '0' : (negatif ? '-' : '')
   return `${negatif ? '-' : ''}${v.toLocaleString(uangAktif().locale)}`
+}
+
+// ===== Helper Input Desimal Aman untuk Money Changer (mendukung sen seperti US$10.50) =====
+function pemisahDesimalLocale(locale) {
+  try {
+    return (1.1).toLocaleString(locale).includes(',') ? ',' : '.'
+  } catch {
+    return '.'
+  }
+}
+
+/**
+ * Sanitasi teks yang diketik user pada kolom nominal: menjaga 1 pemisah desimal
+ * & hingga 2 digit desimal bila mata uang aktif memakai sen (USD, SGD, MYR, EUR, dst.).
+ */
+export function sanitizeKetikNominal(str) {
+  const { currency, locale } = uangAktif()
+  const dMaks = desimalMataUang(currency)
+  if (dMaks === 0) return formatRibuanInput(str)
+
+  const raw = String(str ?? '')
+  const sep = pemisahDesimalLocale(locale)
+  const idx = raw.indexOf(sep)
+  if (idx === -1) {
+    return formatRibuanInput(raw)
+  }
+
+  const intDigits = raw.slice(0, idx).replace(/\D/g, '')
+  const fracDigits = raw.slice(idx + 1).replace(/\D/g, '').slice(0, dMaks)
+  const intVal = intDigits ? clampNominalPositif(Number(intDigits)) : 0
+  const intFormatted = intVal.toLocaleString(locale)
+  return `${intFormatted}${sep}${fracDigits}`
+}
+
+export function sanitizeKetikNominalBertanda(str) {
+  const { currency } = uangAktif()
+  const dMaks = desimalMataUang(currency)
+  if (dMaks === 0) return formatRibuanInputBertanda(str)
+
+  const raw = String(str ?? '').trim()
+  if (!raw) return ''
+  if (raw === '-' || raw === '−') return '-'
+  const negatif = raw.startsWith('-') || raw.startsWith('−')
+  const badan = sanitizeKetikNominal(raw.replace(/^[-−]/, ''))
+  if (!badan) return raw.includes('0') ? '0' : (negatif ? '-' : '')
+  return `${negatif ? '-' : ''}${badan}`
+}
+
+export function parseInputTampil(str) {
+  const { currency, locale } = uangAktif()
+  const dMaks = desimalMataUang(currency)
+  if (dMaks === 0) return parseNominal(str)
+  if (typeof str === 'number') {
+    if (!Number.isFinite(str) || str <= 0) return 0
+    const faktor = 10 ** dMaks
+    return Math.min(MAX_NOMINAL, Math.round(str * faktor) / faktor)
+  }
+
+  const raw = String(str ?? '').trim()
+  if (!raw) return 0
+  const sep = pemisahDesimalLocale(locale)
+  const idx = raw.indexOf(sep)
+  if (idx === -1) {
+    return parseNominal(raw)
+  }
+  const intDigits = raw.slice(0, idx).replace(/\D/g, '') || '0'
+  const fracDigits = raw.slice(idx + 1).replace(/\D/g, '').slice(0, dMaks)
+  const num = Number(`${intDigits}.${fracDigits || '0'}`)
+  if (!Number.isFinite(num) || num <= 0) return 0
+  return Math.min(MAX_NOMINAL, num)
+}
+
+export function parseInputTampilBertanda(str) {
+  const { currency } = uangAktif()
+  const dMaks = desimalMataUang(currency)
+  if (dMaks === 0) return parseNominalBertanda(str)
+  if (typeof str === 'number') {
+    if (!Number.isFinite(str)) return 0
+    const faktor = 10 ** dMaks
+    return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(str * faktor) / faktor))
+  }
+  const raw = String(str ?? '').trim()
+  if (!raw) return 0
+  const negatif = raw.startsWith('-') || raw.startsWith('−')
+  const abs = parseInputTampil(raw)
+  if (abs === 0) return 0
+  return negatif ? -abs : abs
+}
+
+export function formatInputTampil(nilaiDasar) {
+  if (nilaiDasar === '' || nilaiDasar === null || nilaiDasar === undefined) return ''
+  const num = Number(nilaiDasar)
+  if (!Number.isFinite(num) || num <= 0) return ''
+  const { currency, locale } = uangAktif()
+  const v = konversiUntukTampil(num)
+  const dMaks = desimalMataUang(currency)
+  const faktor = dMaks > 0 ? 10 ** dMaks : 1
+  const dibulat = Math.round(v * faktor) / faktor
+  if (!dibulat) return ''
+  return dibulat.toLocaleString(locale, { maximumFractionDigits: dMaks })
+}
+
+export function formatInputTampilBertanda(nilaiDasar) {
+  if (nilaiDasar === '' || nilaiDasar === null || nilaiDasar === undefined) return ''
+  const num = Number(nilaiDasar)
+  if (!Number.isFinite(num)) return ''
+  if (num === 0) return '0'
+  const { currency, locale } = uangAktif()
+  const v = konversiUntukTampil(num)
+  const dMaks = desimalMataUang(currency)
+  const faktor = dMaks > 0 ? 10 ** dMaks : 1
+  const dibulat = Math.round(v * faktor) / faktor
+  if (dibulat === 0) return '0'
+  return `${dibulat < 0 ? '-' : ''}${Math.abs(dibulat).toLocaleString(locale, { maximumFractionDigits: dMaks })}`
 }
 
 export function isoHariIni() {
