@@ -38,7 +38,14 @@ export default defineConfig({
               id.includes('/scheduler/')) return 'vendor-react'
           if (id.includes('chart.js')) return 'vendor-chart'
           if (id.includes('xlsx')) return 'vendor-xlsx'
-          if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase'
+          // Pecah Firebase per subsistem agar ukuran chunk tetap < 700 kB dan cache lebih efisien
+          if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) {
+            return 'vendor-firebase-firestore'
+          }
+          if (id.includes('@firebase/auth') || id.includes('firebase/auth')) {
+            return 'vendor-firebase-auth'
+          }
+          if (id.includes('firebase') || id.includes('@firebase')) return 'vendor-firebase-app'
           // undefined = serahkan ke Rollup (jspdf tetap di chunk lazy-nya).
           return undefined
         },
