@@ -1,12 +1,12 @@
 {
   "name": "myduit",
-  "version": "1.0.0",
+  "version": "2.2.0",
   "private": false,
-  "description": "Progressive Web App pencatatan keuangan pribadi offline-first dengan antarmuka Claymorphism modern.",
+  "description": "Offline-first personal finance PWA with tactile Claymorphism UI, Historical-FX display lens, receipt OCR, and bilingual (EN/ID) support.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/DavidTimoteus/PWA-MyDuit.git"
+    "url": "https://github.com/DavidTimoteus/MyDuit.git"
   },
   "author": "David Timoteus",
   "type": "module",
@@ -20,6 +20,7 @@
     "check:format": "node src/lib/format.check.mjs",
     "test:kurs": "node src/lib/kurs.test.mjs",
     "test:backup": "node src/features/backup/backupDelete.test.mjs",
+    "test:i18n": "node src/lib/i18n.test.mjs",
     "test:ocr": "node src/lib/ocrStruk.test.mjs",
     "test:filter": "node src/features/transaksi/mergeRiwayat.test.mjs && node src/features/transaksi/transaksiCache.test.mjs",
     "test:riwayat": "node src/features/budget/riwayatSaldo.test.mjs",
@@ -37,7 +38,7 @@
     "test:theme": "node src/lib/theme.check.mjs && node src/styles/themeContract.test.mjs",
     "test:motion": "node src/lib/useScrollEffects.test.mjs",
     "test:audit": "node src/lib/keuanganAudit.test.mjs",
-    "check": "npm run check:format && npm run test:kurs && npm run test:backup && npm run test:theme && npm run test:motion && npm run test:ocr && npm run test:struk && npm run test:image && npm run test:gemini && npm run test:provider && npm run test:offline && npm run test:audit && npm run test:filter && npm run test:riwayat && npm run test:render && npm run test:events && npm run test:classes && npm run test:utang && npm run test:transaksi && npm run test:popup && npm run test:design && npm run lint && npm run build",
+    "check": "npm run check:format && npm run test:kurs && npm run test:backup && npm run test:i18n && npm run test:theme && npm run test:motion && npm run test:ocr && npm run test:struk && npm run test:image && npm run test:gemini && npm run test:provider && npm run test:offline && npm run test:audit && npm run test:filter && npm run test:riwayat && npm run test:render && npm run test:events && npm run test:classes && npm run test:utang && npm run test:transaksi && npm run test:popup && npm run test:design && npm run lint && npm run build",
     "fb:login": "firebase login",
     "fb:rules": "firebase deploy --only firestore:rules",
     "fb:indexes": "firebase deploy --only firestore:indexes",

@@ -1,140 +1,125 @@
-# MyDuit 💵
+# MyDuit
 
-Aplikasi web progresif (PWA) untuk mencatat dan memantau keuangan harian dengan arsitektur **offline-first**, tampilan antarmuka **Neumorphism** yang taktil dan ramah mata, serta pemindaian struk belanja otomatis berbasis OCR.
+An **offline-first** personal finance Progressive Web App (PWA) crafted with tactile **Claymorphism & Neumorphism UI**, built with **React 19, Vite, Tailwind CSS v4, and Firebase (Auth & Firestore)** — engineered for instant local logging, historical-FX currency viewing, smart receipt OCR, and clean vector PDF reporting.
 
-Aplikasi ini dapat diakses langsung melalui browser di ponsel maupun komputer, serta dapat dipasang (*install*) ke layar utama tanpa memerlukan Google Play Store atau App Store.
-
-🌐 **Aplikasi Live**: [https://myduit001.web.app](https://myduit001.web.app)
-
----
-
-## 📱 Fitur Utama
-
-- **Offline-First Tanpa Ribet**: Catat pengeluaran dan pemasukan kapan saja bahkan saat tidak ada sinyal internet. Data tersimpan aman di penyimpanan lokal perangkat (*IndexedDB*) dan akan langsung tersinkronisasi ke server Firebase begitu perangkat kembali online.
-- **Antarmuka Neumorphism Taktil**: Desain bertema kanvas lembut `#E5E5E5` dengan tombol timbul 3D, sumur input tenggelam (*sunken*), efek teks bertekstur relief, serta palet 4 warna standar (Hijau Mint untuk Pemasukan, Merah Koral untuk Pengeluaran, Biru Samudra untuk Budget & Transfer, Kuning Surya untuk Utang).
-- **Multi-Rekening & Pindah Saldo**: Kelola beragam rekening terpisah (seperti BCA, Mandiri, GoPay, OVO, maupun Uang Tunai) lengkap dengan kalkulasi saldo otomatis dan riwayat mutasi saldo per akun.
-- **Pindai Struk Otomatis (Smart OCR)**: Cukup ambil foto struk belanja menggunakan kamera ponsel atau unggah gambar. Sistem akan mengenali nominal total, tanggal, dan nama toko secara otomatis menggunakan Tesseract OCR lokal di perangkat maupun integrasi Gemini AI Vision.
-- **Pengawasan Anggaran (Budgeting)**: Tentukan batas maksimal pengeluaran bulanan untuk setiap kategori belanja. Pantau persentase anggaran yang sudah terpakai agar tidak boros sebelum akhir bulan.
-- **Pencatatan Utang & Cicilan**: Lacak daftar pinjaman dan piutang, lengkap dengan sisa tagihan, tanggal jatuh tempo, nominal cicilan bulanan, serta tombol pelunasan cepat.
-- **Statistik & Tren Arus Kas**: Visualisasi grafik interaktif pergerakan pemasukan versus pengeluaran, analisis rasio tabungan, serta daftar kategori belanja paling boros.
-- **Ekspor Laporan PDF & Cadangan Data**: Cetak laporan keuangan rapi dalam format PDF resmi tanpa watermark dialog browser, serta ekspor/impor seluruh data akun ke format Excel (.xlsx) dan JSON.
-- **Dukungan Mata Uang Fleksibel**: Deteksi otomatis mata uang berdasarkan zona waktu perangkat, disertai opsi pemilihan manual untuk lebih dari 20 negara (Rupiah, USD, Ringgit, Dollar Singapura, dsb.).
+- **Live Web App**: [https://myduit001.web.app](https://myduit001.web.app)
+- **Privacy Policy**: [https://myduit001.web.app/privacy.html](https://myduit001.web.app/privacy.html)
+- **Terms of Service**: [https://myduit001.web.app/terms.html](https://myduit001.web.app/terms.html)
 
 ---
 
-## 🛠️ Teknologi yang Digunakan
+## Key Features
 
-| Kategori | Teknologi |
+- **Offline-First Cloud Sync**: Record income, expenses, transfers, budgets, and debt payments even without internet connectivity. Data persists locally in IndexedDB and syncs cleanly with Cloud Firestore when online.
+- **Historical-FX Money Changer (Lens-Only Architecture)**:
+  - Choose your account's base accounting currency when starting with an empty ledger (`IDR Rp`, `USD $`, or any supported world currency).
+  - Switch your display & PDF export currency lens at any time without rewriting database records.
+  - Every new transaction captures an immutable light `kursSnapshot` on creation so historical records retain their creation-date conversion value while new records and live account balances convert at live exchange rates.
+- **Bilingual Interface (`English` & `Bahasa Indonesia`)**: Switch UI language seamlessly alongside currency lens selection with shared locale rules and Latin-safe vector PDF exports.
+- **Multi-Account & Transfer Management**: Separate bank accounts, e-wallets, and cash with automatic balance updates, negative balance warnings, and per-account mutation audit logs.
+- **Smart Receipt OCR**: Scan receipts via camera or upload using local on-device **Tesseract.js** OCR or optional bring-your-own **Gemini AI** Vision API key.
+- **Monthly Budgets & Debt Tracking**: Set category spending limits per month, track burn rate per day, and manage payables/receivables with partial or full installment payments.
+- **Vector PDF Reports & Complete Backup/Account Deletion**: Generate multi-page client-side PDF reports via **jsPDF**, export/import full JSON backups (including legacy `.xlsx` migration), or permanently wipe data and delete the Google-linked account from inside **Backup & Restore**.
+
+---
+
+## Multi-Platform Roadmap
+
+| Platform | Distribution Target | Status |
+| :--- | :--- | :--- |
+| **Web / Mobile PWA** | Browser & Installable PWA (`https://myduit001.web.app`) | Live (`v2.2.0`) |
+| **Android** | Google Play Store via Trusted Web Activity (TWA / `.aab`) | Compliance foundation ready (`assetlinks.json`, Privacy Policy, Account Deletion) |
+| **Windows Desktop** | Standalone Desktop App synced via Google Sign-In | Planned (`Batch 2`) |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
 | :--- | :--- |
-| **Frontend Framework** | [React 19](https://react.dev/) + [Vite](https://vite.dev/) |
-| **Styling & Desain** | [Tailwind CSS v4](https://tailwindcss.com/) + Custom Neumorphic Design System |
-| **Database & Autentikasi** | [Firebase Firestore](https://firebase.google.com/) (Persistent Local Cache & Multi-Tab Manager) + Firebase Auth |
-| **Pemindaian Struk** | [Tesseract.js](https://tesseract.projectnaptha.com/) & [Google Gemini AI](https://ai.google.dev/) |
-| **Grafik & Visualisasi** | [Chart.js](https://www.chartjs.org/) |
-| **Pembuat Dokumen** | [jsPDF](https://github.com/parallax/jsPDF) & [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) |
-| **Olah Data Spreadsheet** | [SheetJS (xlsx)](https://sheetjs.com/) |
-| **Progressive Web App** | [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (Service Worker Cache & Background Sync) |
+| **Frontend** | [React 19](https://react.dev/) + [Vite 6](https://vite.dev/) + [@vite-pwa](https://vite-pwa-org.netlify.app/) |
+| **Styling** | [Tailwind CSS v4](https://tailwindcss.com/) + Custom Claymorphism / Neumorphism Tokens |
+| **Backend & Sync** | [Firebase Auth](https://firebase.google.com/) (Google Sign-In) + [Cloud Firestore](https://firebase.google.com/) (Persistent Multi-Tab Cache) |
+| **Receipt OCR** | [Tesseract.js](https://tesseract.projectnaptha.com/) (Local) & Optional [Google Gemini API](https://ai.google.dev/) |
+| **Charts & PDF** | [Chart.js](https://www.chartjs.org/), [jsPDF](https://github.com/parallax/jsPDF), [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) |
+| **Spreadsheets** | [SheetJS (xlsx)](https://sheetjs.com/) |
 
 ---
 
-## 📁 Struktur Direktori
+## Project Structure
 
 ```text
-├── public/                # Aset statis PWA (manifest, favicon, ikon aplikasi)
+├── public/                     # Static PWA icons, privacy.html, terms.html, .well-known/assetlinks.json
 ├── src/
-│   ├── components/        # Komponen UI inti (Shell navigasi, Clay & Neu UI, Modal, Splash)
+│   ├── components/             # Shell layout, clay/neu primitives, currency onboarding & FX lens notices
 │   ├── features/
-│   │   ├── auth/          # Hook dan penanganan login akun
-│   │   ├── backup/        # Ekspor, impor data JSON, dan migrasi dataset XLSX
-│   │   ├── budget/        # Pengaturan limit anggaran dan manajemen kartu rekening
-│   │   ├── laporan/       # Generator berkas laporan keuangan PDF (vektor client-side)
-│   │   ├── statistik/     # Grafik tren arus kas dan ringkasan metrik
-│   │   ├── transaksi/     # Form pencatatan, filter tanggal, dan riwayat transaksi
-│   │   └── utang/         # Modul pelacakan utang, cicilan aktif, dan modal bayar
-│   ├── lib/               # Utilitas database Firestore, OCR struk, format uang, & tema
-│   ├── styles/            # Token desain Neumorphism, CSS variabel, dan font
-│   ├── App.jsx            # Gerbang autentikasi dan inisialisasi aplikasi
-│   └── main.jsx           # Entry point utama React
-├── firebase.json          # Konfigurasi hosting dan database Firestore
-├── firestore.rules        # Aturan keamanan database Firestore per pengguna (UID)
-└── vite.config.js         # Konfigurasi bundler Vite dan plugin PWA
+│   │   ├── auth/               # Firebase Authentication gate & Google sign-in hook
+│   │   ├── backup/             # JSON backup/restore, XLSX migration, full account/data deletion
+│   │   ├── budget/             # Multi-account wallet cards, balance mutation log, monthly budgets
+│   │   ├── laporan/            # Vector jsPDF financial report generator & export modal
+│   │   ├── statistik/          # Interactive Chart.js trend charts & deterministic analytics rules
+│   │   ├── transaksi/          # Transaction list, bulk actions, modal form, calculator & OCR scanner
+│   │   └── utang/              # Payable/receivable tracking & installment payment flows
+│   ├── lib/                    # Firestore CRUD, historical-FX rate helpers, currency/locale formatters, i18n
+│   └── styles/                 # Design system CSS variables, tokens & contract tests
+├── firebase.json               # Hosting headers, rewrites & named Firestore DB routing
+├── firestore.rules             # Per-user security rules with schema & kursSnapshot validation
+└── vite.config.js              # Vite chunks, PWA manifest & workbox offline caching
 ```
 
 ---
 
-## 🚀 Menjalankan Proyek Secara Lokal
+## Local Development
 
-### 1. Prasyarat Sistem
-- Node.js versi 20 atau yang lebih baru
-- npm (bawaan Node.js)
+### 1. Prerequisites
+- **Node.js 20+** and **npm**
+- A Firebase project with **Google Authentication** enabled and **Cloud Firestore** created
 
-### 2. Kloning Repositori
+### 2. Clone & Install
 ```bash
-git clone https://github.com/DavidTimoteus/PWA-MyDuit.git
-cd PWA-MyDuit
-```
-
-### 3. Pasang Dependensi
-```bash
+git clone https://github.com/DavidTimoteus/MyDuit.git
+cd MyDuit
 npm install
 ```
 
-### 4. Konfigurasi Variabel Lingkungan (.env)
-Salin contoh file lingkungan dan isi kredensial proyek Firebase Anda:
+### 3. Configure Environment Variables
+Copy `.env.example` to `.env.local` and fill in your Firebase project credentials:
 ```bash
 cp .env.example .env.local
 ```
 
-Buka `.env.local` lalu masukkan konfigurasi Firebase Anda:
 ```env
-VITE_FIREBASE_API_KEY=kunci_api_firebase_anda
-VITE_FIREBASE_AUTH_DOMAIN=proyek-anda.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=proyek-anda
-VITE_FIREBASE_STORAGE_BUCKET=proyek-anda.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=nomor_pengirim
-VITE_FIREBASE_APP_ID=id_aplikasi_firebase
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_DATABASE_ID=(default)
 ```
 
-> **Catatan OCR Gemini (Opsional)**: Untuk menggunakan fitur pemindaian struk berbasis AI dengan akurasi tinggi, Anda dapat memasukkan API Key Google AI Studio langsung melalui pengaturan OCR di dalam aplikasi.
+> **Note**: In `.env.local`, set `VITE_FIREBASE_DATABASE_ID` to `(default)` or your named Firestore database ID matching `firebase.json`.
 
-### 5. Jalankan Server Development
+### 4. Run Dev Server & Quality Checks
 ```bash
+# Start local development server at http://localhost:5173
 npm run dev
-```
-Buka browser pada alamat `http://localhost:5173` untuk mencoba aplikasi.
 
-### 6. Build untuk Produksi
-```bash
-npm run build
-```
-Hasil build siap rilis akan tersedia di folder `dist/`.
-
----
-
-## 🧪 Pengujian Kualitas Kode
-
-Aplikasi ini memiliki serangkaian uji otomatis untuk memastikan keandalan sinkronisasi data offline, konsistensi styling antarmuka, dan parsing OCR:
-
-```bash
-# Jalankan seluruh 19 uji otomatis + linter + build check
+# Run all 20+ automated unit/contract tests, ESLint, and production build
 npm run check
 
-# Uji kontrak tema Neumorphism & palet warna
-npm run test:theme
-
-# Uji parser OCR struk belanja
-npm run test:ocr
-
-# Uji logika mutasi dan perhitungan saldo rekening
-npm run test:riwayat
-
-# Uji integritas sinkronisasi offline Firestore
-npm run test:offline
+# Build production bundle into dist/
+npm run build
 ```
 
 ---
 
-## 📄 Lisensi
+## Contributing
 
-Proyek ini berlisensi [MIT License](LICENSE). Bebas digunakan, dipelajari, dan dikembangkan lebih lanjut.
+Contributions, bug reports, and UI/localization improvements are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a Pull Request.
+
+---
+
+## License
+
+Licensed under the [MIT License](LICENSE).
