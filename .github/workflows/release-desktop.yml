@@ -1,0 +1,83 @@
+name: Build Windows Desktop (.exe)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Check Firebase build secret availability
+        id: check_env
+        shell: pwsh
+        env:
+          FB_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        run: |
+          if ($env:FB_API_KEY) {
+            "ready=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          } else {
+            "ready=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            Write-Host "Skipping CI Windows EXE build: VITE_FIREBASE_API_KEY secret not configured yet."
+          }
+
+      - name: Checkout repository
+        if: steps.check_env.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        if: steps.check_env.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        if: steps.check_env.outputs.ready == 'true'
+        run: npm ci
+
+      - name: Build production web bundle
+        if: steps.check_env.outputs.ready == 'true'
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_DATABASE_ID: ${{ secrets.VITE_FIREBASE_DATABASE_ID || 'myduit001' }}
+          VITE_FIREBASE_APPCHECK_SITE_KEY: ${{ secrets.VITE_FIREBASE_APPCHECK_SITE_KEY }}
+        run: npm run build
+
+      - name: Install desktop dependencies
+        if: steps.check_env.outputs.ready == 'true'
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Package Windows Installer & Portable EXE
+        if: steps.check_env.outputs.ready == 'true'
+        working-directory: desktop
+        env:
+          VITE_GOOGLE_DESKTOP_CLIENT_ID: ${{ secrets.VITE_GOOGLE_DESKTOP_CLIENT_ID }}
+          VITE_GOOGLE_DESKTOP_CLIENT_SECRET: ${{ secrets.VITE_GOOGLE_DESKTOP_CLIENT_SECRET }}
+        run: npm run dist
+
+      - name: Upload Windows artifacts
+        if: steps.check_env.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: myduit-windows-exe
+          path: |
+            desktop/release/MyDuit-*.exe
+
+      - name: Attach Windows EXE to GitHub Release
+        if: steps.check_env.outputs.ready == 'true' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: desktop/release/MyDuit-*.exe
+

@@ -1,0 +1,62 @@
+{
+  "packageId": "app.web.myduit001.twa",
+  "host": "myduit001.web.app",
+  "name": "MyDuit — Personal Finance",
+  "launcherName": "MyDuit",
+  "display": "standalone",
+  "themeColor": "#F8FAF9",
+  "themeColorDark": "#0F172A",
+  "navigationColor": "#E5E5E5",
+  "navigationColorDark": "#0F172A",
+  "navigationDividerColor": "#E5E5E5",
+  "navigationDividerColorDark": "#1E293B",
+  "backgroundColor": "#1B4332",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://myduit001.web.app/icons/icon-512.png",
+  "maskableIconUrl": "https://myduit001.web.app/icons/maskable-512.png",
+  "monochromeIconUrl": "",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "myduit"
+  },
+  "appVersionCode": 2,
+  "appVersionName": "2.3.0",
+  "shortcuts": [
+    {
+      "name": "Catat Pengeluaran",
+      "shortName": "Pengeluaran",
+      "url": "/?preset=pengeluaran",
+      "chosenIconUrl": "https://myduit001.web.app/icons/icon-192.png"
+    },
+    {
+      "name": "Catat Pemasukan",
+      "shortName": "Pemasukan",
+      "url": "/?preset=pemasukan",
+      "chosenIconUrl": "https://myduit001.web.app/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://myduit001.web.app/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": "true",
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://myduit001.web.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": []
+}
+
