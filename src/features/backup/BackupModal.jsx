@@ -1,13 +1,25 @@
-import { useRef, useState } from 'react'
-import { exportData, restoreData } from './backup.js'
+import { useEffect, useRef, useState } from 'react'
+import { exportData, hapusSemuaData, restoreData } from './backup.js'
 import { portalBody } from '../../lib/portal.js'
 
 export default function BackupModal({ open, onClose, uid }) {
   const [loading, setLoading] = useState(false)
+  const [aksi, setAksi] = useState(null)
   const [msg, setMsg] = useState(null)
   const [preview, setPreview] = useState(null)
   const [progress, setProgress] = useState(null)
+  const [dangerOpen, setDangerOpen] = useState(false)
+  const [konfirmTeks, setKonfirmTeks] = useState('')
   const fileRef = useRef(null)
+
+  useEffect(() => {
+    if (open) {
+      setDangerOpen(false)
+      setKonfirmTeks('')
+      setAksi(null)
+      setProgress(null)
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -24,6 +36,7 @@ export default function BackupModal({ open, onClose, uid }) {
 
   async function ekspor() {
     setLoading(true)
+    setAksi('ekspor')
     setMsg(null)
     try {
       const json = await exportData(uid)
@@ -33,6 +46,7 @@ export default function BackupModal({ open, onClose, uid }) {
       setMsg({ type: 'err', text: e?.message ?? 'Gagal ekspor.' })
     } finally {
       setLoading(false)
+      setAksi(null)
     }
   }
 
@@ -101,6 +115,7 @@ export default function BackupModal({ open, onClose, uid }) {
   async function pulihkan() {
     if (!preview) return
     setLoading(true)
+    setAksi('pulihkan')
     setMsg(null)
     setProgress({ done: 0, total: 0 })
     try {
@@ -111,13 +126,43 @@ export default function BackupModal({ open, onClose, uid }) {
       setMsg({ type: 'err', text: e?.message ?? 'Gagal memulihkan.' })
     } finally {
       setLoading(false)
+      setAksi(null)
+      setProgress(null)
+    }
+  }
+
+  const konfirmCocok = konfirmTeks.trim().toUpperCase() === 'HAPUS SEMUA'
+  const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false
+
+  async function eksekusiHapusTotal() {
+    if (!konfirmCocok || loading) return
+    setLoading(true)
+    setAksi('hapus')
+    setMsg(null)
+    setProgress({ done: 0, total: 0 })
+    try {
+      const res = await hapusSemuaData(uid, (p) => setProgress(p))
+      setDangerOpen(false)
+      setKonfirmTeks('')
+      setPreview(null)
+      setMsg({
+        type: 'ok',
+        text: res.deleted > 0
+          ? `Hapus total selesai (${res.deleted} dokumen dihapus permanen).`
+          : 'Akun sudah bersih (tidak ada dokumen tersimpan).',
+      })
+    } catch (e) {
+      setMsg({ type: 'err', text: e?.message ?? 'Gagal menghapus seluruh data.' })
+    } finally {
+      setLoading(false)
+      setAksi(null)
       setProgress(null)
     }
   }
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom w-full max-w-sm p-5">
+      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom max-h-[90vh] w-full max-w-sm overflow-y-auto p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800">Backup & Pulihkan</h3>
           <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">
@@ -200,6 +245,100 @@ export default function BackupModal({ open, onClose, uid }) {
             {msg.text}
           </p>
         )}
+
+        {/* Zona Bahaya: Hapus Total Data Permanen */}
+        <div className="mt-4 border-t border-slate-200/80 pt-3.5">
+          {!dangerOpen ? (
+            <button
+              type="button"
+              onClick={() => {
+                setDangerOpen(true)
+                setKonfirmTeks('')
+                setMsg(null)
+              }}
+              disabled={loading}
+              className="clay-btn clay-btn-secondary btn-md w-full text-xs font-bold text-[#EB5353] hover:bg-red-50 disabled:opacity-60"
+            >
+              <span className="material-symbols-outlined icon-sm">delete_forever</span>
+              Hapus Total Semua Data…
+            </button>
+          ) : (
+            <div className="neu-inset rounded-2xl bg-red-50/75 p-3.5 border border-red-200/80">
+              <div className="flex items-start gap-2">
+                <span className="material-symbols-outlined icon-md mt-0.5 shrink-0 text-[#EB5353]">warning</span>
+                <div className="min-w-0">
+                  <h4 className="text-xs font-extrabold text-red-700">Hapus Semua Data Permanen</h4>
+                  <p className="mt-1 text-[11px] leading-relaxed text-red-700/90">
+                    Seluruh transaksi, rekening, kategori, budget, utang, pembayaran, dan log mutasi pada akun ini akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+                  </p>
+                  {isOffline && (
+                    <p className="mt-1 text-[10px] font-bold text-amber-700">
+                      Anda sedang offline: penghapusan akan mengantre dan diterapkan ke server begitu koneksi kembali.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={ekspor}
+                disabled={loading}
+                className="clay-btn clay-btn-secondary btn-sm mt-2.5 w-full text-[11px] font-bold text-slate-700 disabled:opacity-60"
+              >
+                <span className="material-symbols-outlined icon-xs">download</span>
+                {loading && aksi === 'ekspor' ? 'Mengekspor…' : 'Ekspor Backup Dulu (Disarankan)'}
+              </button>
+
+              <label className="mt-2.5 block text-[10px] font-bold uppercase tracking-wide text-red-700">
+                Ketik <span className="font-mono underline">HAPUS SEMUA</span> untuk konfirmasi:
+              </label>
+              <input
+                type="text"
+                value={konfirmTeks}
+                onChange={(e) => setKonfirmTeks(e.target.value)}
+                disabled={loading}
+                placeholder="HAPUS SEMUA"
+                autoComplete="off"
+                className="clay-input field-md mt-1 w-full rounded-xl px-3 text-xs font-bold tracking-wider uppercase outline-none placeholder:text-slate-400"
+              />
+
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDangerOpen(false)
+                    setKonfirmTeks('')
+                  }}
+                  disabled={loading}
+                  className="clay-btn clay-btn-secondary btn-md text-xs font-bold text-slate-600 disabled:opacity-60"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={eksekusiHapusTotal}
+                  disabled={loading || !konfirmCocok}
+                  className="clay-btn clay-key-danger solid-danger btn-md text-xs font-extrabold text-white disabled:opacity-50"
+                >
+                  {loading && aksi === 'hapus'
+                    ? progress?.total
+                      ? `Menghapus… ${progress.done}/${progress.total}`
+                      : 'Menghapus…'
+                    : 'Hapus Total'}
+                </button>
+              </div>
+
+              {loading && aksi === 'hapus' && progress?.total > 0 && (
+                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-red-200/70">
+                  <div
+                    className="progress-bar-fill h-full rounded-full bg-[#EB5353]"
+                    style={{ width: `${Math.round((progress.done / progress.total) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>,
   )

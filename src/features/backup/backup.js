@@ -1,6 +1,8 @@
 import { Timestamp, collection, getDocs, writeBatch, doc } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
+import { IS_DEMO_UID } from '../../lib/mockData.js'
+import { resetBasisMataUang } from '../../lib/kurs.js'
 
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
@@ -163,8 +165,8 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
 // terjadi per-batch di tengah proses, jadi user sudah melihat "Berhasil" lalu
 // kehilangan data. Guard di sini memindahkan kegagalan ke awal, sebelum ada
 // data yang tersentuh.
-function uidAktif(uid) {
-  const { auth } = getFirebase()
+function uidAktif(uid, deps) {
+  const { auth } = deps?.getFirebase ? deps.getFirebase() : getFirebase()
   const sekarang = auth.currentUser?.uid
   if (!sekarang) throw new Error('Belum login.')
   if (uid !== sekarang) throw new Error('UID tidak cocok dengan akun yang sedang login.')
@@ -172,6 +174,7 @@ function uidAktif(uid) {
 }
 
 const KOLEKSI = ['akun', 'kategori', 'transaksi', 'budget', 'utang', 'pembayaranUtang', 'mutasiLog']
+const KOLEKSI_HAPUS = [...KOLEKSI, 'meta']
 
 // Firestore membatasi 500 operasi per writeBatch.
 const BATCH_LIMIT = 450
@@ -234,4 +237,58 @@ export async function restoreData(uid, json, onProgress) {
     onProgress?.({ done, total, koleksi: slice[slice.length - 1]?.koleksi })
   }
   return done
+}
+
+/**
+ * Menghapus permanen seluruh dokumen pengguna di Firestore (`KOLEKSI` + `meta`)
+ * secara bertahap per `BATCH_LIMIT` dan membersihkan penanda lokal di `localStorage`.
+ *
+ * @param {string} uid
+ * @param {({ done, total, koleksi }) => void} [onProgress]
+ * @param {object} [deps] Opsional injeksi dependensi untuk pengujian unit Node
+ */
+export async function hapusSemuaData(uid, onProgress, deps = {}) {
+  if (IS_DEMO_UID(uid)) {
+    throw new Error('Mode demo tidak memiliki data tersimpan untuk dihapus.')
+  }
+  const uidValid = uidAktif(uid, deps)
+  const { db } = deps.getFirebase ? deps.getFirebase() : getFirebase()
+  const collectionFn = deps.collection || collection
+  const getDocsFn = deps.getDocs || getDocs
+  const writeBatchFn = deps.writeBatch || writeBatch
+
+  const ops = []
+  const perKoleksi = {}
+
+  for (const k of KOLEKSI_HAPUS) {
+    const snap = await getDocsFn(collectionFn(db, 'users', uidValid, k))
+    const daftar = snap?.docs || []
+    perKoleksi[k] = daftar.length
+    for (const d of daftar) {
+      ops.push({ koleksi: k, ref: d.ref })
+    }
+  }
+
+  const total = ops.length
+  let done = 0
+  for (let i = 0; i < total; i += BATCH_LIMIT) {
+    const slice = ops.slice(i, i + BATCH_LIMIT)
+    const batch = writeBatchFn(db)
+    for (const op of slice) batch.delete(op.ref)
+    await batch.commit()
+    done += slice.length
+    onProgress?.({ done, total, koleksi: slice[slice.length - 1]?.koleksi })
+  }
+
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(`myduit-migrasi-norm-${uidValid}`)
+      localStorage.removeItem('myduit:tx_chip')
+    }
+  } catch {
+    // Abaikan bila localStorage tidak tersedia
+  }
+  resetBasisMataUang()
+
+  return { deleted: done, total, perKoleksi }
 }
