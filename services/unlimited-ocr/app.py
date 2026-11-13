@@ -110,99 +110,82 @@ class UnlimitedOCRBridge:
         except Exception as e:
             print(f"[Unlimited-OCR] Catatan: Model transformer tidak dimuat ({e}), menggunakan engine fallback.")
 
-    def parse_image(self, image: Image.Image) -> ReceiptResponse:
-        """Parses an image and returns structured ReceiptResponse."""
+    def parse_image(self, image: Image.Image, crop_mode: str = "gundam") -> ReceiptResponse:
+        """Parses an image with loaded baidu/Unlimited-OCR weights, or signals 503 if uninitialized."""
         if self.model_loaded and self.model and self.processor:
-            return self._infer_vlm(image)
-        return self._infer_resilient_heuristics(image)
-
-    def _infer_vlm(self, image: Image.Image) -> ReceiptResponse:
-        """Runs inference via HuggingFace baidu/Unlimited-OCR pipeline."""
-        prompt = (
-            "<image>\n"
-            "Ekstrak struk transaksi ini ke format tabel Markdown dan identifikasi: "
-            "Nama Toko/Merchant, Tanggal, Total Nominal (Rp), Daftar Item (Qty, Harga), Metode Pembayaran."
+            return self._infer_vlm(image, crop_mode=crop_mode)
+        raise HTTPException(
+            status_code=503,
+            detail="Bobot model baidu/Unlimited-OCR belum dimuat; alihkan ke fallback Gemini/lokal.",
         )
-        inputs = self.processor(text=prompt, images=image, return_tensors="pt").to(self.device)
-        generated_ids = self.model.generate(
-            **inputs,
-            max_new_tokens=1024,
-            do_sample=False,
-            temperature=0.0,
-        )
-        output_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
-        return self._post_process_text(output_text, image)
 
-    def _infer_resilient_heuristics(self, image: Image.Image) -> ReceiptResponse:
-        """
-        Fast OCR processing when large weights are not loaded.
-        Extracts image metadata and produces a structured result.
-        """
-        w, h = image.size
-        ratio = h / max(1, w)
-        foto_buram = (w < 200 or h < 200)
+    def _infer_vlm(self, image: Image.Image, crop_mode: str = "gundam") -> ReceiptResponse:
+        """Runs inference via baidu/Unlimited-OCR official prompt & Gundam/Base parameters."""
+        prompt = "<image>document parsing."
+        use_crop = crop_mode != "base"
+        # Jika custom model code baidu/Unlimited-OCR mengekspos .infer(), prioritaskan API resminya
+        if hasattr(self.model, "infer"):
+            output_text = self.model.infer(
+                self.processor,
+                prompt=prompt,
+                image=image,
+                base_size=1024,
+                image_size=640 if use_crop else 1024,
+                crop_mode=use_crop,
+            )
+            if isinstance(output_text, (list, tuple)):
+                output_text = output_text[0]
+        else:
+            inputs = self.processor(text=prompt, images=image, return_tensors="pt").to(self.device)
+            generated_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=2048,
+                do_sample=False,
+                no_repeat_ngram_size=35,
+            )
+            output_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
+        return self._post_process_text(str(output_text), image)
 
-        # Baseline template extraction
-        merchant = "Toko / Merchant"
-        tanggal = time.strftime("%Y-%m-%d")
-        total = None
-        barang: List[ReceiptItem] = []
-
-        markdown_lines = [
-            "### 🧾 Ringkasan Struk Transaksi (Unlimited-OCR Bridge)",
-            f"- **Dimensi Citra:** {w} x {h} px (Aspek Rasio: {ratio:.2f})",
-            f"- **Tanggal Analisis:** {tanggal}",
-            "- **Status Engine:** Siap Menerima Dokumen & Struk",
-            "",
-            "#### 📋 Rincian Item Transaksi",
-            "| No | Item / Deskripsi | Qty | Harga Satuan | Subtotal |",
-            "|:--:|:-----------------|:---:|:------------:|:--------:|",
-            "| 1  | Transaksi Struk  | 1   | -            | -        |",
-        ]
-
-        return ReceiptResponse(
-            merchant=merchant,
-            tanggal=tanggal,
-            total=total,
-            totalSumber="Unlimited-OCR Fast Parser",
-            jenis="pengeluaran",
-            keterangan="Transaksi Struk",
-            kategoriNama="Lainnya",
-            kategoriDari="unlimited-ocr",
-            kategoriYakin=True,
-            barang=barang,
-            sumberBayar=None,
-            bayarTunai=False,
-            confidence=96.0,
-            markdown="\n".join(markdown_lines),
-            teks=f"Dokumen struk {w}x{h} px diproses via Unlimited-OCR.",
-            fotoBuram=foto_buram,
-        )
+    def _clean_grounding_markdown(self, raw_text: str) -> str:
+        """Porting ringan process_unlimitedOCR2: bersihkan tag <|ref|>, <|det|>, <PAGE>, dan <BLOCK>."""
+        cleaned = re.sub(r"<\|ref\|>[\s\S]*?<\|/ref\|>", "", raw_text)
+        cleaned = re.sub(r"<\|det\|>[\s\S]*?<\|/det\|>", "", cleaned)
+        cleaned = re.sub(r"</?(?:PAGE|BLOCK)\b[^>]*>", "\n", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+        return cleaned
 
     def _post_process_text(self, text: str, image: Image.Image) -> ReceiptResponse:
-        """Parses model generation text into ReceiptResponse."""
-        w, h = image.size
-        # Total regex match
-        total_m = re.search(r"(?:total|grand total|jumlah bayar|rp\.?)\s*[:=]?\s*([0-9.,]+)", text, re.IGNORECASE)
+        """Parses cleaned model generation text into ReceiptResponse."""
+        clean_md = self._clean_grounding_markdown(text)
+        plain_text = re.sub(r"<[^>]+>", " ", clean_md)
+        plain_text = re.sub(r"[ \t]+", " ", plain_text)
+
+        # Total regex match (ambil kandidat total akhir yang paling relevan)
+        total_matches = list(
+            re.finditer(r"(?:grand\s*total|total\s*bayar|total|jumlah\s*bayar)\s*[:=]?\s*(?:rp\.?\s*)?([0-9.,]+)", plain_text, re.IGNORECASE)
+        )
         total = None
-        if total_m:
-            digits = re.sub(r"[^\d]", "", total_m.group(1))
-            if digits.isdigit():
+        total_sumber = None
+        if total_matches:
+            last_m = total_matches[-1]
+            digits = re.sub(r"[^\d]", "", last_m.group(1))
+            if digits.isdigit() and int(digits) > 0:
                 total = int(digits)
+                total_sumber = last_m.group(0)
 
         # Date regex match
-        date_m = re.search(r"(20\d{2}[-/.]\d{1,2}[-/.]\d{1,2})", text)
+        date_m = re.search(r"(20\d{2}[-/.]\d{1,2}[-/.]\d{1,2})", plain_text)
         tanggal = date_m.group(1).replace("/", "-").replace(".", "-") if date_m else time.strftime("%Y-%m-%d")
 
         # Merchant detection
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
+        lines = [l.strip() for l in plain_text.splitlines() if l.strip()]
         merchant = lines[0][:40] if lines else "Toko"
 
         return ReceiptResponse(
             merchant=merchant,
             tanggal=tanggal,
             total=total,
-            totalSumber=total_m.group(0) if total_m else None,
+            totalSumber=total_sumber,
             jenis="pengeluaran",
             keterangan=merchant,
             kategoriNama="Lainnya",
@@ -210,10 +193,10 @@ class UnlimitedOCRBridge:
             kategoriYakin=True,
             barang=[],
             sumberBayar=None,
-            bayarTunai="tunai" in text.lower() or "cash" in text.lower(),
+            bayarTunai="tunai" in plain_text.lower() or "cash" in plain_text.lower(),
             confidence=98.0,
-            markdown=text,
-            teks=text,
+            markdown=clean_md,
+            teks=plain_text,
             fotoBuram=False,
         )
 
@@ -233,7 +216,10 @@ async def health():
 
 
 @app.post("/api/v1/parse-receipt", response_model=ParseResponse)
-async def parse_receipt(file: UploadFile = File(...)):
+async def parse_receipt(
+    file: UploadFile = File(...),
+    crop_mode: str = Query("gundam", description="Mode citra Unlimited-OCR: gundam atau base"),
+):
     """Receives receipt image, extracts financial information with Unlimited-OCR."""
     try:
         contents = await file.read()
@@ -241,7 +227,7 @@ async def parse_receipt(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"File gambar tidak valid: {str(e)}")
 
-    result = ocr_bridge.parse_image(image)
+    result = ocr_bridge.parse_image(image, crop_mode=crop_mode)
     return ParseResponse(success=True, engine="unlimited-ocr", data=result)
 
 

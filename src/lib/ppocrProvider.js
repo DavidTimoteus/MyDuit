@@ -41,7 +41,8 @@ async function muatOrtRuntime() {
 }
 
 /**
- * Eksekusi pemindaian struk dengan PP-OCRv4 Mobile (dengan fallback mulus ke Tesseract).
+ * Eksekusi pemindaian on-device. Jika runtime ONNX + bobot PP-OCR nyata belum terpasang,
+ * langsung beralih secara transparan ke Tesseract Lokal (Gundam-Enhanced) tanpa memalsukan skor.
  *
  * @param {File|Blob} file
  * @param {(p: number) => void} [onProgress]
@@ -50,32 +51,14 @@ async function muatOrtRuntime() {
 export async function bacaStrukPpOcr(file, onProgress) {
   onProgress?.(0.1)
 
-  // Coba muat runtime PP-OCR
-  const ort = await muatOrtRuntime()
+  // Cek runtime ONNX (model bobot PP-OCR belum dibundel ke aset PWA agar ukuran offline tetap ringan)
+  await muatOrtRuntime()
 
-  // Jika runtime ONNX berhasil dimuat dan siap
-  if (ort && ppOcrReady) {
-    try {
-      onProgress?.(0.3)
-      // Jalankan pipeline deteksi + pengenalan
-      // Fallback ke Tesseract jika model bobot belum tersedia di offline storage
-      onProgress?.(0.7)
-      const hasil = await bacaStruk(file, onProgress)
-      return {
-        ...hasil,
-        engine: 'pp-ocrv4',
-        confidence: Math.max(hasil.confidence || 0, 92),
-      }
-    } catch (e) {
-      console.warn('[ppocr] Eksekusi model gagal, beralih ke Tesseract lokal:', e)
-    }
-  }
-
-  // Fallback transparan ke Tesseract Lokal + R-SWA
+  // Fallback transparan ke Tesseract Lokal (dengan Gundam Dynamic Tiling & R-SWA)
   const hasilLokal = await bacaStruk(file, onProgress)
   return {
     ...hasilLokal,
     engine: 'tesseract-local',
-    fallbackReason: 'ppocr_fallback_tesseract',
+    fallbackReason: ortInstance && ppOcrReady ? 'ppocr_weights_unavailable' : 'ppocr_fallback_tesseract',
   }
 }
