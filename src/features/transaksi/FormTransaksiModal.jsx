@@ -10,13 +10,13 @@ import {
   scanDokumenKeuangan,
   bacaOcrConfig,
   simpanOcrConfig,
-  cekStatusUnlimitedOcr,
-  deteksiKapabilitasPerangkat,
-  DEFAULT_OCR_ENDPOINT,
   bacaGeminiKey,
   simpanGeminiKey,
   hapusGeminiKey,
   ujiKoneksiGemini,
+  cekStatusPuterOcr,
+  sambungkanPuterOcr,
+  muatPuterSdk,
 } from '../../lib/ocrProvider.js'
 
 // Modal Catat / Edit / Salin transaksi — mendukung Pemasukan & Pengeluaran
@@ -60,12 +60,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     const e = bacaOcrConfig().engine
     return e === 'ppocr' ? 'local' : e
   })
-  const [ocrEndpoint, setOcrEndpoint] = useState(() => bacaOcrConfig().endpoint)
-  const [ocrCropMode, setOcrCropMode] = useState(() => bacaOcrConfig().cropMode)
-  const [ocrStatusMsg, setOcrStatusMsg] = useState('')
-  const [ocrTesting, setOcrTesting] = useState(false)
+  const [puterProvider, setPuterProvider] = useState(() => bacaOcrConfig().puterProvider)
+  const [puterStatusMsg, setPuterStatusMsg] = useState('')
+  const [puterSignedIn, setPuterSignedIn] = useState(false)
+  const [puterTesting, setPuterTesting] = useState(false)
   const [showOcrConfig, setShowOcrConfig] = useState(false)
-  const [profilPerangkat, setProfilPerangkat] = useState(null)
   const [geminiKeyInput, setGeminiKeyInput] = useState(() => bacaGeminiKey())
   const [geminiStatus, setGeminiStatus] = useState('')
   const [geminiTesting, setGeminiTesting] = useState(false)
@@ -86,15 +85,24 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   }, [scan])
 
   useEffect(() => {
-    if (!showOcrConfig || profilPerangkat) return
+    if (!showOcrConfig && ocrEnginePref !== 'unlimited') return
     let aktif = true
-    deteksiKapabilitasPerangkat().then((info) => {
-      if (aktif && masihTerpasang.current) setProfilPerangkat(info)
-    })
+    muatPuterSdk().catch(() => {})
+    if (showOcrConfig && (ocrEnginePref === 'unlimited' || ocrEnginePref === 'auto')) {
+      cekStatusPuterOcr().then((st) => {
+        if (!aktif || !masihTerpasang.current) return
+        setPuterSignedIn(Boolean(st.signedIn))
+        if (!st.online) {
+          setPuterStatusMsg('Sedang offline — Puter OCR butuh koneksi internet.')
+        } else if (st.signedIn) {
+          setPuterStatusMsg('Akun Puter aktif — Unlimited OCR siap dipakai tanpa API Key.')
+        }
+      })
+    }
     return () => {
       aktif = false
     }
-  }, [showOcrConfig, profilPerangkat])
+  }, [showOcrConfig, ocrEnginePref])
 
   useEffect(() => {
     masihTerpasang.current = true
@@ -208,29 +216,26 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setGeminiStatus('Kunci API berhasil dihapus.')
   }
 
-  async function simpanDanCekUnlimited() {
-    const raw = ocrEndpoint.trim() || DEFAULT_OCR_ENDPOINT
-    setOcrTesting(true)
-    setOcrStatusMsg('Mengecek server Unlimited-OCR...')
+  async function hubungkanAtauCekPuter() {
+    setPuterTesting(true)
+    setPuterStatusMsg('Menghubungkan ke Puter Unlimited OCR...')
     try {
-      simpanOcrConfig({ endpoint: raw, cropMode: ocrCropMode })
-      setOcrEndpoint(bacaOcrConfig().endpoint)
-      const status = await cekStatusUnlimitedOcr(raw, 2500)
+      simpanOcrConfig({ puterProvider })
+      const res = await sambungkanPuterOcr()
       if (!masihTerpasang.current) return
-      if (status.online) {
-        const ketModel = status.model ? ` (${status.model})` : ''
-        const ketHw = status.reason ? ` (${status.reason})` : ''
-        const siapText = status.modelReady === false
-          ? ` — server aktif, tetapi bobot VLM belum dimuat${ketHw}.`
-          : ` — siap dipakai [${status.protocol === 'sglang' ? 'SGLang VLM' : `Bridge ${status.quantization || ''}`.trim()}].`
-        setOcrStatusMsg(`Terhubung ke ${status.engine}${ketModel}${siapText}`)
+      setPuterSignedIn(Boolean(res.signedIn))
+      if (res.signedIn) {
+        const labelUser = res.username ? ` (${res.username})` : ''
+        setPuterStatusMsg(`Terhubung ke Puter${labelUser} — siap scan struk gratis tanpa API Key.`)
       } else {
-        setOcrStatusMsg(`Server tidak aktif di ${raw}. Mode Auto akan otomatis memakai Gemini/Lokal.`)
+        setPuterStatusMsg('Autentikasi Puter belum selesai. Klik lagi untuk menghubungkan.')
       }
     } catch (err) {
-      if (masihTerpasang.current) setOcrStatusMsg(err?.message || 'URL endpoint tidak valid.')
+      if (masihTerpasang.current) {
+        setPuterStatusMsg(err?.message || 'Gagal menghubungkan ke Puter.js.')
+      }
     } finally {
-      if (masihTerpasang.current) setOcrTesting(false)
+      if (masihTerpasang.current) setPuterTesting(false)
     }
   }
 
@@ -265,9 +270,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     try {
       const hasil = await scanDokumenKeuangan(file, {
         engine: ocrEnginePref,
+        puterProvider,
         geminiApiKey: geminiKeyInput,
-        endpoint: ocrEndpoint,
-        cropMode: ocrCropMode,
         onProgress: (p) => {
           if (masihTerpasang.current) setScanProgress(Math.round(p * 100))
         },
@@ -795,7 +799,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       <span className="material-symbols-outlined icon-2xs">smart_toy</span>
                       Gemini AI
                     </span>
-                  ) : scanHasil?.engine === 'unlimited-ocr' || scanHasil?.engine === 'unlimited-ocr-sglang' ? (
+                  ) : scanHasil?.engine === 'puter-ocr' || scanHasil?.engine === 'unlimited-ocr' || scanHasil?.engine === 'unlimited-ocr-sglang' ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                       <span className="material-symbols-outlined icon-2xs">smart_toy</span>
                       Unlimited AI
@@ -853,9 +857,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     <span>Pilihan Engine OCR:</span>
                     <span className="text-[10px] text-slate-500 font-medium">
                       {ocrEnginePref === 'auto'
-                        ? (geminiKeyInput ? 'Auto (Server/Gemini/Lokal)' : 'Auto (Server/Lokal Gundam)')
+                        ? (geminiKeyInput ? 'Auto (Puter/Gemini/Lokal)' : 'Auto (Puter/Lokal Gundam)')
                         : ocrEnginePref === 'unlimited'
-                          ? 'baidu/Unlimited-OCR (VLM)'
+                          ? 'Puter Unlimited OCR (Gratis Serverless)'
                           : ocrEnginePref === 'gemini'
                             ? 'Google Gemini Vision (Cloud)'
                             : 'Lokal Offline (Gundam + Tesseract)'}
@@ -874,6 +878,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         onClick={() => {
                           setOcrEnginePref(opt.id)
                           simpanOcrConfig({ engine: opt.id })
+                          if (opt.id === 'unlimited') muatPuterSdk().catch(() => {})
                         }}
                         className={`rounded-lg py-1.5 text-center text-[10.5px] font-bold transition-all ${
                           ocrEnginePref === opt.id
@@ -886,71 +891,51 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     ))}
                   </div>
 
-                  {/* Konfigurasi Endpoint Unlimited-OCR (SGLang :30000 / Bridge :8000) */}
+                  {/* Konfigurasi Puter Free Unlimited OCR (Mistral / AWS Textract) */}
                   {(ocrEnginePref === 'unlimited' || ocrEnginePref === 'auto') && (
                     <div className="border-t border-black/5 pt-2 mt-0.5 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-800">Server Unlimited-OCR (SGLang / Bridge):</span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-slate-800">Puter Unlimited OCR (Gratis):</span>
                         <div className="inline-flex rounded-lg bg-black/5 p-0.5 text-[9.5px] font-bold">
                           {[
-                            { id: 'gundam', label: 'Gundam' },
-                            { id: 'base', label: 'Base' },
-                          ].map((cm) => (
+                            { id: 'mistral', label: 'Mistral OCR' },
+                            { id: 'aws-textract', label: 'AWS Textract' },
+                          ].map((prov) => (
                             <button
-                              key={cm.id}
+                              key={prov.id}
                               type="button"
                               onClick={() => {
-                                setOcrCropMode(cm.id)
-                                simpanOcrConfig({ cropMode: cm.id })
+                                setPuterProvider(prov.id)
+                                simpanOcrConfig({ puterProvider: prov.id })
                               }}
                               className={`rounded-md px-2 py-0.5 transition-all ${
-                                ocrCropMode === cm.id
+                                puterProvider === prov.id
                                   ? 'bg-white text-[#36AE7C] shadow-sm'
                                   : 'text-slate-500 hover:text-slate-800'
                               }`}
                             >
-                              {cm.label}
+                              {prov.label}
                             </button>
                           ))}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <input
-                          type="url"
-                          placeholder={DEFAULT_OCR_ENDPOINT}
-                          value={ocrEndpoint}
-                          onChange={(e) => setOcrEndpoint(e.target.value)}
-                          className="neu-inset flex-1 rounded-xl bg-[#E5E5E5] px-3 py-1.5 text-[11px] font-semibold text-slate-800 placeholder:text-slate-400 outline-none"
-                        />
+                      <div className="flex items-center justify-between gap-2 rounded-xl bg-black/[0.04] px-2.5 py-2">
+                        <p className="text-[9.5px] leading-snug text-slate-600">
+                          Berjalan langsung di HP &amp; Desktop tanpa API Key atau server GPU. Hanya perlu masuk akun Puter gratis sekali pakai.
+                        </p>
                         <button
                           type="button"
-                          onClick={simpanDanCekUnlimited}
-                          disabled={ocrTesting}
-                          className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[11px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
+                          onClick={hubungkanAtauCekPuter}
+                          disabled={puterTesting}
+                          className="neu-btn shrink-0 px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[10.5px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
                         >
-                          {ocrTesting ? '...' : 'Cek Koneksi'}
+                          {puterTesting ? '...' : puterSignedIn ? 'Terhubung' : 'Hubungkan Puter'}
                         </button>
                       </div>
-                      {ocrStatusMsg && (
-                        <p className={`text-[9.5px] font-medium ${ocrStatusMsg.startsWith('Terhubung') ? 'text-emerald-700' : 'text-slate-600'}`}>
-                          {ocrStatusMsg}
+                      {puterStatusMsg && (
+                        <p className={`text-[9.5px] font-medium ${puterSignedIn || puterStatusMsg.startsWith('Terhubung') || puterStatusMsg.startsWith('Akun Puter') ? 'text-emerald-700' : 'text-slate-600'}`}>
+                          {puterStatusMsg}
                         </p>
-                      )}
-                      {profilPerangkat && (
-                        <div className="rounded-xl bg-black/[0.04] px-2.5 py-2 text-[9.5px] leading-relaxed text-slate-600">
-                          <div className="flex items-center justify-between font-bold text-slate-700">
-                            <span>Perangkat: {profilPerangkat.labelPerangkat}</span>
-                            <span className={profilPerangkat.unlimitedBridgeEligible ? 'text-emerald-700' : 'text-amber-700'}>
-                              {profilPerangkat.unlimitedBridgeEligible ? 'Syarat Bridge GPU OK' : 'Mode Ringan'}
-                            </span>
-                          </div>
-                          <p className="mt-0.5">{profilPerangkat.ringkasan}</p>
-                          {profilPerangkat.unlimitedBridgeEligible && (
-                            <p className="mt-1 font-mono text-[9px] text-slate-500">
-                              Jalankan lokal: <code>python services/unlimited-ocr/run_server.py --auto</code>
-                            </p>
-                          )}
-                        </div>
                       )}
                     </div>
                   )}

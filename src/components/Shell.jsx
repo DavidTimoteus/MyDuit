@@ -511,6 +511,7 @@ export default function Shell({ user }) {
       if (uid) localStorage.removeItem(`myduit-migrasi-norm-${uid}`);
       localStorage.removeItem("myduit_gemini_api_key");
       localStorage.removeItem("myduit_ocr_engine");
+      localStorage.removeItem("myduit_ocr_puter_provider");
       localStorage.removeItem("myduit_ocr_endpoint");
       localStorage.removeItem("myduit_ocr_crop_mode");
       localStorage.removeItem("myduit:tx_chip");
