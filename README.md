@@ -23,13 +23,13 @@ An **offline-first** personal finance Progressive Web App (PWA) crafted with tac
 
 ---
 
-## Multi-Platform Roadmap
+## Multi-Platform Support
 
 | Platform | Distribution Target | Status |
 | :--- | :--- | :--- |
-| **Web / Mobile PWA** | Browser & Installable PWA (`https://myduit001.web.app`) | Live (`v2.2.0`) |
-| **Android** | Google Play Store via Trusted Web Activity (TWA / `.aab`) | Compliance foundation ready (`assetlinks.json`, Privacy Policy, Account Deletion) |
-| **Windows Desktop** | Standalone Desktop App synced via Google Sign-In | Planned (`Batch 2`) |
+| **Web / Mobile PWA** | Browser & Installable PWA (`https://myduit001.web.app`) | Live (`v2.3.0`) |
+| **Android (Play Store)** | Trusted Web Activity via Bubblewrap (`mobile/twa/`, `.aab` / `.apk`) | Wrapper, Checklist & Release Workflow Ready |
+| **Windows Desktop** | Standalone Electron App (`desktop/`, `.exe` Setup & Portable) with Google OAuth | Wrapper & Release Workflow Ready |
 
 ---
 
@@ -49,6 +49,9 @@ An **offline-first** personal finance Progressive Web App (PWA) crafted with tac
 ## Project Structure
 
 ```text
+├── .github/workflows/          # CI verification + Windows EXE & Android TWA release workflows
+├── desktop/                    # Windows Electron wrapper + OAuth loopback + installer config
+├── mobile/twa/                 # Android Bubblewrap TWA manifest & Google Play submission checklist
 ├── public/                     # Static PWA icons, privacy.html, terms.html, .well-known/assetlinks.json
 ├── src/
 │   ├── components/             # Shell layout, clay/neu primitives, currency onboarding & FX lens notices
