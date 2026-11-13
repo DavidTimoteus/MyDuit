@@ -43,6 +43,7 @@
     "test:offline": "node src/lib/offlineSync.test.mjs"
   },
   "dependencies": {
+    "@heyputer/puter.js": "^2.6.5",
     "chart.js": "^4.5.1",
     "firebase": "^12.18.0",
     "flatpickr": "^4.6.13",
