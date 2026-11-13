@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { cekLunasUtang, hitungJatuhTempoBulanan, selisihHari } from './UtangView.jsx'
 
 // ============================================================================
@@ -24,7 +25,7 @@ function statusKartu(t) {
   if (lunas)
     return {
       label: 'Lunas',
-      cls: 'text-[#36AE7C] bg-emerald-500/12 border border-emerald-500/25',
+      cls: 'solid-primary text-white',
       aksen: 'bg-[#36AE7C]',
       lunas,
       terlambat,
@@ -108,7 +109,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          <span className={`neu-inset rounded-full px-2.5 py-0.5 text-[10px] font-extrabold inline-flex items-center gap-1 ${st.cls}`}>
+          <span className={`${st.lunas ? 'neu-chip' : 'neu-inset'} rounded-full px-2.5 py-0.5 text-[10px] font-extrabold inline-flex items-center gap-1 ${st.cls}`}>
             {st.lunas && <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
             {st.label}
           </span>
@@ -219,7 +220,7 @@ export default function UtangMobile({
   const total = terurut.length
   const idx = Math.min(Math.max(0, halaman), Math.max(0, total - 1))
   const kartuAktif = terurut[idx]
-  const currencyTag = formatRupiah(0)
+  const currencyTag = useKursVersi()
 
   function playCardSlide(dir) {
     const el = cardWrapRef.current

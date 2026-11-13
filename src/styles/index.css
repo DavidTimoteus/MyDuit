@@ -2169,6 +2169,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     inset 0 1.5px 3px rgba(0, 0, 0, 0.30);
 }
 
+.neu-chip.solid-primary,
+.neu-inset.solid-primary,
 .clay-chip.solid-primary {
   background-color: #36AE7C;
   background-image: linear-gradient(180deg, #4EC593 0%, #36AE7C 100%);
@@ -3308,6 +3310,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .clay-btn.clay-key-primary,
 [data-theme="neumorphism"] .clay-btn-primary,
 [data-theme="neumorphism"] .clay-chip.solid-primary,
+[data-theme="neumorphism"] .neu-chip.solid-primary,
+[data-theme="neumorphism"] .neu-inset.solid-primary,
 [data-theme="neumorphism"] .neu-btn-primary,
 [data-theme="neumorphism"] .btn-primary,
 [data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab) {

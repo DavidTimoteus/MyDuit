@@ -5,6 +5,7 @@ import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 import { hapusUtang } from '../../lib/db.js'
 import { getFirebase } from '../../lib/firebase.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
+import { useKursVersi } from '../../lib/useKurs.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { portalBody } from '../../lib/portal.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
@@ -205,7 +206,7 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
 
   const labelStatus = lunas ? 'Lunas' : terlambat ? 'Terlambat' : mendekati ? 'Segera' : 'Aktif'
   const badgeCls = lunas
-    ? 'text-[#36AE7C] bg-emerald-500/12 border border-emerald-500/25'
+    ? 'solid-primary text-white'
     : terlambat
       ? 'text-[#EB5353] bg-red-50'
       : mendekati
@@ -287,6 +288,7 @@ export default function UtangView({ user }) {
   const list = useUtangList(uid)
   const { akunList } = useAkunKategori(uid)
   const [filter, setFilter] = useState('semua')
+  const kursVer = useKursVersi()
   const [formModal, setFormModal] = useState({ open: false, edit: null, mode: 'utang' })
 
   // Listen event dari FAB bottom nav (Tambah Utang)
@@ -470,7 +472,7 @@ export default function UtangView({ user }) {
             <KartuUtang
               key={t.id}
               t={t}
-              currencyTag={formatRupiah(0)}
+              currencyTag={kursVer}
               onBayar={aksiKartu.onBayar}
               onLunasin={aksiKartu.onLunasin}
               onEdit={aksiKartu.onEdit}
