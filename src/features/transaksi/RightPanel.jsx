@@ -1,11 +1,15 @@
 import { useMemo } from 'react'
-import { isoHariIni, formatNominal, simbolUang } from '../../lib/format.js'
+import { formatCurrency, formatNominal, isoHariIni, konversiUntukTampil, simbolUang, uangAktif } from '../../lib/format.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 
 const rp = (n) => `${simbolUang()} ${formatNominal(n)}`
+const rpSudahTampil = (nilaiTampil) => {
+  const { currency, locale } = uangAktif()
+  return formatCurrency(nilaiTampil, currency, locale)
+}
 
 // Bulan berjalan: yyyy-mm-01 .. yyyy-mm-akhir
 function rangeBulanIni() {
@@ -20,7 +24,7 @@ function rangeBulanIni() {
 // Total Saldo (gradient hijau) · Pengeluaran Hari Ini · Top Kategori (badge jenis)
 // · Aksi Cepat 3 tombol gradient penuh (Pemasukan/Pengeluaran/Pindah Saldo).
 export default function RightPanel({ uid }) {
-  useKursVersi()
+  const kursVer = useKursVersi()
   const { akunList, kategoriList } = useAkunKategori(uid)
   const bulan = useMemo(rangeBulanIni, [])
   // Gunakan pageSize: 0 (tanpa batas 50 dokumen) agar perhitungan Surplus/Defisit
@@ -42,16 +46,18 @@ export default function RightPanel({ uid }) {
     let masuk = 0
     let keluar = 0
     for (const t of bulanEnriched) {
-      const jml = Number(t.jumlah) || 0
+      const jml = konversiUntukTampil(Number(t.jumlah) || 0, t.kursSnapshot)
       if (t.jenis === 'pemasukan') masuk += jml
       else if (t.jenis === 'pengeluaran') keluar += jml
     }
     return masuk - keluar
-  }, [bulanEnriched])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulanEnriched, kursVer])
 
   const pengeluaranHariIni = useMemo(
-    () => transHariIni.reduce((s, t) => s + (Number(t.jumlah) || 0), 0),
-    [transHariIni],
+    () => transHariIni.reduce((s, t) => s + konversiUntukTampil(Number(t.jumlah) || 0, t.kursSnapshot), 0),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transHariIni, kursVer],
   )
 
   // Top kategori bulan ini — kategori dgn total terbesar di antara KEDUA jenis
@@ -61,13 +67,14 @@ export default function RightPanel({ uid }) {
     for (const t of bulanEnriched) {
       if (t.jenis !== 'pemasukan' && t.jenis !== 'pengeluaran') continue
       const key = `${t.jenis}||${t.kategoriNama || 'Lainnya'}`
-      map[key] = (map[key] || 0) + (Number(t.jumlah) || 0)
+      map[key] = (map[key] || 0) + konversiUntukTampil(Number(t.jumlah) || 0, t.kursSnapshot)
     }
     const terbaik = Object.entries(map).sort((a, b) => b[1] - a[1])[0]
     if (!terbaik) return null
     const [jenis, nama] = terbaik[0].split('||')
     return { jenis, nama, total: terbaik[1] }
-  }, [bulanEnriched])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bulanEnriched, kursVer])
 
   function aksi(type) {
     window.dispatchEvent(new CustomEvent('myduit:aksi-cepat', { detail: { type } }))
@@ -111,7 +118,7 @@ export default function RightPanel({ uid }) {
                   {arusBulan < 0 ? 'trending_down' : 'trending_up'}
                 </span>
                 <span className={arusBulan < 0 ? 'text-expenseText font-bold' : 'text-incomeText font-bold'}>
-                  {arusBulan < 0 ? '−' : '+'}{simbolUang()}{formatNominal(Math.abs(arusBulan))}
+                  {arusBulan < 0 ? '−' : '+'}{rpSudahTampil(Math.abs(arusBulan))}
                 </span>
                 <span>bulan ini</span>
               </p>
@@ -125,7 +132,7 @@ export default function RightPanel({ uid }) {
                 </div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
               </div>
-              <p className="mt-1 font-mono text-lg font-extrabold tracking-tight text-expenseText">{rp(pengeluaranHariIni)}</p>
+              <p className="mt-1 font-mono text-lg font-extrabold tracking-tight text-expenseText">{rpSudahTampil(pengeluaranHariIni)}</p>
               <p className="text-[11px] font-medium text-textSecondary">{transHariIni.length} transaksi · Hari ini</p>
             </div>
 
@@ -151,7 +158,7 @@ export default function RightPanel({ uid }) {
                 {topKategori ? topKategori.nama : '-'}
               </p>
               <p className={`font-mono text-sm font-extrabold tracking-tight ${topKategori?.jenis === 'pengeluaran' ? 'text-expenseText' : 'text-incomeText'}`}>
-                {rp(topKategori ? topKategori.total : 0)}
+                {rpSudahTampil(topKategori ? topKategori.total : 0)}
               </p>
             </div>
           </div>

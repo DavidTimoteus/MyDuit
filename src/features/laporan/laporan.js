@@ -1,8 +1,8 @@
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from '../../lib/mockData.js'
-import { formatNominal, uangAktif } from '../../lib/format.js'
-import { ambilRasioKurs, bacaBasisMataUang, statusKurs } from '../../lib/kurs.js'
+import { formatNominal, konversiUntukTampil, uangAktif } from '../../lib/format.js'
+import { ambilRasioKurs, bacaBasisMataUang, desimalMataUang, statusKurs } from '../../lib/kurs.js'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -14,7 +14,14 @@ function simbolPdf() {
   return SIMBOL_WINANSI.test(symbol) ? symbol : `${currency} `
 }
 
-const rp = (n) => `${simbolPdf()}${formatNominal(n)}`
+const rp = (n, kursSnapshot = null) => `${simbolPdf()}${formatNominal(n, { kursSnapshot })}`
+const rpTampil = (nilaiTampil) => {
+  const { currency, locale } = uangAktif()
+  const v = Number(nilaiTampil) || 0
+  const maksDes = desimalMataUang(currency)
+  const dec = maksDes > 0 && Math.abs(v) > 0 && Math.abs(v) < 0.01 ? 4 : maksDes
+  return `${simbolPdf()}${v.toLocaleString(locale, { maximumFractionDigits: dec })}`
+}
 const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
 // Palet laporan profesional (RGB untuk jsPDF).
@@ -134,20 +141,32 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
   const budgets = budgetRaw
   const utangSemua = utangRaw
   let pemasukan = 0, pengeluaran = 0
+  let pemasukanTampil = 0, pengeluaranTampil = 0
   const kategoriIn = {}, kategoriOut = {}, terpakaiPerKatId = {}
+  const kategoriInTampil = {}, kategoriOutTampil = {}, terpakaiPerKatIdTampil = {}
   for (const t of transaksi) {
     const jml = Number(t.jumlah) || 0
+    const jmlTampil = konversiUntukTampil(jml, t.kursSnapshot)
     if (t.jenis === 'pemasukan') {
       pemasukan += jml
+      pemasukanTampil += jmlTampil
       kategoriIn[t.kategoriNama] = (kategoriIn[t.kategoriNama] || 0) + jml
+      kategoriInTampil[t.kategoriNama] = (kategoriInTampil[t.kategoriNama] || 0) + jmlTampil
     } else if (t.jenis === 'pengeluaran') {
       pengeluaran += jml
+      pengeluaranTampil += jmlTampil
       kategoriOut[t.kategoriNama] = (kategoriOut[t.kategoriNama] || 0) + jml
-      if (t.kategoriId) terpakaiPerKatId[t.kategoriId] = (terpakaiPerKatId[t.kategoriId] || 0) + jml
+      kategoriOutTampil[t.kategoriNama] = (kategoriOutTampil[t.kategoriNama] || 0) + jmlTampil
+      if (t.kategoriId) {
+        terpakaiPerKatId[t.kategoriId] = (terpakaiPerKatId[t.kategoriId] || 0) + jml
+        terpakaiPerKatIdTampil[t.kategoriId] = (terpakaiPerKatIdTampil[t.kategoriId] || 0) + jmlTampil
+      }
     }
   }
   const topIn = Object.entries(kategoriIn).sort((a, b) => b[1] - a[1])
   const topOut = Object.entries(kategoriOut).sort((a, b) => b[1] - a[1])
+  const topInTampil = Object.entries(kategoriInTampil).sort((a, b) => b[1] - a[1])
+  const topOutTampil = Object.entries(kategoriOutTampil).sort((a, b) => b[1] - a[1])
 
   const utangAktif = utangSemua
     .filter((u) => String(u.status || '').trim().toLowerCase() !== 'lunas' && (Number(u.sisa) || 0) > 0)
@@ -170,8 +189,9 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
       const nama = kategori[b.kategoriId]?.nama || b.kategoriNama || 'Tanpa kategori'
       const limit = Math.max(0, Number(b.limitNominal) || 0)
       const terpakai = b.kategoriId ? (terpakaiPerKatId[b.kategoriId] || 0) : (kategoriOut[nama] || 0)
+      const terpakaiTampil = b.kategoriId ? (terpakaiPerKatIdTampil[b.kategoriId] || 0) : (kategoriOutTampil[nama] || 0)
       const persen = limit > 0 ? Math.round((terpakai / limit) * 100) : (terpakai > 0 ? 100 : 0)
-      return { nama, limit, terpakai, persen, sisa: limit - terpakai, lewat: terpakai > limit }
+      return { nama, limit, terpakai, terpakaiTampil, persen, sisa: limit - terpakai, lewat: terpakai > limit }
     })
     .sort((a, b) => b.persen - a.persen)
 
@@ -179,9 +199,10 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
     bulan, tahun, label: `${BULAN[bulan]} ${tahun}`,
     transaksi, akun, kategori, budgets, anggaran,
     pemasukan, pengeluaran, saldo: pemasukan - pengeluaran,
+    pemasukanTampil, pengeluaranTampil, saldoTampil: pemasukanTampil - pengeluaranTampil,
     totalSaldo: Object.values(akun).reduce((s, a) => s + (Number(a.saldo) || 0), 0),
     totalBudget: budgets.reduce((s, b) => s + (Number(b.limitNominal) || 0), 0),
-    topIn, topOut,
+    topIn, topOut, topInTampil, topOutTampil,
     utang: {
       aktif: utangAktif,
       totalAktif: totalUtangAktif,
@@ -286,9 +307,9 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   const gap = 6
   const wMetrik = (lebar - gap * 2) / 3
   const metrik = [
-    ['Pemasukan', rp(data.pemasukan), C.hijauTeks],
-    ['Pengeluaran', rp(data.pengeluaran), C.merah],
-    ['Saldo Bersih', rp(data.saldo), data.saldo >= 0 ? C.hijauTeks : C.merah],
+    ['Pemasukan', rpTampil(data.pemasukanTampil ?? data.pemasukan), C.hijauTeks],
+    ['Pengeluaran', rpTampil(data.pengeluaranTampil ?? data.pengeluaran), C.merah],
+    ['Saldo Bersih', rpTampil(data.saldoTampil ?? data.saldo), (data.saldoTampil ?? data.saldo) >= 0 ? C.hijauTeks : C.merah],
   ]
   metrik.forEach(([label, nilai, warna], i) => {
     const x = M + i * (wMetrik + gap)
@@ -355,18 +376,20 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   y += 6
 
   // ================= ARUS PER KATEGORI =================
+  const topInShow = data.topInTampil || data.topIn
+  const topOutShow = data.topOutTampil || data.topOut
   const Hhal = doc.internal.pageSize.getHeight()
-  const tinggiKat = 12 + Math.max(1, Math.max(data.topIn.length, data.topOut.length)) * 7.2
+  const tinggiKat = 12 + Math.max(1, Math.max(topInShow.length, topOutShow.length)) * 7.2
   if (y + tinggiKat + 12 > Hhal - 20) {
     doc.addPage()
     y = M
   }
-  y = judulSection(doc, 'Arus per Kategori', M, y, lebar, { kanan: `${data.topIn.length + data.topOut.length} kategori` })
+  y = judulSection(doc, 'Arus per Kategori', M, y, lebar, { kanan: `${topInShow.length + topOutShow.length} kategori` })
 
   const kolomKat = (lebar - 8) / 2
   const dataKat = [
-    { judul: 'Pemasukan', items: data.topIn.slice(0, 7), warna: C.hijauTeks, kosong: 'Belum ada pemasukan.' },
-    { judul: 'Pengeluaran', items: data.topOut.slice(0, 7), warna: C.merah, kosong: 'Belum ada pengeluaran.' },
+    { judul: 'Pemasukan', items: topInShow.slice(0, 7), warna: C.hijauTeks, kosong: 'Belum ada pemasukan.' },
+    { judul: 'Pengeluaran', items: topOutShow.slice(0, 7), warna: C.merah, kosong: 'Belum ada pengeluaran.' },
   ]
   dataKat.forEach((kol, i) => {
     const x = M + i * (kolomKat + 8)
@@ -379,7 +402,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
     const maks = Math.max(1, ...kol.items.map(([, n]) => Number(n) || 0))
     kol.items.forEach(([namaKat, total]) => {
       teks(doc, String(namaKat).slice(0, 24), x, ky + 2.6, { size: 8.2 })
-      teks(doc, rp(total), x + kolomKat, ky + 2.6, { size: 8.2, warna: C.tinta, align: 'right' })
+      teks(doc, rpTampil(total), x + kolomKat, ky + 2.6, { size: 8.2, warna: C.tinta, align: 'right' })
       const wTrack = kolomKat
       bulatIsi(doc, x, ky + 4, wTrack, 1.1, 0.55, C.track)
       bulatIsi(doc, x, ky + 4, Math.max(1.1, (total / maks) * wTrack), 1.1, 0.55, kol.warna)
@@ -401,7 +424,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
     autoTable(doc, {
       startY: y,
       head: [['Kategori', 'Terpakai', 'Limit', 'Capaian']],
-      body: data.anggaran.map((a) => [String(a.nama).slice(0, 26), rp(a.terpakai), rp(a.limit), a.lewat ? `+${a.persen - 100}%` : `${a.persen}%`]),
+      body: data.anggaran.map((a) => [String(a.nama).slice(0, 26), rpTampil(a.terpakaiTampil ?? konversiUntukTampil(a.terpakai)), rp(a.limit), a.lewat ? `+${a.persen - 100}%` : `${a.persen}%`]),
       margin: { left: M, right: M, bottom: 20 },
       theme: 'plain',
       styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 1.8, right: 2, bottom: 1.8, left: 0 }, textColor: C.tinta, lineColor: C.garis, lineWidth: { top: 0, bottom: 0.1, left: 0, right: 0 } },
@@ -432,7 +455,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
     const pindah = t.jenis === 'pindah saldo'
     const tanda = t.jenis === 'pemasukan' ? '+' : t.jenis === 'pengeluaran' ? '-' : ''
     const label = pindah ? 'Pindah Saldo' : t.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'
-    return [tglSingkat(t.tanggal), label, t.kategoriNama, t.catatan || '—', t.akunNama, `${tanda}${rp(t.jumlah)}`]
+    return [tglSingkat(t.tanggal), label, t.kategoriNama, t.catatan || '—', t.akunNama, `${tanda}${rp(t.jumlah, t.kursSnapshot)}`]
   })
 
   autoTable(doc, {
@@ -478,9 +501,10 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   // ================= CATATAN =================
   if (pakaiAI) {
     const rasio = data.pemasukan > 0 ? Math.round((data.saldo / data.pemasukan) * 100) : 0
+    const topOutCat = (data.topOutTampil || data.topOut)[0]
     const catatan = [
       `Rasio tabungan periode ini ${rasio}%.`,
-      data.topOut[0] ? `Pengeluaran terbesar: ${data.topOut[0][0]} (${rp(data.topOut[0][1])}).` : 'Belum cukup data pengeluaran.',
+      topOutCat ? `Pengeluaran terbesar: ${topOutCat[0]} (${rpTampil(topOutCat[1])}).` : 'Belum cukup data pengeluaran.',
       u.totalAktif > 0 ? `Sisa utang aktif ${rp(u.totalAktif)} diperhitungkan dalam prioritas dana.` : 'Tidak ada kewajiban utang aktif.',
     ]
     const pecahan = catatan.map((c) => doc.splitTextToSize(`• ${c}`, lebar - 2))

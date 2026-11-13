@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatInputTampil, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { simpanBudget } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
+import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
@@ -104,6 +105,7 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
             className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-sm font-semibold outline-none placeholder:text-slate-500"
           />
         </div>
+        <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampil(limit))} className="-mt-2 mb-3" />
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
         <button disabled={saving} className="clay-btn clay-key-blue solid-blue btn-lg w-full text-sm font-extrabold text-white disabled:opacity-60">
           <span className="material-symbols-outlined icon-sm">save</span>

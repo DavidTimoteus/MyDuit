@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { formatInputTampil, formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
-import { desimalMataUang, konversiNilai } from '../../lib/kurs.js'
+import { bacaBasisMataUang, buatSnapshotKurs, desimalMataUang, konversiNilai } from '../../lib/kurs.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { matikanOcr } from '../../lib/ocrStruk.js'
@@ -45,7 +46,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     isEditAtauSalin ? (sumber.jenis ?? 'pengeluaran') : (sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
   )
   const [jumlah, setJumlah] = useState(() =>
-    isEditAtauSalin ? formatInputTampil(sumber.jumlah) : ''
+    isEditAtauSalin
+      ? formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined)
+      : ''
   )
   const [kategoriNama, setKategoriNama] = useState(() =>
     isEditAtauSalin ? (sumber.kategoriNama ?? '') : ''
@@ -154,7 +157,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     setScanProgress(0)
     if ((mode === 'edit' || mode === 'salin') && sumber) {
       setJenis(sumber.jenis ?? 'pengeluaran')
-      setJumlah(formatInputTampil(sumber.jumlah))
+      setJumlah(formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined))
       setKategoriNama(sumber.kategoriNama ?? '')
       setAkunId(sumber.akunId ?? akunList[0]?.id ?? '')
       setTanggal(sumber.tanggal ?? isoHariIni())
@@ -387,7 +390,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   // Beralih dari mode Edit ke mode Salin agar pengguna dapat meninjau
   // dan menyunting draf salinan terlebih dahulu sebelum mencatat transaksi baru.
   function beralihKeModeSalin() {
-    const nominalSaatIni = konversiKeBasis(parseInputTampil(jumlah))
+    const nominalSaatIni = konversiKeBasis(
+      parseInputTampil(jumlah),
+      mode === 'edit' ? sumber?.kursSnapshot : null,
+    )
     const jumlahSalinan = nominalSaatIni > 0 ? nominalSaatIni : (Number(sumber?.jumlah) || 0)
     const drafSalinan = {
       ...sumber,
@@ -460,7 +466,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       }
       nTampil = hasilTampil
     }
-    const n = konversiKeBasis(nTampil)
+    const n = konversiKeBasis(nTampil, mode === 'edit' ? sumber?.kursSnapshot : null)
     if (n <= 0) return setError('Nominal harus lebih dari nol.')
     if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
     if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
@@ -502,6 +508,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
     // ID dokumen: pertahankan bila edit, atau buat ID resmi sinkron sebelum submit
     const docId = modeSnap === 'edit' && sumberSnap?.id ? sumberSnap.id : buatTransaksiId(uid)
+    const kursSnapshot =
+      modeSnap === 'edit'
+        ? (sumberSnap?.kursSnapshot || null)
+        : buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tanggalSnap)
 
     const optTx = {
       id: docId,
@@ -513,6 +523,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       akunNama: akun?.nama ?? '',
       tanggal: tanggalSnap,
       catatan: catatanSnap,
+      kursSnapshot,
       deleted: false,
       createdAt: new Date().toISOString(),
     }
@@ -812,6 +823,15 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
               )
             })()}
+
+            <InfoLensaKurs
+              nilaiBasis={konversiKeBasis(
+                parseInputTampil(jumlah),
+                mode === 'edit' ? sumber?.kursSnapshot : null,
+              )}
+              kursSnapshot={mode === 'edit' ? sumber?.kursSnapshot : null}
+              mode={mode === 'edit' && sumber?.kursSnapshot ? 'edit' : 'form'}
+            />
           </div>
           {/* Scan Struk / Foto — HANYA mode tambah pengeluaran (GAS menyembunyikannya saat edit / pemasukan).
               Di web (sm:) ditata 1 baris ringkas agar modal muat 1 layar tanpa scrolling. */}

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatInputTampil, formatNominal, formatRupiah, isoHariIni, konversiKeBasis, konversiUntukTampil, parseInputTampil, rasioKursTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
+import { formatInputTampil, formatRupiah, isoHariIni, konversiKeBasis, konversiUntukTampil, parseInputTampil, rasioKursTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
+import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { portalBody } from '../../lib/portal.js'
 
@@ -152,6 +154,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight tx-nominal-expense !text-[#EB5353]"
             />
           </div>
+          <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampil(total))} className="mt-1" />
         </div>
 
         <div className="mb-3">
@@ -263,7 +266,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         new CustomEvent('myduit:toast', {
           detail: {
             type: 'warning',
-            msg: `Perhatian: Saldo ${akun.nama} tidak boleh minus! Sisa saldo saat ini ${formatNominal(saldoAkun)}. Periksa kembali debit & kredit rekening Anda.`,
+            msg: `Perhatian: Saldo ${akun.nama} tidak boleh minus! Sisa saldo saat ini ${formatRupiah(saldoAkun)}. Periksa kembali debit & kredit rekening Anda.`,
           },
         })
       )
@@ -285,6 +288,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
       akunNama: akunSnap.nama,
       tanggal: tanggalSnap,
       catatan: `Bayar ${utangSnap.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utangSnap.namaPihak}`,
+      kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tanggalSnap),
       deleted: false,
       createdAt: new Date().toISOString(),
     }
@@ -336,6 +340,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
             className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 font-mono text-xl font-black text-slate-900 outline-none tabular-nums placeholder:text-slate-400"
           />
         </div>
+        <InfoLensaKurs nilaiBasis={n} className="-mt-2 mb-3" />
 
         <div className="mb-3.5 grid grid-cols-2 gap-2.5">
           <div>

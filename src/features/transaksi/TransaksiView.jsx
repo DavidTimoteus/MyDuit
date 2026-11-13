@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isoHariIni, rangeForFilter, simbolUang } from '../../lib/format.js'
+import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, hapusTransaksiMassal, simpanTransaksi } from '../../lib/db.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import FormTransaksiModal from './FormTransaksiModal.jsx'
@@ -411,6 +412,7 @@ export default function TransaksiView({ user }) {
     salinLockRef.current = { id: trans.id, at: now }
     setOpenDeleteId(null)
     const docId = buatTransaksiId(uid)
+    const tanggalCopy = trans.tanggal ?? isoHariIni()
     const optTx = {
       id: docId,
       jumlah: Number(trans.jumlah) || 0,
@@ -419,8 +421,9 @@ export default function TransaksiView({ user }) {
       kategoriNama: trans.kategoriNama ?? '',
       akunId: trans.akunId ?? fallbackAkunIdRef.current ?? '',
       akunNama: trans.akunNama ?? '',
-      tanggal: trans.tanggal ?? isoHariIni(),
+      tanggal: tanggalCopy,
       catatan: trans.catatan ?? '',
+      kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tanggalCopy),
       deleted: false,
       createdAt: new Date().toISOString(),
     }

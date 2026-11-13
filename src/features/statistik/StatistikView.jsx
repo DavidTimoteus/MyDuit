@@ -18,13 +18,12 @@ import {
   detectCurrency,
   detectLocale,
   formatCurrency,
-  formatNominal,
   formatRupiah,
   konversiUntukTampil,
-  simbolUang,
+  uangAktif,
   EVENT_LOKASI,
 } from "../../lib/format.js";
-import { EVENT_KURS } from "../../lib/kurs.js";
+import { EVENT_BASIS_MATA_UANG, EVENT_KURS } from "../../lib/kurs.js";
 
 import { aturanAnalitik, hitungPersenPerubahan } from "./_aturan.js";
 const NAMA_BULAN_ID = [
@@ -103,7 +102,7 @@ function hitungStreak_(tanggalList) {
 function hitungRataPerHariAktif(harian, kunci) {
   const hari = Object.entries(harian).filter(([, v]) => v[kunci] > 0);
   if (!hari.length) return 0;
-  return Math.round(hari.reduce((s, [, v]) => s + v[kunci], 0) / hari.length);
+  return hari.reduce((s, [, v]) => s + v[kunci], 0) / hari.length;
 }
 
 // Hari dengan pengeluaran tertinggi pada periode aktif.
@@ -164,9 +163,11 @@ export default function StatistikView({ user }) {
     sync();
     window.addEventListener(EVENT_LOKASI, sync);
     window.addEventListener(EVENT_KURS, sync);
+    window.addEventListener(EVENT_BASIS_MATA_UANG, sync);
     return () => {
       window.removeEventListener(EVENT_LOKASI, sync);
       window.removeEventListener(EVENT_KURS, sync);
+      window.removeEventListener(EVENT_BASIS_MATA_UANG, sync);
     };
   }, []);
 
@@ -214,12 +215,17 @@ export default function StatistikView({ user }) {
     return () => unsub();
   }, [uid, range.start, range.end]);
 
-  // Hitung agregat
+  // Hitung agregat — nilai per transaksi dikonversi memakai kursSnapshot masing-masing
+  // (historical FX lens), sambil menyimpan `basis` untuk mesin aturan deterministik.
   const ringkas = useMemo(() => {
+    void kursVer;
     let in_ = 0,
-      out = 0;
+      out = 0,
+      inBasis = 0,
+      outBasis = 0;
     const grupIn = {},
-      grupOut = {};
+      grupOut = {},
+      grupOutBasis = {};
     const harian = {}; // untuk tren bulanan: {yyyy-mm-dd: {in,out,saldo}}
     const bulanan = {}; // untuk tren tahunan: {yyyy-mm: {in,out,saldo}}
     for (const t of docs) {
@@ -230,15 +236,29 @@ export default function StatistikView({ user }) {
             ? "pengeluaran"
             : null;
       if (!j) continue;
-      const n = Number(t.jumlah) || 0;
+      const nBasis = Number(t.jumlah) || 0;
+      const n = konversiUntukTampil(nBasis, t.kursSnapshot);
       const namaFallback = t.kategoriNama || "Lainnya";
       const kKey =
         t.kategoriId && katById[t.kategoriId]
           ? t.kategoriId
           : `nama:${namaFallback}`;
       const bucket = j === "pemasukan" ? grupIn : grupOut;
-      if (j === "pemasukan") in_ += n;
-      else out += n;
+      if (j === "pemasukan") {
+        in_ += n;
+        inBasis += nBasis;
+      } else {
+        out += n;
+        outBasis += nBasis;
+        if (!grupOutBasis[kKey]) {
+          grupOutBasis[kKey] = {
+            id: kKey,
+            nama: (t.kategoriId && katById[t.kategoriId]) || namaFallback,
+            total: 0,
+          };
+        }
+        grupOutBasis[kKey].total += nBasis;
+      }
       if (!bucket[kKey]) {
         bucket[kKey] = {
           id: kKey,
@@ -265,8 +285,14 @@ export default function StatistikView({ user }) {
       pengeluaran: toArr(grupOut),
       harian,
       bulanan,
+      basis: {
+        in_: inBasis,
+        out: outBasis,
+        saldo: inBasis - outBasis,
+        pengeluaran: toArr(grupOutBasis),
+      },
     };
-  }, [docs, katById]);
+  }, [docs, katById, kursVer]);
 
   // Tren bulanan: per-hari dalam bulan aktif (label "Tren Bulan Ini")
   // Tren tahunan: 12 bulan (label "Tren Tahun Ini")
@@ -313,8 +339,8 @@ export default function StatistikView({ user }) {
     mode === "bulanan" ? new Date(tahun, bulan + 1, 0).getDate() : 12;
   const rataHarian =
     mode === "bulanan"
-      ? Math.round(ringkas.out / totalHari)
-      : Math.round(ringkas.out / 12);
+      ? ringkas.out / totalHari
+      : ringkas.out / 12;
 
   // Trend % vs periode sebelumnya.
   // PENTING: `docs` HANYA berisi transaksi periode aktif, jadi menyaring periode
@@ -329,21 +355,15 @@ export default function StatistikView({ user }) {
     return rangeTahun(tahun - 1);
   }, [mode, bulan, tahun]);
 
-  const [trend, setTrend] = useState({ in_: 0, out: 0, saldo: 0, ada: false });
+  const [prevDocs, setPrevDocs] = useState([]);
   useEffect(() => {
     if (!uid) return;
     if (IS_DEMO_UID(uid)) {
-      const prevDocs = MOCK_TRANSAKSI.filter(
-        (t) => !t.deleted && t.tanggal >= prevRange.start && t.tanggal <= prevRange.end,
+      setPrevDocs(
+        MOCK_TRANSAKSI.filter(
+          (t) => !t.deleted && t.tanggal >= prevRange.start && t.tanggal <= prevRange.end,
+        ),
       );
-      let in_ = 0,
-        out = 0;
-      prevDocs.forEach((t) => {
-        const n = Number(t.jumlah) || 0;
-        if (t.jenis === "pemasukan") in_ += n;
-        else if (t.jenis === "pengeluaran") out += n;
-      });
-      setTrend({ in_, out, saldo: in_ - out, ada: prevDocs.length > 0 });
       return;
     }
     let batal = false;
@@ -360,24 +380,37 @@ export default function StatistikView({ user }) {
           ),
         );
         if (batal) return;
-        let in_ = 0,
-          out = 0;
-        snap.docs.forEach((d) => {
-          const t = d.data();
-          const n = Number(t.jumlah) || 0;
-          if (t.jenis === "pemasukan") in_ += n;
-          else if (t.jenis === "pengeluaran") out += n;
-        });
-        setTrend({ in_, out, saldo: in_ - out, ada: snap.size > 0 });
+        setPrevDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
       } catch (e) {
         console.warn("[trend] gagal:", e?.message ?? e);
-        if (!batal) setTrend({ in_: 0, out: 0, saldo: 0, ada: false });
+        if (!batal) setPrevDocs([]);
       }
     })();
     return () => {
       batal = true;
     };
   }, [uid, prevRange.start, prevRange.end]);
+
+  const { trend, trendBasis } = useMemo(() => {
+    void kursVer;
+    let in_ = 0, out = 0, inBasis = 0, outBasis = 0;
+    for (const t of prevDocs) {
+      const nBasis = Number(t.jumlah) || 0;
+      const nTampil = konversiUntukTampil(nBasis, t.kursSnapshot);
+      if (t.jenis === "pemasukan") {
+        in_ += nTampil;
+        inBasis += nBasis;
+      } else if (t.jenis === "pengeluaran") {
+        out += nTampil;
+        outBasis += nBasis;
+      }
+    }
+    const ada = prevDocs.length > 0;
+    return {
+      trend: { in_, out, saldo: in_ - out, ada },
+      trendBasis: { in_: inBasis, out: outBasis, saldo: inBasis - outBasis, ada },
+    };
+  }, [prevDocs, kursVer]);
 
   // null = tidak ada pembanding (periode sebelumnya kosong) → jangan tampilkan persen palsu.
   const pctIn = hitungPersenPerubahan(ringkas.in_, trend.in_, trend.ada);
@@ -393,13 +426,13 @@ export default function StatistikView({ user }) {
     () =>
       aturanAnalitik({
         mode,
-        ringkas: { ...ringkas, jmlTransaksi: docs.length },
-        tren: trend,
+        ringkas: { ...ringkas.basis, jmlTransaksi: docs.length },
+        tren: trendBasis,
         jumlahHariBulan: totalHari,
         bulan,
         tahun,
       }),
-    [mode, ringkas, trend, totalHari, bulan, tahun, docs.length],
+    [mode, ringkas.basis, trendBasis, totalHari, bulan, tahun, docs.length],
   );
 
   // Period navigator — batas: tidak bisa masa depan (sesuai GAS), retensi 1 tahun ke belakang
@@ -521,7 +554,7 @@ export default function StatistikView({ user }) {
           {
             type: "bar",
             label: "Pemasukan",
-            data: tren.dataIn.map((v) => konversiUntukTampil(v)),
+            data: tren.dataIn,
             backgroundColor: gradIn,
             hoverBackgroundColor: "rgba(54, 174, 124, 1.0)",
             borderRadius: 12,
@@ -534,7 +567,7 @@ export default function StatistikView({ user }) {
           {
             type: "bar",
             label: "Pengeluaran",
-            data: tren.dataOut.map((v) => -Math.abs(konversiUntukTampil(v))),
+            data: tren.dataOut.map((v) => -Math.abs(v)),
             backgroundColor: gradOut,
             hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
             borderRadius: 12,
@@ -549,7 +582,7 @@ export default function StatistikView({ user }) {
                 {
                   type: "line",
                   label: "Saldo",
-                  data: tren.dataSaldo.map((v) => konversiUntukTampil(v)),
+                  data: tren.dataSaldo,
                   borderColor: "#187498",
                   backgroundColor: gradSaldo,
                   fill: true,
@@ -691,6 +724,7 @@ export default function StatistikView({ user }) {
     const topExpense = ringkas.pengeluaran[0] || null;
     const event = new CustomEvent("myduit:statistik-update", {
       detail: {
+        sudahTampil: true,
         mode,
         bulan,
         tahun,
@@ -1094,8 +1128,7 @@ export default function StatistikView({ user }) {
                         className={`shrink-0 font-mono text-sm font-extrabold ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
                       >
                         {detail.jenis === "pemasukan" ? "+" : "−"}
-                        {simbolUang()}
-                        {formatNominal(t.jumlah || 0)}
+                        {formatRupiah(t.jumlah || 0, { kursSnapshot: t.kursSnapshot })}
                       </p>
                     </div>
                   );
@@ -1110,7 +1143,10 @@ export default function StatistikView({ user }) {
               <span
                 className={`font-mono text-base font-black tabular-nums ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
               >
-                {formatRupiah(detail.total || 0)}
+                {(() => {
+                  const { currency, locale } = uangAktif();
+                  return formatCurrency(detail.total || 0, currency, locale);
+                })()}
               </span>
             </div>
           </div>
@@ -1123,9 +1159,11 @@ export default function StatistikView({ user }) {
 function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
   // pct null = tidak ada data pembanding (periode sebelumnya kosong) — jangan
   // menampilkan persen palsu "+100%", ganti teks netral.
+  const { currency, locale } = uangAktif();
   const positif = (pct ?? 0) >= 0;
   const iconTrend =
     pct === null ? "trending_flat" : positif ? "trending_up" : "trending_down";
+  const valNum = Number(value) || 0;
   return (
     <div data-reveal="" className="neu-card rounded-2xl bg-[#E5E5E5] p-4">
       <div className="mb-2 flex items-center gap-2">
@@ -1140,7 +1178,7 @@ function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
         </p>
       </div>
       <p className={`font-mono text-lg font-black tracking-tight tabular-nums sm:text-xl lg:text-2xl ${aksenCls}`}>
-        {simbolUang()} {formatNominal(value || 0)}
+        {valNum < 0 ? "-" : ""}{formatCurrency(Math.abs(valNum), currency, locale)}
       </p>
       <p
         className={`mt-1 flex items-center gap-1 text-[11px] font-semibold ${aksenCls}`}
@@ -1172,6 +1210,7 @@ function KategoriCard({
   jenis,
   onDblClick,
 }) {
+  const { currency, locale } = uangAktif();
   const empty = items.length === 0;
   const max = Math.max(1, ...items.map((i) => i.total));
   return (
@@ -1216,7 +1255,7 @@ function KategoriCard({
                   ></div>
                 </div>
                 <p className="mt-0.5 text-right font-mono text-[10px] font-bold text-slate-500">
-                  {formatRupiah(it.total || 0)}
+                  {formatCurrency(it.total || 0, currency, locale)}
                 </p>
               </div>
             );

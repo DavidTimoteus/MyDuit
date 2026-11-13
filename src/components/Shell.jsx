@@ -17,11 +17,14 @@ import {
 } from "../lib/format.js";
 import {
   EVENT_KURS,
+  EVENT_BASIS_MATA_UANG,
   ambilRasioKurs,
+  bacaStatusBasis,
   resetBasisMataUang,
   segarkanKursGlobal,
   statusKurs,
 } from "../lib/kurs.js";
+import { BAHASAS, useBahasa } from "../lib/i18n.js";
 
 // Lazy-load per modul. Shell merender 4 tab + 4 aside panel; sebelumnya semuanya
 // masuk bundle utama, jadi chart.js (via StatistikView) ikut terunduh walau user
@@ -51,10 +54,10 @@ const ExportPdfModal = lazy(
 );
 
 const TABS = [
-  { id: "transaksi", label: "Transaksi", icon: "home", fase: "Fase 2" },
-  { id: "statistik", label: "Statistik", icon: "monitoring", fase: "Fase 4" },
-  { id: "budget", label: "Budget", icon: "savings", fase: "Fase 3" },
-  { id: "utang", label: "Utang", icon: "handshake", fase: "Fase 3" },
+  { id: "transaksi", key: "nav_transaksi", icon: "home", fase: "Fase 2" },
+  { id: "statistik", key: "nav_statistik", icon: "monitoring", fase: "Fase 4" },
+  { id: "budget", key: "nav_budget", icon: "savings", fase: "Fase 3" },
+  { id: "utang", key: "nav_utang", icon: "handshake", fase: "Fase 3" },
 ];
 
 function Avatar({ user, size = "h-9 w-9 text-sm" }) {
@@ -89,12 +92,14 @@ function dispatchAksi(type) {
 }
 
 function NavIkona({ t, active, onClick }) {
+  const { t: tr } = useBahasa();
+  const label = tr(t.key);
   // Bottom nav mobile: label teks selalu tampil, ikon terisi (FILL 1) + pil inset saat aktif
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={t.label}
+      aria-label={label}
       aria-current={active ? "page" : undefined}
       className={`nav-item group relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-0 transition-all active:scale-95 touch-manipulation ${
         active ? "text-primary" : "text-textSecondary"
@@ -117,7 +122,7 @@ function NavIkona({ t, active, onClick }) {
       <span
         className={`w-full shrink-0 whitespace-nowrap text-center text-[11px] leading-tight ${active ? "font-extrabold" : "font-semibold"}`}
       >
-        {t.label}
+        {label}
       </span>
       {/* Titik indikator aktif — sinyal kedua selain warna (ramah buta warna) */}
       <span
@@ -357,14 +362,19 @@ function SidebarInsightUtang() {
 // Modal pilih lokasi & Money Changer — dibuka dari foto profil (sidebar kiri / header mobile).
 // Hasil pilihan dipakai detectCurrency() & detectCountryInfo() lewat localStorage.
 function LokasiModal({ open, onClose, aktifCode, otomatis }) {
+  const { bahasa, setBahasa, t: tr } = useBahasa();
   const [infoKurs, setInfoKurs] = useState(() => statusKurs());
+  const [statusBasis, setStatusBasis] = useState(() => bacaStatusBasis());
   const [memuat, setMemuat] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setInfoKurs(statusKurs());
+    setStatusBasis(bacaStatusBasis());
     const onKurs = () => setInfoKurs(statusKurs());
+    const onBasis = () => setStatusBasis(bacaStatusBasis());
     window.addEventListener(EVENT_KURS, onKurs);
+    window.addEventListener(EVENT_BASIS_MATA_UANG, onBasis);
     let batal = false;
     setMemuat(true);
     segarkanKursGlobal({ paksa: true })
@@ -377,6 +387,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
     return () => {
       batal = true;
       window.removeEventListener(EVENT_KURS, onKurs);
+      window.removeEventListener(EVENT_BASIS_MATA_UANG, onBasis);
     };
   }, [open]);
 
@@ -384,7 +395,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
   const daftar = Object.entries(NEGARA).sort((a, b) =>
     a[1].nama.localeCompare(b[1].nama),
   );
-  const basis = infoKurs.basis || "IDR";
+  const basis = statusBasis.basis || infoKurs.basis || "IDR";
   const aktifCurrency = uangAktif().currency || "IDR";
   const patokanKe = aktifCurrency !== basis ? aktifCurrency : (basis === "USD" ? "IDR" : "USD");
   const laju = ambilRasioKurs("USD", patokanKe === "USD" ? basis : patokanKe);
@@ -418,21 +429,53 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">
           <div className="min-w-0">
             <h3 className="text-lg font-extrabold text-slate-800">
-              Lokasi & Money Changer
+              {tr("judul_lokasi_bahasa")}
             </h3>
             <p className="mt-0.5 text-[11px] font-semibold text-textSecondary">
               {otomatis
-                ? "Deteksi otomatis perangkat · Nilai terkonversi langsung"
-                : `Diatur manual · Basis data akun: ${basis}`}
+                ? tr("subjudul_otomatis")
+                : tr("subjudul_manual", { basis })}
             </p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Tutup"
+            aria-label={tr("tutup")}
             className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:text-slate-600"
           >
             <span className="material-symbols-outlined icon-lg">close</span>
           </button>
+        </div>
+
+        {/* Pemilih Bahasa Sistem (ID / EN) */}
+        <div className="shrink-0 border-b border-slate-100/80 px-5 py-2.5 flex items-center justify-between gap-2">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+            {tr("bahasa_sistem")}
+          </span>
+          <div className="flex items-center gap-1.5">
+            {BAHASAS.map((b) => {
+              const aktif = bahasa === b.code;
+              return (
+                <button
+                  key={b.code}
+                  type="button"
+                  onClick={() => setBahasa(b.code)}
+                  className={`neu-chip flex h-7 items-center gap-1 rounded-full px-2.5 text-[11px] font-bold transition-all ${
+                    aktif ? "solid-primary text-white" : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <span>{b.flag}</span>
+                  <span>{b.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Penjelasan Basis Database vs Lensa Tampilan */}
+        <div className="shrink-0 border-b border-slate-100/80 bg-blue-50/70 px-5 py-2 text-[11px] font-semibold leading-snug text-blue-800">
+          {!statusBasis.terkunci
+            ? tr("akun_kosong_info")
+            : tr("lensa_penjelasan", { basis, aktif: aktifCurrency })}
         </div>
 
         {/* Kartu Kurs Global Live */}
@@ -448,23 +491,23 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
             </div>
             <p className="text-[10px] font-semibold text-slate-400 truncate">
               {memuat
-                ? "Memperbarui kurs global…"
+                ? tr("kurs_memuat")
                 : infoKurs.isFallback
-                  ? "Kurs cadangan offline"
-                  : `Kurs live · ${infoKurs.source}`}
+                  ? tr("kurs_cadangan")
+                  : tr("kurs_live", { source: infoKurs.source })}
             </p>
           </div>
           <button
             type="button"
             onClick={perbaruiManual}
             disabled={memuat}
-            title="Perbarui kurs terbaru"
+            title={tr("perbarui_kurs_title")}
             className="neu-chip flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
             <span className={`material-symbols-outlined icon-xs ${memuat ? "animate-spin" : ""}`}>
               refresh
             </span>
-            Kurs
+            {tr("perbarui_kurs")}
           </button>
         </div>
         <div className="space-y-2 overflow-y-auto px-5 py-4">
@@ -504,7 +547,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
             <span className="material-symbols-outlined icon-md">
               my_location
             </span>
-            Deteksi otomatis
+            {tr("deteksi_otomatis")}
           </button>
         </div>
       </div>
@@ -513,6 +556,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
 }
 
 export default function Shell({ user }) {
+  const { t: tr } = useBahasa();
   const [tab, setTab] = useState("transaksi");
   const [online, setOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
@@ -562,11 +606,14 @@ export default function Shell({ user }) {
   useEffect(() => {
     const onLabel = (e) => setFilterLabel(e.detail?.label ?? "Hari Ini");
     const onPdf = () => setPdfOpen(true);
+    const onLokasi = () => setLokasiOpen(true);
     window.addEventListener("myduit:filter-label", onLabel);
     window.addEventListener("myduit:export-pdf", onPdf);
+    window.addEventListener("myduit:buka-lokasi", onLokasi);
     return () => {
       window.removeEventListener("myduit:filter-label", onLabel);
       window.removeEventListener("myduit:export-pdf", onPdf);
+      window.removeEventListener("myduit:buka-lokasi", onLokasi);
     };
   }, []);
 
@@ -651,19 +698,19 @@ export default function Shell({ user }) {
             <div>
               <p className="brand-title-embossed text-2xl font-black leading-tight tracking-tight">MyDuit</p>
               <p className="text-[11px] font-semibold uppercase tracking-wide text-textSecondary">
-                Catat · Pantau · Kendalikan
+                {tr("tagline")}
               </p>
             </div>
           </div>
           <div className="mx-1 h-px bg-slate-200/70"></div>
 
           <nav className="-mx-1 mt-4 flex min-h-0 flex-1 flex-col gap-2 px-1">
-            {TABS.map((t) => {
-              const active = tab === t.id;
+            {TABS.map((item) => {
+              const active = tab === item.id;
               return (
                 <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
+                  key={item.id}
+                  onClick={() => setTab(item.id)}
                   className={`sidebar-nav-btn ${active ? "is-active" : ""} flex w-full items-center gap-3 px-4 py-3 text-sm font-bold`}
                 >
                   <span
@@ -674,9 +721,9 @@ export default function Shell({ user }) {
                         : '"FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24',
                     }}
                   >
-                    {t.icon}
+                    {item.icon}
                   </span>
-                  {t.label}
+                  {tr(item.key)}
                 </button>
               );
             })}
@@ -720,16 +767,16 @@ export default function Shell({ user }) {
               <button
                 type="button"
                 onClick={() => setBackupOpen(true)}
-                title="Backup & Restore Data"
+                title={tr("backup_restore")}
                 className="neu-btn flex flex-1 items-center justify-center gap-1.5 h-8 rounded-xl bg-[#E5E5E5] text-[11px] font-bold text-slate-600 hover:text-slate-900 active:scale-95"
               >
                 <span className="material-symbols-outlined icon-sm">backup</span>
-                <span>Backup</span>
+                <span>{tr("backup")}</span>
               </button>
               <button
                 type="button"
                 onClick={keluar}
-                title="Keluar"
+                title={tr("keluar")}
                 className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-95"
               >
                 <span className="material-symbols-outlined icon-sm">logout</span>
@@ -759,8 +806,7 @@ export default function Shell({ user }) {
                 <span className="material-symbols-outlined icon-xs">
                   wifi_off
                 </span>
-                Mode offline — perubahan tersimpan di perangkat & otomatis
-                tersinkron saat daring.
+                {tr("mode_offline")}
               </div>
             )}
             {/* Header mobile — HANYA di tab transaksi (persis GAS ViewTransaksi.html).

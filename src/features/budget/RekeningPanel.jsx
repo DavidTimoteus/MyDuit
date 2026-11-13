@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatRupiah } from '../../lib/format.js'
+import { formatCurrency, formatRupiah, konversiUntukTampil, uangAktif } from '../../lib/format.js'
 import { hapusAkun } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
+import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
 import FormRekeningModal from './FormRekeningModal.jsx'
 import RiwayatMutasiModal from './RiwayatMutasiModal.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -60,22 +61,25 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
   const katById = useMemo(() => Object.fromEntries(kategoriList.map((k) => [k.id, k.nama])), [kategoriList])
   const rangeBulan = useMemo(rangeBulanIni, [])
 
+  const kursVer = useKursVersi()
+  const { currency, locale } = uangAktif()
+
   // Arus kas bulan berjalan — pakai propTransBulan dari BudgetView jika ada agar sinkron penuh dengan Statistik
   // dan tidak membuka listener useTransaksi tambahan yang mubazir.
   const { docs: fallbackTrans } = useTransaksi(propTransBulan ? null : uid, { range: rangeBulan, jenis: 'semua' })
   const transBulan = propTransBulan || fallbackTrans
   const arusBulan = useMemo(() => {
+    void kursVer
     let masuk = 0, keluar = 0
     for (const t of transBulan) {
-      const jml = Number(t.jumlah) || 0
+      const jml = konversiUntukTampil(Number(t.jumlah) || 0, t.kursSnapshot)
       if (t.jenis === 'pemasukan') masuk += jml
       else if (t.jenis === 'pengeluaran') keluar += jml
     }
     return { masuk, keluar }
-  }, [transBulan])
+  }, [transBulan, kursVer])
 
   const [modal, setModal] = useState({ open: false, edit: null })
-  useKursVersi()
 
   // Listen event buka tambah rekening dari FAB bottom nav
   useEffect(() => {
@@ -186,13 +190,13 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pemasukan bulan ini</p>
             <p className="font-mono text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
-              {formatRupiah(arusBulan.masuk)}
+              {formatCurrency(arusBulan.masuk, currency, locale)}
             </p>
           </div>
           <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">Pengeluaran bulan ini</p>
             <p className="font-mono text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
-              {formatRupiah(arusBulan.keluar)}
+              {formatCurrency(arusBulan.keluar, currency, locale)}
             </p>
           </div>
         </div>
@@ -246,10 +250,13 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         style={{ touchAction: 'pan-y' }}
       >
         {akunList.length === 0 ? (
-          <div className="clay-card-soft flex flex-col items-center px-6 py-12 text-center">
-            <span className="material-symbols-outlined mb-2 text-5xl text-primary/30">account_balance_wallet</span>
-            <p className="text-sm font-bold text-slate-700">Belum ada rekening</p>
-            <p className="mt-1 text-xs text-slate-500">Tekan tombol + untuk menambah.</p>
+          <div className="space-y-3">
+            <PenawaranMataUangAwal uid={uid} />
+            <div className="clay-card-soft flex flex-col items-center px-6 py-10 text-center">
+              <span className="material-symbols-outlined mb-2 text-5xl text-primary/30">account_balance_wallet</span>
+              <p className="text-sm font-bold text-slate-700">Belum ada rekening</p>
+              <p className="mt-1 text-xs text-slate-500">Tekan tombol + untuk menambah.</p>
+            </div>
           </div>
         ) : (
           akunList.map((a, i) => {
@@ -402,6 +409,11 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
 
       {/* ===== DESKTOP ONLY: REFINED NEUMORPHIC GRID LIST ===== */}
       <div className="hidden md:grid gap-3.5 mt-4 lg:grid-cols-2">
+        {akunList.length === 0 && (
+          <div className="lg:col-span-2 space-y-3">
+            <PenawaranMataUangAwal uid={uid} />
+          </div>
+        )}
         {akunList.map((a) => {
           const negatif = (Number(a.saldo) || 0) < 0
           const log = a.mutasiTerakhir ? logMutasi(a.mutasiTerakhir) : null

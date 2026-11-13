@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatInputTampilBertanda, konversiKeBasis, parseInputTampilBertanda, sanitizeKetikNominalBertanda, simbolUang } from '../../lib/format.js'
 import { tambahAkun, updateAkun } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
+import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
@@ -109,6 +110,7 @@ export default function FormRekeningModal({ open, onClose, uid, edit }) {
             className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-500"
           />
         </div>
+        <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampilBertanda(saldo))} className="mb-2" />
         {edit && (
           <p className="mb-3 text-[11px] leading-tight text-slate-500">
             Koreksi ini langsung memperbarui saldo buku rekening agar selaras dengan saldo fisik/m-banking. Riwayat transaksi sebelumnya tetap utuh.

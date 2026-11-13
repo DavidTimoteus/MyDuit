@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
+import { formatRupiah, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
+import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 
@@ -51,7 +53,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
           new CustomEvent('myduit:toast', {
             detail: {
               type: 'warning',
-              msg: `Perhatian: Saldo ${dari.nama} tidak boleh minus! Sisa saldo saat ini ${formatNominal(saldoDari)}. Periksa kembali debit & kredit rekening Anda.`,
+              msg: `Perhatian: Saldo ${dari.nama} tidak boleh minus! Sisa saldo saat ini ${formatRupiah(saldoDari)}. Periksa kembali debit & kredit rekening Anda.`,
             },
           })
         )
@@ -77,6 +79,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
       keId: keIdSnap,
       tanggal: tanggalSnap,
       catatan: catatanSnap,
+      kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tanggalSnap),
       deleted: false,
       createdAt: new Date().toISOString(),
     }
@@ -174,6 +177,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
                 className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none !text-[#187498]"
               />
             </div>
+            <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampil(jumlah))} className="mt-1" />
           </div>
 
           <div className="flex flex-col gap-1">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatRupiah, parseTanggalIsoAman } from '../../lib/format.js'
+import { formatCurrency, formatRupiah, parseTanggalIsoAman, uangAktif } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 
 // Panel kanan khusus tab Statistik (desktop only). Render di Shell dengan
@@ -41,6 +41,8 @@ export default function StatistikAsidePanel() {
     [data],
   )
   const { pengeluaranTerbesar } = ringkas
+  const { currency, locale } = uangAktif()
+  const rpStat = (n) => (ringkas.sudahTampil ? formatCurrency(n || 0, currency, locale) : formatRupiah(n || 0))
 
   const rasioTabungan = useMemo(() => {
     if (ringkas.in === 0) return 0
@@ -93,7 +95,7 @@ export default function StatistikAsidePanel() {
                     {pengeluaranTerbesar ? `${((pengeluaranTerbesar.total / Math.max(1, ringkas.out)) * 100).toFixed(0)}% dari total` : 'Belum ada data periode ini'}
                   </p>
                 </div>
-                <p className="shrink-0 font-mono text-xs font-bold text-expenseText">{formatRupiah(pengeluaranTerbesar?.total ?? 0)}</p>
+                <p className="shrink-0 font-mono text-xs font-bold text-expenseText">{rpStat(pengeluaranTerbesar?.total ?? 0)}</p>
               </div>
             </div>
 
@@ -147,7 +149,7 @@ export default function StatistikAsidePanel() {
                     Rata-rata / hari aktif
                   </span>
                   <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">
-                    {formatRupiah(ringkas.rataPengeluaranHariAktif)}
+                    {rpStat(ringkas.rataPengeluaranHariAktif)}
                   </span>
                 </div>
               </div>
@@ -161,7 +163,7 @@ export default function StatistikAsidePanel() {
                       Hari paling boros
                     </span>
                     <span className="shrink-0 font-mono text-[11px] font-bold text-expenseText">
-                      {formatRupiah(ringkas.hariPalingBoros.total)}
+                      {rpStat(ringkas.hariPalingBoros.total)}
                     </span>
                   </div>
                   <p className="mt-0.5 text-[10px] font-medium text-textSecondary">

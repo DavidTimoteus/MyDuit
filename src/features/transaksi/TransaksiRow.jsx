@@ -1,6 +1,7 @@
 import { memo, useState } from 'react'
 import { formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { tambahAkun } from '../../lib/db.js'
+import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
 
 // Form mini "buat rekening pertama" — modul rekening lengkap di Fase 3.
 export function ChipAkunBaru({ uid }) {
@@ -38,7 +39,9 @@ export function ChipAkunBaru({ uid }) {
   }
 
   return (
-    <div className="clay-card p-6">
+    <div className="space-y-4">
+      <PenawaranMataUangAwal uid={uid} />
+      <div className="clay-card p-6">
       <h3 className="text-base font-extrabold text-slate-800">Buat rekening pertama</h3>
       <p className="mt-1 text-xs leading-relaxed text-slate-500">
         Rekening adalah sumber dana transaksi (mis. Rekening Utama, E-Wallet, Tabungan).
@@ -68,6 +71,7 @@ export function ChipAkunBaru({ uid }) {
           Buat Rekening
         </button>
       </form>
+      </div>
     </div>
   )
 }
@@ -188,7 +192,7 @@ export const TransaksiRow = memo(function TransaksiRow({
       </div>
       <div className="text-right shrink-0 flex flex-col items-end">
         <p className={`font-bold ${color} text-[15px] mb-0.5`}>
-          {sign}{simbol} {formatNominal(trans.jumlah || 0)}
+          {sign}{simbol} {formatNominal(trans.jumlah || 0, { kursSnapshot: trans.kursSnapshot })}
         </p>
         <p className="text-[10px] text-slate-500 max-w-[130px] sm:max-w-[200px] truncate">{isPindahSaldo ? trans.akunNama : trans.akunNama || 'Tunai'}</p>
       </div>
