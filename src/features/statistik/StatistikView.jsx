@@ -419,8 +419,9 @@ export default function StatistikView({ user }) {
         jumlahHariBulan: totalHari,
         bulan,
         tahun,
+        tr,
       }),
-    [mode, ringkas.basis, trendBasis, totalHari, bulan, tahun, docs.length],
+    [mode, ringkas.basis, trendBasis, totalHari, bulan, tahun, docs.length, tr],
   );
 
   // Period navigator — batas: tidak bisa masa depan (sesuai GAS), retensi 1 tahun ke belakang
@@ -1028,11 +1029,10 @@ export default function StatistikView({ user }) {
             </div>
             <div className="min-w-0">
               <h4 className="text-sm font-bold text-slate-800">
-                Analisis Keuangan
+                {tr("analisis_keuangan")}
               </h4>
               <p className="mt-0.5 text-xs text-textSecondary">
-                {saran.length} temuan dari data{" "}
-                {mode === "bulanan" ? "bulan ini" : "tahun ini"}
+                {tr(mode === "bulanan" ? "analisis_temuan" : "analisis_temuan_tahun", { n: saran.length })}
               </p>
             </div>
           </div>

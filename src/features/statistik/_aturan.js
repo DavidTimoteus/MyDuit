@@ -3,20 +3,17 @@
 // ----------------------------------------------------------------------------
 // Kenapa diganti: kartu "Rekomendasi AI" lama adalah placeholder mati. Double
 // click hanya memicu alert "akan segera diaktifkan". Tidak ada panggilan API,
-// tidak ada model, tidak ada output. Label "AI" cuma ilusi; yang benar-benar
-// dibutuhkan user adalah angka nyata yang SUDAH dihitung di view ini tapi
-// tidak pernah ditampilkan.
+// tidak ada model, tidak ada output. Yang dibutuhkan user adalah angka nyata
+// yang SUDAH dihitung di view ini.
 //
-// Prinsip penggantinya (skill myduit: "data yang DIHITUNG tapi tidak dirender
-// = fitur hilang"): pakai angka yang sudah ada, aturan murni dan deterministik,
-// tanpa jaringan, tanpa kunci API, tanpa kondisi acak. Hasilnya bisa
-// diverifikasi user (kenapa? aturan jelas) dan bisa diuji dengan assert,
-// sesuatu yang tidak bisa dijanjikan LLM.
+// Semua teks lewat kamus i18n (argument `tr`) supaya kartu "Analisis Keuangan"
+// mengikuti bahasa aplikasi. Angka dan aturan tetap deterministik: input sama
+// selalu menghasilkan saran yang sama, hanya bahasanya yang berubah.
 // ============================================================================
 import { parseTanggalIsoAman, tanggalTampil } from '../../lib/format.js'
 
 // Hitung persen perubahan periode dengan penyebut absolut agar perbaikan
-// dari nilai negatif (mis. saldo -1jt -> +500rb) tampil positif (+150%), bukan terbalik.
+// dari nilai negatif (mis. saldo -1jt -> +500rb) tampil positif (+150%).
 export function hitungPersenPerubahan(baru, lama, ada = true) {
   if (!ada) return null
   const b = Number(baru) || 0
@@ -25,12 +22,15 @@ export function hitungPersenPerubahan(baru, lama, ada = true) {
   return Math.round(((b - l) / Math.abs(l)) * 100)
 }
 
-export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, tahun }) {
+export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, tahun, tr = (k) => k }) {
   const saran = []
   const periode =
     mode === 'bulanan'
-      ? `Bulan ${new Date(tahun, bulan, 1).toLocaleDateString('id-ID', { month: 'long' })} ${tahun}`
-      : `Tahun ${tahun}`
+      ? tr('analisis_periode_bulan', {
+          bulan: new Date(tahun, bulan, 1).toLocaleDateString('id-ID', { month: 'long' }),
+          tahun,
+        })
+      : tr('analisis_periode_tahun', { tahun })
 
   const R = (level, judul, detail) => saran.push({ level, judul, detail })
   const rp = (n) => `Rp${Math.round(Number(n) || 0).toLocaleString('id-ID')}`
@@ -40,27 +40,29 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const top = ringkas.pengeluaran[0]?.nama
     R(
       'kritis',
-      `Saldo ${periode} minus ${rp(Math.abs(ringkas.saldo))}`,
-      `Pengeluaran melampaui pemasukan. ${top ? `Kategori "${top}" adalah penyumbang terbesar, mulai dari situ.` : 'Mulai dari memangkas pengeluaran terbesar.'}`,
+      tr('analisis_saldo_minus', { periode, nominal: rp(Math.abs(ringkas.saldo)) }),
+      top
+        ? tr('analisis_saldo_minus_top', { kategori: top })
+        : tr('analisis_saldo_minus_detail'),
     )
   } else if (ringkas.saldo === 0 && ringkas.out > 0) {
-    R('info', `Impas, pengeluaran sama dengan pemasukan (${periode})`,
-      'Tidak ada sisa untuk ditabung. Kurangi pengeluaran variabel sedikit saja sudah berarti.')
+    R(
+      'info',
+      tr('analisis_impas', { periode }),
+      tr('analisis_impas_detail'),
+    )
   }
 
-  // 2) Rasio tabungan. Ini metrik yang paling sering dicari dan selama ini
-  //    tidak pernah ditampilkan di halaman mana pun.
+  // 2) Rasio tabungan
   if (ringkas.in_ > 0) {
     const rasio = Math.round((ringkas.saldo / ringkas.in_) * 100)
     if (rasio < 10) {
-      R('peringatan', `Rasio tabungan ${rasio}%, di bawah standar`,
-        `Rentang yang umum ditonton 20 sampai 30%. Perlu naik sekitar ${Math.max(1, 20 - rasio)} poin lagi.`)
+      R('peringatan', tr('analisis_rasio_rendah', { rasio }),
+        tr('analisis_rasio_rendah_detail', { poin: Math.max(1, 20 - rasio) }))
     } else if (rasio >= 30) {
-      R('bagus', `Rasio tabungan ${rasio}%, sangat kuat`,
-        'Sisa dana cukup besar. Pertimbangkan memindahkannya ke aset berisiko untuk melawan inflasi.')
+      R('bagus', tr('analisis_rasio_kuat', { rasio }), tr('analisis_rasio_kuat_detail'))
     } else {
-      R('bagus', `Rasio tabungan ${rasio}%, sehat`,
-        'Cukup stabil untuk menutup pengeluaran tak terduga. Pertahankan.')
+      R('bagus', tr('analisis_rasio_sehat', { rasio }), tr('analisis_rasio_sehat_detail'))
     }
   }
 
@@ -68,11 +70,11 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
   if (tren.ada && tren.out > 0) {
     const delta = Math.round(((ringkas.out - tren.out) / tren.out) * 100)
     if (delta >= 25) {
-      R('peringatan', `Pengeluaran naik ${delta}% dari periode sebelumnya`,
-        `${rp(ringkas.out)} sekarang, sebelumnya ${rp(tren.out)}. Kenaikan segitu perlu ditinjau polanya.`)
+      R('peringatan', tr('analisis_pengeluaran_naik', { delta }),
+        tr('analisis_pengeluaran_naik_detail', { sekarang: rp(ringkas.out), sebelumnya: rp(tren.out) }))
     } else if (delta <= -20) {
-      R('bagus', `Pengeluaran turun ${Math.abs(delta)}% dari periode sebelumnya`,
-        'Hemat berhasil. Coba cari penyebabnya dan jadikan kebiasaan.')
+      R('bagus', tr('analisis_pengeluaran_turun', { delta: Math.abs(delta) }),
+        tr('analisis_pengeluaran_turun_detail'))
     }
   }
 
@@ -81,11 +83,11 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const [top] = ringkas.pengeluaran
     const porsi = Math.round((top.total / ringkas.out) * 100)
     if (porsi >= 40) {
-      R('peringatan', `Kategori "${top.nama}" menyerap ${porsi}% pengeluaran`,
-        `${rp(top.total)} dari total ${rp(ringkas.out)}. Memangkas separuh kategori ini saja sudah berdampak nyata.`)
+      R('peringatan', tr('analisis_kategori_besar', { kategori: top.nama, porsi }),
+        tr('analisis_kategori_besar_detail', { nominal: rp(top.total), total: rp(ringkas.out) }))
     } else if (porsi >= 25) {
-      R('info', `Kategori "${top.nama}" = ${porsi}% pengeluaran`,
-        'Kategori dominan, wajar untuk dipantau tapi belum menjadi masalah.')
+      R('info', tr('analisis_kategori_moderat', { kategori: top.nama, porsi }),
+        tr('analisis_kategori_moderat_detail'))
     }
   }
 
@@ -100,10 +102,10 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const sudahLewat = hariBerjalan / jumlahHariBulan > 0.5
     R(
       sudahLewat ? 'kritis' : 'info',
-      `Proyeksi akhir bulan ${rp(proyeksi)}`,
-      `Laju saat ini ${rp(ringkas.out / hariBerjalan)} per hari selama ${hariBerjalan} hari` +
+      tr('analisis_proyeksi', { nominal: rp(proyeksi) }),
+      tr('analisis_proyeksi_detail', { laju: rp(ringkas.out / hariBerjalan), hari: hariBerjalan }) +
         (sisaHari > 0
-          ? `. Agar tidak lebih, sisa ${sisaHari} hari harus dibatasi maksimal ${rp(sisaRupiah)}.`
+          ? tr('analisis_proyeksi_sisa', { sisa: sisaHari, nominal: rp(sisaRupiah) })
           : '.'),
     )
   }
@@ -115,8 +117,8 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const tglPuncak = parseTanggalIsoAman(puncak[0])
     if (tglPuncak) {
       const tglLabel = tanggalTampil(puncak[0])
-      R('info', `Puncak pengeluaran tanggal ${tglLabel}`,
-        `${rp(puncak[1].out)} tercatat hari itu. Kalau bisa ditahan sekali seminggu, hemat sekitar ${rp(puncak[1].out / 4)} sebulan.`)
+      R('info', tr('analisis_puncak', { tanggal: tglLabel }),
+        tr('analisis_puncak_detail', { nominal: rp(puncak[1].out), hemat: rp(puncak[1].out / 4) }))
     }
   }
 
@@ -127,20 +129,23 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
       const outHarian = Math.round(ringkas.out / hariAktif)
       const proyeksiBulan = outHarian * 30
       if (proyeksiBulan > ringkas.in_) {
-        R('kritis', 'Pengeluaran harian akan melampaui pemasukan bulanan',
-          `${rp(outHarian)} per hari. Perlu dipangkas sekitar ${rp((proyeksiBulan - ringkas.in_) / 30)} per hari agar impas.`)
+        R('kritis', tr('analisis_harian_tinggi'),
+          tr('analisis_harian_tinggi_detail', {
+            nominal: rp(outHarian),
+            pangkas: rp((proyeksiBulan - ringkas.in_) / 30),
+          }))
       }
     }
   }
 
   // 8) Fallback supaya kartu tidak pernah kosong
   if (!saran.length) {
-    R('info', ringkas.jmlTransaksi ? 'Tidak ada pola yang perlu ditindak' : `Belum ada transaksi pada ${periode}`,
-      ringkas.jmlTransaksi
-        ? 'Pengeluaran terkendali, tidak ada anomali yang perlu tindakan.'
-        : 'Catat beberapa transaksi dulu supaya polanya bisa dianalisis.')
+    R(
+      'info',
+      ringkas.jmlTransaksi ? tr('analisis_tanpa_pola') : tr('analisis_belum_transaksi', { periode }),
+      ringkas.jmlTransaksi ? tr('analisis_tanpa_pola_detail') : tr('analisis_belum_transaksi_detail'),
+    )
   }
 
   return saran
 }
-
