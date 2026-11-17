@@ -1,7 +1,7 @@
 import { deleteUser, reauthenticateWithPopup } from 'firebase/auth'
 import { Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { getFirebase, googleProvider } from '../../lib/firebase.js'
-import { kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
+import { jamValid, kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 import { IS_DEMO_UID } from '../../lib/mockData.js'
 import { bacaBasisMataUang, resetBasisMataUang, sanitasiKursSnapshot, simpanBasisMataUang } from '../../lib/kurs.js'
 
@@ -10,7 +10,7 @@ const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 const ALLOWLIST_FIELDS = {
   transaksi: new Set([
     'jumlah', 'jenis', 'kategoriId', 'akunId', 'dariId', 'keId',
-    'utangId', 'pembayaranUtangId', 'tanggal', 'catatan', 'kursSnapshot',
+    'utangId', 'pembayaranUtangId', 'tanggal', 'jam', 'koreksiSaldo', 'delta', 'catatan', 'kursSnapshot',
     'deleted', 'deletedAt', 'createdAt', 'updatedAt',
   ]),
   akun: new Set(['nama', 'tipe', 'saldo', 'mutasiTerakhir', 'deleted', 'deletedAt', 'createdAt', 'updatedAt']),
@@ -105,6 +105,9 @@ export function bersihkanDokumenRestore(koleksi, rawData) {
       const j = String(data.jenis ?? 'pengeluaran').trim().toLowerCase()
       data.jenis = ['pemasukan', 'pengeluaran', 'pindah saldo'].includes(j) ? j : 'pengeluaran'
       data.tanggal = kanonikTanggal(data.tanggal)
+      if (data.jam !== undefined) data.jam = jamValid(data.jam)
+      if (data.koreksiSaldo !== true) delete data.koreksiSaldo
+      if (data.koreksiSaldo === true && !Number.isFinite(Number(data.delta))) delete data.delta
       if (data.catatan !== undefined) data.catatan = String(data.catatan ?? '').slice(0, 500)
       if (data.kursSnapshot !== undefined) {
         const snap = sanitasiKursSnapshot(data.kursSnapshot)

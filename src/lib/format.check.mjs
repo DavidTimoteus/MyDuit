@@ -70,6 +70,14 @@ assert.equal(f.tanggalTampil('2026-05-07'), '7 Mei 2026')
 assert.equal(f.tanggalLabel('2026-11-17'), '17 Nov 2026')
 assert.equal(f.tanggalPendek('2026-11-17'), '17 Nov 2026')
 
+// Jam opsional: hanya HH:mm valid yang dipertahankan, sisanya jatuh ke jam saat input.
+assert.equal(f.jamValid('14:30'), '14:30')
+assert.equal(f.jamValid('09:05'), '09:05')
+assert.equal(f.jamValid('25:00'), '')
+assert.equal(f.jamValid('14:30:00'), '')
+assert.equal(f.jamValid(''), '')
+assert.match(f.jamSekarang(), /^([01]\d|2[0-3]):[0-5]\d$/)
+
 // Rentang terbalik otomatis dinormalisasi.
 assert.deepEqual(f.rangeForFilter('rentang', { start: '2026-11-10', end: '2026-11-01' }), {
   start: '2026-11-01',

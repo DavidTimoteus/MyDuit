@@ -137,7 +137,9 @@ export const TransaksiRow = memo(function TransaksiRow({
             {trans.catatan || trans.kategoriNama || 'Tanpa Keterangan'}
           </h3>
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-            <span className="font-medium whitespace-nowrap shrink-0">{tanggalTampil(trans.tanggal)}</span>
+            <span className="font-medium whitespace-nowrap shrink-0">
+              {tanggalTampil(trans.tanggal)}{trans.jam ? ` · ${trans.jam}` : ''}
+            </span>
             <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></span>
             <span className="truncate">{trans.kategoriNama || '-'}</span>
           </div>

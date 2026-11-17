@@ -450,6 +450,17 @@ export function isoHariIni() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// Jam lokal saat pengguna menekan simpan. Dipakai bila field jam dikosongkan.
+export function jamSekarang() {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+// Hanya terima HH:mm dari <input type="time">; selain itu dianggap kosong.
+export function jamValid(jam) {
+  return typeof jam === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(jam.trim()) ? jam.trim() : ''
+}
+
 export function isoDari(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

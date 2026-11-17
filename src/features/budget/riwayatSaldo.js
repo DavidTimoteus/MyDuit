@@ -82,7 +82,8 @@ export function bangunMutasi(docs, { akunId, saldoSekarang = 0, kategoriById = {
           ? kategoriById[t.kategoriId]
           : t.kategoriNama ?? (t.jenis === 'pindah saldo' ? 'Pindah Saldo' : '(tanpa kategori)'),
       catatan: t.catatan ?? '',
-      // Timestamp Firestore (atau null saat offline) — dipakai UI untuk jam.
+      // Jam yang dipilih pengguna; dokumen lama memakai createdAt sebagai fallback.
+      jam: t.jam ?? '',
       createdAt: t.createdAt ?? null,
       delta,
       saldoSesudah: saldo,
