@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { formatRupiah, isoDari, isoHariIni, rangeForFilter, simbolUang, tanggalTampil } from '../../lib/format.js'
+import { formatNominal, isoDari, isoHariIni, rangeForFilter, simbolUang, tanggalRelatifLabel } from '../../lib/format.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, hapusTransaksiMassal, simpanTransaksi } from '../../lib/db.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -33,6 +33,13 @@ function filterLabel(chip, rentang, tr) {
     case 'rentang': return rentang.start ? tr('filter_rentang_range', { start: rentang.start, end: rentang.end }) : tr('pilih_periode')
     default: return tr('semua_transaksi')
   }
+}
+
+function isoDariMutasi(at) {
+  if (!at) return isoHariIni()
+  if (typeof at.toDate === 'function') return isoDari(at.toDate())
+  if (typeof at === 'string') return at.slice(0, 10)
+  return isoHariIni()
 }
 
 export default function TransaksiView({ user }) {
@@ -690,25 +697,43 @@ export default function TransaksiView({ user }) {
         )}
 
         {daftarKoreksi.length > 0 && (
-          <div className="clay-card clay-key-amber mb-3 flex items-center gap-3 rounded-[20px] p-3.5">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
-              <span className="material-symbols-outlined icon-md">tune</span>
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold text-slate-800">Koreksi Penyesuaian saldo</p>
-              <p className="truncate text-[11px] font-medium text-slate-500">
-                {daftarKoreksi.map((a) => a.nama).join(', ')} ·{' '}
-                {tanggalTampil(
-                  daftarKoreksi[0]?.mutasiTerakhir?.at?.toDate?.()
-                    ? isoDari(daftarKoreksi[0].mutasiTerakhir.at.toDate())
-                    : isoHariIni(),
-                )}
-              </p>
+          <section className="neu-inset mb-3 rounded-[20px] px-3.5 py-3" aria-label={tr('penyesuaian_saldo')}>
+            <div className="mb-2 flex items-center gap-1.5">
+              <span className="material-symbols-outlined icon-xs text-amber-600">tune</span>
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                {tr('penyesuaian_saldo')}
+              </h3>
+              <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+                {tr('bukan_transaksi')}
+              </span>
             </div>
-            <span className="shrink-0 font-mono text-sm font-extrabold text-amber-700">
-              {formatRupiah(daftarKoreksi.reduce((s, a) => s + (Number(a.mutasiTerakhir?.delta) || 0), 0), { tanda: true })}
-            </span>
-          </div>
+            <div className="space-y-1.5">
+              {daftarKoreksi.slice(0, 2).map((a) => {
+                const delta = Number(a.mutasiTerakhir?.delta) || 0
+                return (
+                  <div key={a.id} className="flex items-center gap-2.5">
+                    <span className="clay-icon-tile clay-key-amber flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                      <span className="material-symbols-outlined icon-sm">tune</span>
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-bold text-slate-700">{a.nama}</p>
+                      <p className="truncate text-[10px] font-medium text-slate-500">
+                        {tanggalRelatifLabel(isoDariMutasi(a.mutasiTerakhir?.at))}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 font-mono text-xs font-extrabold ${delta >= 0 ? 'text-incomeText' : 'text-expenseText'}`}>
+                      {delta >= 0 ? '+' : '−'}{simbolUang()} {formatNominal(Math.abs(delta))}
+                    </span>
+                  </div>
+                )
+              })}
+              {daftarKoreksi.length > 2 && (
+                <p className="pl-[42px] text-[10px] font-semibold text-slate-500">
+                  +{daftarKoreksi.length - 2} …
+                </p>
+              )}
+            </div>
+          </section>
         )}
 
         {/* Konten utama */}
