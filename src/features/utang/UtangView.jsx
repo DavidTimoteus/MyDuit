@@ -8,14 +8,15 @@ import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { portalBody } from '../../lib/portal.js'
+import { t as tTerjemah, useBahasa } from '../../lib/i18n.js'
 import { BayarUtangModal, FormUtangModal } from './UtangModals.jsx'
 import UtangMobile from './UtangMobile.jsx'
 
 const FILTERS = [
-  { id: 'semua', label: 'Semua' },
-  { id: 'aktif', label: 'Aktif' },
-  { id: 'lunas', label: 'Lunas' },
-  { id: 'terlambat', label: 'Terlambat' },
+  { id: 'semua' },
+  { id: 'aktif' },
+  { id: 'lunas' },
+  { id: 'terlambat' },
 ]
 
 function useUtangList(uid) {
@@ -109,8 +110,8 @@ export function selisihHari(iso, tipe, terakhirBayar, nowRef = new Date()) {
   return Math.round((target - now) / 86400000)
 }
 
-function infoJatuhTempo(iso, tipe, terakhirBayar, nowRef = new Date(), precomputedHari) {
-  if (!iso) return { teks: 'Tanpa jatuh tempo', cls: 'text-slate-500', hari: null }
+function infoJatuhTempo(iso, tipe, terakhirBayar, nowRef = new Date(), precomputedHari, tr = tTerjemah) {
+  if (!iso) return { teks: tr('tanpa_jatuh_tempo'), cls: 'text-slate-500', hari: null }
   const d = precomputedHari !== undefined ? precomputedHari : selisihHari(iso, tipe, terakhirBayar, nowRef)
   const tglRef = new Date(`${iso}T00:00:00`)
   const hariTgl = !isNaN(tglRef.getTime()) ? tglRef.getDate() : ''
@@ -118,20 +119,20 @@ function infoJatuhTempo(iso, tipe, terakhirBayar, nowRef = new Date(), precomput
   if (tipe === 'Cicilan') {
     const info = hitungJatuhTempoBulanan(iso, terakhirBayar, nowRef)
     if (info?.sudahBayarBulanIni) {
-      return { teks: `Bulan ini lunas • Tempo berikutnya tgl ${hariTgl} (${d} hr lagi)`, cls: 'text-incomeText font-bold', hari: d }
+      return { teks: tr('bulan_ini_lunas_tempo', { hari: hariTgl, d }), cls: 'text-incomeText font-bold', hari: d }
     }
-    const awalan = `Tempo bulanan tgl ${hariTgl}`
-    if (d < 0) return { teks: `${awalan} (Telat ${-d} hari)`, cls: 'text-expenseText font-bold', hari: d }
-    if (d === 0) return { teks: `${awalan} (Hari ini!)`, cls: 'text-expenseText font-bold', hari: d }
-    if (d <= 7) return { teks: `${awalan} (H-${d})`, cls: 'text-warning font-bold', hari: d }
-    return { teks: `${awalan} (${d} hari lagi)`, cls: 'text-slate-500', hari: d }
+    const awalan = tr('tempo_bulanan', { hari: hariTgl })
+    if (d < 0) return { teks: `${awalan} (${tr('telat_n_hari', { n: -d })})`, cls: 'text-expenseText font-bold', hari: d }
+    if (d === 0) return { teks: `${awalan} (${tr('hari_ini_penuh')})`, cls: 'text-expenseText font-bold', hari: d }
+    if (d <= 7) return { teks: `${awalan} (${tr('h_min', { n: d })})`, cls: 'text-warning font-bold', hari: d }
+    return { teks: `${awalan} (${tr('n_hari_lagi', { n: d })})`, cls: 'text-slate-500', hari: d }
   }
 
-  const awalan = `Jatuh tempo ${tanggalPendek(iso)}`
-  if (d < 0) return { teks: `${awalan} (Telat ${-d} hari)`, cls: 'text-expenseText font-bold', hari: d }
-  if (d === 0) return { teks: `${awalan} (Hari ini!)`, cls: 'text-expenseText font-bold', hari: d }
-  if (d <= 7) return { teks: `${awalan} (H-${d})`, cls: 'text-warning font-bold', hari: d }
-  return { teks: `${awalan} (${d} hari lagi)`, cls: 'text-slate-500', hari: d }
+  const awalan = tr('jatuh_tempo_tanggal', { tanggal: tanggalPendek(iso) })
+  if (d < 0) return { teks: `${awalan} (${tr('telat_n_hari', { n: -d })})`, cls: 'text-expenseText font-bold', hari: d }
+  if (d === 0) return { teks: `${awalan} (${tr('hari_ini_penuh')})`, cls: 'text-expenseText font-bold', hari: d }
+  if (d <= 7) return { teks: `${awalan} (${tr('h_min', { n: d })})`, cls: 'text-warning font-bold', hari: d }
+  return { teks: `${awalan} (${tr('n_hari_lagi', { n: d })})`, cls: 'text-slate-500', hari: d }
 }
 
 export function cekLunasUtang(t) {
@@ -143,7 +144,7 @@ export function cekLunasUtang(t) {
  * Pre-komputasi metadata status/jatuh tempo utang & cicilan 1× per item (O(N))
  * agar filter, sort O(N log N), dan render kartu tidak mengulang Date math ratusan kali.
  */
-export function perkayaUtangList(list, nowRef = new Date()) {
+export function perkayaUtangList(list, nowRef = new Date(), tr = tTerjemah) {
   const now = new Date(nowRef)
   now.setHours(0, 0, 0, 0)
   return (list || []).map((t) => {
@@ -153,11 +154,11 @@ export function perkayaUtangList(list, nowRef = new Date()) {
         ...t,
         _lunas: true,
         _hari: null,
-        _jatuh: { teks: 'Sudah lunas', cls: 'text-slate-500', hari: null },
+        _jatuh: { teks: tr('sudah_lunas'), cls: 'text-slate-500', hari: null },
       }
     }
     const hari = selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar, now)
-    const jatuh = infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar, now, hari)
+    const jatuh = infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar, now, hari, tr)
     return {
       ...t,
       _lunas: false,
@@ -192,6 +193,7 @@ export function filterDanUrutUtang(enrichedList, filter = 'semua') {
 }
 
 export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTag, onBayar, onLunasin, onEdit, onHapus }) {
+  const { t: tr } = useBahasa()
   const lunas = t._lunas !== undefined ? t._lunas : cekLunasUtang(t)
   const totalUtang = Math.max(0, Number(t.total) || 0)
   const sisaUtang = lunas ? 0 : Math.max(0, Number(t.sisa) || 0)
@@ -201,10 +203,10 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
   const jatuh = lunas
-    ? { teks: 'Sudah lunas', cls: 'text-slate-500' }
-    : (t._jatuh || infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar))
+    ? { teks: tr('sudah_lunas'), cls: 'text-slate-500' }
+    : (t._jatuh || infoJatuhTempo(t.tglJatuhTempo, t.tipe, t.terakhirBayar, new Date(), undefined, tr))
 
-  const labelStatus = lunas ? 'Lunas' : terlambat ? 'Terlambat' : mendekati ? 'Segera' : 'Aktif'
+  const labelStatus = lunas ? tr('lunas') : terlambat ? tr('terlambat') : mendekati ? tr('segera') : tr('aktif')
   const badgeCls = lunas
     ? 'solid-primary text-white'
     : terlambat
@@ -230,15 +232,15 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
             </span>
             <span className="truncate text-[11px] font-semibold text-slate-500">
               {t.tipe}
-              {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
+              {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}${tr('per_bulan_singkat')}` : ''}
             </span>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-          <button onClick={() => onEdit?.(t)} aria-label="Edit utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-slate-900 active:scale-95">
+          <button onClick={() => onEdit?.(t)} aria-label={tr('edit_utang_aria')} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-slate-900 active:scale-95">
             <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
-          <button onClick={() => onHapus?.(t)} aria-label="Hapus utang" className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95">
+          <button onClick={() => onHapus?.(t)} aria-label={tr('hapus_utang_aria')} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95">
             <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
         </div>
@@ -247,16 +249,16 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
       {/* Fokus utama: sisa utang */}
       <div className="mt-3.5 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="min-w-0 shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa utang</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('sisa_utang')}</p>
           <p className={`whitespace-nowrap font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
             {formatRupiah(sisaUtang)}
           </p>
-          <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-slate-500">dari {formatRupiah(totalUtang)}</p>
+          <p className="mt-1 whitespace-nowrap text-[11px] font-semibold text-slate-500">{tr('dari')} {formatRupiah(totalUtang)}</p>
         </div>
         {!lunas && (
           <div className="flex shrink-0 items-center gap-2">
-            <button onClick={() => onLunasin?.(t)} className="neu-btn h-9 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-[color,transform,box-shadow] duration-150 active:scale-95">Lunasin</button>
-            <button onClick={() => onBayar?.(t)} className="neu-btn-primary solid-primary h-9 px-4 rounded-xl text-white font-bold text-xs transition-[transform,box-shadow,filter] duration-150 active:scale-95">Bayar</button>
+            <button onClick={() => onLunasin?.(t)} className="neu-btn h-9 px-3.5 rounded-xl bg-[#E5E5E5] text-slate-700 font-bold text-xs transition-[color,transform,box-shadow] duration-150 active:scale-95">{tr('lunasin')}</button>
+            <button onClick={() => onBayar?.(t)} className="neu-btn-primary solid-primary h-9 px-4 rounded-xl text-white font-bold text-xs transition-[transform,box-shadow,filter] duration-150 active:scale-95">{tr('bayar')}</button>
           </div>
         )}
       </div>
@@ -271,11 +273,11 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
           />
         </div>
         <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[11px]">
-          <span className="whitespace-nowrap font-medium text-slate-500">Terbayar {formatRupiah(terbayar)} ({persen}%)</span>
+          <span className="whitespace-nowrap font-medium text-slate-500">{tr('terbayar_nominal', { nominal: formatRupiah(terbayar), persen })}</span>
           <span className={`inline-flex items-center gap-0.5 font-bold ${lunas ? 'text-[#36AE7C]' : jatuh.cls}`}>
             {terlambat && <span className="material-symbols-outlined icon-xs">error</span>}
             {lunas && <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>}
-            {lunas ? 'Sudah lunas' : jatuh.teks}
+            {lunas ? tr('sudah_lunas') : jatuh.teks}
           </span>
         </div>
       </div>
@@ -284,6 +286,10 @@ export const KartuUtang = memo(function KartuUtang({ t, currencyTag: _currencyTa
 })
 
 export default function UtangView({ user }) {
+  const { t: tr, bahasa } = useBahasa()
+  // `tr` dari useBahasa() dibuat ulang tiap render; turunkan fungsi stabil yang
+  // hanya berubah saat bahasa berubah supaya useMemo/effect tidak jalan sia-sia.
+  const trStabil = useMemo(() => (kunci, params) => tTerjemah(kunci, params, bahasa), [bahasa])
   const uid = user.uid
   const list = useUtangList(uid)
   const { akunList } = useAkunKategori(uid)
@@ -309,7 +315,7 @@ export default function UtangView({ user }) {
     return () => window.removeEventListener('myduit:utang-add', onAdd)
   }, [])
 
-  const listEnriched = useMemo(() => perkayaUtangList(list), [list])
+  const listEnriched = useMemo(() => perkayaUtangList(list, undefined, trStabil), [list, trStabil])
   const terurut = useMemo(() => filterDanUrutUtang(listEnriched, filter), [listEnriched, filter])
 
   const ringkasan = useMemo(() => {
@@ -356,14 +362,14 @@ export default function UtangView({ user }) {
     let bulanEstimasi
     let perkiraan
     if (ringkasan.aktifCount === 0) {
-      perkiraan = 'Belum ada utang/cicilan aktif.'
+      perkiraan = trStabil('perkiraan_tidak_ada')
     } else if (ringkasan.totalCicilanPerBulan > 0) {
       bulanEstimasi = Math.max(1, Math.ceil(ringkasan.totalSisa / ringkasan.totalCicilanPerBulan))
       const d = new Date()
       d.setMonth(d.getMonth() + bulanEstimasi)
       perkiraan = `≈ ${d.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}`
     } else {
-      perkiraan = 'Perkiraan butuh cicilan per bulan.'
+      perkiraan = trStabil('perkiraan_butuh_cicilan')
     }
     const terbesar = ringkasan.aktif.slice().sort((a, b) => (b.sisa || 0) - (a.sisa || 0))[0] || null
     window.dispatchEvent(new CustomEvent('myduit:sidebar-utang-update', {
@@ -373,7 +379,7 @@ export default function UtangView({ user }) {
         terbesar: terbesar ? { nama: terbesar.namaPihak, sisa: terbesar.sisa || 0, jatuh: terbesar.tglJatuhTempo } : null,
       },
     }))
-  }, [ringkasan])
+  }, [ringkasan, trStabil])
 
   async function konfirmHapus() {
     if (!hapusTarget) return
@@ -383,7 +389,7 @@ export default function UtangView({ user }) {
       await hapusUtang(uid, target.id)
     } catch (e) {
       console.warn('[utang-hapus] gagal:', e?.message ?? e)
-      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: 'Gagal menghapus utang.' } }))
+      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: tr('gagal_hapus_utang') } }))
     }
   }
 
@@ -419,17 +425,17 @@ export default function UtangView({ user }) {
       {/* Ringkasan 3 kartu (desktop) */}
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
-          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Total Utang</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#EB5353] bg-[#E5E5E5]">{ringkasan.aktifCount} aktif</span></div>
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">{tr('total_utang')}</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#EB5353] bg-[#E5E5E5]">{tr('item_aktif_count', { n: ringkasan.aktifCount })}</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#EB5353] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalSisa)}</p>
 
         </div>
         <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
-          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#36AE7C]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Lunas</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#36AE7C] bg-[#E5E5E5]">{ringkasan.lunasCount} item lunas</span></div>
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#36AE7C]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">{tr('lunas')}</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#36AE7C] bg-[#E5E5E5]">{tr('item_lunas_count', { n: ringkasan.lunasCount })}</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#36AE7C] tabular-nums lg:text-2xl mt-1">{formatRupiah(ringkasan.totalLunasNominal)}</p>
 
         </div>
         <div data-reveal="" className="neu-card rounded-2xl p-4 bg-[#E5E5E5]">
-          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#187498]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">Cicilan Aktif</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#187498] bg-[#E5E5E5]">{formatRupiah(ringkasan.totalCicilanPerBulan)}/bln</span></div>
+          <div className="mb-2 flex items-center justify-between"><div className="flex items-center gap-2"><div className="clay-icon-tile flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#187498]"><span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>schedule</span></div><p className="text-xs font-bold uppercase tracking-wider text-slate-600">{tr('cicilan_aktif')}</p></div><span className="neu-inset text-[10px] font-bold px-2 py-0.5 rounded-full text-[#187498] bg-[#E5E5E5]">{formatRupiah(ringkasan.totalCicilanPerBulan)}{tr('per_bulan_singkat')}</span></div>
           <p className="font-mono text-xl font-black tracking-tight text-[#187498] tabular-nums lg:text-2xl mt-1">{ringkasan.cicilanAktif}</p>
 
         </div>
@@ -451,7 +457,7 @@ export default function UtangView({ user }) {
                   : 'neu-btn bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95'
               }`}
             >
-              {f.label}
+              {tr(f.id)}
             </button>
           )
         })}
@@ -464,8 +470,8 @@ export default function UtangView({ user }) {
         {terurut.length === 0 ? (
           <div className="clay-card-soft flex flex-col items-center px-6 py-14 text-center col-span-2">
             <span className="material-symbols-outlined mb-2 text-5xl text-primary/30">payments</span>
-            <p className="text-sm font-bold text-slate-700">Belum ada utang/cicilan</p>
-            <p className="mt-1 text-xs text-slate-500">Tekan tombol + untuk mencatat yang pertama.</p>
+            <p className="text-sm font-bold text-slate-700">{tr('belum_ada_utang')}</p>
+            <p className="mt-1 text-xs text-slate-500">{tr('utang_empty_desc')}</p>
           </div>
         ) : (
           terurut.map((t) => (
@@ -509,11 +515,11 @@ export default function UtangView({ user }) {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl neu-inset text-[#EB5353]">
               <span className="material-symbols-outlined text-3xl">delete</span>
             </div>
-            <p className="mt-3 text-sm font-extrabold text-slate-800">Hapus “{hapusTarget.namaPihak}”?</p>
-            <p className="mt-1 text-xs text-slate-500">Riwayat pembayaran yang sudah tercatat tetap ada.</p>
+            <p className="mt-3 text-sm font-extrabold text-slate-800">{tr('hapus_utang_konfirm', { nama: hapusTarget.namaPihak })}</p>
+            <p className="mt-1 text-xs text-slate-500">{tr('riwayat_pembayaran_tetap')}</p>
             <div className="mt-4 grid grid-cols-2 gap-2.5">
-              <button onClick={() => setHapusTarget(null)} className="neu-btn btn-md text-xs font-bold text-slate-700 bg-[#E5E5E5] rounded-xl active:scale-95">Batal</button>
-              <button onClick={konfirmHapus} className="neu-btn-danger btn-md text-xs font-bold rounded-xl active:scale-95">Hapus</button>
+              <button onClick={() => setHapusTarget(null)} className="neu-btn btn-md text-xs font-bold text-slate-700 bg-[#E5E5E5] rounded-xl active:scale-95">{tr('batal')}</button>
+              <button onClick={konfirmHapus} className="neu-btn-danger btn-md text-xs font-bold rounded-xl active:scale-95">{tr('hapus')}</button>
             </div>
           </div>
         </div>,

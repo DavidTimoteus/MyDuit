@@ -14,6 +14,7 @@ import { getFirebase } from "../../lib/firebase.js";
 import { useAkunKategori } from "../../lib/useAkunKategori.js";
 import { useScrollReveal } from "../../lib/useScrollEffects.js";
 import { portalBody } from "../../lib/portal.js";
+import { useBahasa } from "../../lib/i18n.js";
 import {
   detectCurrency,
   detectLocale,
@@ -26,20 +27,6 @@ import {
 import { EVENT_BASIS_MATA_UANG, EVENT_KURS } from "../../lib/kurs.js";
 
 import { aturanAnalitik, hitungPersenPerubahan } from "./_aturan.js";
-const NAMA_BULAN_ID = [
-  "Januari",
-  "Februari",
-  "Maret",
-  "April",
-  "Mei",
-  "Juni",
-  "Juli",
-  "Agustus",
-  "September",
-  "Oktober",
-  "November",
-  "Desember",
-];
 const NAMA_BULAN_SINGKAT = [
   "Jan",
   "Feb",
@@ -131,6 +118,7 @@ function cariPuncakHari(harian, kunci) {
 // bisa diverifikasi user (tertanya "kenapa?" → aturan jelas) dan bisa
 // dit Says(assert) di test — sesuatu yang tidak bisa dijanjikan LLM.
 export default function StatistikView({ user }) {
+  const { t: tr } = useBahasa();
   const uid = user.uid;
   const { akunList, kategoriList } = useAkunKategori(uid);
   const katById = useMemo(
@@ -707,8 +695,8 @@ export default function StatistikView({ user }) {
       .sort((a, b) => (b.tanggal || "").localeCompare(a.tanggal || ""));
     const labelPeriode =
       mode === "bulanan"
-        ? `${NAMA_BULAN_ID[bulan]} ${tahun}`
-        : `Tahun ${tahun}`;
+        ? `${tr(`bulan_${String(bulan + 1).padStart(2, "0")}`)} ${tahun}`
+        : `${tr("tahun")} ${tahun}`;
     setDetail({
       kategori: kategori.nama,
       items,
@@ -743,7 +731,7 @@ export default function StatistikView({ user }) {
         // `flex-1` dipaksa setinggi sisa ruang sementara isinya hanya dua
         // kartu fixed-size. Data-data ini SUDAH dihitung di atas, cuma tak
         // pernah dirender — fitur hilang. Sekarang dikirim & ditampilkan.
-        periodeLabel: mode === "bulanan" ? "Hari aktif catat" : "Bulan aktif catat",
+        periodeLabel: tr(mode === "bulanan" ? "periode_label_harian" : "periode_label_bulanan_aktif"),
         hariAktif:
           mode === "bulanan"
             ? Object.keys(ringkas.harian).length
@@ -776,6 +764,7 @@ export default function StatistikView({ user }) {
     ringkas.harian,
     ringkas.bulanan,
     docs,
+    tr,
   ]);
 
   // Streak Pencatatan -> sidebar kiri. Hitung dari SEMUA tanggal transaksi user
@@ -822,8 +811,10 @@ export default function StatistikView({ user }) {
   }, [uid]);
 
   const labelPeriode =
-    mode === "bulanan" ? `${NAMA_BULAN_ID[bulan]} ${tahun}` : `Tahun ${tahun}`;
-  const trendTitle = mode === "bulanan" ? "Tren Bulan Ini" : "Tren Tahun Ini";
+    mode === "bulanan"
+      ? `${tr(`bulan_${String(bulan + 1).padStart(2, "0")}`)} ${tahun}`
+      : `${tr("tahun")} ${tahun}`;
+  const trendTitle = tr(mode === "bulanan" ? "tren_bulan_ini" : "tren_tahun_ini");
   const sectionRef = useRef(null);
   const contentRef = useRef(null);
   useScrollReveal(contentRef, [mode, bulan, tahun, loading, ringkas.pemasukan.length, ringkas.pengeluaran.length, saran.length]);
@@ -855,7 +846,7 @@ export default function StatistikView({ user }) {
                 monitoring
               </span>
             </div>
-            <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Statistik</h2>
+            <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">{tr("nav_statistik")}</h2>
           </div>
         </header>
 
@@ -869,7 +860,7 @@ export default function StatistikView({ user }) {
                 mode === "bulanan" ? "neu-btn bg-[#E5E5E5] text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
               }`}
             >
-              Bulanan
+              {tr("bulanan")}
             </button>
             <button
               type="button"
@@ -878,14 +869,14 @@ export default function StatistikView({ user }) {
                 mode === "tahunan" ? "neu-btn bg-[#E5E5E5] text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700 bg-transparent"
               }`}
             >
-              Tahunan
+              {tr("tahunan")}
             </button>
           </div>
           <div className="flex items-center justify-center gap-3 md:justify-end">
             <button
               onClick={() => navigate(-1)}
               disabled={!bisaMundur}
-              aria-label="Periode sebelumnya"
+              aria-label={tr("periode_sebelumnya")}
               className="neu-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-700 active:scale-95 transition-all disabled:opacity-40"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
@@ -898,7 +889,7 @@ export default function StatistikView({ user }) {
             <button
               onClick={() => navigate(1)}
               disabled={!bisaMaju}
-              aria-label="Periode berikutnya"
+              aria-label={tr("periode_berikutnya")}
               className="neu-btn flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-700 active:scale-95 transition-all disabled:opacity-40"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">
@@ -917,7 +908,7 @@ export default function StatistikView({ user }) {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SummaryCard
             icon="trending_up"
-            label="Pemasukan"
+            label={tr("pemasukan")}
             value={ringkas.in_}
             pct={pctIn}
             banding={labelBanding}
@@ -926,7 +917,7 @@ export default function StatistikView({ user }) {
           />
           <SummaryCard
             icon="trending_down"
-            label="Pengeluaran"
+            label={tr("pengeluaran")}
             value={ringkas.out}
             pct={pctOut}
             banding={labelBanding}
@@ -935,7 +926,7 @@ export default function StatistikView({ user }) {
           />
           <SummaryCard
             icon="savings"
-            label="Saldo Bersih"
+            label={tr("saldo_bersih")}
             value={ringkas.saldo}
             pct={pctSaldo}
             banding={labelBanding}
@@ -949,16 +940,16 @@ export default function StatistikView({ user }) {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{trendTitle}</h3>
             <div className="flex items-center gap-2 text-xs">
-              <LegendDot color="bg-[#36AE7C]" label="Pemasukan" />
-              <LegendDot color="bg-[#EB5353]" label="Pengeluaran" />
-              {!isMobileScreen && <LegendDot color="bg-[#187498]" label="Saldo" />}
+              <LegendDot color="bg-[#36AE7C]" label={tr("pemasukan")} />
+              <LegendDot color="bg-[#EB5353]" label={tr("pengeluaran")} />
+              {!isMobileScreen && <LegendDot color="bg-[#187498]" label={tr("saldo")} />}
             </div>
           </div>
           <div className="neu-well relative rounded-2xl p-3 h-64 md:h-72">
             <canvas ref={chartRef}></canvas>
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
-                Memuat...
+                {tr("memuat")}
               </div>
             ) : error ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
@@ -966,7 +957,7 @@ export default function StatistikView({ user }) {
                   error
                 </span>
                 <p className="text-sm font-semibold text-red-500">
-                  Gagal memuat data statistik.
+                  {tr("gagal_statistik")}
                 </p>
                 <p className="max-w-md text-[11px] leading-snug text-slate-500">
                   {error}
@@ -978,7 +969,7 @@ export default function StatistikView({ user }) {
                   query_stats
                 </span>
                 <p className="text-sm text-slate-500">
-                  Belum ada data transaksi untuk periode ini.
+                  {tr("statistik_kosong")}
                 </p>
               </div>
             ) : null}
@@ -991,17 +982,17 @@ export default function StatistikView({ user }) {
               slate-500 terukur 4.76:1. Ukuran 10px -> 11px (batas minimum
               teks kecil di skill UI/UX). */}
           <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-            Breakdown Kategori
+            {tr("breakdown_kategori")}
           </h3>
           <span className="hidden text-[11px] font-medium text-slate-500 sm:inline">
-            Klik kategori utk detail
+            {tr("klik_kategori_detail")}
           </span>
         </div>
         <div className="-mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
           <KategoriCard
             icon="trending_up"
             iconColor="text-incomeText"
-            title="Pemasukan per Kategori"
+            title={tr("pemasukan_per_kategori")}
             items={ringkas.pemasukan}
             total={ringkas.in_}
             jenis="in"
@@ -1010,7 +1001,7 @@ export default function StatistikView({ user }) {
           <KategoriCard
             icon="trending_down"
             iconColor="text-red-600"
-            title="Pengeluaran per Kategori"
+            title={tr("pengeluaran_per_kategori")}
             items={ringkas.pengeluaran}
             total={ringkas.out}
             jenis="out"
@@ -1097,7 +1088,7 @@ export default function StatistikView({ user }) {
               </div>
               <button
                 onClick={() => setDetail(null)}
-                aria-label="Tutup detail kategori"
+                aria-label={tr("tutup_detail_kategori")}
                 className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900"
               >
                 <span className="material-symbols-outlined icon-md">close</span>
@@ -1106,7 +1097,7 @@ export default function StatistikView({ user }) {
             <div className="flex-1 space-y-1.5 overflow-y-auto py-3">
               {detail.items.length === 0 ? (
                 <p className="py-6 text-center text-sm font-semibold text-slate-500">
-                  Belum ada transaksi.
+                  {tr("detail_kosong")}
                 </p>
               ) : (
                 detail.items.map((t) => {
@@ -1138,7 +1129,7 @@ export default function StatistikView({ user }) {
             {/* Total Footer - Neumorphic Inset Well (No ugly white background) */}
             <div className="neu-inset mt-2 flex shrink-0 items-center justify-between rounded-2xl bg-[#E5E5E5] px-4 py-3">
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-600">
-                Total {detail.jenis === "pemasukan" ? "Pemasukan" : "Pengeluaran"}
+                {tr(detail.jenis === "pemasukan" ? "total_pemasukan" : "total_pengeluaran")}
               </span>
               <span
                 className={`font-mono text-base font-black tabular-nums ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
@@ -1159,6 +1150,7 @@ export default function StatistikView({ user }) {
 function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
   // pct null = tidak ada data pembanding (periode sebelumnya kosong) — jangan
   // menampilkan persen palsu "+100%", ganti teks netral.
+  const { t: tr } = useBahasa();
   const { currency, locale } = uangAktif();
   const positif = (pct ?? 0) >= 0;
   const iconTrend =
@@ -1185,7 +1177,7 @@ function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
       >
         <span className="material-symbols-outlined icon-2xs">{iconTrend}</span>
         {pct === null
-          ? "Belum ada data sebelumnya"
+          ? tr("belum_ada_data_sebelumnya")
           : `${pct === 0 ? "0%" : `${positif ? "+" : ""}${pct}%`} ${banding}`}
       </p>
     </div>
@@ -1210,6 +1202,7 @@ function KategoriCard({
   jenis,
   onDblClick,
 }) {
+  const { t: tr } = useBahasa();
   const { currency, locale } = uangAktif();
   const empty = items.length === 0;
   const max = Math.max(1, ...items.map((i) => i.total));
@@ -1223,8 +1216,9 @@ function KategoriCard({
       </div>
       {empty ? (
         <p className="py-8 text-center text-sm text-slate-500">
-          Belum ada data {jenis === "in" ? "pemasukan" : "pengeluaran"} untuk
-          periode ini.
+          {tr("belum_ada_data_kategori", {
+            jenis: tr(jenis === "in" ? "pemasukan" : "pengeluaran"),
+          })}
         </p>
       ) : (
         <div

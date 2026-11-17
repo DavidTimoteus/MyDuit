@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 import { hapusBudget } from '../../lib/db.js'
 import { portalBody } from '../../lib/portal.js'
 
@@ -19,6 +20,7 @@ export default function BudgetPanel({
   setHapusTarget,
 }) {
   useKursVersi()
+  const { t: tr } = useBahasa()
   const [hapusLoading, setHapusLoading] = useState(false)
 
   async function konfirmHapus() {
@@ -41,13 +43,13 @@ export default function BudgetPanel({
             <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl neu-inset bg-[#E5E5E5] text-[#187498]">
               <span className="material-symbols-outlined icon-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>savings</span>
             </div>
-            <p className="text-sm font-bold text-slate-800">Belum ada budget untuk periode ini</p>
-            <p className="mt-1 text-xs text-slate-500 max-w-sm">Tekan tombol di bawah untuk membatasi pengeluaran kategori.</p>
+            <p className="text-sm font-bold text-slate-800">{tr('belum_ada_budget')}</p>
+            <p className="mt-1 text-xs text-slate-500 max-w-sm">{tr('budget_empty_desc')}</p>
             <button
               onClick={() => setModal({ open: true, edit: null })}
               className="neu-btn-primary solid-blue mt-4 h-9 px-4 rounded-xl text-xs font-bold text-white transition-all active:scale-95"
             >
-              + Tambah Budget
+              + {tr('tambah_budget')}
             </button>
           </div>
         ) : (
@@ -59,7 +61,7 @@ export default function BudgetPanel({
             const lebarBar = Math.min(100, Math.max(0, b.persen))
             const status = b.lewat ? 'lewat' : b.persen >= 80 ? 'waspada' : 'aman'
             const ikonStatus = status === 'lewat' ? 'error' : status === 'waspada' ? 'warning' : 'check_circle'
-            const labelStatus = status === 'lewat' ? 'Lewat' : status === 'waspada' ? 'Waspada' : 'Aman'
+            const labelStatus = status === 'lewat' ? tr('status_lewat') : status === 'waspada' ? tr('status_waspada') : tr('status_aman')
             const badgeCls = status === 'lewat'
               ? 'text-[#EB5353] bg-red-50'
               : status === 'waspada'
@@ -76,14 +78,14 @@ export default function BudgetPanel({
                         <span className="material-symbols-outlined icon-2xs">{ikonStatus}</span>
                         {labelStatus}
                       </span>
-                      <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">Limit {formatRupiah(b.limitNominal)}</span>
+                      <span className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">{tr('limit_nominal', { nominal: formatRupiah(b.limitNominal) })}</span>
                     </div>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={`Edit budget ${kategoriNama}`} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
+                    <button onClick={() => setModal({ open: true, edit: b })} aria-label={tr('edit_budget_aria', { nama: kategoriNama })} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
                       <span className="material-symbols-outlined icon-xs">edit</span>
                     </button>
-                    <button onClick={() => setHapusTarget(b)} aria-label={`Hapus budget ${kategoriNama}`} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
+                    <button onClick={() => setHapusTarget(b)} aria-label={tr('hapus_budget_aria', { nama: kategoriNama })} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
                       <span className="material-symbols-outlined icon-xs">delete</span>
                     </button>
                   </div>
@@ -94,7 +96,7 @@ export default function BudgetPanel({
                     {sisa < 0 ? formatRupiah(-sisa) : formatRupiah(sisa)}
                   </p>
                   <p className="mt-1 text-[11px] font-semibold text-slate-500">
-                    {sisa < 0 ? 'melebihi limit' : 'sisa dari limit'}
+                    {sisa < 0 ? tr('melebihi_limit') : tr('sisa_dari_limit')}
                   </p>
                 </div>
 
@@ -103,7 +105,7 @@ export default function BudgetPanel({
                     <div className={`progress-bar-fill h-full rounded-full ${barFill}`} style={{ width: `${lebarBar}%` }} />
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
-                    <span className="font-semibold text-slate-500">Terpakai {formatRupiah(b.terpakai)}</span>
+                    <span className="font-semibold text-slate-500">{tr('terpakai_nominal', { nominal: formatRupiah(b.terpakai) })}</span>
                     <span className={`font-mono font-black ${status === 'lewat' ? 'text-[#EB5353]' : status === 'waspada' ? 'text-[#D4AF0D]' : 'text-[#187498]'}`}>{b.lewat ? `+${b.persen - 100}%` : `${b.persen}%`}</span>
                   </div>
                 </div>
@@ -118,12 +120,12 @@ export default function BudgetPanel({
           <div className="clay-card clay-sheet w-full max-w-xs rounded-[24px] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined text-4xl text-expenseText">delete</span>
             <p className="mt-2 text-sm font-bold text-slate-800">
-              Hapus budget "{kategoriList.find((k) => k.id === hapusTarget.kategoriId)?.nama ?? hapusTarget.kategoriNama ?? '?'}"?
+              {tr('hapus_budget_konfirm', { nama: kategoriList.find((k) => k.id === hapusTarget.kategoriId)?.nama ?? hapusTarget.kategoriNama ?? '?' })}
             </p>
             <div className="mt-4 grid grid-cols-2 gap-2">
-              <button onClick={() => setHapusTarget(null)} className="clay-btn-soft btn-md text-xs font-bold text-slate-600">Batal</button>
+              <button onClick={() => setHapusTarget(null)} className="clay-btn-soft btn-md text-xs font-bold text-slate-600">{tr('batal')}</button>
               <button onClick={konfirmHapus} disabled={hapusLoading} className="clay-btn-danger btn-md text-xs font-bold disabled:opacity-60">
-                {hapusLoading ? 'Menghapus…' : 'Hapus'}
+                {hapusLoading ? tr('menghapus') : tr('hapus')}
               </button>
             </div>
           </div>

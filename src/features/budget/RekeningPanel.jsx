@@ -3,6 +3,7 @@ import { formatCurrency, formatRupiah, isoHariIni, konversiUntukTampil, tanggalT
 import { hapusAkun } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
 import FormRekeningModal from './FormRekeningModal.jsx'
@@ -29,9 +30,9 @@ function tanggalJam(at) {
 }
 
 // { teks, warna } untuk box "Perubahan Terakhir" (mengikuti getLogWarna_ GAS).
-function logMutasi(m) {
+function logMutasi(m, tr) {
   const delta = Number(m?.delta) || 0
-  const ket = m?.keterangan || 'Perubahan'
+  const ket = m?.keterangan || tr('perubahan')
   const tanda = delta >= 0 ? '+' : '-'
   const tglJam = tanggalJam(m?.at)
   const teks = `${tglJam ? tglJam + ' — ' : ''}${ket}: ${tanda}${formatRupiah(Math.abs(delta))}`
@@ -57,6 +58,7 @@ function getAkunVisual(tipe) {
 }
 
 export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
+  const { t: tr } = useBahasa()
   const { akunList, kategoriList } = useAkunKategori(uid)
   const katById = useMemo(() => Object.fromEntries(kategoriList.map((k) => [k.id, k.nama])), [kategoriList])
   const rangeBulan = useMemo(rangeBulanIni, [])
@@ -145,7 +147,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
       await hapusAkun(uid, target.id)
     } catch (e) {
       console.warn('[rekening-hapus] gagal:', e?.message ?? e)
-      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: 'Gagal menghapus rekening.' } }))
+      window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: tr('gagal_hapus_rekening') } }))
     }
   }
 
@@ -166,7 +168,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
               account_balance_wallet
             </span>
             <p className="text-xs font-bold uppercase tracking-wider text-slate-600 sm:text-sm">
-              Total Semua Saldo
+              {tr('total_semua_saldo')}
             </p>
           </div>
           <p className="font-mono mb-3 text-2xl font-black tracking-tight text-slate-900 tabular-nums md:text-3xl lg:text-4xl brand-title-embossed">
@@ -175,7 +177,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
             <span className="material-symbols-outlined icon-xs text-slate-500">schedule</span>
             <span>
-              Terakhir diperbarui: {tanggalTampil(isoHariIni())} {' '}
+              {tr('terakhir_diperbarui')}{tanggalTampil(isoHariIni())} {' '}
               {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -183,7 +185,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         {/* Arus kas bulan berjalan — Pemasukan/Pengeluaran */}
         <div className="mt-2.5 grid shrink-0 grid-cols-2 gap-2 md:mt-0 md:text-right md:grid-cols-1">
           <div className="neu-inset rounded-xl p-2 min-w-0">
-            <p className="text-[11px] font-medium text-slate-500">Pemasukan bulan ini</p>
+            <p className="text-[11px] font-medium text-slate-500">{tr('pemasukan_bulan_ini')}</p>
             <p className="font-mono text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
               {formatCurrency(arusBulan.masuk, currency, locale)}
             </p>

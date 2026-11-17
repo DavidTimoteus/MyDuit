@@ -6,13 +6,12 @@ import { formatRupiah } from '../../lib/format.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { useBudgetBulan } from './useBudgetBulan.js'
 import BudgetPanel from './BudgetPanel.jsx'
 import FormBudgetModal from './FormBudgetModal.jsx'
 import RekeningPanel from './RekeningPanel.jsx'
-
-const NAMA_BULAN_ID = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
 function rangeBulan(tahun, bulanIdx) {
   const awal = new Date(tahun, bulanIdx, 1)
@@ -21,8 +20,8 @@ function rangeBulan(tahun, bulanIdx) {
   return { start: f(awal), end: f(akhir) }
 }
 
-function labelPeriode(bulan, tahun) {
-  return `${NAMA_BULAN_ID[bulan]} ${tahun}`
+function labelPeriode(bulan, tahun, tr) {
+  return `${tr(`bulan_${String(bulan + 1).padStart(2, '0')}`)} ${tahun}`
 }
 
 // Tab Budget = sub-tab Rekening | Budget (pola ViewBudget.html GAS).
@@ -33,6 +32,7 @@ function labelPeriode(bulan, tahun) {
 // - Daftar (Rekening list atau Budget list)
 export default function BudgetView({ user }) {
   useKursVersi()
+  const { t: tr } = useBahasa()
   const uid = user.uid
   const [sub, setSub] = useState('rekening')
 
@@ -255,7 +255,7 @@ export default function BudgetView({ user }) {
           <span className="material-symbols-outlined icon-lg" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
         </div>
         <h2 className="brand-title-embossed font-display text-xl font-extrabold leading-tight">
-          {sub === 'budget' ? 'Budget' : 'Rekening'}
+          {sub === 'budget' ? tr('nav_budget') : tr('rekening')}
         </h2>
       </header>
 
@@ -269,7 +269,7 @@ export default function BudgetView({ user }) {
             className={`clay-segment-item ${sub === 'rekening' ? 'is-active' : ''}`}
           >
             <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'rekening' ? "'FILL' 1" : "'FILL' 0" }}>account_balance</span>
-            Rekening
+            {tr('rekening')}
           </button>
           <button
             type="button"
@@ -278,7 +278,7 @@ export default function BudgetView({ user }) {
             className={`clay-segment-item ${sub === 'budget' ? 'is-active' : ''}`}
           >
             <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: sub === 'budget' ? "'FILL' 1" : "'FILL' 0" }}>savings</span>
-            Budget
+            {tr('nav_budget')}
           </button>
         </div>
       </div>
@@ -294,16 +294,16 @@ export default function BudgetView({ user }) {
             <button
               onClick={() => navigatePeriode(-1)}
               disabled={!bisaMundur}
-              aria-label="Periode sebelumnya"
+              aria-label={tr('periode_sebelumnya')}
               className="clay-pagination-arrow clay-key-neutral flex h-9 w-9 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">chevron_left</span>
             </button>
-            <span className="min-w-[140px] text-center text-sm font-bold text-slate-800">{labelPeriode(bulan, tahun)}</span>
+            <span className="min-w-[140px] text-center text-sm font-bold text-slate-800">{labelPeriode(bulan, tahun, tr)}</span>
             <button
               onClick={() => navigatePeriode(1)}
               disabled={!bisaMaju}
-              aria-label="Periode berikutnya"
+              aria-label={tr('periode_berikutnya')}
               className="clay-pagination-arrow clay-key-neutral flex h-9 w-9 items-center justify-center rounded-full shrink-0 aspect-square bg-surfaceContainerLowest"
             >
               <span className="material-symbols-outlined icon-md text-slate-600">chevron_right</span>
@@ -322,15 +322,15 @@ export default function BudgetView({ user }) {
                 wallet
               </span>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-600 sm:text-sm">
-                Total Budget
+                {tr('total_budget')}
               </p>
             </div>
             <p className="font-mono mb-2 text-2xl font-black tracking-tight text-slate-900 tabular-nums lg:text-3xl brand-title-embossed">
               {formatRupiah(ringkasan.totalLimit)}
             </p>
             <div className="flex items-center justify-between text-[11px] font-medium text-slate-600">
-              <span>Terpakai: {formatRupiah(ringkasan.totalTerpakai)}</span>
-              <span>Sisa: {formatRupiah(ringkasan.sisa)}</span>
+              <span>{tr('terpakai')}: {formatRupiah(ringkasan.totalTerpakai)}</span>
+              <span>{tr('sisa')}: {formatRupiah(ringkasan.sisa)}</span>
             </div>
             <div className="neu-inset mt-3 h-2 w-full overflow-hidden rounded-full bg-[#E5E5E5]">
               <div
@@ -340,13 +340,13 @@ export default function BudgetView({ user }) {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3 pt-1">
               <div className="neu-inset rounded-xl p-2.5 min-w-0">
-                <p className="text-[10px] font-medium text-slate-500">Pemasukan bulan ini</p>
+                <p className="text-[10px] font-medium text-slate-500">{tr('pemasukan_bulan_ini')}</p>
                 <p className="font-mono truncate text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPemasukan)}
                 </p>
               </div>
               <div className="neu-inset rounded-xl p-2.5 min-w-0 text-right">
-                <p className="text-[10px] font-medium text-slate-500">Pengeluaran bulan ini</p>
+                <p className="text-[10px] font-medium text-slate-500">{tr('pengeluaran_bulan_ini')}</p>
                 <p className="font-mono truncate text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPengeluaran)}
                 </p>

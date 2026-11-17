@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react'
 import { formatRupiah, tanggalPendek } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { cekLunasUtang, hitungJatuhTempoBulanan, selisihHari } from './UtangView.jsx'
+import { t as tTerjemah, useBahasa } from '../../lib/i18n.js'
 
 // ============================================================================
 // TAMPILAN UTANG & CICILAN — MOBILE
@@ -11,20 +12,20 @@ import { cekLunasUtang, hitungJatuhTempoBulanan, selisihHari } from './UtangView
 // ============================================================================
 
 const FILTERS = [
-  { id: 'semua', label: 'Semua' },
-  { id: 'aktif', label: 'Aktif' },
-  { id: 'lunas', label: 'Lunas' },
-  { id: 'terlambat', label: 'Telat' },
+  { id: 'semua' },
+  { id: 'aktif' },
+  { id: 'lunas' },
+  { id: 'terlambat' },
 ]
 
-function statusKartu(t) {
+function statusKartu(t, tr = tTerjemah) {
   const lunas = t._lunas !== undefined ? t._lunas : cekLunasUtang(t)
   const hari = lunas ? null : (t._hari !== undefined ? t._hari : selisihHari(t.tglJatuhTempo, t.tipe, t.terakhirBayar))
   const terlambat = hari !== null && hari < 0
   const mendekati = hari !== null && hari >= 0 && hari <= 7
   if (lunas)
     return {
-      label: 'Lunas',
+      label: tr('lunas'),
       cls: 'solid-primary text-white',
       aksen: 'bg-[#36AE7C]',
       lunas,
@@ -33,7 +34,7 @@ function statusKartu(t) {
     }
   if (terlambat)
     return {
-      label: 'Terlambat',
+      label: tr('terlambat'),
       cls: 'text-[#EB5353]',
       aksen: 'bg-[#EB5353]',
       lunas,
@@ -42,7 +43,7 @@ function statusKartu(t) {
     }
   if (mendekati)
     return {
-      label: 'Segera',
+      label: tr('segera'),
       cls: 'text-[#D4AF0D]',
       aksen: 'bg-[#D4AF0D]',
       lunas,
@@ -50,7 +51,7 @@ function statusKartu(t) {
       hari,
     }
   return {
-    label: 'Aktif',
+    label: tr('aktif'),
     cls: 'text-slate-600',
     aksen: 'bg-slate-300',
     lunas,
@@ -59,36 +60,37 @@ function statusKartu(t) {
   }
 }
 
-function teksJatuhTempo(t, st) {
+function teksJatuhTempo(t, st, tr = tTerjemah) {
   if (t._jatuh?.teks) return t._jatuh.teks
-  if (st.lunas) return 'Sudah lunas'
-  if (!t.tglJatuhTempo) return 'Tanpa jatuh tempo'
+  if (st.lunas) return tr('sudah_lunas')
+  if (!t.tglJatuhTempo) return tr('tanpa_jatuh_tempo')
   const d = st.hari
-  if (d === null || Number.isNaN(d)) return 'Tanpa jatuh tempo'
+  if (d === null || Number.isNaN(d)) return tr('tanpa_jatuh_tempo')
   const tglRef = new Date(`${t.tglJatuhTempo}T00:00:00`)
   const hariTgl = !isNaN(tglRef.getTime()) ? tglRef.getDate() : ''
 
   if (t.tipe === 'Cicilan') {
     const info = hitungJatuhTempoBulanan(t.tglJatuhTempo, t.terakhirBayar)
     if (info?.sudahBayarBulanIni) {
-      return `Bulan ini lunas • Tempo berikutnya tgl ${hariTgl} (${d} hr lagi)`
+      return tr('bulan_ini_lunas_tempo', { hari: hariTgl, d })
     }
-    const awalan = `Tempo bulanan tgl ${hariTgl}`
-    if (d < 0) return `${awalan} (Telat ${-d} hari)`
-    if (d === 0) return `${awalan} (Hari ini!)`
-    if (d <= 7) return `${awalan} (H-${d})`
-    return `${awalan} (${d} hari lagi)`
+    const awalan = tr('tempo_bulanan', { hari: hariTgl })
+    if (d < 0) return `${awalan} (${tr('telat_n_hari', { n: -d })})`
+    if (d === 0) return `${awalan} (${tr('hari_ini_penuh')})`
+    if (d <= 7) return `${awalan} (${tr('h_min', { n: d })})`
+    return `${awalan} (${tr('n_hari_lagi', { n: d })})`
   }
 
-  const awalan = `Jatuh tempo ${tanggalPendek(t.tglJatuhTempo)}`
-  if (d < 0) return `${awalan} (Telat ${-d} hari)`
-  if (d === 0) return `${awalan} (Hari ini!)`
-  if (d <= 7) return `${awalan} (H-${d})`
-  return `${awalan} (${d} hari lagi)`
+  const awalan = tr('jatuh_tempo_tanggal', { tanggal: tanggalPendek(t.tglJatuhTempo) })
+  if (d < 0) return `${awalan} (${tr('telat_n_hari', { n: -d })})`
+  if (d === 0) return `${awalan} (${tr('hari_ini_penuh')})`
+  if (d <= 7) return `${awalan} (${tr('h_min', { n: d })})`
+  return `${awalan} (${tr('n_hari_lagi', { n: d })})`
 }
 
 const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _currencyTag, onBayar, onLunasin, onEdit, onHapus }) {
-  const st = statusKartu(t)
+  const { t: tr } = useBahasa()
+  const st = statusKartu(t, tr)
   const terbayar = Math.max(0, (t.total || 0) - (t.sisa || 0))
   const persen = t.total > 0 ? Math.round((terbayar / t.total) * 100) : 0
 
@@ -105,7 +107,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
           <p className="truncate text-[15px] font-black text-slate-800 leading-snug">{t.namaPihak}</p>
           <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">
             {t.tipe}
-            {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}/bln` : ''}
+            {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? ` · ${formatRupiah(t.cicilanPerBulan)}${tr('per_bulan_singkat')}` : ''}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
@@ -115,14 +117,14 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
           </span>
           <button
             onClick={() => onEdit?.(t)}
-            aria-label={`Edit ${t.namaPihak}`}
+            aria-label={tr('edit_utang_nama_aria', { nama: t.namaPihak })}
             className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 active:scale-95"
           >
             <span className="material-symbols-outlined icon-xs">edit</span>
           </button>
           <button
             onClick={() => onHapus?.(t)}
-            aria-label={`Hapus ${t.namaPihak}`}
+            aria-label={tr('hapus_utang_nama_aria', { nama: t.namaPihak })}
             className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95"
           >
             <span className="material-symbols-outlined icon-xs">delete</span>
@@ -132,13 +134,13 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
 
       {/* Sisa Utang */}
       <div className="mt-3 pl-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa utang</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('sisa_utang')}</p>
         <div className="flex items-baseline justify-between gap-2 mt-0.5">
           <p className={`font-mono text-2xl font-black leading-tight tracking-tight tabular-nums ${st.lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
             {formatRupiah(Math.max(0, Number(t.sisa) || 0))}
           </p>
           <p className="text-xs font-semibold text-slate-500 tabular-nums">
-            dari {formatRupiah(t.total || 0)}
+            {tr('dari')} {formatRupiah(t.total || 0)}
           </p>
         </div>
       </div>
@@ -152,11 +154,11 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
           />
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
-          <span className="font-semibold text-slate-500">Terbayar {persen}%</span>
+          <span className="font-semibold text-slate-500">{tr('terbayar')} {persen}%</span>
           <span className={`inline-flex items-center gap-0.5 font-bold ${st.terlambat ? 'text-[#EB5353]' : st.lunas ? 'text-[#36AE7C]' : 'text-slate-700'}`}>
             {st.terlambat && <span className="material-symbols-outlined icon-xs">error</span>}
             {st.lunas && <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>}
-            {teksJatuhTempo(t, st)}
+            {teksJatuhTempo(t, st, tr)}
           </span>
         </div>
       </div>
@@ -164,12 +166,12 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
       {/* Detail Kotak (Sudah dibayar & Cicilan/bln atau Keterangan) */}
       <div className="mt-2.5 grid grid-cols-2 gap-2 pl-1.5">
         <div className="rounded-xl neu-inset bg-[#E5E5E5] px-3 py-2">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Sudah dibayar</p>
+          <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{tr('sudah_dibayar')}</p>
           <p className="mt-0.5 truncate font-mono text-xs font-black text-[#36AE7C]">{formatRupiah(terbayar)}</p>
         </div>
         <div className="rounded-xl neu-inset bg-[#E5E5E5] px-3 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
-            {t.tipe === 'Cicilan' ? 'Cicilan / bln' : 'Jatuh Tempo'}
+            {t.tipe === 'Cicilan' ? tr('cicilan_per_bln') : tr('jatuh_tempo')}
           </p>
           <p className="mt-0.5 truncate font-mono text-xs font-black text-slate-700">
             {t.tipe === 'Cicilan' && t.cicilanPerBulan > 0 ? formatRupiah(t.cicilanPerBulan) : (t.tglJatuhTempo ? tanggalPendek(t.tglJatuhTempo) : '—')}
