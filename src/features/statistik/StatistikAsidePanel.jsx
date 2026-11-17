@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatCurrency, formatRupiah, tanggalTampil, uangAktif } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 // Panel kanan khusus tab Statistik (desktop only). Render di Shell dengan
 // `tab === 'statistik'`. Subscribe ringkasan via event `myduit:statistik-update`
@@ -13,6 +14,7 @@ import { useKursVersi } from '../../lib/useKurs.js'
 //   - 1 Baris metrik cepat 3-kolom (menggantikan tumpukan kartu yang sebelumnya berjejal)
 //   - Bebas dari penumpukan konten, bebas tabrakan bayangan, dan ramah pembacaan
 export default function StatistikAsidePanel() {
+  const { t: tr } = useBahasa()
   useKursVersi()
   const [data, setData] = useState(null)
 
@@ -51,11 +53,11 @@ export default function StatistikAsidePanel() {
 
   const rasioBadge = useMemo(() => {
     if (ringkas.in === 0) return '—'
-    if (rasioTabungan >= 30) return 'Hebat'
-    if (rasioTabungan >= 15) return 'Baik'
-    if (rasioTabungan >= 0) return 'Cukup'
-    return 'Boros'
-  }, [rasioTabungan, ringkas])
+    if (rasioTabungan >= 30) return tr('badge_hebat')
+    if (rasioTabungan >= 15) return tr('badge_baik')
+    if (rasioTabungan >= 0) return tr('badge_cukup')
+    return tr('badge_boros')
+  }, [rasioTabungan, ringkas, tr])
 
   function handleCetakPdf() {
     window.dispatchEvent(new CustomEvent('myduit:export-pdf'))
@@ -66,11 +68,11 @@ export default function StatistikAsidePanel() {
       <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header — judul "Statistik Cepat" + tombol Cetak PDF di kanan */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-800">Statistik Cepat</h2>
+          <h2 className="text-base font-extrabold tracking-tight text-slate-800">{tr('statistik_cepat')}</h2>
           <button
             onClick={handleCetakPdf}
-            aria-label="Cetak PDF"
-            title="Cetak PDF"
+            aria-label={tr('pdf_judul')}
+            title={tr('pdf_judul')}
             className="pdf-action-btn clay-key-danger"
           >
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
@@ -84,7 +86,7 @@ export default function StatistikAsidePanel() {
           <div className="clay-card clay-key-neutral shrink-0 rounded-[22px] bg-surfaceContainerLowest p-4 space-y-3">
             {/* Bagian A: Pengeluaran Terbesar */}
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Pengeluaran Terbesar</p>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('pengeluaran_terbesar')}</p>
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
                   <span className="material-symbols-outlined icon-md">shopping_cart</span>
@@ -92,7 +94,9 @@ export default function StatistikAsidePanel() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-bold text-slate-800">{pengeluaranTerbesar?.nama ?? '—'}</p>
                   <p className="text-[11px] font-medium leading-tight text-textSecondary">
-                    {pengeluaranTerbesar ? `${((pengeluaranTerbesar.total / Math.max(1, ringkas.out)) * 100).toFixed(0)}% dari total` : 'Belum ada data periode ini'}
+                    {pengeluaranTerbesar
+                      ? tr('dari_total', { n: ((pengeluaranTerbesar.total / Math.max(1, ringkas.out)) * 100).toFixed(0) })
+                      : tr('belum_ada_data_periode')}
                   </p>
                 </div>
                 <p className="shrink-0 font-mono text-xs font-bold text-expenseText">{rpStat(pengeluaranTerbesar?.total ?? 0)}</p>
@@ -104,7 +108,7 @@ export default function StatistikAsidePanel() {
             {/* Bagian B: Rasio Tabungan */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Rasio Tabungan</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('rasio_tabungan')}</p>
                 <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${rasioTabungan >= 15 ? 'bg-emerald-100 text-emerald-800' : rasioTabungan >= 0 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'}`}>
                   {rasioBadge}
                 </span>
@@ -113,7 +117,7 @@ export default function StatistikAsidePanel() {
                 <span className={`font-mono text-xl font-extrabold ${rasioTabungan >= 0 ? 'text-incomeText' : 'text-expenseText'}`}>
                   {rasioTabungan}%
                 </span>
-                <span className="text-[11px] font-medium text-textSecondary">Sisa pemasukan setelah belanja</span>
+                <span className="text-[11px] font-medium text-textSecondary">{tr('sisa_pemasukan_setelah_belanja')}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 border border-slate-200/50">
                 <div
@@ -127,12 +131,12 @@ export default function StatistikAsidePanel() {
           {/* KARTU 2: Pola Pengeluaran & Kategori Paling Boros (Tersatukan) */}
           <div className="clay-card clay-key-neutral shrink-0 rounded-[22px] bg-surfaceContainerLowest p-4 space-y-3">
             <div>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Pola Pengeluaran</p>
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('pola_pengeluaran')}</p>
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                     <span className="material-symbols-outlined icon-sm text-blue-600">event_available</span>
-                    {ringkas.periodeLabel || 'Hari aktif catat'}
+                    {ringkas.periodeLabel || tr('periode_label_harian')}
                   </span>
                   <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">
                     {ringkas.hariAktif}
@@ -146,7 +150,7 @@ export default function StatistikAsidePanel() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                     <span className="material-symbols-outlined icon-sm text-amber-600">local_fire_department</span>
-                    Rata-rata / hari aktif
+                    {tr('rata_hari_aktif')}
                   </span>
                   <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">
                     {rpStat(ringkas.rataPengeluaranHariAktif)}
@@ -160,7 +164,7 @@ export default function StatistikAsidePanel() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
                       <span className="material-symbols-outlined icon-sm text-red-600">trending_up</span>
-                      Hari paling boros
+                      {tr('hari_paling_boros')}
                     </span>
                     <span className="shrink-0 font-mono text-[11px] font-bold text-expenseText">
                       {rpStat(ringkas.hariPalingBoros.total)}
@@ -169,7 +173,7 @@ export default function StatistikAsidePanel() {
                   <p className="mt-0.5 text-[10px] font-medium text-textSecondary">
                     {ringkas.hariPalingBoros.tgl ? tanggalTampil(ringkas.hariPalingBoros.tgl) : '—'}
                     {ringkas.terbesarPemasukan && (
-                      <> · pemasukan {ringkas.terbesarPemasukan.nama}</>
+                      <> · {tr('pemasukan_kecil')} {ringkas.terbesarPemasukan.nama}</>
                     )}
                   </p>
                 </>
@@ -182,7 +186,7 @@ export default function StatistikAsidePanel() {
                 <div className="h-px bg-slate-100"></div>
                 <div>
                   <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Kategori Paling Boros
+                    {tr('kategori_paling_boros')}
                   </p>
                   <div className="space-y-1.5">
                     {ringkas.topKategoriBoros.map((k, i) => {
@@ -209,22 +213,22 @@ export default function StatistikAsidePanel() {
 
           {/* KARTU 3: Metrik Ringkas 3-Kolom (Menggantikan 3 kartu vertikal yang berdesakan) */}
           <div className="mt-auto shrink-0 pt-1">
-            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Metrik Ringkas</p>
+            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('metrik_ringkas')}</p>
             <div className="grid grid-cols-3 gap-2">
               <div className="clay-card-soft flex flex-col items-center justify-center rounded-[16px] bg-surfaceContainerLowest p-2.5 text-center">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">Rata Harian</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">{tr('rata_harian')}</span>
                 <span className="mt-1 font-mono text-[11px] font-extrabold text-slate-800 truncate w-full" title={formatRupiah(ringkas.rataHarian)}>
                   {formatRupiah(ringkas.rataHarian)}
                 </span>
               </div>
               <div className="clay-card-soft flex flex-col items-center justify-center rounded-[16px] bg-surfaceContainerLowest p-2.5 text-center">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">Transaksi</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">{tr('transaksi')}</span>
                 <span className="mt-1 font-mono text-sm font-extrabold text-slate-800">
                   {ringkas.jmlTransaksi ?? 0}
                 </span>
               </div>
               <div className="clay-card-soft flex flex-col items-center justify-center rounded-[16px] bg-surfaceContainerLowest p-2.5 text-center">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">Kategori</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 truncate w-full">{tr('kategori')}</span>
                 <span className="mt-1 font-mono text-sm font-extrabold text-slate-800">
                   {ringkas.kategoriAktif ?? 0}
                 </span>

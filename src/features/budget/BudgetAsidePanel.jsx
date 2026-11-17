@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 // Panel kanan khusus tab Budget (desktop only). Render di Shell dengan
 // `tab === 'budget'`. Subscribe ringkasan via event `myduit:budget-update`
@@ -15,6 +16,7 @@ import { useKursVersi } from '../../lib/useKurs.js'
 //   - Perlu Perhatian (warning card list budget yang hampir/melebihi limit)
 //   - Aksi Cepat — tombol Tambah Rekening / Budget (tinggi btn-md agar tidak gepeng)
 export default function BudgetAsidePanel() {
+  const { t: tr } = useBahasa()
   useKursVersi()
   const [data, setData] = useState(null)
 
@@ -48,11 +50,11 @@ export default function BudgetAsidePanel() {
       <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header — judul "Statistik Budget" + tombol Cetak PDF di kanan */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-800">Statistik Budget</h2>
+          <h2 className="text-base font-extrabold tracking-tight text-slate-800">{tr('statistik_budget')}</h2>
           <button
             onClick={handleCetakPdf}
-            aria-label="Cetak PDF"
-            title="Cetak PDF"
+            aria-label={tr('pdf_judul')}
+            title={tr('pdf_judul')}
             className="pdf-action-btn clay-key-danger"
           >
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
@@ -63,9 +65,9 @@ export default function BudgetAsidePanel() {
         {/* Sisa Budget — Premier Neutral Clay Card */}
         <div className="clay-card clay-key-neutral shrink-0 rounded-[22px] bg-surfaceContainerLowest p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sisa Budget</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('sisa_budget')}</span>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ringkas.lewat ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-              {ringkas.lewat ? 'Terlampaui' : `${ringkas.persen}% Terpakai`}
+              {ringkas.lewat ? tr('status_lewat') : tr('persen_terpakai', { n: ringkas.persen })}
             </span>
           </div>
           <p className={`font-mono text-2xl font-black mt-1 ${ringkas.lewat ? 'text-expenseText' : 'text-slate-800'}`}>
@@ -79,19 +81,19 @@ export default function BudgetAsidePanel() {
           </div>
           <p className="mt-2 text-[11px] font-medium text-textSecondary">
             {ringkas.lewat
-              ? `Terlampaui ${formatRupiah(Math.abs(ringkas.sisa))}`
-              : `Terpakai ${ringkas.persen}% · Sisa ${formatRupiah(ringkas.sisa)}`}
+              ? tr('terlampaui_nominal', { nominal: formatRupiah(Math.abs(ringkas.sisa)) })
+              : tr('terpakai_sisa', { persen: ringkas.persen, nominal: formatRupiah(ringkas.sisa) })}
           </p>
         </div>
 
         {/* Hari tersisa + burn rate (2 kartu kecil simetris) */}
         <div className="mt-3 grid shrink-0 grid-cols-2 gap-2.5">
           <div className="clay-card clay-key-neutral rounded-[18px] bg-surfaceContainerLowest p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Hari Tersisa</p>
-            <p className="font-mono text-base font-extrabold text-slate-800 mt-1">{ringkas.hariTersisa} <span className="text-xs font-medium text-slate-500">hari</span></p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('hari_tersisa')}</p>
+            <p className="font-mono text-base font-extrabold text-slate-800 mt-1">{ringkas.hariTersisa} <span className="text-xs font-medium text-slate-500">{tr('hari')}</span></p>
           </div>
           <div className="clay-card clay-key-neutral rounded-[18px] bg-surfaceContainerLowest p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Burn / Hari</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('burn_per_hari')}</p>
             <p className="font-mono text-base font-extrabold text-slate-800 mt-1 truncate" title={formatRupiah(ringkas.burnPerHari)}>{formatRupiah(ringkas.burnPerHari)}</p>
           </div>
         </div>
@@ -100,12 +102,12 @@ export default function BudgetAsidePanel() {
         <div className="mt-3 h-px shrink-0 bg-slate-200/70"></div>
         <p className="mt-3 shrink-0 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1">
           <span className="material-symbols-outlined icon-sm text-amber-600">warning</span>
-          Perlu Perhatian
+          {tr('perlu_perhatian')}
         </p>
         <div className="mt-2 space-y-1.5">
           {ringkas.hampirHabis.length === 0 ? (
             <p className="rounded-[14px] bg-surfaceContainerLowest px-3 py-2 text-[11px] text-textSecondary">
-              Semua budget masih aman bulan ini.
+              {tr('semua_budget_aman')}
             </p>
           ) : (
             ringkas.hampirHabis.map((b) => (
@@ -125,21 +127,21 @@ export default function BudgetAsidePanel() {
         {/* Spacer + Aksi Cepat — tinggi btn-md (40px) konsisten dengan tombol lain */}
         <div className="mt-auto pt-3">
           <div className="h-px bg-slate-200/70"></div>
-          <p className="mt-3 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Aksi Cepat</p>
+          <p className="mt-3 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{tr('aksi_cepat')}</p>
           <div className="mt-2 grid grid-cols-2 gap-1.5">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:budget-add-rekening'))}
               className="clay-btn clay-key-blue solid-blue btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm text-white">account_balance</span>
-              Rekening
+              {tr('rekening')}
             </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:budget-add-budget'))}
               className="clay-btn clay-key-blue solid-blue btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm">savings</span>
-              Budget
+              {tr('nav_budget')}
             </button>
           </div>
         </div>

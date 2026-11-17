@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatCurrency, formatRupiah, isoHariIni, konversiUntukTampil, tanggalTampil, uangAktif } from '../../lib/format.js'
+import { formatCurrency, formatNominal, formatRupiah, isoDari, isoHariIni, konversiUntukTampil, simbolUang, tanggalRelatifLabel, tanggalTampil, uangAktif } from '../../lib/format.js'
 import { hapusAkun } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
@@ -9,6 +9,13 @@ import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
 import FormRekeningModal from './FormRekeningModal.jsx'
 import RiwayatMutasiModal from './RiwayatMutasiModal.jsx'
 import { portalBody } from '../../lib/portal.js'
+
+function isoDariMutasi(at) {
+  if (!at) return isoHariIni()
+  if (typeof at.toDate === 'function') return isoDari(at.toDate())
+  if (typeof at === 'string') return at.slice(0, 10)
+  return isoHariIni()
+}
 
 // Sub-tab Rekening: hero Total Saldo + pagination card-stack + daftar rekening.
 // Paritas dengan GAS ViewBudget.html #budgetRekeningPanel + #rekeningPaginationControls.
@@ -112,6 +119,12 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
   const totalCards = akunList.length
   const activeIdx = halaman - 1
 
+  // Koreksi saldo tersimpan di akun.mutasiTerakhir, bukan di koleksi transaksi.
+  const daftarKoreksi = useMemo(
+    () => akunList.filter((a) => /koreksi penyesuaian saldo/i.test(a?.mutasiTerakhir?.keterangan || '')),
+    [akunList],
+  )
+
   // Gesture Touch / Swipe untuk card-stack mobile (persis GAS handleRekeningTouch)
   const touchStartY = useRef(null)
   const touchStartX = useRef(null)
@@ -191,13 +204,53 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
             </p>
           </div>
           <div className="neu-inset rounded-xl p-2 min-w-0">
-            <p className="text-[11px] font-medium text-slate-500">Pengeluaran bulan ini</p>
+            <p className="text-[11px] font-medium text-slate-500">{tr('pengeluaran_bulan_ini')}</p>
             <p className="font-mono text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
               {formatCurrency(arusBulan.keluar, currency, locale)}
             </p>
           </div>
         </div>
       </div>
+
+      {daftarKoreksi.length > 0 && (
+        <section className="neu-inset mt-3 rounded-[20px] px-3.5 py-3" aria-label={tr('penyesuaian_saldo')}>
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="material-symbols-outlined icon-xs text-amber-600">tune</span>
+            <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              {tr('penyesuaian_saldo')}
+            </h3>
+            <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+              {tr('bukan_transaksi')}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {daftarKoreksi.slice(0, 2).map((a) => {
+              const delta = Number(a.mutasiTerakhir?.delta) || 0
+              return (
+                <div key={a.id} className="flex items-center gap-2.5">
+                  <span className="clay-icon-tile clay-key-amber flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+                    <span className="material-symbols-outlined icon-sm">tune</span>
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-slate-700">{a.nama}</p>
+                    <p className="truncate text-[10px] font-medium text-slate-500">
+                      {tanggalRelatifLabel(isoDariMutasi(a.mutasiTerakhir?.at))}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 font-mono text-xs font-extrabold ${delta >= 0 ? 'text-incomeText' : 'text-expenseText'}`}>
+                    {delta >= 0 ? '+' : '−'}{simbolUang()} {formatNominal(Math.abs(delta))}
+                  </span>
+                </div>
+              )
+            })}
+            {daftarKoreksi.length > 2 && (
+              <p className="pl-[42px] text-[10px] font-semibold text-slate-500">
+                +{daftarKoreksi.length - 2} …
+              </p>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Pager horizontal — MOBILE ONLY.
           Di web rekening dirender sebagai grid penuh (lihat blok `rekeningList`

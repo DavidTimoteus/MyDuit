@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { formatRupiah } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 // Panel kanan khusus tab Utang (desktop only). Render di Shell dengan `tab === 'utang'`.
 // Subscribe ringkasan via event `myduit:utang-update` dari UtangView.
@@ -12,6 +13,7 @@ import { useKursVersi } from '../../lib/useKurs.js'
 //   - Statistik Cepat (total cicilan aktif, rata-rata per bulan, utang aktif)
 //   - Aksi Cepat (Utang / Cicilan)
 export default function UtangAsidePanel() {
+  const { t: tr } = useBahasa()
   useKursVersi()
   const [data, setData] = useState(null)
 
@@ -46,11 +48,11 @@ export default function UtangAsidePanel() {
       <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-800">Ringkasan Utang</h2>
+          <h2 className="text-base font-extrabold tracking-tight text-slate-800">{tr('ringkasan_utang')}</h2>
           <button
             onClick={handleCetakPdf}
-            aria-label="Cetak PDF"
-            title="Cetak PDF"
+            aria-label={tr('pdf_judul')}
+            title={tr('pdf_judul')}
             className="pdf-action-btn clay-key-danger"
           >
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
@@ -81,25 +83,25 @@ export default function UtangAsidePanel() {
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Progres Pelunasan</p>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('progres_pelunasan')}</p>
             <p className="font-mono mt-0.5 truncate text-base font-black text-slate-800">{formatRupiah(r.totalSisa)}</p>
             <p className="mt-0.5 text-[11px] font-medium leading-snug text-textSecondary">
-              dari {formatRupiah(r.totalAwal)} · {r.aktifCount} item aktif
+              {tr('dari_nominal_item', { nominal: formatRupiah(r.totalAwal), n: r.aktifCount })}
             </p>
           </div>
         </div>
 
         {/* Jatuh Tempo Terdekat */}
         <div className="clay-card clay-key-neutral mt-3 shrink-0 rounded-[20px] bg-surfaceContainerLowest p-3.5">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Jatuh Tempo Terdekat</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('jatuh_tempo_terdekat')}</p>
           <div className="space-y-2">
             {r.jatuhTempo.length === 0 ? (
-              <p className="text-[11px] text-textSecondary">Tidak ada jatuh tempo terdekat.</p>
+              <p className="text-[11px] text-textSecondary">{tr('tidak_ada_jatuh_tempo')}</p>
             ) : (
               r.jatuhTempo.slice(0, 3).map((j) => {
                 const warna = j.hari < 0 ? 'bg-red-500' : j.hari <= 7 ? 'bg-amber-500' : 'bg-emerald-500'
                 const chipCls = j.hari < 0 ? 'bg-red-100 text-red-700' : j.hari <= 7 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-                const label = j.hari < 0 ? `Terlambat ${-j.hari}h` : j.hari === 0 ? 'Hari ini' : `${j.hari}h`
+                const label = j.hari < 0 ? tr('terlambat_hari', { n: -j.hari }) : j.hari === 0 ? tr('filter_hari') : `${j.hari}h`
                 return (
                   <div key={j.id} className="flex min-w-0 items-center gap-2">
                     <span className={`h-2 w-2 shrink-0 rounded-full ${warna}`}></span>
@@ -117,23 +119,23 @@ export default function UtangAsidePanel() {
 
         {/* Statistik Cepat */}
         <div className="clay-card clay-key-neutral mt-3 shrink-0 rounded-[20px] bg-surfaceContainerLowest p-3.5">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">Statistik Cepat</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('statistik_cepat')}</p>
           <div className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
-                <span className="material-symbols-outlined icon-sm text-blue-600">payments</span>Total cicilan aktif
+                <span className="material-symbols-outlined icon-sm text-blue-600">payments</span>{tr('total_cicilan_aktif')}
               </span>
               <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{r.cicilanAktif}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
-                <span className="material-symbols-outlined icon-sm text-amber-600">trending_up</span>Rata-rata per bulan
+                <span className="material-symbols-outlined icon-sm text-amber-600">trending_up</span>{tr('rata_per_bulan')}
               </span>
               <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{formatRupiah(r.rataPerBulan)}</span>
             </div>
             <div className="flex items-center justify-between gap-2">
               <span className="flex min-w-0 items-center gap-1.5 text-[11px] text-textSecondary">
-                <span className="material-symbols-outlined icon-sm text-red-600">handshake</span>Utang aktif
+                <span className="material-symbols-outlined icon-sm text-red-600">handshake</span>{tr('utang_aktif')}
               </span>
               <span className="shrink-0 font-mono text-[11px] font-bold text-slate-800">{r.aktifCount}</span>
             </div>
@@ -143,21 +145,21 @@ export default function UtangAsidePanel() {
         {/* Aksi Cepat */}
         <div className="mt-auto pt-2">
           <div className="h-px bg-slate-200/70"></div>
-          <p className="mt-3 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">Aksi Cepat</p>
+          <p className="mt-3 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{tr('aksi_cepat')}</p>
           <div className="mt-2 grid grid-cols-2 gap-1.5">
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'utang' } }))}
               className="clay-btn clay-key-danger solid-danger btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>handshake</span>
-              + Utang
+              + {tr('tambah_utang')}
             </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('myduit:utang-add', { detail: { mode: 'cicilan' } }))}
               className="clay-btn clay-key-danger solid-danger btn-md flex w-full items-center justify-center gap-1.5 rounded-2xl text-xs font-bold text-white"
             >
               <span className="material-symbols-outlined icon-sm text-white" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
-              + Cicilan
+              + {tr('tambah_cicilan')}
             </button>
           </div>
         </div>

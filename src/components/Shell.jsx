@@ -193,14 +193,14 @@ function SidebarInsightStatistik() {
           {streak}
         </span>
         <span className="text-[11px] font-semibold text-textSecondary">
-          hari beruntun mencatat
+          {tr("streak_hari")}
         </span>
       </div>
       <p className="text-[10px] font-medium text-textSecondary">
         {(() => {
           const dLast = parseTanggalIsoAman(last);
-          if (!dLast) return last ? `Catatan terakhir: ${last}` : "Belum ada catatan pada periode ini";
-          return `Catatan terakhir: ${tanggalTampil(last)}`;
+          if (!dLast) return last ? tr("catatan_terakhir", { tanggal: last }) : tr("belum_ada_catatan_periode");
+          return tr("catatan_terakhir", { tanggal: tanggalTampil(last) });
         })()}
       </p>
       <div className="h-px bg-slate-200/70"></div>

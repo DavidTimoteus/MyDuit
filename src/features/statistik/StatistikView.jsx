@@ -405,7 +405,7 @@ export default function StatistikView({ user }) {
   const pctOut = hitungPersenPerubahan(ringkas.out, trend.out, trend.ada);
   const pctSaldo = hitungPersenPerubahan(ringkas.saldo, trend.saldo, trend.ada);
   const labelBanding =
-    mode === "bulanan" ? "vs bulan sebelumnya" : "vs tahun sebelumnya";
+    tr(mode === "bulanan" ? "vs_bulan_sebelumnya" : "vs_tahun_sebelumnya");
   // Temuan analitik untuk kartu "Analisis Keuangan". Memakai mesin aturan
   // deterministik (src/features/statistik/_aturan.js), bukan LLM: angka yang
   // sama selalu menghasilkan saran yang sama, dan setiap saran bisa ditelusuri
@@ -541,7 +541,8 @@ export default function StatistikView({ user }) {
         datasets: [
           {
             type: "bar",
-            label: "Pemasukan",
+            label: tr("pemasukan"),
+            metricKey: "in",
             data: tren.dataIn,
             backgroundColor: gradIn,
             hoverBackgroundColor: "rgba(54, 174, 124, 1.0)",
@@ -554,7 +555,8 @@ export default function StatistikView({ user }) {
           },
           {
             type: "bar",
-            label: "Pengeluaran",
+            label: tr("pengeluaran"),
+            metricKey: "out",
             data: tren.dataOut.map((v) => -Math.abs(v)),
             backgroundColor: gradOut,
             hoverBackgroundColor: "rgba(235, 83, 83, 1.0)",
@@ -569,7 +571,8 @@ export default function StatistikView({ user }) {
             ? [
                 {
                   type: "line",
-                  label: "Saldo",
+                  label: tr("saldo"),
+                  metricKey: "saldo",
                   data: tren.dataSaldo,
                   borderColor: "#187498",
                   backgroundColor: gradSaldo,
@@ -619,8 +622,9 @@ export default function StatistikView({ user }) {
                   : "",
               label: (item) => {
                 const raw = Number(item.parsed.y) || 0;
-                const val = item.dataset.label === "Pengeluaran" ? Math.abs(raw) : raw;
-                const sign = item.dataset.label === "Saldo" && raw < 0 ? "-" : "";
+                const metric = item.dataset.metricKey;
+                const val = metric === "out" ? Math.abs(raw) : raw;
+                const sign = metric === "saldo" && raw < 0 ? "-" : "";
                 return ` ${item.dataset.label}: ${sign}${formatCurrency(Math.abs(val), kur, loc)}`;
               },
             },
@@ -678,6 +682,7 @@ export default function StatistikView({ user }) {
     mode,
     kursVer,
     isMobileScreen,
+    tr,
   ]);
 
   function bukaDetailKategori(jenis, kategori) {

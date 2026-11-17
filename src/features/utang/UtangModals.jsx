@@ -6,6 +6,7 @@ import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { portalBody } from '../../lib/portal.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 function isoTambahHari(n) {
   const d = new Date()
@@ -15,6 +16,7 @@ function isoTambahHari(n) {
 
 // ===== FORM TAMBAH/EDIT UTANG =====
 export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
+  const { t: tr } = useBahasa()
   const [namaPihak, setNamaPihak] = useState('')
   const [tipe, setTipe] = useState('Utang')
   const [total, setTotal] = useState('')
@@ -98,9 +100,9 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
             <span className="material-symbols-outlined text-[#EB5353]">account_balance_wallet</span>
-            {edit ? 'Edit Utang' : 'Tambah Utang'}
+            {tr(edit ? 'edit_utang' : 'tambah_utang')}
           </h3>
-          <button type="button" onClick={onClose} aria-label="Tutup form utang" className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
+          <button type="button" onClick={onClose} aria-label={tr('tutup_form_utang')} className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
@@ -139,7 +141,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         {/* Hero Nominal Total Display */}
         <div className="mb-3 flex flex-col gap-1">
           <label className="block text-[11px] font-bold tracking-wide uppercase text-slate-500">
-            Total {tipe} ({simbolUang()})
+            {tr('total_tipe', { tipe, symbol: simbolUang() })}
           </label>
           <div className="relative flex items-center">
             <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#EB5353]">
@@ -158,12 +160,12 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         </div>
 
         <div className="mb-3">
-          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nama pihak</label>
+          <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{tr('nama_pihak')}</label>
           <input
             value={namaPihak}
             maxLength={150}
             onChange={(e) => setNamaPihak(e.target.value)}
-            placeholder="mis. Kredit Motor / Teman"
+            placeholder={tr('nama_pihak_contoh')}
             className="clay-input field-lg w-full rounded-2xl px-3 text-sm font-semibold"
           />
         </div>
@@ -171,7 +173,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         {tipe === 'Cicilan' && (
           <div className="mb-3 flex flex-col gap-1">
             <label className="block text-[11px] font-bold tracking-wide uppercase text-slate-500">
-              Cicilan per bulan ({simbolUang()})
+              {tr('cicilan_per_bulan', { symbol: simbolUang() })}
             </label>
             <div className="relative flex items-center">
               <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
@@ -189,24 +191,24 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
         )}
 
         <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">
-          {tipe === 'Cicilan' ? 'Tanggal Jatuh Tempo Tiap Bulan' : 'Jatuh tempo'}
+          {tr(tipe === 'Cicilan' ? 'tanggal_jatuh_tempo_bulanan' : 'jatuh_tempo')}
         </label>
         <div className="mb-3">
           <ClayDateInput value={tgl} onChange={setTgl} />
         </div>
 
-        <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Catatan</label>
+        <label className="mb-0.5 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{tr('catatan')}</label>
         <input
           value={deskripsi}
           maxLength={500}
           onChange={(e) => setDeskripsi(e.target.value)}
-          placeholder="opsional"
+          placeholder={tr('opsional')}
           className="clay-field mb-4 w-full rounded-xl px-3 py-2.5 text-sm font-semibold placeholder:font-normal placeholder:text-slate-500"
         />
 
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
         <button type="submit" disabled={saving} className="neu-btn-danger solid-danger btn-lg w-full rounded-2xl text-white font-extrabold text-sm active:scale-95 transition-all shadow-md disabled:opacity-60">
-          {saving ? 'Menyimpan…' : 'Simpan'}
+          {tr(saving ? 'menyimpan' : 'simpan')}
         </button>
       </form>
     </div>,
@@ -215,6 +217,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
 
 // ===== MODAL BAYAR / LUNASIN =====
 export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }) {
+  const { t: tr } = useBahasa()
   const [jumlah, setJumlah] = useState('')
   const [tanggal, setTanggal] = useState(isoHariIni())
   const [akunId, setAkunId] = useState('')
@@ -316,18 +319,18 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{lunasin ? 'Lunasin' : 'Bayar'} — {utang.namaPihak}</h3>
-          <button type="button" onClick={onClose} aria-label="Tutup pembayaran" className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
+          <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{tr(lunasin ? 'lunasin' : 'bayar')} — {utang.namaPihak}</h3>
+          <button type="button" onClick={onClose} aria-label={tr('tutup_pembayaran')} className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
             <span className="material-symbols-outlined icon-md">close</span>
           </button>
         </div>
 
         <div className="neu-inset mb-3.5 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-semibold text-slate-600">
-          <span>Sisa saat ini:</span>
+          <span>{tr('sisa_saat_ini')}</span>
           <strong className="font-mono text-sm font-black text-slate-800 tabular-nums">{formatRupiah(utang.sisa || 0)}</strong>
         </div>
 
-        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Nominal bayar</label>
+        <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{tr('nominal_bayar')}</label>
         <div className="relative mb-3.5 flex items-center">
           <span className="pointer-events-none absolute left-3.5 font-mono text-base font-extrabold text-slate-500">
             {simbolUang()}
@@ -344,15 +347,15 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
         <div className="mb-3.5 grid grid-cols-2 gap-2.5">
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Tanggal</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{tr('tanggal')}</label>
             <ClayDateInput value={tanggal} onChange={setTanggal} />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">Sumber dana</label>
+            <label className="mb-1 block text-[11px] font-bold uppercase tracking-wide text-slate-500">{tr('sumber_dana')}</label>
             <ClaySelect
               value={akunId}
               onChange={setAkunId}
-              placeholder="Pilih rekening"
+              placeholder={tr('pilih_rekening')}
               options={akunList.map((a) => ({ value: a.id, label: a.nama }))}
             />
           </div>
@@ -361,7 +364,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         {n > 0 && (
           <div className="neu-inset mb-4 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-bold text-[#36AE7C]">
             <span>Sisa setelah bayar: {formatRupiah(sisaBaru)}</span>
-            <span>{sisaBaru === 0 ? '— LUNAS ✓' : ''}</span>
+            <span>{sisaBaru === 0 ? tr('lunas_badge') : ''}</span>
           </div>
         )}
         {error && <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">{error}</p>}
@@ -373,14 +376,14 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
               onClick={() => setJumlah(formatInputTampil(utang.sisa || 0))}
               className="neu-btn btn-lg rounded-2xl bg-[#E5E5E5] text-slate-700 font-extrabold text-xs transition-all active:scale-95"
             >
-              Lunasin ({formatRupiah(utang.sisa || 0)})
+              {tr('lunasin')} ({formatRupiah(utang.sisa || 0)})
             </button>
           )}
           <button
             disabled={saving}
             className={`neu-btn-primary solid-primary btn-lg rounded-2xl text-white font-extrabold text-sm transition-all active:scale-95 shadow-md ${lunasin ? 'col-span-2' : ''}`}
           >
-            {saving ? 'Menyimpan…' : lunasin ? 'Lunasin Sekarang' : 'Bayar'}
+            {tr(saving ? 'menyimpan' : lunasin ? 'lunasin_sekarang' : 'bayar')}
           </button>
         </div>
       </form>
