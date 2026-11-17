@@ -3,6 +3,7 @@ import { formatRupiah, isoHariIni, jamSekarang, jamValid, konversiKeBasis, parse
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
+import ClayTimeInput from '../../components/ClayTimeInput.jsx'
 import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -149,14 +150,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               </div>
               <div className="flex w-[104px] shrink-0 flex-col gap-1">
                 <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-slate-600">{tr('jam')}</label>
-                <input
-                  id="tx-jam"
-                  type="time"
-                  value={jam}
-                  onChange={(e) => setJam(e.target.value)}
-                  title="Kosongkan untuk memakai jam saat mencatat"
-                  className="clay-input field-lg w-full px-2 text-sm font-semibold outline-none"
-                />
+                <ClayTimeInput id="tx-jam" value={jam} onChange={setJam} />
               </div>
             </div>
           </div>
