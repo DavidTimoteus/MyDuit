@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatInputTampil, formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
+import { formatInputTampil, formatNominal, isoHariIni, jamSekarang, jamValid, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
 import { bacaBasisMataUang, buatSnapshotKurs, desimalMataUang, konversiNilai } from '../../lib/kurs.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
@@ -59,6 +59,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [tanggal, setTanggal] = useState(() =>
     isEditAtauSalin ? (sumber.tanggal ?? isoHariIni()) : isoHariIni()
   )
+  const [jam, setJam] = useState(() => (isEditAtauSalin ? (sumber.jam ?? '') : ''))
   const [catatan, setCatatan] = useState(() =>
     isEditAtauSalin ? (sumber.catatan ?? '') : ''
   )
@@ -161,6 +162,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setKategoriNama(sumber.kategoriNama ?? '')
       setAkunId(sumber.akunId ?? akunList[0]?.id ?? '')
       setTanggal(sumber.tanggal ?? isoHariIni())
+      setJam(sumber.jam ?? '')
       setCatatan(sumber.catatan ?? '')
     } else {
       // Preset dari pemicu (Aksi Cepat / speed-dial) atau default pengeluaran
@@ -169,6 +171,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setKategoriNama('')
       setAkunId(akunList[0]?.id ?? '')
       setTanggal(isoHariIni())
+      setJam('')
       setCatatan('')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -475,6 +478,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
     const jenisSnap = jenis
     const tanggalSnap = tanggal
+    const jamSnap = jamValid(jam) || jamSekarang()
     const catatanSnap = catatan.trim()
     const akunIdSnap = akunId
     const namaKatSnap = kategoriNama.trim()
@@ -522,6 +526,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       akunId: akunIdSnap,
       akunNama: akun?.nama ?? '',
       tanggal: tanggalSnap,
+      jam: jamSnap,
       catatan: catatanSnap,
       kursSnapshot,
       deleted: false,
@@ -559,6 +564,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           akunId: akunIdSnap,
           akunNama: akun?.nama ?? '',
           tanggal: tanggalSnap,
+          jam: jamSnap,
           catatan: catatanSnap,
         }
         if (modeSnap === 'edit' && sumberSnap) await updateTransaksi(uid, sumberSnap, data)
@@ -1102,7 +1108,22 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-2">
             <div className="flex flex-col gap-1">
               <label htmlFor="tx-tanggal" className="block text-[11px] font-semibold text-textSecondary">Tanggal</label>
-              <ClayDateInput id="tx-tanggal" value={tanggal} onChange={setTanggal} />
+              <div className="flex items-end gap-2">
+                <div className="min-w-0 flex-1">
+                  <ClayDateInput id="tx-tanggal" value={tanggal} onChange={setTanggal} />
+                </div>
+                <div className="flex w-[104px] shrink-0 flex-col gap-1">
+                  <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-textSecondary">Jam</label>
+                  <input
+                    id="tx-jam"
+                    type="time"
+                    value={jam}
+                    onChange={(e) => setJam(e.target.value)}
+                    title="Kosongkan untuk memakai jam saat mencatat"
+                    className="clay-input field-lg w-full px-2 text-sm font-semibold outline-none"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">

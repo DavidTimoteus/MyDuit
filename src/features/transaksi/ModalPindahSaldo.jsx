@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatRupiah, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
+import { formatRupiah, isoHariIni, jamSekarang, jamValid, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
@@ -12,6 +12,7 @@ import { pesanErrorSimpan } from '../../lib/pesanError.js'
 // peringatan bila rekening sama; submit biru "Pindahkan Saldo").
 export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
   const [tanggal, setTanggal] = useState(isoHariIni())
+  const [jam, setJam] = useState('')
   const [dariId, setDariId] = useState('')
   const [keId, setKeId] = useState('')
   const [jumlah, setJumlah] = useState('')
@@ -24,6 +25,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     if (!open) return
     submittedRef.current = false
     setTanggal(isoHariIni())
+    setJam('')
     setDariId(akunList[0]?.id ?? '')
     setKeId(akunList[1]?.id ?? '')
     setJumlah('')
@@ -64,6 +66,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     const dariIdSnap = dariId
     const keIdSnap = keId
     const tanggalSnap = tanggal
+    const jamSnap = jamValid(jam) || jamSekarang()
     const catatanSnap = catatan.trim()
 
     const docId = buatTransaksiId(uid)
@@ -78,6 +81,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
       dariId: dariIdSnap,
       keId: keIdSnap,
       tanggal: tanggalSnap,
+      jam: jamSnap,
       catatan: catatanSnap,
       kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tanggalSnap),
       deleted: false,
@@ -101,6 +105,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
           keNama: ke?.nama ?? '',
           jumlah: n,
           tanggal: tanggalSnap,
+          jam: jamSnap,
           catatan: catatanSnap,
         })
       } catch (e2) {
@@ -136,7 +141,22 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
         <form onSubmit={submit} className="min-h-0 space-y-2 overflow-y-auto px-4 pb-4 pt-2">
           <div className="flex flex-col gap-1">
             <label className="block text-[11px] font-semibold text-slate-600">Tanggal</label>
-            <ClayDateInput value={tanggal} onChange={setTanggal} />
+            <div className="flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <ClayDateInput value={tanggal} onChange={setTanggal} />
+              </div>
+              <div className="flex w-[104px] shrink-0 flex-col gap-1">
+                <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-slate-600">Jam</label>
+                <input
+                  id="tx-jam"
+                  type="time"
+                  value={jam}
+                  onChange={(e) => setJam(e.target.value)}
+                  title="Kosongkan untuk memakai jam saat mencatat"
+                  className="clay-input field-lg w-full px-2 text-sm font-semibold outline-none"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1">

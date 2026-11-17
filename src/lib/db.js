@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
-import { MAX_NOMINAL, isoHariIni, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
+import { MAX_NOMINAL, isoHariIni, jamSekarang, jamValid, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
 import { bacaBasisMataUang, bacaStatusBasis, buatSnapshotKurs, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
 
 function bulatkanKeBasis(nilai) {
@@ -175,6 +175,7 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
         delta,
         koreksiSaldo: true,
         tanggal: tglKoreksi,
+        jam: jamSekarang(),
         catatan: 'Koreksi Penyesuaian saldo',
         kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKoreksi),
         deleted: false,
@@ -260,6 +261,7 @@ export async function simpanTransaksi(uid, data) {
     kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: tglKanonik,
+    jam: jamValid(data.jam) || jamSekarang(),
     catatan: potongTeks(data.catatan, 500),
     kursSnapshot: data.kursSnapshot || buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik),
     deleted: false,
@@ -308,6 +310,7 @@ export async function updateTransaksi(uid, lama, data) {
     kategoriId: data.kategoriId ?? '',
     akunId: data.akunId,
     tanggal: kanonikTanggal(data.tanggal),
+    jam: jamValid(data.jam) || jamSekarang(),
     catatan: potongTeks(data.catatan, 500),
   }
   if (IS_DEMO_UID(uid)) {
@@ -455,7 +458,7 @@ export async function hapusTransaksiMassal(uid, targets) {
 // ===== PINDAH SALDO (transfer antar rekening) =====
 // 1 dokumen transaksi jenis 'pindah saldo' (tanpa +/- pada nominal) + saldo
 // sumber dikurangi & tujuan ditambah. dariId/keId disimpan utk pembatalan.
-export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jumlah, tanggal, catatan }) {
+export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jumlah, tanggal, jam, catatan }) {
   if (!dariId || !keId) throw new Error('Pilih rekening sumber & tujuan dulu.')
   if (dariId === keId) throw new Error('Rekening sumber & tujuan tidak boleh sama.')
   const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pindah saldo')
@@ -469,6 +472,7 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
     dariId,
     keId,
     tanggal: tglKanonik,
+    jam: jamValid(jam) || jamSekarang(),
     catatan: potongTeks(catatan, 500),
     kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik),
     deleted: false,
