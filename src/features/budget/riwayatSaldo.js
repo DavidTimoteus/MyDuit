@@ -40,6 +40,9 @@ export function deltaMutasi(t, akunId) {
 // Label + styling baris: jenis transaksi dilihat dari sudut pandang akun ini
 // (transfer keluar vs transfer masuk beda arah, tapi tetap jenis "transfer").
 export function infoMutasi(t, akunId) {
+  if (t?.koreksiSaldo) {
+    return { label: 'Koreksi Penyesuaian saldo', ikon: 'tune', kelas: 'text-[#B45309] bg-[#B45309]/10' }
+  }
   if (t?.jenis === 'pindah saldo') {
     if (t.dariId === akunId && t.keId === akunId) {
       return { label: 'Pindah saldo', ikon: 'swap_horiz', kelas: 'text-[#187498] bg-[#187498]/10' }
@@ -77,8 +80,9 @@ export function bangunMutasi(docs, { akunId, saldoSekarang = 0, kategoriById = {
       label: info.label,
       ikon: info.ikon,
       kelas: info.kelas,
-      kategoriNama:
-        t.kategoriId && kategoriById[t.kategoriId]
+      kategoriNama: t.koreksiSaldo
+        ? t.catatan || 'Koreksi Penyesuaian saldo'
+        : t.kategoriId && kategoriById[t.kategoriId]
           ? kategoriById[t.kategoriId]
           : t.kategoriNama ?? (t.jenis === 'pindah saldo' ? 'Pindah Saldo' : '(tanpa kategori)'),
       catatan: t.catatan ?? '',

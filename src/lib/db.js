@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore'
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
-import { MAX_NOMINAL, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
+import { MAX_NOMINAL, isoHariIni, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
 import { bacaBasisMataUang, bacaStatusBasis, buatSnapshotKurs, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
 
 function bulatkanKeBasis(nilai) {
@@ -155,6 +155,33 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
   const namaBersih = potongTeks(nama, 120)
   if (!namaBersih) throw new Error('Nama rekening wajib diisi.')
   const tipeAman = potongTeks(tipe || 'Rekening Utama', 60) || 'Rekening Utama'
+
+  const punyaSaldo = saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))
+  const saldoBaru = punyaSaldo ? angkaAman(saldo) : 0
+  const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
+  const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
+  const delta = punyaSaldo ? saldoBaru - saldoLamaInt : 0
+  const tglKoreksi = isoHariIni()
+
+  // Koreksi saldo ikut tercatat sebagai transaksi bertanda koreksiSaldo.
+  //jenisnya mengikuti tanda delta supaya filter lama, statistik, dan rantai
+  //saldo di riwayat mutasi tetap bekerja tanpa cabang logika baru.
+  const transKoreksi = punyaSaldo && delta !== 0
+    ? {
+        jumlah: Math.abs(delta),
+        jenis: delta > 0 ? 'pemasukan' : 'pengeluaran',
+        kategoriId: '',
+        akunId: id,
+        delta,
+        koreksiSaldo: true,
+        tanggal: tglKoreksi,
+        catatan: 'Koreksi Penyesuaian saldo',
+        kursSnapshot: buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKoreksi),
+        deleted: false,
+        createdAt: IS_DEMO_UID(uid) ? new Date().toISOString() : serverTimestamp(),
+      }
+    : null
+
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_AKUN.findIndex((a) => a.id === id)
     if (idx !== -1) {
@@ -162,28 +189,33 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
         ...MOCK_AKUN[idx],
         nama: namaBersih,
         tipe: tipeAman,
-        ...(saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))
-          ? { saldo: angkaAman(saldo) }
+        ...(punyaSaldo ? { saldo: saldoBaru } : {}),
+        ...(punyaSaldo && (!adaLama || delta !== 0)
+          ? { mutasiTerakhir: { delta: adaLama ? delta : 0, keterangan: 'Koreksi Penyesuaian saldo', at: new Date().toISOString() } }
           : {}),
       }
     }
+    if (transKoreksi) MOCK_TRANSAKSI.unshift({ id: buatTransaksiId(uid), ...transKoreksi })
     return
   }
+
   const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
-  if (saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))) {
-    const saldoBaru = angkaAman(saldo)
+  if (punyaSaldo) {
     patch.saldo = saldoBaru
-    const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
-    const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
-    if (!adaLama || saldoBaru !== saldoLamaInt) {
+    if (!adaLama || delta !== 0) {
       patch.mutasiTerakhir = {
-        delta: adaLama ? saldoBaru - saldoLamaInt : 0,
-        keterangan: 'Koreksi penyesuaian saldo',
+        delta: adaLama ? delta : 0,
+        keterangan: 'Koreksi Penyesuaian saldo',
         at: serverTimestamp(),
       }
     }
   }
-  await updateDoc(akunRef(uid, id), patch)
+
+  const { db } = getFirebase()
+  const batch = writeBatch(db)
+  batch.update(akunRef(uid, id), patch)
+  if (transKoreksi) batch.set(doc(userCol(uid, 'transaksi')), transKoreksi)
+  await batch.commit()
 }
 
 export async function hapusAkun(uid, id) {
@@ -529,6 +561,13 @@ export function docKeTransaksi(d) {
 // masih menyimpan nama tetap terbaca apa adanya (fallback, tanpa migrasi paksa).
 export function enrichTransaksi(docs, akunById, kategoriById) {
   return docs.map((t) => {
+    if (t.koreksiSaldo) {
+      return {
+        ...t,
+        kategoriNama: 'Koreksi Saldo',
+        akunNama: t.akunNama ?? akunById[t.akunId]?.nama ?? '',
+      }
+    }
     if (t.jenis === 'pindah saldo') {
       const derived =
         akunById[t.dariId]?.nama && akunById[t.keId]?.nama

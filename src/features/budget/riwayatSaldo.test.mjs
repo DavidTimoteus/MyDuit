@@ -37,6 +37,7 @@ cek('pindah ke diri sendiri = 0', deltaMutasi({ jenis: 'pindah saldo', jumlah: 1
 cek('label pengeluaran', infoMutasi({ jenis: 'pengeluaran' }, A).label, 'Pengeluaran')
 cek('label transfer keluar', infoMutasi({ jenis: 'pindah saldo', dariId: A, keId: B }, A).label, 'Transfer keluar')
 cek('label transfer masuk', infoMutasi({ jenis: 'pindah saldo', dariId: B, keId: A }, A).label, 'Transfer masuk')
+cek('label koreksi penyesuaian saldo', infoMutasi({ jenis: 'pemasukan', koreksiSaldo: true }, A).label, 'Koreksi Penyesuaian saldo')
 
 // ===== bangunMutasi: filter + urutan + saldo sesudah =====
 // Saldo sekarang A = 15.000. Mutasi (urut query terbaru-dulu):
@@ -68,6 +69,17 @@ cek(
 )
 cek('nama kategori dari map', baris.map((b) => b.kategoriNama), ['Makanan', 'Gaji', 'Pindah Saldo'])
 cek('label transfer dari sudut akun', baris[2].label, 'Transfer keluar')
+
+// ===== koreksi saldo ikut rantai mutasi & tampil dengan labelnya =====
+const koreksiDocs = [
+  { id: 'k1', tanggal: '2026-10-08', jenis: 'pengeluaran', jumlah: 750, akunId: A, koreksiSaldo: true, catatan: 'Koreksi Penyesuaian saldo' },
+  ...docs,
+]
+const barisKoreksi = bangunMutasi(koreksiDocs, { akunId: A, saldoSekarang: 15000 })
+cek('koreksi saldo masuk daftar mutasi', barisKoreksi[0].label, 'Koreksi Penyesuaian saldo')
+cek('delta koreksi mengikuti jenisnya', barisKoreksi[0].delta, -750)
+cek('saldo sesudah koreksi = saldo akun sekarang', barisKoreksi[0].saldoSesudah, 15000)
+cek('saldo sebelum koreksi mundur konsisten', barisKoreksi[1].saldoSesudah, 15750)
 
 // ===== input tak berurutan tetap diurutkan =====
 const acak = bangunMutasi([docs[2], docs[0], docs[1]], { akunId: A, saldoSekarang: 15000 })
