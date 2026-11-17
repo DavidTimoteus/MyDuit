@@ -13,30 +13,28 @@ import { useKursVersi } from '../../lib/useKurs.js'
 import { useScrollReveal } from '../../lib/useScrollEffects.js'
 import { portalBody } from '../../lib/portal.js'
 import { evaluasiPenambahanTransaksi } from './transaksiFilter.js'
-import { useBahasa } from '../../lib/i18n.js'
 
 const PER_HALAMAN = 20
 const LS_CHIP = 'myduit:tx_chip'
 
 const JENIS_ICONS = [
-  { id: 'semua', icon: 'apps', title: 'semua_transaksi' },
-  { id: 'pemasukan', icon: 'trending_up', title: 'pemasukan' },
-  { id: 'pengeluaran', icon: 'trending_down', title: 'pengeluaran' },
+  { id: 'semua', icon: 'apps', title: 'Semua Transaksi' },
+  { id: 'pemasukan', icon: 'trending_up', title: 'Pemasukan' },
+  { id: 'pengeluaran', icon: 'trending_down', title: 'Pengeluaran' },
 ]
 
-function filterLabel(chip, rentang, tr) {
+function filterLabel(chip, rentang) {
   switch (chip) {
-    case 'hari': return tr('filter_hari')
-    case '7hari': return tr('filter_7hari')
-    case '30hari': return tr('filter_30hari')
-    case 'tahun': return tr('filter_tahun')
-    case 'rentang': return rentang.start ? tr('filter_rentang_range', { start: rentang.start, end: rentang.end }) : tr('pilih_periode')
-    default: return tr('semua_transaksi')
+    case 'hari': return 'Hari Ini'
+    case '7hari': return '7 Hari Terakhir'
+    case '30hari': return '30 Hari Terakhir'
+    case 'tahun': return 'Tahun Ini'
+    case 'rentang': return rentang.start ? `${rentang.start} s/d ${rentang.end}` : 'Pilih Periode'
+    default: return 'Semua Transaksi'
   }
 }
 
 export default function TransaksiView({ user }) {
-  const { t: tr } = useBahasa()
   const uid = user.uid
   const [chip, setChip] = useState(() => {
     try {
@@ -128,8 +126,8 @@ export default function TransaksiView({ user }) {
 
   // Label filter aktif dikirim ke header mobile (chip Filter di Shell)
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('myduit:filter-label', { detail: { label: filterLabel(chip, rentang, tr) } }))
-  }, [chip, rentang, tr])
+    window.dispatchEvent(new CustomEvent('myduit:filter-label', { detail: { label: filterLabel(chip, rentang) } }))
+  }, [chip, rentang])
 
   const bukaForm = useCallback((mode, doc = null) => {
     setOpenDeleteId(null)
@@ -141,7 +139,7 @@ export default function TransaksiView({ user }) {
     if (doc && doc.jenis === 'pindah saldo') {
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
-          detail: { type: 'info', msg: tr('toast_pindah_edit') },
+          detail: { type: 'info', msg: 'Pindah saldo tidak bisa diedit. Hapus lalu buat ulang bila perlu diubah.' },
         }),
       )
       return
@@ -149,13 +147,13 @@ export default function TransaksiView({ user }) {
     if (doc && doc.utangId && mode === 'edit') {
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
-          detail: { type: 'info', msg: tr('toast_utang_edit') },
+          detail: { type: 'info', msg: 'Transaksi pembayaran utang tidak bisa diedit. Hapus lalu catat ulang pembayaran.' },
         }),
       )
       return
     }
     setModal({ open: true, mode, doc })
-  }, [tr])
+  }, [])
 
   // Aksi Cepat dari panel kanan (event bus — panel terpisah dari state view ini)
   useEffect(() => {
@@ -205,8 +203,8 @@ export default function TransaksiView({ user }) {
             new CustomEvent('myduit:toast', {
               detail: {
                 type: 'success',
-                msg: tr('toast_tx_halaman', { hal: targetP }),
-                actionLabel: tr('toast_lihat_halaman', { hal: targetP }),
+                msg: `Transaksi dicatat di Hal. ${targetP}.`,
+                actionLabel: `Lihat Hal. ${targetP}`,
                 onAction: () => {
                   setPage(targetP)
                   const scroller = listRef.current?.closest('.main-scroll')
@@ -220,7 +218,7 @@ export default function TransaksiView({ user }) {
     }
     window.addEventListener('myduit:transaksi-added', onTransaksiAdded)
     return () => window.removeEventListener('myduit:transaksi-added', onTransaksiAdded)
-  }, [range, jenis, ubahChip, ubahJenis, tr])
+  }, [range, jenis, ubahChip, ubahJenis])
 
   const totalPages = Math.max(1, Math.ceil(tampil.length / PER_HALAMAN))
 
@@ -432,7 +430,7 @@ export default function TransaksiView({ user }) {
     window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: optTx } }))
     window.dispatchEvent(
       new CustomEvent('myduit:toast', {
-        detail: { type: 'success', msg: tr('toast_tx_disalin') },
+        detail: { type: 'success', msg: 'Transaksi berhasil disalin & dicatat!' },
       })
     )
     ;(async () => {
@@ -454,7 +452,7 @@ export default function TransaksiView({ user }) {
         window.dispatchEvent(new CustomEvent('myduit:toast', { detail: { type: 'error', msg: pesanErrorSimpan('Menyalin transaksi', e) } }))
       }
     })()
-  }, [uid, tr])
+  }, [uid])
 
   async function konfirmHapus() {
     if (!hapusTarget || hapusLockRef.current.has(hapusTarget.id)) return
@@ -476,7 +474,7 @@ export default function TransaksiView({ user }) {
       window.dispatchEvent(new CustomEvent('myduit:transaksi-added', { detail: { item: target, isRollback: true } }))
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
-          detail: { type: 'error', msg: tr('toast_gagal_hapus_tx') },
+          detail: { type: 'error', msg: 'Gagal menghapus transaksi dari server.' },
         }),
       )
     }
@@ -505,7 +503,7 @@ export default function TransaksiView({ user }) {
       })
       window.dispatchEvent(
         new CustomEvent('myduit:toast', {
-          detail: { type: 'error', msg: tr('toast_gagal_hapus_terpilih') },
+          detail: { type: 'error', msg: 'Gagal menghapus transaksi terpilih dari server.' },
         }),
       )
     }
@@ -552,7 +550,7 @@ export default function TransaksiView({ user }) {
                   receipt_long
                 </span>
               </div>
-              <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">{tr('nav_transaksi')}</h2>
+              <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Transaksi</h2>
             </div>
           </header>
 
@@ -565,7 +563,7 @@ export default function TransaksiView({ user }) {
                 <input
                   value={keyword}
                   onChange={(e) => ubahKeyword(e.target.value)}
-                  placeholder={tr('cari_transaksi')}
+                  placeholder="Cari transaksi..."
                   type="text"
                   className="clay-input w-full border-none py-2.5 pl-10 pr-10 text-base sm:text-sm transition-shadow duration-150 placeholder:text-textSecondary rounded-[16px] touch-manipulation"
                 />
@@ -573,7 +571,7 @@ export default function TransaksiView({ user }) {
                   <button
                     type="button"
                     onClick={() => ubahKeyword('')}
-                    aria-label={tr('hapus_pencarian')}
+                    aria-label="Hapus pencarian"
                     className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-slate-500 transition-[transform,color,background-color] duration-150 active:scale-90 active:bg-slate-200/60 hover:bg-red-100 hover:text-red-500 touch-manipulation"
                     style={{
                       background: 'var(--color-surface, #E5E5E5)',
@@ -591,8 +589,8 @@ export default function TransaksiView({ user }) {
                     <button
                       key={j.id}
                       onClick={() => ubahJenis(j.id)}
-                      aria-label={tr(j.title)}
-                      title={tr(j.title)}
+                      aria-label={j.title}
+                      title={j.title}
                       className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center touch-manipulation ${
                         jenis === j.id
                           ? 'clay-key-primary solid-primary text-white'
@@ -605,8 +603,8 @@ export default function TransaksiView({ user }) {
                 </div>
                 <button
                   onClick={toggleBulk}
-                  aria-label={tr('pilih_banyak_transaksi')}
-                  title={tr('pilih_banyak_transaksi')}
+                  aria-label="Pilih banyak transaksi"
+                  title="Pilih banyak transaksi"
                   className={`chip-btn clay-chip flex h-10 w-10 sm:h-11 sm:w-11 rounded-full shrink-0 items-center justify-center touch-manipulation ${
                     bulkMode
                       ? 'clay-key-primary solid-primary text-white'
@@ -622,17 +620,17 @@ export default function TransaksiView({ user }) {
           {/* Kartu 2: filter tanggal (desktop) — tombol sekunder clay taktil */}
           <button
             onClick={() => setFilterOpen(true)}
-            aria-label={tr('filter_tanggal')}
+            aria-label="Filter Tanggal"
             className="hidden h-14 max-w-[170px] shrink-0 items-center gap-1.5 rounded-[22px] px-3.5 text-xs font-bold clay-btn clay-btn-secondary text-slate-700 md:flex"
           >
             <span className="material-symbols-outlined shrink-0 icon-md text-primary">tune</span>
-            <span className="truncate">{filterLabel(chip, rentang, tr)}</span>
+            <span className="truncate">{filterLabel(chip, rentang)}</span>
           </button>
 
           {/* Tombol Catat Transaksi di tablet/desktop medium (768px-1279px) saat panel kanan & FAB tersembunyi */}
           <button
             onClick={() => bukaForm('add', { preset: jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran' })}
-            aria-label={tr('catat_transaksi')}
+            aria-label="Catat Transaksi"
             className="hidden h-14 shrink-0 items-center gap-1.5 rounded-[22px] px-4 text-xs font-bold text-white transition-all hover:brightness-105 active:scale-95 md:flex xl:hidden"
             style={{
               background: jenis === 'pemasukan' ? '#36AE7C' : '#1E293B',
@@ -641,7 +639,7 @@ export default function TransaksiView({ user }) {
             }}
           >
             <span className="material-symbols-outlined shrink-0 icon-md">add_circle</span>
-            <span className="truncate">{tr(jenis === 'pemasukan' ? 'tambah_pemasukan' : 'catat_transaksi')}</span>
+            <span className="truncate">{jenis === 'pemasukan' ? 'Tambah Pemasukan' : 'Catat Transaksi'}</span>
           </button>
         </div>
 
@@ -650,17 +648,17 @@ export default function TransaksiView({ user }) {
             <div className="mt-2.5 flex items-center justify-center gap-2">
               <button
                 type="button"
-                aria-label={tr('halaman_sebelumnya')}
+                aria-label="Halaman sebelumnya"
                 disabled={page <= 1}
                 onClick={prevPage}
                 className="clay-pagination-arrow flex h-9 w-9 items-center justify-center rounded-full bg-surfaceContainerLowest text-slate-600 shadow-sm"
               >
                 <span className="material-symbols-outlined icon-md">chevron_left</span>
               </button>
-              <span className="text-[11px] font-bold text-slate-700 tracking-tight">{tr('halaman', { page, total: totalPages })}</span>
+              <span className="text-[11px] font-bold text-slate-700 tracking-tight">Halaman {page}/{totalPages}</span>
               <button
                 type="button"
-                aria-label={tr('halaman_berikutnya')}
+                aria-label="Halaman berikutnya"
                 disabled={page >= totalPages && !hasMore}
                 onClick={nextPage}
                 className="clay-pagination-arrow flex h-9 w-9 items-center justify-center rounded-full bg-surfaceContainerLowest text-slate-600 shadow-sm"
@@ -677,7 +675,7 @@ export default function TransaksiView({ user }) {
         {error && (
           <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-xs font-semibold text-red-600">
             {error.toLowerCase().includes('index')
-              ? tr('error_index_firestore')
+              ? 'Query butuh index Firestore — buka link di error console browser (F12) untuk membuatnya. Sekali saja.'
               : error}
           </p>
         )}
@@ -694,7 +692,7 @@ export default function TransaksiView({ user }) {
                 <div key={i} className="riwayat-dot-spinner__dot"></div>
               ))}
             </div>
-            <span>{tr('muat_riwayat_kas')}</span>
+            <span>Memuat riwayat kas...</span>
           </div>
         ) : loading && pageItems.length === 0 ? (
           <div className="min-h-[240px]" aria-busy="true" />
@@ -703,9 +701,9 @@ export default function TransaksiView({ user }) {
             <div className="neu-well mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#E5E5E5] text-[#36AE7C]">
               <span className="material-symbols-outlined text-3xl">receipt_long</span>
             </div>
-            <p className="text-base font-extrabold text-slate-800 tracking-tight">{tr('belum_ada_transaksi')}</p>
+            <p className="text-base font-extrabold text-slate-800 tracking-tight">Belum Ada Transaksi</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              {tr('empty_tx_desc1')}<span className="font-extrabold text-[#36AE7C]">+</span>{tr('empty_tx_desc2')}
+              Data transaksi tidak ditemukan. Ketuk tombol <span className="font-extrabold text-[#36AE7C]">+</span> di navigasi bawah untuk mencatat transaksi baru.
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2.5">
               <button
@@ -714,7 +712,7 @@ export default function TransaksiView({ user }) {
                 className="clay-btn clay-key-primary solid-primary btn-sm flex items-center gap-1.5 text-white font-bold"
               >
                 <span className="material-symbols-outlined icon-xs">trending_up</span>
-                {tr('catat_pemasukan')}
+                Catat Pemasukan
               </button>
               <button
                 type="button"
@@ -722,7 +720,7 @@ export default function TransaksiView({ user }) {
                 className="clay-btn clay-key-danger solid-danger btn-sm flex items-center gap-1.5 text-white font-bold"
               >
                 <span className="material-symbols-outlined icon-xs">trending_down</span>
-                {tr('catat_pengeluaran')}
+                Catat Pengeluaran
               </button>
               <button
                 type="button"
@@ -730,7 +728,7 @@ export default function TransaksiView({ user }) {
                 className="clay-btn clay-key-blue solid-blue btn-sm flex items-center gap-1.5 text-white font-bold"
               >
                 <span className="material-symbols-outlined icon-xs">swap_horiz</span>
-                {tr('pindah_saldo')}
+                Catat Pindah Saldo
               </button>
             </div>
           </div>
@@ -770,13 +768,13 @@ export default function TransaksiView({ user }) {
       {bulkMode && portalBody(
         <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[9999] px-4 md:bottom-16">
           <div className="clay-sheet clay-key-danger pointer-events-auto mx-auto flex w-full max-w-md items-center gap-3 p-3">
-            <span className="shrink-0 text-sm font-bold text-slate-800">{tr('dipilih', { n: selected.size })}</span>
+            <span className="shrink-0 text-sm font-bold text-slate-800">{selected.size} dipilih</span>
             <div className="flex-1"></div>
             <button
               onClick={toggleBulk}
               className="clay-btn-secondary clay-btn btn-sm bg-surface text-textSecondary hover:bg-gray-200"
             >
-              {tr('batal')}
+              Batal
             </button>
             <button
               onClick={() => setBulkHapusOpen(true)}
@@ -784,7 +782,7 @@ export default function TransaksiView({ user }) {
               className="clay-btn clay-key-danger solid-danger btn-sm text-white disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">delete</span>
-              {tr('hapus')}
+              Hapus
             </button>
           </div>
         </div>,
@@ -830,21 +828,21 @@ export default function TransaksiView({ user }) {
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setHapusTarget(null)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">warning</span>
-            <h3 className="mb-2 text-lg font-bold text-slate-800">{tr('hapus_transaksi_konfirm')}</h3>
-            <p className="mb-5 text-xs text-slate-500">{tr('tidak_bisa_dibatalkan')}</p>
+            <h3 className="mb-2 text-lg font-bold text-slate-800">Hapus Transaksi?</h3>
+            <p className="mb-5 text-xs text-slate-500">Tindakan ini tidak bisa dibatalkan.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setHapusTarget(null)}
                 className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary hover:bg-gray-200"
               >
-                {tr('batal')}
+                Batal
               </button>
               <button
                 onClick={konfirmHapus}
                 disabled={hapusLoading}
                 className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white disabled:opacity-60"
               >
-                {tr(hapusLoading ? 'menghapus' : 'ya_hapus')}
+                {hapusLoading ? 'Menghapus…' : 'Ya, Hapus'}
               </button>
             </div>
           </div>
@@ -856,21 +854,21 @@ export default function TransaksiView({ user }) {
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={() => setBulkHapusOpen(false)}>
           <div className="clay-sheet clay-key-danger w-full max-w-sm transform p-6 text-center" onClick={(e) => e.stopPropagation()}>
             <span className="material-symbols-outlined mb-2 icon-hero text-red-500">delete</span>
-            <h3 className="mb-2 text-lg font-bold text-slate-800">{tr('hapus_n_transaksi', { n: selected.size })}</h3>
-            <p className="mb-5 text-xs text-slate-500">{tr('hapus_semua_desc')}</p>
+            <h3 className="mb-2 text-lg font-bold text-slate-800">Hapus {selected.size} Transaksi?</h3>
+            <p className="mb-5 text-xs text-slate-500">Semua transaksi yang dipilih akan dihapus. Tindakan ini tidak bisa dibatalkan.</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setBulkHapusOpen(false)}
                 className="clay-btn-secondary clay-btn btn-md flex-1 text-textSecondary hover:bg-gray-200"
               >
-                {tr('batal')}
+                Batal
               </button>
               <button
                 onClick={konfirmHapusMassal}
                 disabled={hapusLoading}
                 className="clay-btn clay-key-danger solid-danger btn-md flex-1 text-white disabled:opacity-60"
               >
-                {tr(hapusLoading ? 'menghapus' : 'ya_hapus_semua')}
+                {hapusLoading ? 'Menghapus…' : 'Ya, Hapus Semua'}
               </button>
             </div>
           </div>

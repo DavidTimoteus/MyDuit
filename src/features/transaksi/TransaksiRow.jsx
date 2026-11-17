@@ -1,8 +1,7 @@
 import { memo, useState } from 'react'
-import { formatNominal, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, tanggalTampil } from '../../lib/format.js'
+import { formatNominal, isoHariIni, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { tambahAkun } from '../../lib/db.js'
 import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
-import { useBahasa } from '../../lib/i18n.js'
 
 // Form mini "buat rekening pertama" — modul rekening lengkap di Fase 3.
 export function ChipAkunBaru({ uid }) {
@@ -77,6 +76,53 @@ export function ChipAkunBaru({ uid }) {
   )
 }
 
+const TANGGAL_PENDEK_FMT = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' })
+let _hariCache = ''
+let _kemarinCache = ''
+const _tglFormatCache = new Map()
+
+function ambilHariDanKemarin() {
+  const hari = isoHariIni()
+  if (hari !== _hariCache) {
+    _hariCache = hari
+    const y = new Date()
+    y.setDate(y.getDate() - 1)
+    _kemarinCache = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`
+    _tglFormatCache.clear()
+  }
+  return { hari: _hariCache, kemarin: _kemarinCache }
+}
+
+// Tanggal relatif ringkas: Hari Ini / Kemarin / "12 Agu" (persis feel GAS formatTanggalRelatif).
+function tanggalRelatif(iso) {
+  if (!iso) return '-'
+  const { hari, kemarin } = ambilHariDanKemarin()
+  if (iso === hari) return 'Hari Ini'
+  if (iso === kemarin) return 'Kemarin'
+  const cached = _tglFormatCache.get(iso)
+  if (cached) return cached
+  let formatted = String(iso)
+  try {
+    const parts = formatted.split('T')[0].split('-')
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]))
+      if (!isNaN(d.getTime())) {
+        formatted = TANGGAL_PENDEK_FMT.format(d)
+      }
+    } else {
+      const dFallback = new Date(iso)
+      if (!isNaN(dFallback.getTime())) {
+        formatted = TANGGAL_PENDEK_FMT.format(dFallback)
+      }
+    }
+  } catch {
+    // Abaikan error format dan tampilkan nilai asli
+  }
+  if (_tglFormatCache.size >= 250) _tglFormatCache.clear()
+  _tglFormatCache.set(iso, formatted)
+  return formatted
+}
+
 // Satu kartu riwayat — markup & interaksi persis GAS renderRiwayatUI():
 // klik = toggle tombol hapus, dblclick = edit; hue shadow ikut jenis
 // (hijau Pemasukan / merah Pengeluaran / biru Pindah Saldo).
@@ -94,7 +140,6 @@ export const TransaksiRow = memo(function TransaksiRow({
   onDelete,
   onSalin,
 }) {
-  const { t: tr } = useBahasa()
   const isPemasukan = trans.jenis === 'pemasukan'
   const isPindahSaldo = trans.jenis === 'pindah saldo'
   const sign = isPindahSaldo ? '' : isPemasukan ? '+' : '-'
@@ -136,12 +181,10 @@ export const TransaksiRow = memo(function TransaksiRow({
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-800 text-[15px] truncate mb-0.5">
-            {trans.catatan || trans.kategoriNama || tr('tanpa_keterangan')}
+            {trans.catatan || trans.kategoriNama || 'Tanpa Keterangan'}
           </h3>
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-            <span className="font-medium whitespace-nowrap shrink-0">
-              {tanggalTampil(trans.tanggal)}{trans.jam ? ` · ${trans.jam}` : ''}
-            </span>
+            <span className="font-medium whitespace-nowrap shrink-0">{tanggalRelatif(trans.tanggal)}</span>
             <span className="w-1 h-1 rounded-full bg-slate-300 shrink-0"></span>
             <span className="truncate">{trans.kategoriNama || '-'}</span>
           </div>
@@ -162,8 +205,8 @@ export const TransaksiRow = memo(function TransaksiRow({
                 e.stopPropagation()
                 onSalin?.(trans)
               }}
-              aria-label={tr('salin_transaksi')}
-              title={tr('salin_transaksi')}
+              aria-label="Salin transaksi"
+              title="Salin transaksi"
               className="tx-action-pop salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
             >
               <span className="material-symbols-outlined icon-md">content_copy</span>
@@ -175,8 +218,8 @@ export const TransaksiRow = memo(function TransaksiRow({
               e.stopPropagation()
               onDelete?.(trans)
             }}
-            aria-label={tr('hapus_transaksi')}
-            title={tr('hapus_transaksi')}
+            aria-label="Hapus transaksi"
+            title="Hapus transaksi"
             style={{ '--pop-delay': !isPindahSaldo ? '35ms' : '0ms' }}
             className="tx-action-pop delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
           >

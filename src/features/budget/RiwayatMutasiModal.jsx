@@ -173,7 +173,7 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
           ) : (
             <ul className="space-y-2.5">
               {baris.map((b) => {
-                const jam = b.jam || jamDari(b.createdAt)
+                const jam = jamDari(b.createdAt)
                 const naik = b.delta > 0
                 const datar = b.delta === 0
                 const transfer = b.jenis === 'pindah saldo'

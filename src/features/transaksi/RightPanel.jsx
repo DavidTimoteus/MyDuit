@@ -4,7 +4,6 @@ import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { enrichTransaksi } from '../../lib/db.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
-import { useBahasa } from '../../lib/i18n.js'
 
 const rp = (n) => `${simbolUang()} ${formatNominal(n)}`
 const rpSudahTampil = (nilaiTampil) => {
@@ -25,7 +24,6 @@ function rangeBulanIni() {
 // Total Saldo (gradient hijau) · Pengeluaran Hari Ini · Top Kategori (badge jenis)
 // · Aksi Cepat 3 tombol gradient penuh (Pemasukan/Pengeluaran/Pindah Saldo).
 export default function RightPanel({ uid }) {
-  const { t: tr } = useBahasa()
   const kursVer = useKursVersi()
   const { akunList, kategoriList } = useAkunKategori(uid)
   const bulan = useMemo(rangeBulanIni, [])
@@ -87,11 +85,11 @@ export default function RightPanel({ uid }) {
       <div className="clay clay-key-neutral flex h-full flex-col overflow-y-auto hide-scrollbar rounded-[28px] bg-surfaceContainerLowest p-5 w-full min-w-0">
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between px-1 pb-3">
-          <h2 className="brand-title-embossed text-base font-extrabold tracking-tight">{tr('ringkasan')}</h2>
+          <h2 className="brand-title-embossed text-base font-extrabold tracking-tight">Ringkasan</h2>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('myduit:export-pdf'))}
-            aria-label={tr('pdf_judul')}
-            title={tr('pdf_judul')}
+            aria-label="Export PDF"
+            title="Export PDF"
             className="pdf-action-btn clay-key-danger"
           >
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
@@ -108,10 +106,10 @@ export default function RightPanel({ uid }) {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-primary">
                     <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance_wallet</span>
                   </div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('total_saldo')}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Saldo</p>
                 </div>
                 <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
-                  {tr(arusBulan < 0 ? 'defisit' : 'surplus')}
+                  {arusBulan < 0 ? 'Defisit' : 'Surplus'}
                 </span>
               </div>
               <p className="brand-title-embossed mt-1 font-mono text-2xl font-black tracking-tight">{rp(totalSaldo)}</p>
@@ -122,7 +120,7 @@ export default function RightPanel({ uid }) {
                 <span className={arusBulan < 0 ? 'text-expenseText font-bold' : 'text-incomeText font-bold'}>
                   {arusBulan < 0 ? '−' : '+'}{rpSudahTampil(Math.abs(arusBulan))}
                 </span>
-                <span>{tr('bulan_ini')}</span>
+                <span>bulan ini</span>
               </p>
             </div>
 
@@ -132,10 +130,10 @@ export default function RightPanel({ uid }) {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-expenseText">
                   <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>today</span>
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('pengeluaran_hari_ini')}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Pengeluaran Hari Ini</p>
               </div>
               <p className="mt-1 font-mono text-lg font-extrabold tracking-tight text-expenseText">{rpSudahTampil(pengeluaranHariIni)}</p>
-              <p className="text-[11px] font-medium text-textSecondary">{tr('transaksi_hari_ini', { n: transHariIni.length })}</p>
+              <p className="text-[11px] font-medium text-textSecondary">{transHariIni.length} transaksi · Hari ini</p>
             </div>
 
             {/* Top Kategori */}
@@ -145,14 +143,14 @@ export default function RightPanel({ uid }) {
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
                     <span className="material-symbols-outlined icon-sm" style={{ fontVariationSettings: "'FILL' 1" }}>category</span>
                   </div>
-                  <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('top_kategori')}</p>
+                  <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">Top Kategori</p>
                 </div>
                 {topKategori && (
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${topKategori.jenis === 'pemasukan' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'
                       }`}
                   >
-                    {tr(topKategori.jenis === 'pemasukan' ? 'pemasukan' : 'pengeluaran')}
+                    {topKategori.jenis === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'}
                   </span>
                 )}
               </div>
@@ -169,7 +167,7 @@ export default function RightPanel({ uid }) {
 
           {/* Aksi Cepat */}
           <div className="shrink-0">
-            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('aksi_cepat')}</p>
+            <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">Aksi Cepat</p>
             <div className="flex flex-col gap-2">
               <button
                 type="button"
@@ -177,7 +175,7 @@ export default function RightPanel({ uid }) {
                 className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#36AE7C]" style={{ fontVariationSettings: "'FILL' 1" }}>add_circle</span>
-                <span>{tr('tambah_pemasukan')}</span>
+                <span>Tambah Pemasukan</span>
               </button>
               <button
                 type="button"
@@ -185,7 +183,7 @@ export default function RightPanel({ uid }) {
                 className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#EB5353]" style={{ fontVariationSettings: "'FILL' 1" }}>remove_circle</span>
-                <span>{tr('tambah_pengeluaran')}</span>
+                <span>Tambah Pengeluaran</span>
               </button>
               <button
                 type="button"
@@ -193,7 +191,7 @@ export default function RightPanel({ uid }) {
                 className="neu-btn flex h-10 w-full items-center justify-start gap-2.5 rounded-2xl bg-[#E5E5E5] px-3.5 text-xs font-bold text-slate-700 transition-[transform,box-shadow,color] duration-150 hover:text-slate-900 active:scale-98"
               >
                 <span className="material-symbols-outlined icon-md text-[#187498]" style={{ fontVariationSettings: "'FILL' 1" }}>swap_horiz</span>
-                <span>{tr('pindah_saldo')}</span>
+                <span>Pindah Saldo</span>
               </button>
             </div>
           </div>

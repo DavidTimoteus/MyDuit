@@ -5,9 +5,10 @@ import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { useBahasa } from '../../lib/i18n.js'
 
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+
 export default function ExportPdfModal({ open, onClose, uid, userName }) {
   const { t } = useBahasa()
-  const BULAN = Array.from({ length: 12 }, (_, i) => t(`bulan_${String(i + 1).padStart(2, '0')}`))
   const now = new Date()
   const [bulan, setBulan] = useState(now.getMonth())
   const [tahun, setTahun] = useState(now.getFullYear())
@@ -34,7 +35,7 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
       await unduhLaporanPdf(data, pakaiAI, userName)
       onClose()
     } catch (e) {
-      setError(e?.message ?? t('gagal_pdf'))
+      setError(e?.message ?? 'Gagal menyiapkan laporan PDF.')
     } finally {
       setLoading(false)
     }
@@ -75,7 +76,7 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
             <button
               type="button"
               role="switch"
-              aria-label={t('pdf_ai_aria')}
+              aria-label="Sertakan catatan dan analisis"
               aria-checked={pakaiAI}
               onClick={() => setPakaiAI((v) => !v)}
               className={`relative h-7 w-12 shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
@@ -95,7 +96,7 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
           <button onClick={onClose} className="clay-btn clay-btn-secondary btn-md flex-1 text-textSecondary">{t('batal')}</button>
           <button onClick={proses} disabled={loading} className="clay-btn clay-key-primary solid-primary btn-md flex-1 text-white disabled:opacity-60">
             <span className="material-symbols-outlined icon-md">picture_as_pdf</span>
-            {loading ? t('menyiapkan') : t('cetak_pdf')}
+            {loading ? 'Menyiapkan…' : t('cetak_pdf')}
           </button>
         </div>
       </div>

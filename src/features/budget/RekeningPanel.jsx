@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { formatCurrency, formatRupiah, isoHariIni, konversiUntukTampil, tanggalTampil, uangAktif } from '../../lib/format.js'
+import { formatCurrency, formatRupiah, konversiUntukTampil, uangAktif } from '../../lib/format.js'
 import { hapusAkun } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
@@ -175,7 +175,12 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500">
             <span className="material-symbols-outlined icon-xs text-slate-500">schedule</span>
             <span>
-              Terakhir diperbarui: {tanggalTampil(isoHariIni())} {' '}
+              Terakhir diperbarui:{' '}
+              {new Date().toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'numeric',
+                year: 'numeric',
+              })}{' '}
               {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>

@@ -11,7 +11,6 @@ import {
   simpanNegaraManual,
   formatRupiah,
   parseTanggalIsoAman,
-  tanggalTampil,
   NEGARA,
   EVENT_LOKASI,
   uangAktif,
@@ -138,27 +137,26 @@ function NavIkona({ t, active, onClick }) {
 // ===== Sidebar Insight Cards (subscribe event dari view terkait) =====
 
 const TIPS_KEUANGAN = [
-  "tips_1",
-  "tips_2",
-  "tips_3",
-  "tips_4",
-  "tips_5",
-  "tips_6",
-  "tips_7",
-  "tips_8",
-  "tips_9",
-  "tips_10",
+  "Catat pengeluaran segera setelah transaksi terjadi supaya tidak ada yang terlewat.",
+  "Sisihkan minimal 10% pemasukan untuk tabungan di awal bulan, bukan di akhir.",
+  "Bedakan dulu kebutuhan dan keinginan sebelum membeli sesuatu.",
+  "Coba metode 50/30/20: 50% kebutuhan, 30% keinginan, 20% tabungan.",
+  "Review langganan bulanan Anda - matikan yang jarang dipakai.",
+  "Masak di rumah 2x seminggu untuk memangkas pengeluaran makan.",
+  "Siapkan dana darurat idealnya 3x pengeluaran bulanan.",
+  "Bandingkan harga sebelum checkout; gunakan promo dengan bijak.",
+  "Tetapkan limit belanja harian agar pengeluaran mudah dikontrol.",
+  "Evaluasi pengeluaran terbesar Anda setiap akhir pekan.",
 ];
 
-function functionTipHarian(tr) {
+function functionTipHarian() {
   const doy = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000,
   );
-  return tr(TIPS_KEUANGAN[doy % TIPS_KEUANGAN.length]);
+  return TIPS_KEUANGAN[doy % TIPS_KEUANGAN.length];
 }
 
 function SidebarInsightStatistik() {
-  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -185,7 +183,7 @@ function SidebarInsightStatistik() {
           local_fire_department
         </span>
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          {tr("streak_label")}
+          Streak Pencatatan
         </p>
       </div>
       <div className="flex items-baseline gap-1.5">
@@ -200,7 +198,7 @@ function SidebarInsightStatistik() {
         {(() => {
           const dLast = parseTanggalIsoAman(last);
           if (!dLast) return last ? `Catatan terakhir: ${last}` : "Belum ada catatan pada periode ini";
-          return `Catatan terakhir: ${tanggalTampil(last)}`;
+          return `Catatan terakhir: ${new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(dLast)}`;
         })()}
       </p>
       <div className="h-px bg-slate-200/70"></div>
@@ -212,7 +210,7 @@ function SidebarInsightStatistik() {
           tips_and_updates
         </span>
         <p className="text-[11px] leading-snug text-slate-600">
-          {functionTipHarian(tr)}
+          {functionTipHarian()}
         </p>
       </div>
     </div>
@@ -220,7 +218,6 @@ function SidebarInsightStatistik() {
 }
 
 function SidebarInsightBudget() {
-  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -249,7 +246,7 @@ function SidebarInsightBudget() {
           insights
         </span>
         <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          {tr("insight_budget")}
+          Insight Budget
         </p>
       </div>
       {totalLimit > 0 ? (
@@ -259,7 +256,7 @@ function SidebarInsightBudget() {
               {persen}%
             </span>
             <span className="text-[11px] font-semibold text-textSecondary">
-              {tr("budget_terpakai_bulan_ini")}
+              terpakai bulan ini
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -285,7 +282,7 @@ function SidebarInsightBudget() {
                   <span className="font-bold text-slate-700">
                     {hampirHabis.nama}
                   </span>{" "}
-                  {tr("hampir_limit_persen", { persen: hampirHabis.persen })}
+                  hampir mencapai limit ({hampirHabis.persen}%)
                 </p>
               </div>
             </>
@@ -293,7 +290,8 @@ function SidebarInsightBudget() {
         </>
       ) : (
         <p className="break-words text-[11px] leading-snug text-slate-600">
-          {tr("budget_kosong_insight")}
+          Belum ada budget bulan ini. Tekan + untuk membatasi pengeluaran per
+          kategori.
         </p>
       )}
     </div>
@@ -301,7 +299,6 @@ function SidebarInsightBudget() {
 }
 
 function SidebarInsightUtang() {
-  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -329,7 +326,7 @@ function SidebarInsightUtang() {
           flag
         </span>
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          {tr("insight_utang")}
+          Perkiraan Bebas Utang
         </p>
       </div>
       <div className="flex items-baseline gap-1.5">
@@ -337,7 +334,7 @@ function SidebarInsightUtang() {
           {bulan ? `≈${bulan}` : "—"}
         </span>
         <span className="text-[11px] font-semibold text-textSecondary">
-          {tr("utang_bulan_lagi")}
+          bulan lagi
         </span>
       </div>
       <p className="text-[10px] font-medium text-textSecondary">{perkiraan}</p>
@@ -355,8 +352,8 @@ function SidebarInsightUtang() {
           </p>
           <p className="text-[10px] font-medium text-textSecondary">
             {terbesar
-              ? tr("utang_sisa_nominal", { nominal: formatRupiah(terbesar.sisa ?? 0) })
-              : tr("tidak_ada_utang_aktif")}
+              ? `Sisa ${formatRupiah(terbesar.sisa ?? 0)}`
+              : "Tidak ada utang aktif"}
           </p>
         </div>
       </div>
@@ -775,8 +772,8 @@ export default function Shell({ user }) {
               <button
                 type="button"
                 onClick={() => setLokasiOpen(true)}
-                title={tr("ubah_lokasi_short")}
-                aria-label={tr("ubah_lokasi_short")}
+                title="Ubah lokasi & mata uang"
+                aria-label="Ubah lokasi & mata uang"
                 className="shrink-0 rounded-full transition-transform hover:scale-105"
               >
                 <Avatar user={user} />
