@@ -138,26 +138,27 @@ function NavIkona({ t, active, onClick }) {
 // ===== Sidebar Insight Cards (subscribe event dari view terkait) =====
 
 const TIPS_KEUANGAN = [
-  "Catat pengeluaran segera setelah transaksi terjadi supaya tidak ada yang terlewat.",
-  "Sisihkan minimal 10% pemasukan untuk tabungan di awal bulan, bukan di akhir.",
-  "Bedakan dulu kebutuhan dan keinginan sebelum membeli sesuatu.",
-  "Coba metode 50/30/20: 50% kebutuhan, 30% keinginan, 20% tabungan.",
-  "Review langganan bulanan Anda - matikan yang jarang dipakai.",
-  "Masak di rumah 2x seminggu untuk memangkas pengeluaran makan.",
-  "Siapkan dana darurat idealnya 3x pengeluaran bulanan.",
-  "Bandingkan harga sebelum checkout; gunakan promo dengan bijak.",
-  "Tetapkan limit belanja harian agar pengeluaran mudah dikontrol.",
-  "Evaluasi pengeluaran terbesar Anda setiap akhir pekan.",
+  "tips_1",
+  "tips_2",
+  "tips_3",
+  "tips_4",
+  "tips_5",
+  "tips_6",
+  "tips_7",
+  "tips_8",
+  "tips_9",
+  "tips_10",
 ];
 
-function functionTipHarian() {
+function functionTipHarian(tr) {
   const doy = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000,
   );
-  return TIPS_KEUANGAN[doy % TIPS_KEUANGAN.length];
+  return tr(TIPS_KEUANGAN[doy % TIPS_KEUANGAN.length]);
 }
 
 function SidebarInsightStatistik() {
+  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -184,7 +185,7 @@ function SidebarInsightStatistik() {
           local_fire_department
         </span>
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          Streak Pencatatan
+          {tr("streak_label")}
         </p>
       </div>
       <div className="flex items-baseline gap-1.5">
@@ -211,7 +212,7 @@ function SidebarInsightStatistik() {
           tips_and_updates
         </span>
         <p className="text-[11px] leading-snug text-slate-600">
-          {functionTipHarian()}
+          {functionTipHarian(tr)}
         </p>
       </div>
     </div>
@@ -219,6 +220,7 @@ function SidebarInsightStatistik() {
 }
 
 function SidebarInsightBudget() {
+  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -247,7 +249,7 @@ function SidebarInsightBudget() {
           insights
         </span>
         <p className="truncate text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          Insight Budget
+          {tr("insight_budget")}
         </p>
       </div>
       {totalLimit > 0 ? (
@@ -257,7 +259,7 @@ function SidebarInsightBudget() {
               {persen}%
             </span>
             <span className="text-[11px] font-semibold text-textSecondary">
-              terpakai bulan ini
+              {tr("budget_terpakai_bulan_ini")}
             </span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -283,7 +285,7 @@ function SidebarInsightBudget() {
                   <span className="font-bold text-slate-700">
                     {hampirHabis.nama}
                   </span>{" "}
-                  hampir mencapai limit ({hampirHabis.persen}%)
+                  {tr("hampir_limit_persen", { persen: hampirHabis.persen })}
                 </p>
               </div>
             </>
@@ -291,8 +293,7 @@ function SidebarInsightBudget() {
         </>
       ) : (
         <p className="break-words text-[11px] leading-snug text-slate-600">
-          Belum ada budget bulan ini. Tekan + untuk membatasi pengeluaran per
-          kategori.
+          {tr("budget_kosong_insight")}
         </p>
       )}
     </div>
@@ -300,6 +301,7 @@ function SidebarInsightBudget() {
 }
 
 function SidebarInsightUtang() {
+  const { t: tr } = useBahasa();
   const [data, setData] = useState(null);
   useEffect(() => {
     function onUpdate(e) {
@@ -327,7 +329,7 @@ function SidebarInsightUtang() {
           flag
         </span>
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-          Perkiraan Bebas Utang
+          {tr("insight_utang")}
         </p>
       </div>
       <div className="flex items-baseline gap-1.5">
@@ -335,7 +337,7 @@ function SidebarInsightUtang() {
           {bulan ? `≈${bulan}` : "—"}
         </span>
         <span className="text-[11px] font-semibold text-textSecondary">
-          bulan lagi
+          {tr("utang_bulan_lagi")}
         </span>
       </div>
       <p className="text-[10px] font-medium text-textSecondary">{perkiraan}</p>
@@ -353,8 +355,8 @@ function SidebarInsightUtang() {
           </p>
           <p className="text-[10px] font-medium text-textSecondary">
             {terbesar
-              ? `Sisa ${formatRupiah(terbesar.sisa ?? 0)}`
-              : "Tidak ada utang aktif"}
+              ? tr("utang_sisa_nominal", { nominal: formatRupiah(terbesar.sisa ?? 0) })
+              : tr("tidak_ada_utang_aktif")}
           </p>
         </div>
       </div>
@@ -773,8 +775,8 @@ export default function Shell({ user }) {
               <button
                 type="button"
                 onClick={() => setLokasiOpen(true)}
-                title="Ubah lokasi & mata uang"
-                aria-label="Ubah lokasi & mata uang"
+                title={tr("ubah_lokasi_short")}
+                aria-label={tr("ubah_lokasi_short")}
                 className="shrink-0 rounded-full transition-transform hover:scale-105"
               >
                 <Avatar user={user} />

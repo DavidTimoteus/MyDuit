@@ -2,6 +2,7 @@ import { memo, useState } from 'react'
 import { formatNominal, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, tanggalTampil } from '../../lib/format.js'
 import { tambahAkun } from '../../lib/db.js'
 import PenawaranMataUangAwal from '../../components/PenawaranMataUangAwal.jsx'
+import { useBahasa } from '../../lib/i18n.js'
 
 // Form mini "buat rekening pertama" — modul rekening lengkap di Fase 3.
 export function ChipAkunBaru({ uid }) {
@@ -93,6 +94,7 @@ export const TransaksiRow = memo(function TransaksiRow({
   onDelete,
   onSalin,
 }) {
+  const { t: tr } = useBahasa()
   const isPemasukan = trans.jenis === 'pemasukan'
   const isPindahSaldo = trans.jenis === 'pindah saldo'
   const sign = isPindahSaldo ? '' : isPemasukan ? '+' : '-'
@@ -134,7 +136,7 @@ export const TransaksiRow = memo(function TransaksiRow({
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-slate-800 text-[15px] truncate mb-0.5">
-            {trans.catatan || trans.kategoriNama || 'Tanpa Keterangan'}
+            {trans.catatan || trans.kategoriNama || tr('tanpa_keterangan')}
           </h3>
           <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
             <span className="font-medium whitespace-nowrap shrink-0">
@@ -160,8 +162,8 @@ export const TransaksiRow = memo(function TransaksiRow({
                 e.stopPropagation()
                 onSalin?.(trans)
               }}
-              aria-label="Salin transaksi"
-              title="Salin transaksi"
+              aria-label={tr('salin_transaksi')}
+              title={tr('salin_transaksi')}
               className="tx-action-pop salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
             >
               <span className="material-symbols-outlined icon-md">content_copy</span>
@@ -173,8 +175,8 @@ export const TransaksiRow = memo(function TransaksiRow({
               e.stopPropagation()
               onDelete?.(trans)
             }}
-            aria-label="Hapus transaksi"
-            title="Hapus transaksi"
+            aria-label={tr('hapus_transaksi')}
+            title={tr('hapus_transaksi')}
             style={{ '--pop-delay': !isPindahSaldo ? '35ms' : '0ms' }}
             className="tx-action-pop delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
           >
