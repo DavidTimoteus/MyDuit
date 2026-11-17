@@ -24,7 +24,7 @@
     "test:applock": "node src/lib/appLock.test.mjs",
     "test:ocr": "node src/lib/ocrStruk.test.mjs",
     "test:filter": "node src/features/transaksi/mergeRiwayat.test.mjs && node src/features/transaksi/transaksiCache.test.mjs",
-    "test:riwayat": "node src/features/budget/riwayatSaldo.test.mjs",
+    "test:riwayat": "node src/features/budget/riwayatSaldo.test.mjs && node src/features/budget/mutasiKoreksi.test.mjs",
     "test:render": "node src/features/budget/render.test.mjs",
     "test:events": "node src/lib/eventContract.test.mjs",
     "test:classes": "node src/styles/classContract.test.mjs",

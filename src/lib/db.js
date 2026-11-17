@@ -170,20 +170,39 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
     return
   }
   const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
+  let deltaKoreksi = 0
   if (saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))) {
     const saldoBaru = angkaAman(saldo)
     patch.saldo = saldoBaru
     const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
     const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
-    if (!adaLama || saldoBaru !== saldoLamaInt) {
+    deltaKoreksi = adaLama ? saldoBaru - saldoLamaInt : 0
+    if (!adaLama || deltaKoreksi !== 0) {
       patch.mutasiTerakhir = {
-        delta: adaLama ? saldoBaru - saldoLamaInt : 0,
+        delta: deltaKoreksi,
         keterangan: 'Koreksi penyesuaian saldo',
         at: serverTimestamp(),
       }
     }
   }
-  await updateDoc(akunRef(uid, id), patch)
+
+  // Setiap koreksi saldo dicatat sebagai entri BARU di mutasiLog (append-only).
+  // Tidak pernah menimpa entri lama, jadi edit berulang per hari/bulan tetap
+  // lengkap. Tidak menyentuh koleksi transaksi sama sekali.
+  const { db } = getFirebase()
+  const batch = writeBatch(db)
+  batch.update(akunRef(uid, id), patch)
+  if (deltaKoreksi !== 0) {
+    batch.set(doc(userCol(uid, 'mutasiLog')), {
+      akunId: id,
+      aksi: 'koreksi saldo',
+      delta: deltaKoreksi,
+      timestamp: serverTimestamp(),
+      deleted: false,
+      createdAt: serverTimestamp(),
+    })
+  }
+  await batch.commit()
 }
 
 export async function hapusAkun(uid, id) {
