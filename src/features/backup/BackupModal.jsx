@@ -45,9 +45,9 @@ export default function BackupModal({ open, onClose, uid }) {
     try {
       const json = await exportData(uid)
       download(json)
-      setMsg({ type: 'ok', text: `Ekspor ${Object.values(json.data).flat().length} dokumen berhasil.` })
+      setMsg({ type: 'ok', text: t('ekspor_dokumen', { n: Object.values(json.data).flat().length }) })
     } catch (e) {
-      setMsg({ type: 'err', text: e?.message ?? 'Gagal ekspor.' })
+      setMsg({ type: 'err', text: e?.message ?? t('gagal_ekspor') })
     } finally {
       setLoading(false)
       setAksi(null)
@@ -55,7 +55,7 @@ export default function BackupModal({ open, onClose, uid }) {
   }
 
   async function parseSpreadsheet(file) {
-    setMsg({ type: 'info', text: 'Membaca berkas spreadsheet…' })
+    setMsg({ type: 'info', text: t('membaca_spreadsheet') })
     try {
       const XLSX = await import('xlsx')
       const buf = await file.arrayBuffer()
@@ -71,7 +71,7 @@ export default function BackupModal({ open, onClose, uid }) {
         setPreview(null)
         setMsg({
           type: 'err',
-          text: 'Tidak ada sheet yang dikenali. Nama sheet harus: Akun, Kategori, Transaksi, Utang, PembayaranUtang, Budget, MutasiLog.',
+          text: t('sheet_tidak_dikenali'),
         })
         return
       }

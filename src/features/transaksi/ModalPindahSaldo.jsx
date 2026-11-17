@@ -6,11 +6,13 @@ import { ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
 import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
 import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
+import { useBahasa } from '../../lib/i18n.js'
 
 // Modal Pindah Saldo — markup persis GAS #modalPindahSaldo
 // (clay-sheet clay-key-blue max-w-md; Tanggal, Dari*, Ke*, Nominal*, Catatan;
 // peringatan bila rekening sama; submit biru "Pindahkan Saldo").
 export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
+  const { t: tr } = useBahasa()
   const [tanggal, setTanggal] = useState(isoHariIni())
   const [jam, setJam] = useState('')
   const [dariId, setDariId] = useState('')
@@ -41,9 +43,9 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
     e.preventDefault()
     if (submittedRef.current) return
     const n = konversiKeBasis(parseInputTampil(jumlah))
-    if (!dariId || !keId) return setError('Pilih rekening sumber & tujuan dulu.')
-    if (sama) return setError('Rekening sumber & tujuan tidak boleh sama.')
-    if (n <= 0) return setError('Nominal harus lebih dari nol.')
+    if (!dariId || !keId) return setError(tr('pilih_rekening_dulu'))
+    if (sama) return setError(tr('rekening_sama'))
+    if (n <= 0) return setError(tr('nominal_harus_positif'))
     submittedRef.current = true
     const dari = akunList.find((a) => a.id === dariId)
     const ke = akunList.find((a) => a.id === keId)
@@ -126,12 +128,12 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 pb-2 pt-4">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
             <span className="material-symbols-outlined shrink-0 icon-lg text-blue-600">sync_alt</span>
-            Pindah Saldo
+            {tr('pindah_saldo')}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Tutup"
+            aria-label={tr('tutup')}
             className="clay-chip clay-key-neutral flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
           >
             <span className="material-symbols-outlined icon-lg">close</span>
@@ -140,13 +142,13 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
 
         <form onSubmit={submit} className="min-h-0 space-y-2 overflow-y-auto px-4 pb-4 pt-2">
           <div className="flex flex-col gap-1">
-            <label className="block text-[11px] font-semibold text-slate-600">Tanggal</label>
+            <label className="block text-[11px] font-semibold text-slate-600">{tr('tanggal')}</label>
             <div className="flex items-end gap-2">
               <div className="min-w-0 flex-1">
                 <ClayDateInput value={tanggal} onChange={setTanggal} />
               </div>
               <div className="flex w-[104px] shrink-0 flex-col gap-1">
-                <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-slate-600">Jam</label>
+                <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-slate-600">{tr('jam')}</label>
                 <input
                   id="tx-jam"
                   type="time"
@@ -161,27 +163,27 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
 
           <div className="flex flex-col gap-1">
             <label className="block text-[11px] font-semibold text-slate-600">
-              Dari Rekening (Sumber) <span className="text-red-500">*</span>
+              {tr('dari_rekening')} <span className="text-red-500">*</span>
             </label>
-            <ClaySelect value={dariId} onChange={setDariId} placeholder="Pilih Rekening Sumber" options={opsiAkun} />
+            <ClaySelect value={dariId} onChange={setDariId} placeholder={tr('pilih_rekening_sumber')} options={opsiAkun} />
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="block text-[11px] font-semibold text-slate-600">
-              Ke Rekening (Tujuan) <span className="text-red-500">*</span>
+              {tr('ke_rekening')} <span className="text-red-500">*</span>
             </label>
-            <ClaySelect value={keId} onChange={setKeId} placeholder="Pilih Rekening Tujuan" options={opsiAkun} />
+            <ClaySelect value={keId} onChange={setKeId} placeholder={tr('pilih_rekening_tujuan')} options={opsiAkun} />
             {sama && (
               <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-red-50 px-2.5 py-2 text-[11.5px] font-medium leading-snug text-red-600">
                 <span className="material-symbols-outlined mt-px shrink-0 icon-xs">error</span>
-                <span>Rekening sumber & tujuan tidak boleh sama.</span>
+                <span>{tr('rekening_sama')}</span>
               </p>
             )}
           </div>
 
           <div className="flex flex-col gap-1">
             <label className="block text-[11px] font-semibold text-slate-600">
-              Nominal ({simbolUang()}) <span className="text-red-500">*</span>
+              {tr('nominal')} ({simbolUang()}) <span className="text-red-500">*</span>
             </label>
             <div className="relative flex items-center">
               <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
@@ -201,13 +203,13 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="block text-[11px] font-semibold text-slate-600">Catatan</label>
+            <label className="block text-[11px] font-semibold text-slate-600">{tr('catatan')}</label>
             <input
               type="text"
               maxLength={500}
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
-              placeholder="Catatan opsional"
+              placeholder={tr('catatan_opsional')}
               className="clay-input field-lg w-full text-sm outline-none"
             />
           </div>
@@ -220,7 +222,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               onClick={onClose}
               className="clay-btn-secondary clay-btn btn-md text-slate-600 hover:bg-slate-50"
             >
-              Batal
+              {tr('batal')}
             </button>
             <button
               type="submit"
@@ -228,7 +230,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               className="clay-btn clay-key-blue solid-blue btn-md text-white disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">sync_alt</span>
-              {saving ? 'Memproses…' : 'Pindahkan Saldo'}
+              {tr(saving ? 'memproses' : 'pindahkan_saldo')}
             </button>
           </div>
         </form>

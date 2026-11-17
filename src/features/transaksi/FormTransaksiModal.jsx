@@ -8,6 +8,7 @@ import { portalBody } from '../../lib/portal.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
 import { matikanOcr } from '../../lib/ocrStruk.js'
 import { evaluasiEkspresiNominal, formatEkspresiPreview, sisipTokenKalkulator } from './kalkulatorNominal.js'
+import { useBahasa } from '../../lib/i18n.js'
 import {
   scanDokumenKeuangan,
   bacaOcrConfig,
@@ -41,6 +42,7 @@ function formatHasilOcrTampil(totalIdr) {
 // dengan Segmented Clay Toggle interaktif, penyesuaian label rekening dinamis,
 // dan pemindaian struk otomatis (OCR) pada pengeluaran.
 export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkunBaru, akunList, kategoriList, mode, doc: sumber }) {
+  const { t: tr } = useBahasa()
   const isEditAtauSalin = (mode === 'edit' || mode === 'salin') && Boolean(sumber)
   const [jenis, setJenis] = useState(() =>
     isEditAtauSalin ? (sumber.jenis ?? 'pengeluaran') : (sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
@@ -465,14 +467,14 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       const hasilTampil = bulatkanUntukTampil(calcRes.nilai)
       if (hasilTampil <= 0) {
         setCalcErr('Hasil harus lebih dari 0.')
-        return setError('Nominal harus lebih dari nol.')
+        return setError(tr('nominal_harus_positif'))
       }
       nTampil = hasilTampil
     }
     const n = konversiKeBasis(nTampil, mode === 'edit' ? sumber?.kursSnapshot : null)
-    if (n <= 0) return setError('Nominal harus lebih dari nol.')
-    if (!akunId) return setError(jenis === 'pemasukan' ? 'Pilih rekening tujuan penerima dulu.' : 'Pilih rekening sumber dulu.')
-    if (!kategoriNama.trim()) return setError('Isi kategori dulu.')
+    if (n <= 0) return setError(tr('nominal_harus_positif'))
+    if (!akunId) return setError(tr('rekening_wajib'))
+    if (!kategoriNama.trim()) return setError(tr('isi_kategori_dulu'))
     submittedRef.current = true
 
     // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
@@ -541,7 +543,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       if (modeSnap === 'salin') {
         window.dispatchEvent(
           new CustomEvent('myduit:toast', {
-            detail: { type: 'success', msg: 'Transaksi berhasil disalin & dicatat!' },
+            detail: { type: 'success', msg: tr('toast_tx_disalin') },
           })
         )
       }
@@ -582,11 +584,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   }
 
   const isPemasukan = jenis === 'pemasukan'
-  const judul = mode === 'edit'
-    ? (isPemasukan ? 'Edit Pemasukan' : 'Edit Pengeluaran')
+  const judul = tr(mode === 'edit'
+    ? (isPemasukan ? 'edit_pemasukan' : 'edit_pengeluaran')
     : mode === 'salin'
-      ? (isPemasukan ? 'Salin Pemasukan' : 'Salin Pengeluaran')
-      : (isPemasukan ? 'Catat Pemasukan' : 'Catat Pengeluaran')
+      ? (isPemasukan ? 'salin_pemasukan' : 'salin_pengeluaran')
+      : (isPemasukan ? 'catat_pemasukan' : 'catat_pengeluaran'))
 
   return (
     <>
@@ -615,7 +617,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             <button
               type="button"
               onClick={tutupModal}
-              aria-label="Tutup"
+              aria-label={tr('tutup')}
               className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 hover:text-slate-600"
             >
               <span className="material-symbols-outlined icon-lg">close</span>
@@ -657,7 +659,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           {mode === 'salin' && (
             <div className="flex items-start gap-2 rounded-xl border border-sky-200/80 bg-sky-50/90 px-3 py-2 text-[11px] font-medium text-sky-800">
               <span className="material-symbols-outlined icon-sm mt-px shrink-0 text-sky-600">content_copy</span>
-              <span>Mode salin: sesuaikan data di bawah, lalu simpan sebagai transaksi baru tanpa mengubah transaksi asli.</span>
+              <span>{tr('mode_salin_info')}</span>
             </div>
           )}
           {/* Hero Input Nominal (Paling Atas: Tak Tertutup Keyboard Virtual Mobile, Teks Kontras Tinggi + Kalkulator Sederhana) */}
@@ -1107,13 +1109,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           {/* Grid 2 Kolom di Web (sm:) supaya kartu Catat Pengeluaran/Pemasukan muat 1 layar tanpa scroll */}
           <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-x-3 sm:gap-y-2">
             <div className="flex flex-col gap-1">
-              <label htmlFor="tx-tanggal" className="block text-[11px] font-semibold text-textSecondary">Tanggal</label>
+              <label htmlFor="tx-tanggal" className="block text-[11px] font-semibold text-textSecondary">{tr('tanggal')}</label>
               <div className="flex items-end gap-2">
                 <div className="min-w-0 flex-1">
                   <ClayDateInput id="tx-tanggal" value={tanggal} onChange={setTanggal} />
                 </div>
                 <div className="flex w-[104px] shrink-0 flex-col gap-1">
-                  <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-textSecondary">Jam</label>
+                  <label htmlFor="tx-jam" className="block text-[10px] font-semibold text-textSecondary">{tr('jam')}</label>
                   <input
                     id="tx-jam"
                     type="time"
@@ -1128,7 +1130,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
             <div className="flex flex-col gap-1">
               <label htmlFor="tx-akun" className="block text-[11px] font-semibold text-textSecondary">
-                {isPemasukan ? 'Rekening Tujuan / Penerima' : 'Sumber / Rekening'}
+                {tr(isPemasukan ? 'rekening_tujuan' : 'sumber_rekening')}
               </label>
               <ClaySelect
                 id="tx-akun"
@@ -1225,7 +1227,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             )}
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="tx-kategori" className="block text-[11px] font-semibold text-textSecondary">Kategori</label>
+              <label htmlFor="tx-kategori" className="block text-[11px] font-semibold text-textSecondary">{tr('kategori')}</label>
               <ClayCombobox
                 id="tx-kategori"
                 value={kategoriNama}
@@ -1252,14 +1254,14 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="tx-catatan" className="block text-[11px] font-semibold text-textSecondary">Keterangan</label>
+              <label htmlFor="tx-catatan" className="block text-[11px] font-semibold text-textSecondary">{tr('keterangan')}</label>
               <input
                 id="tx-catatan"
                 type="text"
                 maxLength={500}
                 value={catatan}
                 onChange={(e) => setCatatan(e.target.value)}
-                placeholder="Keterangan opsional"
+                placeholder={tr('keterangan_opsional')}
                 className="clay-input field-lg w-full text-sm"
               />
             </div>
@@ -1267,7 +1269,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             {akunList.length === 0 && (
               <div className="sm:col-span-2 flex items-start gap-2 rounded-lg bg-red-50 px-2.5 py-2 text-[11px] text-red-600">
                 <span className="material-symbols-outlined icon-xs mt-px shrink-0">error</span>
-                <span>Belum ada rekening. Tambahkan rekening dulu sebagai sumber akun.</span>
+                <span>{tr('belum_ada_rekening_form')}</span>
               </div>
             )}
           </div>
@@ -1284,7 +1286,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             className={`clay-btn ${isPemasukan ? 'clay-key-primary solid-primary' : 'clay-key-danger solid-danger'} btn-lg w-full text-white disabled:opacity-60`}
           >
             <span className="material-symbols-outlined icon-md">save</span>
-            {saving ? 'Menyimpan…' : mode === 'edit' ? 'Simpan Perubahan' : mode === 'salin' ? 'Salin & Catat Transaksi' : isPemasukan ? 'Simpan Pemasukan' : 'Simpan Pengeluaran'}
+            {tr(saving ? 'menyimpan' : mode === 'edit' ? 'simpan_perubahan' : mode === 'salin' ? 'salin_cat_transaksi' : isPemasukan ? 'simpan_pemasukan' : 'simpan_pengeluaran')}
           </button>
         </form>
       </div>
