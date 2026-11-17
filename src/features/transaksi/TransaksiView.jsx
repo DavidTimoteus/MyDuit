@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { isoHariIni, rangeForFilter, simbolUang } from '../../lib/format.js'
+import { formatRupiah, isoDari, isoHariIni, rangeForFilter, simbolUang, tanggalTampil } from '../../lib/format.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
 import { buatTransaksiId, enrichTransaksi, hapusPindahSaldo, hapusTransaksi, hapusTransaksiMassal, simpanTransaksi } from '../../lib/db.js'
 import { pesanErrorSimpan } from '../../lib/pesanError.js'
@@ -106,6 +106,13 @@ export default function TransaksiView({ user }) {
   const akunById = useMemo(() => Object.fromEntries(akunList.map((a) => [a.id, a])), [akunList])
   const katById = useMemo(() => Object.fromEntries(kategoriList.map((k) => [k.id, k.nama])), [kategoriList])
   const docsEnriched = useMemo(() => enrichTransaksi(docs, akunById, katById), [docs, akunById, katById])
+
+  // Koreksi saldo tersimpan di akun.mutasiTerakhir, bukan di koleksi transaksi.
+  // Tampilkan sebagai ringkasan di atas daftar tanpa menulis dokumen baru.
+  const daftarKoreksi = useMemo(
+    () => akunList.filter((a) => /koreksi penyesuaian saldo/i.test(a?.mutasiTerakhir?.keterangan || '')),
+    [akunList],
+  )
 
   const tampil = useMemo(() => {
     const kw = keyword.trim().toLowerCase()
@@ -680,6 +687,28 @@ export default function TransaksiView({ user }) {
               ? tr('error_index_firestore')
               : error}
           </p>
+        )}
+
+        {daftarKoreksi.length > 0 && (
+          <div className="clay-card clay-key-amber mb-3 flex items-center gap-3 rounded-[20px] p-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+              <span className="material-symbols-outlined icon-md">tune</span>
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-slate-800">Koreksi Penyesuaian saldo</p>
+              <p className="truncate text-[11px] font-medium text-slate-500">
+                {daftarKoreksi.map((a) => a.nama).join(', ')} ·{' '}
+                {tanggalTampil(
+                  daftarKoreksi[0]?.mutasiTerakhir?.at?.toDate?.()
+                    ? isoDari(daftarKoreksi[0].mutasiTerakhir.at.toDate())
+                    : isoHariIni(),
+                )}
+              </p>
+            </div>
+            <span className="shrink-0 font-mono text-sm font-extrabold text-amber-700">
+              {formatRupiah(daftarKoreksi.reduce((s, a) => s + (Number(a.mutasiTerakhir?.delta) || 0), 0), { tanda: true })}
+            </span>
+          </div>
         )}
 
         {/* Konten utama */}
