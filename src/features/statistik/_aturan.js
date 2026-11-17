@@ -13,7 +13,7 @@
 // diverifikasi user (kenapa? aturan jelas) dan bisa diuji dengan assert,
 // sesuatu yang tidak bisa dijanjikan LLM.
 // ============================================================================
-import { parseTanggalIsoAman } from '../../lib/format.js'
+import { parseTanggalIsoAman, tanggalTampil } from '../../lib/format.js'
 
 // Hitung persen perubahan periode dengan penyebut absolut agar perbaikan
 // dari nilai negatif (mis. saldo -1jt -> +500rb) tampil positif (+150%), bukan terbalik.
@@ -114,8 +114,8 @@ export function aturanAnalitik({ mode, ringkas, tren, jumlahHariBulan, bulan, ta
     const puncak = perHari.reduce((a, b) => (b[1].out > a[1].out ? b : a))
     const tglPuncak = parseTanggalIsoAman(puncak[0])
     if (tglPuncak) {
-      const namaHari = new Intl.DateTimeFormat('id-ID', { weekday: 'long' }).format(tglPuncak)
-      R('info', `Puncak pengeluaran di hari ${namaHari}`,
+      const tglLabel = tanggalTampil(puncak[0])
+      R('info', `Puncak pengeluaran tanggal ${tglLabel}`,
         `${rp(puncak[1].out)} tercatat hari itu. Kalau bisa ditahan sekali seminggu, hemat sekitar ${rp(puncak[1].out / 4)} sebulan.`)
     }
   }

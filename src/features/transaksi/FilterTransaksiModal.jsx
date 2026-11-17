@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { isoHariIni } from '../../lib/format.js'
+import { isoHariIni, tanggalTampil } from '../../lib/format.js'
 import { ClayDateInput } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
 
-const fmt = (iso) =>
-  iso ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(new Date(`${iso}T00:00:00`)) : ''
+const fmt = (iso) => (iso ? tanggalTampil(iso) : '')
 
 function rentangNHari(n) {
   const d = new Date()
@@ -87,7 +86,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
           <p className="mb-1 text-xs font-semibold text-slate-500">Tanggal</p>
 
           <div className="flex flex-col">
-            <Opsi id="hari" label="Hari ini" subtitle={new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())} />
+            <Opsi id="hari" label="Hari ini" subtitle={tanggalTampil(isoHariIni())} />
             <Opsi id="semua" label="Semua Transaksi" />
             <Opsi id="7hari" label="7 hari terakhir" subtitle={rentangNHari(7)} />
             <Opsi id="30hari" label="30 hari terakhir" subtitle={rentangNHari(30)} />

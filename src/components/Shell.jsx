@@ -11,6 +11,7 @@ import {
   simpanNegaraManual,
   formatRupiah,
   parseTanggalIsoAman,
+  tanggalTampil,
   NEGARA,
   EVENT_LOKASI,
   uangAktif,
@@ -198,7 +199,7 @@ function SidebarInsightStatistik() {
         {(() => {
           const dLast = parseTanggalIsoAman(last);
           if (!dLast) return last ? `Catatan terakhir: ${last}` : "Belum ada catatan pada periode ini";
-          return `Catatan terakhir: ${new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(dLast)}`;
+          return `Catatan terakhir: ${tanggalTampil(last)}`;
         })()}
       </p>
       <div className="h-px bg-slate-200/70"></div>

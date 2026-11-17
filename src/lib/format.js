@@ -507,24 +507,34 @@ function bahasaTanggalAktif(lang) {
   return 'id'
 }
 
-// Label grup tanggal: Hari Ini / Kemarin / "Senin, 12 Mei 2026"
-export function tanggalLabel(iso, lang = null) {
+// Satu-satunya format tanggal yang tampil di seluruh aplikasi: "17 Nov 2026".
+// Opsi `singkat` memakai tahun dua digit: "17 Nov 26". Bulan selalu singkat
+// supaya hasilnya sama di bahasa ID maupun EN (Nov tetap Nov).
+export function tanggalTampil(iso, { lang = null, singkat = false } = {}) {
   const b = bahasaTanggalAktif(lang)
-  const hari = isoHariIni()
-  if (iso === hari) return b === 'en' ? 'Today' : 'Hari Ini'
-  const y = new Date()
-  y.setDate(y.getDate() - 1)
-  if (iso === isoDari(y)) return b === 'en' ? 'Yesterday' : 'Kemarin'
-  const d = parseTanggalIsoAman(iso)
-  if (!d) return iso || (b === 'en' ? 'No date' : 'Tanpa tanggal')
-  return new Intl.DateTimeFormat(b === 'en' ? 'en-US' : 'id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(d)
+  let d = parseTanggalIsoAman(iso)
+  if (!d && iso) {
+    const dObj = new Date(iso)
+    if (!isNaN(dObj.getTime())) d = dObj
+  }
+  if (!d) return typeof iso === 'string' && iso ? iso : '—'
+  return new Intl.DateTimeFormat(b === 'en' ? 'en-US' : 'id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: singkat ? '2-digit' : 'numeric',
+  }).format(d)
+}
+
+// Label grup tanggal ikut format kanonik. Label relatif ("Hari Ini"/"Kemarin")
+// sengaja dihapus: semua tanggal yang tampil wajib memakai `tanggalTampil`.
+export function tanggalLabel(iso, lang = null) {
+  if (!iso) return lang === 'en' ? 'No date' : 'Tanpa tanggal'
+  return tanggalTampil(iso, { lang })
 }
 
 export function tanggalPendek(iso, lang = null) {
-  const b = bahasaTanggalAktif(lang)
-  const d = parseTanggalIsoAman(iso)
-  if (!d) return iso || '—'
-  return new Intl.DateTimeFormat(b === 'en' ? 'en-US' : 'id-ID', { day: 'numeric', month: 'short' }).format(d)
+  if (!iso) return '—'
+  return tanggalTampil(iso, { lang })
 }
 
 // Rentang tanggal untuk chip filter. 'semua' -> null (tanpa batas).

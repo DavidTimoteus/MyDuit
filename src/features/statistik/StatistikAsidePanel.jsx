@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { formatCurrency, formatRupiah, parseTanggalIsoAman, uangAktif } from '../../lib/format.js'
+import { formatCurrency, formatRupiah, tanggalTampil, uangAktif } from '../../lib/format.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 
 // Panel kanan khusus tab Statistik (desktop only). Render di Shell dengan
@@ -167,12 +167,7 @@ export default function StatistikAsidePanel() {
                     </span>
                   </div>
                   <p className="mt-0.5 text-[10px] font-medium text-textSecondary">
-                    {(() => {
-                      const dBoros = parseTanggalIsoAman(ringkas.hariPalingBoros.tgl)
-                      return dBoros
-                        ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short' }).format(dBoros)
-                        : ringkas.hariPalingBoros.tgl
-                    })()}
+                    {ringkas.hariPalingBoros.tgl ? tanggalTampil(ringkas.hariPalingBoros.tgl) : '—'}
                     {ringkas.terbesarPemasukan && (
                       <> · pemasukan {ringkas.terbesarPemasukan.nama}</>
                     )}

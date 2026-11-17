@@ -1,7 +1,7 @@
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from '../../lib/mockData.js'
-import { formatNominal, konversiUntukTampil, uangAktif } from '../../lib/format.js'
+import { formatNominal, isoHariIni, konversiUntukTampil, tanggalTampil, uangAktif } from '../../lib/format.js'
 import { ambilRasioKurs, bacaBasisMataUang, desimalMataUang, statusKurs } from '../../lib/kurs.js'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -267,7 +267,7 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   const H = doc.internal.pageSize.getHeight()
   const M = 16
   const lebar = W - M * 2
-  const tanggalCetak = new Intl.DateTimeFormat('id-ID', { dateStyle: 'long' }).format(new Date())
+  const tanggalCetak = tanggalTampil(isoHariIni())
   let y = M
 
   // ================= KOP (minimalis) =================
