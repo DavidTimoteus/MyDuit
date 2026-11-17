@@ -536,11 +536,21 @@ export function tanggalTampil(iso, { lang = null, singkat = false } = {}) {
   }).format(d)
 }
 
-// Label grup tanggal ikut format kanonik. Label relatif ("Hari Ini"/"Kemarin")
-// sengaja dihapus: semua tanggal yang tampil wajib memakai `tanggalTampil`.
+// Hari Ini / Kemarin dipertahankan, tanggal lain memakai format kanonik
+// `tanggalTampil` (17 Nov 2026). Perbandingan memakai ISO lokal yang sudah
+// kanonik, jadi tidak terpengaruh timezone server.
+export function tanggalRelatifLabel(iso, lang = null) {
+  const b = bahasaTanggalAktif(lang)
+  if (!iso) return b === 'en' ? 'No date' : 'Tanpa tanggal'
+  if (iso === isoHariIni()) return b === 'en' ? 'Today' : 'Hari Ini'
+  const kemarin = new Date()
+  kemarin.setDate(kemarin.getDate() - 1)
+  if (iso === isoDari(kemarin)) return b === 'en' ? 'Yesterday' : 'Kemarin'
+  return tanggalTampil(iso, { lang: b })
+}
+
 export function tanggalLabel(iso, lang = null) {
-  if (!iso) return lang === 'en' ? 'No date' : 'Tanpa tanggal'
-  return tanggalTampil(iso, { lang })
+  return tanggalRelatifLabel(iso, lang)
 }
 
 export function tanggalPendek(iso, lang = null) {

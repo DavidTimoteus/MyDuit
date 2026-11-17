@@ -63,12 +63,21 @@ assert.equal(f.kanonikTanggal('2026-02-31'), f.isoHariIni())
 assert.equal(f.tanggalLabel(''), 'Tanpa tanggal')
 assert.equal(f.tanggalPendek('bukan-tanggal'), 'bukan-tanggal')
 
-// Format tampil kanonik: 17 Nov 2026 / 17 Nov 26, tanpa hari relatif.
+// Format tampil kanonik: 17 Nov 2026 / 17 Nov 26 untuk tanggal biasa.
 assert.equal(f.tanggalTampil('2026-11-17'), '17 Nov 2026')
 assert.equal(f.tanggalTampil('2026-11-17', { singkat: true }), '17 Nov 26')
 assert.equal(f.tanggalTampil('2026-05-07'), '7 Mei 2026')
-assert.equal(f.tanggalLabel('2026-11-17'), '17 Nov 2026')
 assert.equal(f.tanggalPendek('2026-11-17'), '17 Nov 2026')
+
+// Hari Ini / Kemarin tetap dipakai, tanggal lain memakai format kanonik.
+const kemarin = new Date()
+kemarin.setDate(kemarin.getDate() - 1)
+assert.equal(f.tanggalRelatifLabel(f.isoHariIni()), 'Hari Ini')
+assert.equal(f.tanggalRelatifLabel(f.isoDari(kemarin)), 'Kemarin')
+assert.equal(f.tanggalRelatifLabel('2026-01-05'), '5 Jan 2026')
+assert.equal(f.tanggalRelatifLabel(f.isoHariIni(), 'en'), 'Today')
+assert.equal(f.tanggalRelatifLabel(f.isoDari(kemarin), 'en'), 'Yesterday')
+assert.equal(f.tanggalLabel(f.isoHariIni()), 'Hari Ini')
 
 // Jam opsional: hanya HH:mm valid yang dipertahankan, sisanya jatuh ke jam saat input.
 assert.equal(f.jamValid('14:30'), '14:30')
