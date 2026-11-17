@@ -10,7 +10,7 @@ import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
 import { IDLE_LOCK_MS, LS_APP_LOCK, isAppLockAktif } from './lib/appLock.js'
 import { getFirebase, isFirebaseConfigured } from './lib/firebase.js'
-import { inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
+import { bersihkanTransaksiRusak, inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
 
@@ -124,6 +124,23 @@ export default function App() {
       migrasiNormalisasi(user.uid)
         .then(() => localStorage.setItem(flag, '1'))
         .catch((e) => console.warn('[migrasi] ditunda:', e?.message ?? e))
+    } catch {
+      /* abaikan */
+    }
+  }, [user?.uid, uidBersih])
+
+  // Bersihkan baris transaksi rusak (jumlah 0 tanpa kategori/akun) sekali per user.
+  useEffect(() => {
+    if (!user?.uid || IS_DEMO_UID(user.uid) || uidBersih !== user.uid) return
+    const flag = `myduit-bersih-tx-rusak-${user.uid}`
+    try {
+      if (localStorage.getItem(flag)) return
+      bersihkanTransaksiRusak(user.uid)
+        .then((n) => {
+          localStorage.setItem(flag, '1')
+          if (n > 0) console.info(`[bersih-tx] ${n} transaksi rusak disembunyikan`)
+        })
+        .catch((e) => console.warn('[bersih-tx] ditunda:', e?.message ?? e))
     } catch {
       /* abaikan */
     }

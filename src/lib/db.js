@@ -498,6 +498,27 @@ export async function hapusPindahSaldo(uid, trans) {
   await batch.commit()
 }
 
+// Bersihkan dokumen transaksi rusak: jumlah 0/NaN tanpa kategori & akun.
+// Dokumen seperti ini tidak mengubah saldo, tapi mengotori daftar dengan
+// baris "(tanpa kategori) -Rp0". Soft-delete dipakai supaya bisa dibatalkan.
+export async function bersihkanTransaksiRusak(uid) {
+  if (!uid || IS_DEMO_UID(uid)) return 0
+  // Baca semua dokumen (tanpa filter deleted) supaya tidak bergantung pada
+  // urutan dengan migrasiNormalisasi yang bisa mengisi field deleted belakangan.
+  const snap = await getDocs(userCol(uid, 'transaksi'))
+  const rusak = snap.docs.filter((d) => {
+    const v = d.data()
+    const jml = Number(v?.jumlah)
+    return !v?.deleted && (!Number.isFinite(jml) || jml <= 0)
+  })
+  if (!rusak.length) return 0
+  const { db } = getFirebase()
+  const batch = writeBatch(db)
+  rusak.forEach((d) => batch.update(d.ref, { deleted: true, updatedAt: serverTimestamp() }))
+  await batch.commit()
+  return rusak.length
+}
+
 // ===== QUERY RIWAYAT =====
 // Filter tanggal pakai perbandingan string 'YYYY-MM-DD' (aman kronologis).
 // Butuh composite index (lihat firestore.indexes.json); bila error missing-index
