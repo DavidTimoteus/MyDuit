@@ -166,6 +166,45 @@ cek('Money Changer formatRupiah + sanitizeKetikNominal + round-trip USD <-> IDR'
   }
 }
 
+// 5. Whitelist mata uang & tanpa rasio diam-diam = 1 (F04/F05 audit 25 Nov 2026)
+//    CLP/ISK sempat diterima sebagai basis padahal tidak ada kursnya, lalu
+//    ambilRasioKurs mengembalikan 1 diam-diam (CLP 95.000 tampil "US$ 95.000").
+cek('mataUangDidukung: CLP/BRL/MXN/ZAR didukung, XXX tidak', () => {
+  kurs._resetCacheKursUntukUji()
+  delete _store['myduit:kurs_cache']
+  assert.equal(kurs.mataUangDidukung('CLP'), true)
+  assert.equal(kurs.mataUangDidukung('BRL'), true)
+  assert.equal(kurs.mataUangDidukung('MXN'), true)
+  assert.equal(kurs.mataUangDidukung('ZAR'), true)
+  assert.equal(kurs.mataUangDidukung('IDR'), true)
+  assert.equal(kurs.mataUangDidukung('XXX'), false)
+  assert.equal(kurs.mataUangDidukung(''), false)
+  assert.equal(kurs.mataUangDidukung('idr'), true)
+})
+cek('ambilRasioKurs kode tak dikenal = NaN, bukan 1', () => {
+  kurs._resetCacheKursUntukUji()
+  delete _store['myduit:kurs_cache']
+  assert.ok(Number.isNaN(kurs.ambilRasioKurs('XXX', 'USD')))
+  assert.ok(Number.isNaN(kurs.ambilRasioKurs('USD', 'XXX')))
+  assert.ok(Number.isNaN(kurs.konversiNilai(100, 'XXX', 'USD')))
+})
+cek('CLP 95.000 ~ US$ 100 (bukan US$ 95.000)', () => {
+  kurs._resetCacheKursUntukUji()
+  delete _store['myduit:kurs_cache']
+  const rasio = kurs.ambilRasioKurs('CLP', 'USD')
+  assert.ok(Math.abs(rasio - 1 / 950) < 1e-9, `rasio CLP->USD ${rasio}`)
+  assert.ok(Math.abs(kurs.konversiNilai(95000, 'CLP', 'USD') - 100) < 1e-9)
+})
+cek('simpanBasisMataUang menolak kode tanpa kurs', () => {
+  kurs._resetCacheKursUntukUji()
+  delete _store['myduit:kurs_cache']
+  kurs.simpanBasisMataUang('IDR', { terkunci: true })
+  assert.equal(kurs.simpanBasisMataUang('XXX'), null)
+  assert.equal(kurs.bacaBasisMataUang(), 'IDR')
+  assert.equal(kurs.simpanBasisMataUang('CLP'), 'CLP')
+  kurs.simpanBasisMataUang('IDR', { terkunci: true })
+})
+
 // Reset bersih
 kurs.resetBasisMataUang()
 fmt.simpanNegaraManual('')

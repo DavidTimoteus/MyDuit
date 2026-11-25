@@ -422,7 +422,9 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
       fp.altInput.readOnly = false
       fp.altInput.style.backgroundColor = 'transparent'
       fp.altInput.style.border = 'none'
-      fp.altInput.style.outline = 'none'
+      // C01: JANGAN set outline inline 'none' di sini — inline style mengalahkan
+      // aturan :focus di stylesheet, sehingga field tanggal tak pernah menunjukkan
+      // indikator fokus. Outline fokus diatur CSS (.clay-date-picker-field:focus).
       fp.altInput.style.boxShadow = 'none'
       fp.altInput.style.webkitBoxShadow = 'none'
       fp.altInput.style.cursor = 'text'

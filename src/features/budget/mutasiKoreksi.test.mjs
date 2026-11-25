@@ -19,9 +19,16 @@ function cek(nama, dapat, harap) {
   console.log(`  ${ok ? 'ok  ' : 'GAGAL'} ${nama}`)
 }
 
-const t1 = new Date(2026, 10, 17, 8, 5).getTime()
-const t2 = new Date(2026, 10, 17, 14, 30).getTime()
-const t3 = new Date(2026, 10, 16, 9, 0).getTime()
+// Tanggal relatif terhadap "hari ini" saat tes dijalankan — sebelumnya
+// hardcode 17 Nov 2026, sehingga tes ini hanya lolos di tanggal itu saja
+// (gagal sejak 18 Nov 2026). "Kemarin" = hari ini - 1, "lama" = 1 Nov 2026.
+const _kini = new Date()
+const _thn = _kini.getFullYear()
+const _bln = _kini.getMonth()
+const _tgl = _kini.getDate()
+const t1 = new Date(_thn, _bln, _tgl, 8, 5).getTime()
+const t2 = new Date(_thn, _bln, _tgl, 14, 30).getTime()
+const t3 = new Date(_thn, _bln, _tgl - 1, 9, 0).getTime()
 const lama = new Date(2026, 10, 1, 10, 0).getTime()
 
 // ===== konversi waktu =====

@@ -286,7 +286,7 @@ function jarakEdit(a, b) {
 }
 
 /** Parse angka Indonesia ("1.234.567" -> 1234567). Sama seperti versi ocrStruk. */
-function parseAngkaID(s) {
+export function parseAngkaID(s) {
   let t = String(s || '').replace(/[^\d.,]/g, '')
   if (!t) return NaN
   const koma = (t.match(/,/g) || []).length
@@ -301,7 +301,9 @@ function parseAngkaID(s) {
     t = bagian.length === 2 && bagian[1].length === 3 ? t.replace(',', '') : t.replace(',', '.')
   } else if (titik === 1) {
     const bagian = t.split('.')
-    t = bagian.length === 2 && bagian[1].length === 3 ? t.replace('.', '') : t.replace('.', '')
+    // "1.234" (3 digit) = ribuan -> 1234; "45.50" (2 digit) = desimal -> 45.5.
+    // Sebelumnya kedua cabang identik (replace '.'), sehingga "45.50" -> 4550.
+    t = bagian.length === 2 && bagian[1].length === 3 ? t.replace('.', '') : t
   }
   const n = Number(t)
   return Number.isFinite(n) ? n : NaN

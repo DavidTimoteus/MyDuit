@@ -73,9 +73,13 @@ const tokenEkstrusi3DTerdefinisi =
   fileCss.includes('--clay-lip-chip')
 cek('css: token ekstrusi 3D claymorphism (--clay-lip-*) terdefinisi di :root', tokenEkstrusi3DTerdefinisi)
 
-// 12. Periksa index.css: Cincin fokus zamrud luminous terdefinisi pada focus-visible
-const cincinFokusZamrud = fileCss.includes('rgba(45, 106, 79, 0.35)') && fileCss.includes('--clay-focus-ring')
-cek('css: cincin fokus zamrud luminous terpasang pada focus-visible', cincinFokusZamrud)
+// 12. Periksa index.css: Cincin fokus terdefinisi pada focus-visible
+// C01 (audit 25 Nov 2026): cincin zamrud lama rgba(45,106,79,0.35) praktis tak
+// terlihat di atas kanvas (campuran ~1,6:1, butuh 3:1). Diganti cincin biru
+// rgba(29,78,216,0.55) + outline solid #1D4ED8 (5,32:1). Rasio dijamin oleh
+// src/styles/contrastContract.test.mjs.
+const cincinFokusBiru = fileCss.includes('rgba(29, 78, 216, 0.55)') && fileCss.includes('--clay-focus-ring')
+cek('css: cincin fokus biru terpasang pada focus-visible', cincinFokusBiru)
 
 // 13. Periksa index.css: Sumur galian input (excavated trench) terpasang pada .clay-field & .clay-input
 const sumurGalianInput =
@@ -112,7 +116,10 @@ const sidebarNavTaktil = fileCss.includes('.sidebar-nav-btn.is-active') && fileS
 cek('shell: navigasi sidebar memakai .sidebar-nav-btn 3D taktil (bebas dari bug ghost button putih-di-atas-putih)', sidebarNavTaktil)
 
 // 19. Periksa Shell.jsx: Identitas brand MyDuit konsisten (bebas dari penukar logo sidebarTheme bunglon)
-const brandMyDuitKonsisten = !fileShellUpdated.includes('sidebarTheme(tab)') && fileShellUpdated.includes('from-emerald-600 to-primary')
+// A01 (audit 25 Nov 2026): gradien logo lama from-emerald-600 to-primary
+// (#059669->#36AE7C) gagal AA untuk teks putih (2,80:1). Gradien baru tetap
+// keluarga zamrud tapi gelap: #047857 -> #1E6B48 (5,48:1 / 6,46:1).
+const brandMyDuitKonsisten = !fileShellUpdated.includes('sidebarTheme(tab)') && fileShellUpdated.includes('from-[#047857] to-[#1E6B48]')
 cek('shell: identitas logo MyDuit konsisten zamrud (bebas dari chameleon sidebarTheme per-tab)', brandMyDuitKonsisten)
 
 // 20. Periksa UtangView.jsx: Filter "Semua" tidak menggunakan clay-chip-active-danger

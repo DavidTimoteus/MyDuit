@@ -8,7 +8,7 @@
 //  3. Sumber/akun terisi kalau struk menyebut dompet/bank pembayar.
 //
 // Jalankan: node src/lib/strukMeta.test.mjs
-import { cariBarang, petakanKategori, cariPembayar, cariTunai, barisStruk } from './strukMeta.js'
+import { cariBarang, petakanKategori, cariPembayar, cariTunai, barisStruk, parseAngkaID } from './strukMeta.js'
 
 let lulus = 0
 let gagal = 0
@@ -145,6 +145,18 @@ cek('multi-line item 1 nama', barangMultiLine[0]?.nama, 'Kopi Susu Gula Aren')
 cek('multi-line item 1 harga', barangMultiLine[0]?.harga, 22000)
 cek('multi-line item 2 nama', barangMultiLine[1]?.nama, 'Roti Bakar Coklat')
 cek('multi-line item 2 harga', barangMultiLine[1]?.harga, 25000)
+
+// ---------- parseAngkaID: desimal titik jangan jadi ribuan ----------
+// Regresi Q-12 (audit 25 Nov 2026): "45.50" sempat terbaca 4550 (100x) karena
+// kedua cabang ternary di kasus titik-tunggal identik.
+cek('parse "45.50" = 45.5 (bukan 4550)', parseAngkaID('45.50'), 45.5)
+cek('parse "12.50" = 12.5', parseAngkaID('12.50'), 12.5)
+cek('parse "1.234" = 1234 (ribuan)', parseAngkaID('1.234'), 1234)
+cek('parse "1.234.567" = 1234567', parseAngkaID('1.234.567'), 1234567)
+cek('parse "45,50" = 45.5', parseAngkaID('45,50'), 45.5)
+cek('parse "1,234" = 1234 (ribuan koma)', parseAngkaID('1,234'), 1234)
+cek('parse "1.234,56" = 1234.56', parseAngkaID('1.234,56'), 1234.56)
+cek('parse "68.000" = 68000', parseAngkaID('68.000'), 68000)
 
 // ---------- laporan ----------
 console.log(`\n=== UJI PEMBACAAN STRUK: ${lulus} lulus, ${gagal} gagal ===`)

@@ -79,7 +79,7 @@ function Avatar({ user, size = "h-9 w-9 text-sm" }) {
     .toUpperCase();
   return (
     <div
-      className={`${size} flex items-center justify-center rounded-full bg-primary font-extrabold text-white`}
+      className={`${size} flex items-center justify-center rounded-full bg-[#2d6a4f] font-extrabold text-white`}
     >
       {inisial}
     </div>
@@ -105,7 +105,7 @@ function NavIkona({ t, active, onClick }) {
       aria-label={label}
       aria-current={active ? "page" : undefined}
       className={`nav-item group relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-0 transition-all active:scale-95 touch-manipulation ${
-        active ? "text-primary" : "text-textSecondary"
+        active ? "text-[#1E6B48]" : "text-textSecondary"
       }`}
     >
       <span
@@ -189,7 +189,7 @@ function SidebarInsightStatistik() {
         </p>
       </div>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono font-extrabold text-xl text-primary">
+        <span className="font-mono font-extrabold text-xl text-[#1E6B48]">
           {streak}
         </span>
         <span className="text-[11px] font-semibold text-textSecondary">
@@ -407,10 +407,15 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
   const aktifCurrency = uangAktif().currency || "IDR";
   const patokanKe = aktifCurrency !== basis ? aktifCurrency : (basis === "USD" ? "IDR" : "USD");
   const laju = ambilRasioKurs("USD", patokanKe === "USD" ? basis : patokanKe);
+  const lajuUsdIdr = ambilRasioKurs("USD", "IDR");
+  // Rasio bisa NaN bila kurs mata uang terkait tidak diketahui (data lama/corrupt);
+  // jangan tampilkan "NaN" — sembunyikan label kurs sampai kurs berhasil dimuat.
   const labelKurs =
-    patokanKe === "IDR" || basis === "IDR"
-      ? `1 USD ≈ Rp${Math.round(ambilRasioKurs("USD", "IDR")).toLocaleString("id-ID")}`
-      : `1 USD ≈ ${laju.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${patokanKe === "USD" ? basis : patokanKe}`;
+    !Number.isFinite(laju) || !Number.isFinite(lajuUsdIdr)
+      ? ""
+      : patokanKe === "IDR" || basis === "IDR"
+        ? `1 USD ≈ Rp${Math.round(lajuUsdIdr).toLocaleString("id-ID")}`
+        : `1 USD ≈ ${laju.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${patokanKe === "USD" ? basis : patokanKe}`;
 
   function perbaruiManual() {
     if (memuat) return;
@@ -722,7 +727,7 @@ export default function Shell({ user }) {
         >
           <div className="flex items-center gap-3 px-1 pb-4 pt-1">
             <div
-              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-primary text-white shadow-md shadow-emerald-900/20 shrink-0"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#047857] to-[#1E6B48] text-white shadow-md shadow-emerald-900/20 shrink-0"
             >
               <span
                 className="material-symbols-outlined icon-lg"

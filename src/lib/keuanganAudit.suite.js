@@ -50,6 +50,9 @@ await cek('db.js menolak nominal <= 0 / NaN dan pindah saldo ke rekening sama', 
   await assert.rejects(() => simpanBudget('demo_user_001', { kategoriId: 'k1', limitNominal: 10000, bulan: 12, tahun: 2026 }))
   await assert.rejects(() => simpanUtang('demo_user_001', { namaPihak: 'Bank', total: -5000 }))
   await assert.rejects(() => bayarUtang('demo_user_001', { utang: { id: 'u1', sisa: 1000 }, jumlah: 0, akun: { id: 'a1' } }))
+  // F02 (audit 25 Nov 2026): overpay harus ditolak — kelebihan tidak boleh menguap.
+  await assert.rejects(() => bayarUtang('demo_user_001', { utang: { id: 'u1', sisa: 1000 }, jumlah: 1500, akun: { id: 'a1' } }))
+  await assert.rejects(() => bayarUtang('demo_user_001', { utang: { id: 'u1', sisa: 1000 }, jumlah: 1001, akun: { id: 'a1' } }))
 })
 
 // 3. Perhitungan Statistik (trend negatif & proyeksi bulan lampau)

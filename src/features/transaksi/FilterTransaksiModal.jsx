@@ -49,7 +49,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
   const Opsi = ({ id, label, subtitle = null, primary = false }) => (
     <label className={`flex cursor-pointer items-center justify-between py-3 ${id === 'rentang' ? '' : 'border-b border-gray-100'}`}>
       <div>
-        <span className={`block text-sm font-medium ${primary ? 'text-primary' : 'text-slate-800'}`}>{label}</span>
+        <span className={`block text-sm font-medium ${primary ? 'text-[#1E6B48]' : 'text-slate-800'}`}>{label}</span>
         {subtitle !== null && <span className="text-xs text-slate-500">{subtitle}</span>}
       </div>
       <input

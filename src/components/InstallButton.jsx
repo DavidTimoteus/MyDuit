@@ -31,10 +31,10 @@ export default function InstallButton({ variant = 'sidebar' }) {
 
   const cls =
     variant === 'sidebar'
-      ? 'clay-btn-soft flex w-full items-center gap-3 px-4 py-2.5 text-sm font-bold text-primary'
+      ? 'clay-btn-soft flex w-full items-center gap-3 px-4 py-2.5 text-sm font-bold text-[#1E6B48]'
       : variant === 'sheet'
         ? 'clay-btn flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-bold text-slate-700'
-        : 'clay-chip flex h-9 w-9 items-center justify-center rounded-full text-primary active:bg-primary active:text-white'
+        : 'clay-chip flex h-9 w-9 items-center justify-center rounded-full text-primary active:bg-[#2d6a4f] active:text-white'
 
   return (
     <>

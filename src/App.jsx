@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { signOut } from 'firebase/auth'
 import { clearIndexedDbPersistence, terminate } from 'firebase/firestore'
 import { AppLockScreen } from './components/AppLockGate.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
-import Shell from './components/Shell.jsx'
 import Splash from './components/Splash.jsx'
+// BUN-02 (audit 25 Nov 2026): Shell hanya dipakai SETELAH login, tapi dulu
+// diimpor statis — halaman login ikut mengunduh Shell (1.262 baris) beserta
+// seluruh modul di baliknya. Sekarang lazy: chunk Shell baru diunduh setelah
+// auth sukses. Catatan: db.js tetap ada di bundel awal karena efek App.jsx
+// (migrasi/pembersih/inisialisasi basis) — memindahkannya butuh refactor efek.
+const Shell = lazy(() => import('./components/Shell.jsx'))
 import ToastHost from './components/ToastHost.jsx'
 import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
@@ -174,7 +179,9 @@ export default function App() {
             // useAkunKategori.js). Dibungkus di sini, bukan di dalam Shell, supaya
             // tetap aktif saat tab berganti.
             <AkunKategoriProvider uid={user.uid}>
-              <Shell user={user} />
+              <Suspense fallback={<Splash ready={false} />}>
+                <Shell user={user} />
+              </Suspense>
             </AkunKategoriProvider>
           )
         ) : null

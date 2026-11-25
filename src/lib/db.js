@@ -3,6 +3,7 @@ import {
   collection,
   deleteField,
   getDoc,
+  getDocFromServer,
   getDocs,
   getDocsFromCache,
   increment,
@@ -12,6 +13,7 @@ import {
   serverTimestamp,
   setDoc,
   doc,
+  runTransaction,
   updateDoc,
   where,
   writeBatch,
@@ -20,7 +22,8 @@ import {
 import { getFirebase } from './firebase.js'
 import { IS_DEMO_UID, MOCK_AKUN, MOCK_BUDGET, MOCK_KATEGORI, MOCK_TRANSAKSI, MOCK_UTANG } from './mockData.js'
 import { MAX_NOMINAL, jamSekarang, jamValid, kanonikTanggal, negaraUntukMataUang, simpanNegaraManual, uangAktif } from './format.js'
-import { bacaBasisMataUang, bacaStatusBasis, buatSnapshotKurs, desimalMataUang, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
+import { bacaBasisMataUang, bacaStatusBasis, buatSnapshotKurs, desimalMataUang, mataUangDidukung, segarkanKursGlobal, simpanBasisMataUang } from './kurs.js'
+import { sudahDiproses, tandaiDiproses } from './idempotensi.js'
 
 function bulatkanKeBasis(nilai) {
   const n = Number(nilai)
@@ -68,6 +71,66 @@ export function transaksiRef(uid, id) {
 export function akunRef(uid, id) {
   const { db } = getFirebase()
   return doc(db, 'users', uid, 'akun', id)
+}
+
+// ===== TRANSAKSI ATOMIK (perbaikan audit 25 Nov 2026) =====
+// Dulu semua mutasi saldo memakai writeBatch + snapshot klien: hapus ganda,
+// retry, dan dua tab yang menulis bersamaan bisa merusak saldo secara permanen
+// karena tidak ada yang membaca state server sebelum menulis.
+// Sekarang: coba runTransaction dulu (baca dokumen server, validasi, tulis).
+// Bila perangkat offline, Firestore menolak transaksi dengan 'unavailable' —
+// baru saat itu jatuh ke jalur batch lama + penanda idempotensi (idempotensi.js),
+// supaya janji offline-first tetap hidup. Batasan yang tersisa: balapan lintas
+// perangkat saat SAMA-SAMA offline tidak bisa dicegah dari klien; rules menolak
+// update dokumen yang sudah di-soft-delete, jadi pengulangan efek tidak lolos
+// diam-diam saat sinkronisasi.
+// Jalankan penulisan lewat runTransaction; bila offline (atau respons hilang)
+// jatuh ke writeBatch dengan data yang sama. Jalur batch memakai increment()
+// yang TIDAK idempotent, jadi sebelum menjalankannya kita WAJIB memastikan
+// transaksi belum diterapkan server — kalau tidak, saldo bisa naik dua kali.
+//
+// P3 (re-review keamanan 25 Nov 2026): commit transaksi bisa mendarat di
+// server sementara responsnya hilang dan retry SDK habis — lalu fallback batch
+// menulis increment kedua. `cekSudahDiterapkan` menutup celah itu: ia membaca
+// state server (getDocFromServer — BUKAN cache lokal) dan mengembalikan nilai
+// sukses pemanggil bila efeknya sudah ada, atau `undefined` bila batch boleh
+// jalan. Bila server tidak bisa dihubungi, cek melempar dan kita tetap lanjut
+// ke batch (perilaku lama) — jendela sisa: transaksi mendarat + masih offline
+// saat cek + batch ikut tersinkron nanti. Jendela itu sempit (butuh commit
+// mendarat di tengah putusnya koneksi lalu offline berkepanjangan), dan
+// didokumentasikan sebagai residu — menutupnya penuh butuh pola outbox
+// (antrean operasi + rekonsiliasi saat online), bukan perbaikan sebaris.
+async function denganTransaksi(db, fnTransaksi, fnBatch, cekSudahDiterapkan) {
+  try {
+    return await runTransaction(db, fnTransaksi)
+  } catch (e) {
+    if (e?.code !== 'unavailable') throw e
+    if (cekSudahDiterapkan) {
+      try {
+        const sudah = await cekSudahDiterapkan()
+        if (sudah !== undefined) return sudah
+      } catch {
+        // Cek tidak bisa memastikan apa pun (masih offline) — lanjut ke batch.
+      }
+    }
+    return fnBatch()
+  }
+}
+
+// Apakah dokumen transaksi server sudah sama persis dengan state baru yang
+// hendak ditulis? Dipakai updateTransaksi: bila ya, transaksi pertama sudah
+// diterapkan (atomik — saldonya pun sudah), jadi fallback batch harus dilewati.
+function dokumenSudahSama(dokServer, baru) {
+  if (!dokServer) return false
+  return (
+    Number(dokServer.jumlah) === Number(baru.jumlah) &&
+    dokServer.jenis === baru.jenis &&
+    (dokServer.kategoriId ?? '') === (baru.kategoriId ?? '') &&
+    (dokServer.akunId ?? '') === (baru.akunId ?? '') &&
+    (dokServer.tanggal ?? '') === (baru.tanggal ?? '') &&
+    (dokServer.jam ?? '') === (baru.jam ?? '') &&
+    (dokServer.catatan ?? '') === (baru.catatan ?? '')
+  )
 }
 
 // Delta saldo: pemasukan menambah, pengeluaran mengurangi (0 bila non-reguler/korup).
@@ -224,7 +287,9 @@ export async function hapusAkun(uid, id) {
 // dan dibersihkan sekali oleh migrasiNormalisasi().
 // Catatan desain: saldo akun diupdate via increment() — mutation ini masuk antrean
 // offline Firestore sama seperti penulisan dokumen, jadi catat saat offline tetap
-// konsisten saat online. (Trade-off v1: bukan transaksi atomik lintas dokumen.)
+// konsisten saat online. Sejak perbaikan audit 25 Nov 2026, mutasi saldo utama
+// (simpan/edit/hapus transaksi, pindah saldo, bayar utang) memakai runTransaction
+// dulu dan hanya jatuh ke writeBatch bila perangkat offline.
 
 export function buatTransaksiId(uid) {
   if (IS_DEMO_UID(uid)) {
@@ -263,16 +328,42 @@ export async function simpanTransaksi(uid, data) {
     return transId
   }
   const { db } = getFirebase()
-  const batch = writeBatch(db)
   const ref = doc(userCol(uid, 'transaksi'), transId)
-  batch.set(ref, trans)
-  batch.update(akunRef(uid, data.akunId), {
+  const akunDoc = akunRef(uid, data.akunId)
+  const mutasiAkun = {
     saldo: increment(deltaSaldo(trans)),
     updatedAt: serverTimestamp(),
     mutasiTerakhir: { delta: deltaSaldo(trans), keterangan: `Transaksi ${data.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
-  })
-  await batch.commit()
-  return transId
+  }
+  // Retry setelah commit berhasil: jangan tulis ulang saldo.
+  if (sudahDiproses(uid, 'simpan', transId)) return transId
+  const hasil = await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(ref)
+      if (snap.exists()) return transId // dokumen sudah ada = retry; saldo sudah diterapkan
+      const akunSnap = await tx.get(akunDoc)
+      if (!akunSnap.exists()) throw new Error('Rekening tidak ditemukan.')
+      tx.set(ref, trans)
+      tx.update(akunDoc, mutasiAkun)
+      return transId
+    },
+    async () => {
+      const batch = writeBatch(db)
+      batch.set(ref, trans)
+      batch.update(akunDoc, mutasiAkun)
+      await batch.commit()
+      return transId
+    },
+    // P3: bila dokumen sudah ada di server, percobaan transaksi pertama
+    // sudah mendarat (responsnya saja yang hilang) — jangan increment lagi.
+    async () => {
+      const snap = await getDocFromServer(ref)
+      return snap.exists() ? transId : undefined
+    },
+  )
+  tandaiDiproses(uid, 'simpan', transId)
+  return hasil
 }
 
 export async function updateTransaksi(uid, lama, data) {
@@ -307,37 +398,94 @@ export async function updateTransaksi(uid, lama, data) {
     return
   }
   const { db } = getFirebase()
-  const batch = writeBatch(db)
-  batch.update(transaksiRef(uid, lama.id), baru)
-
-  const akunLama = lama.akunId
-  const akunBaru = baru.akunId
-  if (akunLama && akunLama === akunBaru) {
-    // Rekening TIDAK berpindah: cukup SATU delta bersih (baru - lama).
-    // Menulis dua kali ke dokumen akun yang sama dalam satu batch membuat
-    // `mutasiTerakhir` saling menimpa dan hasil saldo bergantung urutan
-    // penerapan — digabung agar deterministik.
-    const delta = deltaSaldo(baru) - deltaSaldo(lama)
-    batch.update(akunRef(uid, akunBaru), {
-      saldo: increment(delta),
-      updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta, keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
-    })
-  } else {
-    if (akunLama) {
-      batch.update(akunRef(uid, akunLama), {
-        saldo: increment(-deltaSaldo(lama)),
-        updatedAt: serverTimestamp(),
-        mutasiTerakhir: { delta: -deltaSaldo(lama), keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
-      })
-    }
-    batch.update(akunRef(uid, akunBaru), {
-      saldo: increment(deltaSaldo(baru)),
-      updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: deltaSaldo(baru), keterangan: `Transaksi ${data.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
-    })
-  }
-  await batch.commit()
+  const ref = transaksiRef(uid, lama.id)
+  // Jalur transaksi membaca transaksi LAMA dari server (bukan dari UI yang
+  // bisa basi) untuk menghitung delta — edit dari dua tab tidak lagi memakai
+  // nominal lama yang sudah kedaluwarsa.
+  await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(ref)
+      if (!snap.exists()) throw new Error('Transaksi tidak ditemukan.')
+      const lamaServer = { id: snap.id, ...snap.data() }
+      if (lamaServer.deleted) throw new Error('Transaksi sudah dihapus.')
+      tx.update(ref, baru)
+      const akunLama = lamaServer.akunId
+      const akunBaru = baru.akunId
+      if (akunLama && akunLama === akunBaru) {
+        // Rekening TIDAK berpindah: cukup SATU delta bersih (baru - lama).
+        const delta = deltaSaldo(baru) - deltaSaldo(lamaServer)
+        if (delta !== 0) {
+          tx.update(akunRef(uid, akunBaru), {
+            saldo: increment(delta),
+            updatedAt: serverTimestamp(),
+            mutasiTerakhir: { delta, keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
+          })
+        }
+      } else {
+        if (akunLama) {
+          tx.update(akunRef(uid, akunLama), {
+            saldo: increment(-deltaSaldo(lamaServer)),
+            updatedAt: serverTimestamp(),
+            mutasiTerakhir: { delta: -deltaSaldo(lamaServer), keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
+          })
+        }
+        tx.update(akunRef(uid, akunBaru), {
+          saldo: increment(deltaSaldo(baru)),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: deltaSaldo(baru), keterangan: `Transaksi ${data.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
+        })
+      }
+    },
+    async () => {
+      // Fallback online: hitung delta dari state server terbaru, bukan objek
+      // UI `lama` yang bisa basi (di-edit tab lain di sela waktu). Bila masih
+      // offline, baca gagal dan kita pakai `lama` (perilaku lama).
+      let lamaEfektif = lama
+      try {
+        const snapSegar = await getDocFromServer(ref)
+        if (snapSegar.exists() && !snapSegar.data()?.deleted) {
+          lamaEfektif = { id: snapSegar.id, ...snapSegar.data() }
+        }
+      } catch {
+        // Tetap pakai `lama`.
+      }
+      const batch = writeBatch(db)
+      batch.update(ref, baru)
+      const akunLama = lamaEfektif.akunId
+      const akunBaru = baru.akunId
+      if (akunLama && akunLama === akunBaru) {
+        const delta = deltaSaldo(baru) - deltaSaldo(lamaEfektif)
+        batch.update(akunRef(uid, akunBaru), {
+          saldo: increment(delta),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta, keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
+        })
+      } else {
+        if (akunLama) {
+          batch.update(akunRef(uid, akunLama), {
+            saldo: increment(-deltaSaldo(lamaEfektif)),
+            updatedAt: serverTimestamp(),
+            mutasiTerakhir: { delta: -deltaSaldo(lamaEfektif), keterangan: 'Koreksi edit transaksi', at: serverTimestamp() },
+          })
+        }
+        batch.update(akunRef(uid, akunBaru), {
+          saldo: increment(deltaSaldo(baru)),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: deltaSaldo(baru), keterangan: `Transaksi ${data.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
+        })
+      }
+      await batch.commit()
+    },
+    // P3: bila dokumen server sudah sama dengan state baru, transaksi pertama
+    // sudah diterapkan (atomik — saldonya pun sudah) — lewati batch.
+    async () => {
+      const snap = await getDocFromServer(ref)
+      if (!snap.exists() || snap.data()?.deleted) return undefined
+      const server = { id: snap.id, ...snap.data() }
+      return dokumenSudahSama(server, baru) ? true : undefined
+    },
+  )
 }
 
 export async function hapusTransaksi(uid, trans) {
@@ -345,38 +493,94 @@ export async function hapusTransaksi(uid, trans) {
   if (trans.jenis === 'pindah saldo') {
     return hapusPindahSaldo(uid, trans)
   }
+  if (trans.deleted) return // sudah dihapus: jangan ulangi reversal
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
     if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
     return
   }
   const { db } = getFirebase()
-  const batch = writeBatch(db)
-  batch.update(transaksiRef(uid, trans.id), { deleted: true })
-  if (trans.akunId) {
-    batch.update(akunRef(uid, trans.akunId), {
-      saldo: increment(-deltaSaldo(trans)),
-      updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: -deltaSaldo(trans), keterangan: `Hapus transaksi ${trans.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
-    })
-  }
-  if (trans.utangId) {
-    const jml = Math.max(0, angkaAman(trans.jumlah))
-    if (jml > 0) {
-      batch.update(utangRef(uid, trans.utangId), {
-        sisa: increment(jml),
-        status: 'Belum Lunas',
-        updatedAt: serverTimestamp(),
-      })
-    }
-    if (trans.pembayaranUtangId) {
-      batch.update(doc(userCol(uid, 'pembayaranUtang'), trans.pembayaranUtangId), {
-        deleted: true,
-        updatedAt: serverTimestamp(),
-      })
-    }
-  }
-  await batch.commit()
+  const ref = transaksiRef(uid, trans.id)
+  if (sudahDiproses(uid, 'hapus', trans.id)) return
+  await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(ref)
+      // Sudah dihapus / tidak ada: no-op. Inilah yang menghentikan reversal ganda.
+      if (!snap.exists() || snap.data()?.deleted) return
+      const s = snap.data()
+      tx.update(ref, { deleted: true })
+      if (s.akunId) {
+        tx.update(akunRef(uid, s.akunId), {
+          saldo: increment(-deltaSaldo(s)),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: -deltaSaldo(s), keterangan: `Hapus transaksi ${s.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
+        })
+      }
+      if (s.utangId) {
+        const jml = Math.max(0, angkaAman(s.jumlah))
+        if (jml > 0) {
+          tx.update(utangRef(uid, s.utangId), {
+            sisa: increment(jml),
+            status: 'Belum Lunas',
+            updatedAt: serverTimestamp(),
+          })
+        }
+        if (s.pembayaranUtangId) {
+          tx.update(doc(userCol(uid, 'pembayaranUtang'), s.pembayaranUtangId), {
+            deleted: true,
+            updatedAt: serverTimestamp(),
+          })
+        }
+      }
+    },
+    async () => {
+      // Fallback online: reversal harus memakai data server terbaru, bukan
+      // objek UI yang bisa basi (nominal/akun berubah di tab lain).
+      let transEfektif = trans
+      try {
+        const snapSegar = await getDocFromServer(ref)
+        if (snapSegar.exists() && !snapSegar.data()?.deleted) {
+          transEfektif = { id: snapSegar.id, ...snapSegar.data() }
+        }
+      } catch {
+        // Tetap pakai `trans`.
+      }
+      const batch = writeBatch(db)
+      batch.update(ref, { deleted: true })
+      if (transEfektif.akunId) {
+        batch.update(akunRef(uid, transEfektif.akunId), {
+          saldo: increment(-deltaSaldo(transEfektif)),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: -deltaSaldo(transEfektif), keterangan: `Hapus transaksi ${transEfektif.kategoriNama ?? ''}`.trim(), at: serverTimestamp() },
+        })
+      }
+      if (transEfektif.utangId) {
+        const jml = Math.max(0, angkaAman(transEfektif.jumlah))
+        if (jml > 0) {
+          batch.update(utangRef(uid, transEfektif.utangId), {
+            sisa: increment(jml),
+            status: 'Belum Lunas',
+            updatedAt: serverTimestamp(),
+          })
+        }
+        if (transEfektif.pembayaranUtangId) {
+          batch.update(doc(userCol(uid, 'pembayaranUtang'), transEfektif.pembayaranUtangId), {
+            deleted: true,
+            updatedAt: serverTimestamp(),
+          })
+        }
+      }
+      await batch.commit()
+    },
+    // P3: bila dokumen sudah tidak ada / sudah terhapus di server, reversal
+    // sudah terjadi — jangan ulangi (reversal ganda = saldo naik dua kali).
+    async () => {
+      const snap = await getDocFromServer(ref)
+      return !snap.exists() || snap.data()?.deleted ? true : undefined
+    },
+  )
+  tandaiDiproses(uid, 'hapus', trans.id)
 }
 
 // Hapus massal atomik: gabungkan penghapusan banyak transaksi (reguler, pindah saldo,
@@ -384,6 +588,10 @@ export async function hapusTransaksi(uid, trans) {
 // akunId & utangId agar tidak menimpa dokumen akun yang sama berulang kali.
 export async function hapusTransaksiMassal(uid, targets) {
   if (!Array.isArray(targets) || targets.length === 0) return
+  // Re-review 25 Nov 2026: ID duplikat di `targets` membuat delta saldo
+  // terhitung dua kali (dan batch.update ganda pada dokumen yang sama).
+  // Dedupikasi berdasarkan id — kemunculan pertama yang dipakai.
+  targets = [...new Map(targets.filter((t) => t?.id).map((t) => [t.id, t])).values()]
   if (IS_DEMO_UID(uid)) {
     const idSet = new Set(targets.map((t) => t.id))
     for (let i = MOCK_TRANSAKSI.length - 1; i >= 0; i--) {
@@ -401,6 +609,7 @@ export async function hapusTransaksiMassal(uid, targets) {
 
     for (const t of slice) {
       if (!t?.id) continue
+      if (t.deleted) continue // sudah dihapus: jangan ulangi reversal
       batch.update(transaksiRef(uid, t.id), { deleted: true })
       const jml = Math.max(0, angkaAman(t.jumlah))
       if (t.jenis === 'pindah saldo') {
@@ -474,57 +683,152 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
     return transId
   }
   const { db } = getFirebase()
-  const batch = writeBatch(db)
   const ref = doc(userCol(uid, 'transaksi'), transId)
-  batch.set(ref, trans)
-  batch.update(akunRef(uid, dariId), {
-    saldo: increment(-jumlahInt),
-    updatedAt: serverTimestamp(),
-    mutasiTerakhir: { delta: -jumlahInt, keterangan: `Pindah saldo ke ${keNama}`, at: serverTimestamp() },
-  })
-  batch.update(akunRef(uid, keId), {
-    saldo: increment(jumlahInt),
-    updatedAt: serverTimestamp(),
-    mutasiTerakhir: { delta: jumlahInt, keterangan: `Pindah saldo dari ${dariNama}`, at: serverTimestamp() },
-  })
-  await batch.commit()
-  return transId
+  const dariDoc = akunRef(uid, dariId)
+  const keDoc = akunRef(uid, keId)
+  if (sudahDiproses(uid, 'pindah', transId)) return transId
+  const hasil = await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(ref)
+      if (snap.exists()) return transId // retry: dokumen sudah ada
+      const dariSnap = await tx.get(dariDoc)
+      const keSnap = await tx.get(keDoc)
+      if (!dariSnap.exists() || !keSnap.exists()) throw new Error('Rekening tidak ditemukan.')
+      tx.set(ref, trans)
+      tx.update(dariDoc, {
+        saldo: increment(-jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: -jumlahInt, keterangan: `Pindah saldo ke ${keNama}`, at: serverTimestamp() },
+      })
+      tx.update(keDoc, {
+        saldo: increment(jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: jumlahInt, keterangan: `Pindah saldo dari ${dariNama}`, at: serverTimestamp() },
+      })
+      return transId
+    },
+    async () => {
+      const batch = writeBatch(db)
+      batch.set(ref, trans)
+      batch.update(dariDoc, {
+        saldo: increment(-jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: -jumlahInt, keterangan: `Pindah saldo ke ${keNama}`, at: serverTimestamp() },
+      })
+      batch.update(keDoc, {
+        saldo: increment(jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: jumlahInt, keterangan: `Pindah saldo dari ${dariNama}`, at: serverTimestamp() },
+      })
+      await batch.commit()
+      return transId
+    },
+    // P3: dokumen sudah ada di server = percobaan transaksi pertama mendarat.
+    async () => {
+      const snap = await getDocFromServer(ref)
+      return snap.exists() ? transId : undefined
+    },
+  )
+  tandaiDiproses(uid, 'pindah', transId)
+  return hasil
 }
 
 // Kembalikan efek pindah saldo (hapus): sumber +jumlah, tujuan -jumlah.
 export async function hapusPindahSaldo(uid, trans) {
   if (!trans?.id) return
+  if (trans.deleted) return // sudah dihapus: jangan ulangi reversal
   if (IS_DEMO_UID(uid)) {
     const idx = MOCK_TRANSAKSI.findIndex((t) => t.id === trans.id)
     if (idx !== -1) MOCK_TRANSAKSI.splice(idx, 1)
     return
   }
-  const jml = Math.max(0, angkaAman(trans.jumlah))
   const { db } = getFirebase()
-  const batch = writeBatch(db)
-  batch.update(transaksiRef(uid, trans.id), { deleted: true })
-  if (trans.dariId && trans.dariId !== trans.keId) {
-    batch.update(akunRef(uid, trans.dariId), {
-      saldo: increment(jml),
-      updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
-    })
-  }
-  if (trans.keId && trans.dariId !== trans.keId) {
-    batch.update(akunRef(uid, trans.keId), {
-      saldo: increment(-jml),
-      updatedAt: serverTimestamp(),
-      mutasiTerakhir: { delta: -jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
-    })
-  }
-  await batch.commit()
+  const ref = transaksiRef(uid, trans.id)
+  if (sudahDiproses(uid, 'hapus', trans.id)) return
+  await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(ref)
+      if (!snap.exists() || snap.data()?.deleted) return
+      const s = snap.data()
+      const jml = Math.max(0, angkaAman(s.jumlah))
+      tx.update(ref, { deleted: true })
+      if (s.dariId && s.dariId !== s.keId) {
+        tx.update(akunRef(uid, s.dariId), {
+          saldo: increment(jml),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+        })
+      }
+      if (s.keId && s.dariId !== s.keId) {
+        tx.update(akunRef(uid, s.keId), {
+          saldo: increment(-jml),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: -jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+        })
+      }
+    },
+    async () => {
+      // Fallback online: reversal memakai data server terbaru, bukan objek UI.
+      let transEfektif = trans
+      try {
+        const snapSegar = await getDocFromServer(ref)
+        if (snapSegar.exists() && !snapSegar.data()?.deleted) {
+          transEfektif = { id: snapSegar.id, ...snapSegar.data() }
+        }
+      } catch {
+        // Tetap pakai `trans`.
+      }
+      const jml = Math.max(0, angkaAman(transEfektif.jumlah))
+      const batch = writeBatch(db)
+      batch.update(ref, { deleted: true })
+      if (transEfektif.dariId && transEfektif.dariId !== transEfektif.keId) {
+        batch.update(akunRef(uid, transEfektif.dariId), {
+          saldo: increment(jml),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+        })
+      }
+      if (transEfektif.keId && transEfektif.dariId !== transEfektif.keId) {
+        batch.update(akunRef(uid, transEfektif.keId), {
+          saldo: increment(-jml),
+          updatedAt: serverTimestamp(),
+          mutasiTerakhir: { delta: -jml, keterangan: 'Batal pindah saldo', at: serverTimestamp() },
+        })
+      }
+      await batch.commit()
+    },
+    // P3: dokumen sudah terhapus di server = reversal sudah terjadi.
+    async () => {
+      const snap = await getDocFromServer(ref)
+      return !snap.exists() || snap.data()?.deleted ? true : undefined
+    },
+  )
+  tandaiDiproses(uid, 'hapus', trans.id)
 }
 
 // Bersihkan dokumen transaksi rusak: jumlah 0/NaN tanpa kategori & akun.
 // Dokumen seperti ini tidak mengubah saldo, tapi mengotori daftar dengan
 // baris "(tanpa kategori) -Rp0". Soft-delete dipakai supaya bisa dibatalkan.
+//
+// DAT-01 (audit 25 Nov 2026): fungsi ini + migrasiNormalisasi masing-masing
+// memindai SELURUH koleksi transaksi di tiap login. Migrasi sudah punya marker
+// server; pembersih ini hanya punya flag localStorage, jadi terulang di tiap
+// browser/perangkat baru (~2x N read). Sekarang pembersih memakai marker
+// `meta/bersihTxRusak` di Firestore — sekali selesai, login berikutnya skip
+// dengan 1 read. Aman: kode tulis saat ini menolak jumlah <= 0, jadi dokumen
+// rusak baru tidak bisa muncul dari versi ini.
 export async function bersihkanTransaksiRusak(uid) {
   if (!uid || IS_DEMO_UID(uid)) return 0
+  const { db } = getFirebase()
+  const markerRef = doc(userCol(uid, 'meta'), 'bersihTxRusak')
+  try {
+    const markerSnap = await getDoc(markerRef)
+    if (markerSnap.exists() && markerSnap.data()?.done) return 0
+  } catch {
+    // Gagal baca marker jangan memblokir pembersihan — lanjut memindai.
+  }
   // Baca semua dokumen (tanpa filter deleted) supaya tidak bergantung pada
   // urutan dengan migrasiNormalisasi yang bisa mengisi field deleted belakangan.
   const snap = await getDocs(userCol(uid, 'transaksi'))
@@ -533,10 +837,9 @@ export async function bersihkanTransaksiRusak(uid) {
     const jml = Number(v?.jumlah)
     return !v?.deleted && (!Number.isFinite(jml) || jml <= 0)
   })
-  if (!rusak.length) return 0
-  const { db } = getFirebase()
   const batch = writeBatch(db)
   rusak.forEach((d) => batch.update(d.ref, { deleted: true, updatedAt: serverTimestamp() }))
+  batch.set(markerRef, { done: true, at: serverTimestamp() })
   await batch.commit()
   return rusak.length
 }
@@ -645,9 +948,13 @@ export async function migrasiNormalisasi(uid) {
   }
 
   // 1) transaksi
+  // H-02 (audit 25 Nov 2026): dokumen yang sudah di-soft-delete tidak perlu
+  // dinormalisasi — dan rules kini menolak update non-delete pada dokumen
+  // terhapus, jadi patch ke dokumen itu akan menggagalkan migrasi.
   const txSnap = await getDocs(userCol(uid, 'transaksi'))
   for (const d of txSnap.docs) {
     const v = d.data()
+    if (v.deleted) continue
     const punyaNama = 'kategoriNama' in v || 'akunNama' in v
     const butuhKat = !v.kategoriId && !!v.kategoriNama && v.jenis !== 'pindah saldo'
     const butuhDeleted = !('deleted' in v)
@@ -676,6 +983,7 @@ export async function migrasiNormalisasi(uid) {
   const budSnap = await getDocs(userCol(uid, 'budget'))
   for (const d of budSnap.docs) {
     const v = d.data()
+    if (v.deleted) continue
     if (!('kategoriNama' in v)) continue
     const patch = { kategoriNama: deleteField() }
     if (!v.kategoriId && v.kategoriNama) patch.kategoriId = await ensureKategori(v.kategoriNama, 'pengeluaran')
@@ -686,6 +994,7 @@ export async function migrasiNormalisasi(uid) {
   const bayarSnap = await getDocs(userCol(uid, 'pembayaranUtang'))
   for (const d of bayarSnap.docs) {
     const v = d.data()
+    if (v.deleted) continue
     if (!('utangNama' in v) && !('akunNama' in v)) continue
     const patch = {}
     if ('utangNama' in v) patch.utangNama = deleteField()
@@ -872,13 +1181,20 @@ export async function ambilAtauBuatKategori(uid, nama, jenis = 'pengeluaran', { 
 }
 
 // Bayar utang/cicilan: catat pembayaran + transaksi pengeluaran + kurangi sisa + saldo akun.
-// ATOMIK: keempat penulisan (termasuk kategori Pembayaran bila belum ada) dibungkus SATU writeBatch.
+// ATOMIK: keempat penulisan dibungkus SATU runTransaction (baca sisa dari server);
+// bila offline, jatuh ke writeBatch + penanda idempotensi (lihat denganTransaksi).
 export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
   const jumlahInt = wajibAngkaPositif(jumlah, 'Nominal pembayaran')
   if (!utang?.id) throw new Error('Data utang tidak valid.')
   if (!akun?.id) throw new Error('Pilih rekening sumber dana.')
   const ket = potongTeks(`Bayar ${utang.tipe === 'Cicilan' ? 'cicilan' : 'utang'} ${utang.namaPihak}`, 500)
   const sisaSebelum = Math.max(0, angkaAman(utang.sisa))
+  // F02 (audit 25 Nov 2026): overpay harus ditolak — sebelumnya bayar di atas
+  // sisa membuat status "Lunas" sementara rekening tetap terdebit penuh dan
+  // kelebihannya menguap tanpa jejak.
+  if (jumlahInt > sisaSebelum) {
+    throw new Error(`Nominal pembayaran melebihi sisa utang (sisa Rp${sisaSebelum.toLocaleString('id-ID')}).`)
+  }
   const sisaBaru = Math.max(0, sisaSebelum - jumlahInt)
   const tglKanonik = kanonikTanggal(tanggal)
   const snapKurs = buatSnapshotKurs(bacaBasisMataUang() || 'IDR', tglKanonik)
@@ -907,48 +1223,118 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
     return txId
   }
   const { db } = getFirebase()
-  const batch = writeBatch(db)
-  const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran', { batch })
+  // Kategori diselesaikan SEBELUM transaksi (tidak bisa di dalam transaksi):
+  // tungguServer agar tx tidak pernah merujuk kategori yang belum ada.
+  const katId = await ambilAtauBuatKategori(uid, 'Pembayaran', 'Pengeluaran', { tungguServer: true })
   const txRef = id ? doc(userCol(uid, 'transaksi'), id) : doc(userCol(uid, 'transaksi'))
   const txId = txRef.id
   const bayarRef = doc(userCol(uid, 'pembayaranUtang'))
-
-  batch.set(bayarRef, {
-    utangId: utang.id,
-    transaksiId: txId,
-    jumlah: jumlahInt,
-    tanggal: tglKanonik,
-    akunId: akun.id,
-    kursSnapshot: snapKurs,
-    deleted: false,
-    createdAt: serverTimestamp(),
-  })
-  batch.set(txRef, {
-    jumlah: jumlahInt,
-    jenis: 'pengeluaran',
-    kategoriId: katId,
-    akunId: akun.id,
-    utangId: utang.id,
-    pembayaranUtangId: bayarRef.id,
-    tanggal: tglKanonik,
-    catatan: ket,
-    kursSnapshot: snapKurs,
-    deleted: false,
-    createdAt: serverTimestamp(),
-  })
-  batch.update(utangRef(uid, utang.id), {
-    sisa: sisaBaru <= 0 ? 0 : increment(-jumlahInt),
-    status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
-    terakhirBayar: tglKanonik,
-    updatedAt: serverTimestamp(),
-  })
-  batch.update(akunRef(uid, akun.id), {
-    saldo: increment(-jumlahInt),
-    updatedAt: serverTimestamp(),
-    mutasiTerakhir: { delta: -jumlahInt, keterangan: ket, at: serverTimestamp() },
-  })
-  await batch.commit()
-  return txId
+  const utangDoc = utangRef(uid, utang.id)
+  const akunDoc = akunRef(uid, akun.id)
+  if (sudahDiproses(uid, 'bayar', txId)) return txId
+  const hasil = await denganTransaksi(
+    db,
+    async (tx) => {
+      const txSnap = await tx.get(txRef)
+      if (txSnap.exists()) return txId // retry: pembayaran sudah tercatat
+      const utangSnap = await tx.get(utangDoc)
+      if (!utangSnap.exists()) throw new Error('Data utang tidak ditemukan.')
+      const akunSnap = await tx.get(akunDoc)
+      if (!akunSnap.exists()) throw new Error('Rekening tidak ditemukan.')
+      // Sisa dibaca dari SERVER di dalam transaksi — dua tab yang membayar
+      // bersamaan tidak lagi sama-sama melihat sisa lama yang sama.
+      const sisaServer = Math.max(0, angkaAman(utangSnap.data()?.sisa))
+      if (jumlahInt > sisaServer) {
+        throw new Error(
+          `Nominal pembayaran melebihi sisa utang saat ini (sisa Rp${sisaServer.toLocaleString('id-ID')}). ` +
+            'Mungkin sudah dibayar dari perangkat lain — muat ulang lalu coba lagi.',
+        )
+      }
+      const sisaBaruServer = sisaServer - jumlahInt
+      tx.set(bayarRef, {
+        utangId: utang.id,
+        transaksiId: txId,
+        jumlah: jumlahInt,
+        tanggal: tglKanonik,
+        akunId: akun.id,
+        kursSnapshot: snapKurs,
+        deleted: false,
+        createdAt: serverTimestamp(),
+      })
+      tx.set(txRef, {
+        jumlah: jumlahInt,
+        jenis: 'pengeluaran',
+        kategoriId: katId,
+        akunId: akun.id,
+        utangId: utang.id,
+        pembayaranUtangId: bayarRef.id,
+        tanggal: tglKanonik,
+        catatan: ket,
+        kursSnapshot: snapKurs,
+        deleted: false,
+        createdAt: serverTimestamp(),
+      })
+      tx.update(utangDoc, {
+        sisa: sisaBaruServer,
+        status: sisaBaruServer <= 0 ? 'Lunas' : 'Belum Lunas',
+        terakhirBayar: tglKanonik,
+        updatedAt: serverTimestamp(),
+      })
+      tx.update(akunDoc, {
+        saldo: increment(-jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: -jumlahInt, keterangan: ket, at: serverTimestamp() },
+      })
+      return txId
+    },
+    async () => {
+      const batch = writeBatch(db)
+      batch.set(bayarRef, {
+        utangId: utang.id,
+        transaksiId: txId,
+        jumlah: jumlahInt,
+        tanggal: tglKanonik,
+        akunId: akun.id,
+        kursSnapshot: snapKurs,
+        deleted: false,
+        createdAt: serverTimestamp(),
+      })
+      batch.set(txRef, {
+        jumlah: jumlahInt,
+        jenis: 'pengeluaran',
+        kategoriId: katId,
+        akunId: akun.id,
+        utangId: utang.id,
+        pembayaranUtangId: bayarRef.id,
+        tanggal: tglKanonik,
+        catatan: ket,
+        kursSnapshot: snapKurs,
+        deleted: false,
+        createdAt: serverTimestamp(),
+      })
+      batch.update(utangDoc, {
+        sisa: sisaBaru <= 0 ? 0 : increment(-jumlahInt),
+        status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
+        terakhirBayar: tglKanonik,
+        updatedAt: serverTimestamp(),
+      })
+      batch.update(akunDoc, {
+        saldo: increment(-jumlahInt),
+        updatedAt: serverTimestamp(),
+        mutasiTerakhir: { delta: -jumlahInt, keterangan: ket, at: serverTimestamp() },
+      })
+      await batch.commit()
+      return txId
+    },
+    // P3: dokumen transaksi sudah ada di server = pembayaran pertama mendarat
+    // (pembayaranUtang dibuat bersamaan di transaksi yang sama, atomik).
+    async () => {
+      const snap = await getDocFromServer(txRef)
+      return snap.exists() ? txId : undefined
+    },
+  )
+  tandaiDiproses(uid, 'bayar', txId)
+  return hasil
 }
 
 /**
@@ -958,6 +1344,7 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
 export async function tetapkanMataUangDasar(uid, currency, { paksa = false, sinkronLokasi = true } = {}) {
   const kode = String(currency || '').trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(kode)) throw new Error('Kode mata uang tidak valid.')
+  if (!mataUangDidukung(kode)) throw new Error(`Mata uang ${kode} tidak didukung (tidak ada kursnya).`)
   if (!uid) return 'IDR'
   if (IS_DEMO_UID(uid)) {
     simpanBasisMataUang(kode, { terkunci: true })
@@ -973,7 +1360,7 @@ export async function tetapkanMataUangDasar(uid, currency, { paksa = false, sink
     try {
       const existing = await getDoc(metaRef)
       const lama = existing.exists() ? String(existing.data()?.baseCurrency || '').toUpperCase() : ''
-      if (/^[A-Z]{3}$/.test(lama)) {
+      if (/^[A-Z]{3}$/.test(lama) && mataUangDidukung(lama)) {
         simpanBasisMataUang(lama, { terkunci: true })
         return lama
       }
@@ -1019,8 +1406,12 @@ export async function inisialisasiMataUangDasar(uid) {
     const snap = await getDoc(metaRef)
     const tersimpan = snap.exists() ? String(snap.data()?.baseCurrency || '').toUpperCase() : ''
     if (/^[A-Z]{3}$/.test(tersimpan)) {
-      simpanBasisMataUang(tersimpan, { terkunci: true })
-      return tersimpan
+      if (mataUangDidukung(tersimpan)) {
+        simpanBasisMataUang(tersimpan, { terkunci: true })
+        return tersimpan
+      }
+      // Basis lama tanpa kurs (data sebelum perbaikan whitelist): jangan dipakai
+      // — lanjut ke logika akun lama/kosong di bawah, jangan percaya nilainya.
     }
 
     // Akun lama tanpa marker meta/mataUang dianggap berbasis IDR bila sudah memiliki data

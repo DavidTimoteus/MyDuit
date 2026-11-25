@@ -102,6 +102,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [tambahAkunBusy, setTambahAkunBusy] = useState(false)
   const masihTerpasang = useRef(true)
   const submittedRef = useRef(false)
+  // R01 (re-review 25 Nov 2026): ID dokumen dibuat SEKALI per sesi form dan
+  // dipakai ulang di tiap percobaan submit — bila commit pertama ternyata
+  // sudah mendarat di server sementara klien melihat gagal, percobaan berikut
+  // memakai ID yang sama sehingga simpanTransaksi mengenalinya sebagai retry
+  // (dokumen sudah ada = no-op), bukan transaksi baru yang menggandakan saldo.
+  // Direset tiap kali modal dibuka (lihat useEffect open di bawah).
+  const docIdRef = useRef(null)
   const scanUrlRef = useRef(null)
 
   useEffect(() => {
@@ -144,6 +151,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   useEffect(() => {
     if (!open) return
     submittedRef.current = false
+    docIdRef.current = null
     setError('')
     setSaving(false)
     setCalcOpen(false)
@@ -513,8 +521,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat && k?.jenis === jenisSnap) ??
       (kategoriList || []).find((k) => String(k?.nama ?? '').trim().toLowerCase() === targetKat)
 
-    // ID dokumen: pertahankan bila edit, atau buat ID resmi sinkron sebelum submit
-    const docId = modeSnap === 'edit' && sumberSnap?.id ? sumberSnap.id : buatTransaksiId(uid)
+    // ID dokumen: pertahankan bila edit; bila baru, buat sekali per sesi form
+    // dan pakai ulang bila submit diulang (lihat docIdRef di atas).
+    const docId = modeSnap === 'edit' && sumberSnap?.id ? sumberSnap.id : (docIdRef.current ??= buatTransaksiId(uid))
     const kursSnapshot =
       modeSnap === 'edit'
         ? (sumberSnap?.kursSnapshot || null)
@@ -866,7 +875,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       Gundam {Math.round(scanHasil.confidence)}%
                     </span>
                   ) : scanHasil?.confidence > 0 ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-[#1E6B48]">
                       <span className="material-symbols-outlined icon-2xs">bolt</span>
                       {Math.round(scanHasil.confidence)}%
                     </span>
@@ -1087,7 +1096,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                   <button
                     type="button"
                     onClick={terapkanUlang}
-                    className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary-light"
+                    className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold text-[#1E6B48] hover:bg-primary-light"
                   >
                     <span className="material-symbols-outlined icon-xs">refresh</span>
                     Terapkan ulang
@@ -1324,7 +1333,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
               <div className="space-y-2">
                 <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-[#1E6B48]">
                     1
                   </span>
                   <div>
@@ -1334,7 +1343,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       href="https://aistudio.google.com/apikey"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-primary hover:bg-primary/20"
+                      className="mt-1 inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 text-[10.5px] font-bold text-[#1E6B48] hover:bg-primary/20"
                     >
                       <span className="material-symbols-outlined icon-xs">open_in_new</span>
                       Buka aistudio.google.com/apikey
@@ -1343,7 +1352,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-[#1E6B48]">
                     2
                   </span>
                   <div>
@@ -1353,7 +1362,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-[#1E6B48]">
                     3
                   </span>
                   <div>
@@ -1365,7 +1374,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 </div>
 
                 <div className="flex items-start gap-2">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-[#1E6B48]">
                     4
                   </span>
                   <div>

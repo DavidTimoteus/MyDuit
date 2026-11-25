@@ -413,6 +413,11 @@ export default function TransaksiView({ user }) {
     if (salinLockRef.current.id === trans.id && now - salinLockRef.current.at < 800) return
     salinLockRef.current = { id: trans.id, at: now }
     setOpenDeleteId(null)
+    // SENGAJA tidak memakai ID stabil per sesi di sini (berbeda dengan form):
+    // tiap klik "salin cepat" adalah niat membuat salinan BARU — menstabilkan
+    // ID akan menggabungkan dua salinan yang memang diinginkan user menjadi
+    // satu. Klik ganda sudah ditahan lock 800ms di atas; commit ambigu di
+    // dalam satu pemanggilan ditahan cek server di simpanTransaksi (P3).
     const docId = buatTransaksiId(uid)
     const tanggalCopy = trans.tanggal ?? isoHariIni()
     const optTx = {

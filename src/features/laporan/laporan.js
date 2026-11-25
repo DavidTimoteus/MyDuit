@@ -288,9 +288,13 @@ export async function buatPdfLaporan(data, pakaiAI, nama = 'Pengguna') {
   if (basis && basis !== currency) {
     const kursInfo = statusKurs()
     const perUnit = ambilRasioKurs(currency, basis)
-    const labelKurs = perUnit >= 1
-      ? `1 ${currency} = ${perUnit.toLocaleString('id-ID', { maximumFractionDigits: 2 })} ${basis}`
-      : `1 ${basis} = ${ambilRasioKurs(basis, currency).toLocaleString('en-US', { maximumFractionDigits: 4 })} ${currency}`
+    const perUnitBalik = ambilRasioKurs(basis, currency)
+    // Rasio NaN = kurs tidak diketahui (data lama/corrupt): jangan cetak "NaN".
+    const labelKurs = !Number.isFinite(perUnit) || !Number.isFinite(perUnitBalik)
+      ? 'kurs tidak tersedia'
+      : perUnit >= 1
+        ? `1 ${currency} = ${perUnit.toLocaleString('id-ID', { maximumFractionDigits: 2 })} ${basis}`
+        : `1 ${basis} = ${perUnitBalik.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${currency}`
     teks(
       doc,
       `Periode ${data.label} · Mata uang ${currency} (${labelKurs}, ${kursInfo.isFallback ? 'kurs cadangan' : kursInfo.source})`,

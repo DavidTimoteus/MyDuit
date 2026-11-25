@@ -38,6 +38,9 @@ export default function InfoLensaKurs({
   }
 
   const rasio = ambilRasioKurs(aktif, basis, kursSnapshot)
+  // Rasio NaN = kurs tidak diketahui (data lama/corrupt): jangan tampilkan
+  // angka hasil konversi palsu ("1 IDR ≈ US$0").
+  if (!Number.isFinite(rasio)) return null
   const localeAktif = uangAktif().locale || 'id-ID'
   const teksKurs =
     rasio >= 0.01

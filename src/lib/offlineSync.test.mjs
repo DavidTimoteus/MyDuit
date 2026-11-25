@@ -57,7 +57,9 @@ const cek = [
   ['seedKategoriJikaKosong memakai getDoc(markerRef) 1-read', /getDoc\(markerRef\)/.test(src)],
   ['ambilAtauBuatKategori mendukung cache-first & batch tanpa blocking addDoc', /getDocsFromCache/.test(src) && !/addDoc\(userCol\(uid,\s*'kategori'\)/.test(src)],
   ['bayarUtang menautkan utangId & pembayaranUtangId ke transaksi', /utangId:\s*utang\.id/.test(src) && /pembayaranUtangId:\s*bayarRef\.id/.test(src)],
-  ['hapusTransaksi me-rollback sisa utang & pembayaranUtang', /trans\.utangId/.test(src) && /trans\.pembayaranUtangId/.test(src)],
+  // Re-review 25 Nov 2026: jalur fallback batch memakai `transEfektif` (data
+  // server terbaru) bukan `trans` (objek UI) — pola scan menerima keduanya.
+  ['hapusTransaksi me-rollback sisa utang & pembayaranUtang', /(trans|transEfektif)\.utangId/.test(src) && /(trans|transEfektif)\.pembayaranUtangId/.test(src)],
   ['hapusTransaksiMassal memakai writeBatch terkelompok', /export async function hapusTransaksiMassal/.test(src)],
   ['firestore.indexes.json memiliki composite index budget (deleted, bulan, tahun)', idxKeys.has('budget:deleted:ASCENDING|bulan:ASCENDING|tahun:ASCENDING')],
   ['firestore.indexes.json memiliki composite index transaksi range (deleted, tanggal)', idxKeys.has('transaksi:deleted:ASCENDING|tanggal:ASCENDING')],

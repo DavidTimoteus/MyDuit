@@ -170,7 +170,16 @@ export function rasioKursTampil(kursSnapshot = null) {
     : null
   const basis = basisSnap || bacaBasisMataUang()
   const { currency } = uangAktif()
-  return basis && basis !== currency ? ambilRasioKurs(basis, currency, kursSnapshot) : 1
+  if (!basis || basis === currency) return 1
+  const r = ambilRasioKurs(basis, currency, kursSnapshot)
+  if (!Number.isFinite(r)) {
+    // Seharusnya tidak terjadi setelah whitelist basis (kurs.js): basis dan
+    // mata uang tampil selalu punya kurs. Bila data lama/corrupt lolos,
+    // tampilkan nilai basis apa adanya dan catat — jangan pernah mengarang rasio.
+    console.warn('[kurs] Rasio tidak diketahui, tampil tanpa konversi:', basis, '->', currency)
+    return 1
+  }
+  return r
 }
 
 export function konversiUntukTampil(n, kursSnapshot = null) {

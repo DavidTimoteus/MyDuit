@@ -8,8 +8,11 @@
   --color-surface: #E5E5E5;
   --color-income: #36AE7C;
   --color-expense: #EB5353;
-  --color-incomeText: #26805B;
-  --color-expenseText: #C73838;
+  /* A01 (audit 25 Nov 2026): nilai lama #26805B (3,86:1) dan #C73838 (4,12:1)
+     gagal WCAG AA 4,5:1 untuk teks di atas kanvas #E5E5E5. Nilai baru lolos:
+     #1E6B48 = 5,13:1; #A92E2E = 5,35:1 (diukur rumus luminansi WCAG). */
+  --color-incomeText: #1E6B48;
+  --color-expenseText: #A92E2E;
 
   --color-danger: #EB5353;
   --color-danger-light: #FDEDED;
@@ -64,7 +67,11 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
 }
 
-/* Hallmark Floor: Focus-visible instan dengan Cincin Zamrud Luminous (#2d6a4f harmonis dgn brand) */
+/* Hallmark Floor: Focus-visible instan.
+   C01 (audit 25 Nov 2026): outline hijau lama (#36AE7C, 2,80:1 terhadap kanvas)
+   dan cincin rgba(45,106,79,0.35) (campuran ~1,6:1) praktis tak terlihat.
+   Outline biru solid #1D4ED8 = 5,32:1 terhadap kanvas, 6,70:1 terhadap putih —
+   lolos WCAG 2.4.11 (butuh 3:1). */
 button:focus-visible,
 a:focus-visible,
 input:focus-visible,
@@ -73,9 +80,9 @@ textarea:focus-visible,
 .clay-btn:focus-visible,
 .clay-chip:focus-visible,
 .clay-card:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid #1D4ED8;
   outline-offset: 2px;
-  box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.35) !important;
+  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.55) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -141,8 +148,10 @@ textarea:focus-visible,
   --clay-lip-card:        rgba(0, 0, 0, 0.08);
   --clay-lip-card-raised: rgba(0, 0, 0, 0.12);
   --clay-lip-chip:        rgba(0, 0, 0, 0.10);
-  --clay-focus-ring:      0 0 0 3px rgba(16, 185, 129, 0.35);
-  --clay-focus-glow:      0 0 12px rgba(16, 185, 129, 0.28);
+  /* C01: cincin fokus hijau lama praktis tak terlihat di atas kanvas.
+     Biru #1D4ED8 dipakai sebagai indikator fokus di seluruh app. */
+  --clay-focus-ring:      0 0 0 3px rgba(29, 78, 216, 0.55);
+  --clay-focus-glow:      0 0 12px rgba(29, 78, 216, 0.35);
 
   /* ===== UNIFIED MOTION PHYSICS TOKENS (Emil Kowalski + Jakub Krehel) ===== */
   --motion-ease-spring: cubic-bezier(0.16, 1, 0.3, 1);    /* Deselerasi mulus tanpa bounce overshoot */
@@ -575,8 +584,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 .clay-btn-primary,
 .clay-btn.solid-primary {
   --clay-h: var(--clay-h-primary);
-  background-color: #36AE7C;
-  background-image: linear-gradient(180deg, #4EC593 0%, #36AE7C 60%, #2B8C63 100%);
+  /* A01: gradien lama #4EC593 (putih di atasnya 2,16:1) gagal AA. Gradien baru
+     memakai hijau gelap di semua stop: #35795a 5,21:1, #2d6a4f 6,39:1,
+     #1b4332 11,08:1 — teks putih lolos 4,5:1 di seluruh permukaan tombol. */
+  background-color: #2d6a4f;
+  background-image: linear-gradient(180deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
   border: 1px solid rgba(255, 255, 255, 0.45);
@@ -610,8 +622,10 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 .clay-btn-danger {
   --clay-h: var(--clay-h-danger);
-  background-color: #EB5353;
-  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
+  /* A01: gradien lama #F38282 (2,52:1) / #EB5353 (3,56:1) gagal AA.
+     Gradien baru: #C73838 5,18:1, #A92E2E 6,74:1, #8F1D1D 8,89:1. */
+  background-color: #A92E2E;
+  background-image: linear-gradient(180deg, #C73838 0%, #A92E2E 60%, #8F1D1D 100%);
   color: #fff;
   border-radius: var(--clay-r-button);
   border: 1px solid rgba(255, 255, 255, 0.25);
@@ -702,7 +716,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     inset 0 1.5px 1.5px rgba(255, 255, 255, 0.98);
 }
 [data-theme="claymorphism"] .sidebar-nav-btn.is-active {
-  background: linear-gradient(180deg, #4EC593 0%, #36AE7C 60%, #2B8C63 100%) !important;
+  background: linear-gradient(180deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%) !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.40) !important;
   box-shadow:
@@ -775,7 +789,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   background-color: #E5E5E5 !important;
   background-image: none !important;
   border: none !important;
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
   border-radius: 16px !important;
   box-shadow:
      0px  0px 0px rgba(255, 255, 255, 0),
@@ -807,7 +821,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   border: 0;
   border-radius: 999px !important;
   background-color: #E5E5E5 !important;
-  color: #EB5353 !important;
+  color: #A92E2E !important;
   box-shadow:
     3px 3px 7px rgba(166, 171, 189, 0.55),
     -3px -3px 7px rgba(255, 255, 255, 0.85),
@@ -899,7 +913,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
    supaya tidak bocor ke elemen is-active lain di seluruh sistem. */
 .stat-pill-tab.is-active {
   background-color: #ffffff !important;
-  color: var(--color-primary) !important;
+  color: #1E6B48 !important;
   box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.1), -1px -1px 4px rgba(255, 255, 255, 0.9) !important;
 }
 
@@ -940,7 +954,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   color: var(--color-textPrimary);
 }
 .clay-segment-item.is-active.is-expense {
-  background: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
+  background: linear-gradient(180deg, #C73838 0%, #A92E2E 60%, #8F1D1D 100%);
   color: #ffffff !important;
   box-shadow:
     0 3px 0 var(--clay-lip-btn-danger),
@@ -949,7 +963,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     inset 0 -1px 2px rgba(0, 0, 0, 0.20) !important;
 }
 .clay-segment-item.is-active.is-income {
-  background: linear-gradient(180deg, #40916c 0%, #2d6a4f 60%, #1b4332 100%);
+  background: linear-gradient(180deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%);
   color: #ffffff !important;
   box-shadow:
     0 3px 0 var(--clay-lip-btn-primary),
@@ -959,7 +973,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .clay-segment-item.is-active:not(.is-expense):not(.is-income) {
   background: #ffffff;
-  color: var(--color-primary) !important;
+  color: #1E6B48 !important;
   box-shadow:
     0 3px 0 var(--clay-lip-chip),
     0 6px 14px rgba(0, 0, 0, 0.06),
@@ -1045,7 +1059,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .nav-icon-wrap.nav-icon-active {
   background: rgba(45, 106, 79, 0.12);
-  color: var(--color-primary);
+  color: #1E6B48;
   box-shadow:
     inset 1.5px 1.5px 3.5px rgba(45, 106, 79, 0.22),
     inset -1.5px -1.5px 3.5px rgba(255, 255, 255, 0.95);
@@ -1264,7 +1278,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   appearance: none !important;
 }
 .clay-date-picker-field::placeholder { color: inherit; opacity: 0.55; }
-.clay-date-picker-field--accent { color: var(--color-primary); font-weight: 700; }
+.clay-date-picker-field--accent { color: #1E6B48; font-weight: 700; }
 
 /* ===== DROPDOWN / COMBOBOX CLAY (popup custom) ===== */
 .clay-select-trigger {
@@ -1339,11 +1353,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .clay-select-option.is-highlighted {
   background: rgba(var(--clay-h-primary), 0.14);
-  color: var(--color-primary);
+  color: #1E6B48;
 }
 .clay-select-option.is-selected {
   background: #d8f3dc;
-  color: var(--color-primary);
+  color: #1E6B48;
   font-weight: 700;
 }
 .clay-select-option.is-empty {
@@ -1525,8 +1539,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 .flatpickr-day.selected.startRange,
 .flatpickr-day.startRange.startRange,
 .flatpickr-day.endRange.endRange {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: #1E6B48;
+  border-color: #1E6B48;
   color: #fff;
 }
 .flatpickr-day.inRange,
@@ -1536,11 +1550,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   border-color: #d8f3dc;
   box-shadow: -5px 0 0 #d8f3dc, 5px 0 0 #d8f3dc;
 }
-.flatpickr-day.today { border-color: var(--color-primary); }
+.flatpickr-day.today { border-color: #1E6B48; }
 .flatpickr-day.today:hover,
 .flatpickr-day.today:focus {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: #1E6B48;
+  border-color: #1E6B48;
   color: #fff;
 }
 .flatpickr-day:hover,
@@ -1548,7 +1562,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   background: #d8f3dc;
   border-color: #d8f3dc;
 }
-.flatpickr-day:focus { outline: none; box-shadow: none; }
+/* C01: hari di kalender flatpickr juga butuh indikator fokus yang terlihat. */
+.flatpickr-day:focus { outline: 2px solid #1D4ED8; outline-offset: 1px; box-shadow: none; }
 .flatpickr-months .flatpickr-prev-month:hover svg,
 .flatpickr-months .flatpickr-next-month:hover svg { fill: var(--color-primary); }
 
@@ -1893,7 +1908,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 /* Tombol solid (3D Extruded Shelf) */
 .clay-btn.solid-primary {
   background-color: #2d6a4f;
-  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 60%, #1b4332 100%);
+  /* A01: stop atas lama #40916c (3,83:1) gagal AA — ganti #35795a (5,21:1). */
+  background-image: linear-gradient(180deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1919,8 +1935,9 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 .clay-btn.solid-danger {
-  background-color: #EB5353;
-  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 60%, #C73838 100%);
+  /* A01: gradien lama gagal AA (lihat .clay-btn-danger). */
+  background-color: #A92E2E;
+  background-image: linear-gradient(180deg, #C73838 0%, #A92E2E 60%, #8F1D1D 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -1930,7 +1947,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     inset 0 -1.5px 2px rgba(0, 0, 0, 0.25);
 }
 .clay-btn.solid-danger:hover {
-  background-color: #EB5353;
+  background-color: #A92E2E;
   transform: translateY(-1px);
   box-shadow:
     0 5px 0 var(--clay-lip-btn-danger),
@@ -1947,7 +1964,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 .clay-btn.solid-blue {
   background-color: #187498;
-  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 60%, #125773 100%);
+  /* A01: stop atas lama #4B9EBF (3,02:1) gagal AA — ganti #187498 (5,26:1). */
+  background-image: linear-gradient(180deg, #187498 0%, #14617F 60%, #125773 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -2001,7 +2019,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .clay-card.solid-blue {
   background-color: #187498;
-  background-image: linear-gradient(145deg, #4B9EBF 0%, #187498 60%, #125773 100%);
+  background-image: linear-gradient(145deg, #187498 0%, #14617F 60%, #125773 100%);
   color: #ffffff;
   --clay-r: 8px;
   --clay-blur: 18px;
@@ -2014,7 +2032,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .clay-card.solid-green {
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 60%, #1b4332 100%);
+  background-image: linear-gradient(145deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%);
   color: #ffffff;
   --clay-r: 8px;
   --clay-blur: 18px;
@@ -2029,7 +2047,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 /* Icon tile solid */
 .clay-icon-tile.solid-primary {
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 100%);
+  background-image: linear-gradient(145deg, #35795a 0%, #2d6a4f 100%);
   color: #ffffff;
   --clay-r: 5px;
   --clay-blur: 12px;
@@ -2042,7 +2060,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .clay-icon-tile.solid-blue {
   background-color: #187498;
-  background-image: linear-gradient(145deg, #4B9EBF 0%, #187498 100%);
+  background-image: linear-gradient(145deg, #187498 0%, #125773 100%);
   color: #ffffff;
   --clay-r: 5px;
   --clay-blur: 12px;
@@ -2054,8 +2072,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
       rgba(255, 255, 255, 0.28);
 }
 .clay-icon-tile.solid-danger {
-  background-color: #EB5353;
-  background-image: linear-gradient(145deg, #f07474 0%, #EB5353 100%);
+  background-color: #A92E2E;
+  background-image: linear-gradient(145deg, #C73838 0%, #A92E2E 100%);
   color: #ffffff;
   --clay-r: 5px;
   --clay-blur: 12px;
@@ -2074,7 +2092,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 .clay-fab.solid-primary:not(.fab-dial-btn) {
   background-color: #2d6a4f;
-  background-image: linear-gradient(180deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
+  background-image: linear-gradient(180deg, #35795a 0%, #2d6a4f 55%, #1b4332 100%);
   border: 3.5px solid #ffffff;
   box-shadow:
     0 5px 0 var(--clay-lip-btn-primary),
@@ -2099,7 +2117,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 .clay-fab.solid-blue:not(.fab-dial-btn) {
   background-color: #187498;
-  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 55%, #125773 100%);
+  background-image: linear-gradient(180deg, #187498 0%, #14617F 55%, #125773 100%);
   border: 3.5px solid #ffffff;
   box-shadow:
     0 5px 0 var(--clay-lip-btn-blue),
@@ -2123,8 +2141,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 .clay-fab.solid-danger:not(.fab-dial-btn) {
-  background-color: #EB5353;
-  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 55%, #C73838 100%);
+  background-color: #A92E2E;
+  background-image: linear-gradient(180deg, #C73838 0%, #A92E2E 55%, #8F1D1D 100%);
   border: 3.5px solid #ffffff;
   box-shadow:
     0 5px 0 var(--clay-lip-btn-danger),
@@ -2150,8 +2168,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 /* Chip solid (3D Extruded Pill) */
 .clay-chip-active-danger {
   --clay-h: var(--clay-h-danger);
-  background-color: #EB5353;
-  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 100%);
+  background-color: #A92E2E;
+  background-image: linear-gradient(180deg, #C73838 0%, #A92E2E 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -2172,8 +2190,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 .neu-chip.solid-primary,
 .neu-inset.solid-primary,
 .clay-chip.solid-primary {
-  background-color: #36AE7C;
-  background-image: linear-gradient(180deg, #4EC593 0%, #36AE7C 100%);
+  background-color: #2d6a4f;
+  background-image: linear-gradient(180deg, #35795a 0%, #2d6a4f 60%, #1b4332 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
@@ -2192,8 +2210,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 .clay-chip.solid-danger {
-  background-color: #EB5353;
-  background-image: linear-gradient(180deg, #F38282 0%, #EB5353 100%);
+  background-color: #A92E2E;
+  background-image: linear-gradient(180deg, #C73838 0%, #A92E2E 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.40);
   box-shadow:
@@ -2218,7 +2236,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
    putih di atasnya tetap >= 4.7:1. */
 .clay-chip.solid-blue {
   background-color: #187498;
-  background-image: linear-gradient(180deg, #4B9EBF 0%, #187498 65%, #125773 100%);
+  background-image: linear-gradient(180deg, #187498 0%, #14617F 65%, #125773 100%);
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.25);
   box-shadow:
@@ -2256,7 +2274,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   --clay-blur: 16px;
   border-radius: var(--clay-r-icon);
   background-color: #2d6a4f;
-  background-image: linear-gradient(145deg, #40916c 0%, #2d6a4f 55%, #1b4332 100%);
+  background-image: linear-gradient(145deg, #35795a 0%, #2d6a4f 55%, #1b4332 100%);
   color: #ffffff;
   box-shadow:
     var(--clay-r) var(--clay-r) var(--clay-blur) rgba(var(--clay-h), 0.40),
@@ -2594,11 +2612,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .mutasi-badge.is-masuk {
   background-color: var(--color-success-light);
-  color: var(--color-primary);
+  color: #1E6B48;
 }
 .mutasi-badge.is-keluar {
   background-color: var(--color-danger-light);
-  color: var(--color-danger);
+  color: #A92E2E;
 }
 
 .mutasi-item__tanggal {
@@ -2647,7 +2665,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   width: 64px;
   height: 64px;
   border-radius: 999px;
-  color: var(--color-primary);
+  color: #1E6B48;
   background-color: var(--color-success-light);
   box-shadow:
     4px 4px 12px rgba(var(--clay-h-primary), 0.25),
@@ -2669,7 +2687,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   padding: 5px 12px;
   border-radius: 999px;
   background-color: var(--color-success-light);
-  color: var(--color-primary);
+  color: #1E6B48;
   font-size: 11px;
   font-weight: 800;
 }
@@ -2857,7 +2875,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] select:focus-visible,
 [data-theme="neumorphism"] textarea:focus,
 [data-theme="neumorphism"] textarea:focus-visible {
-  outline: none !important;
+  /* C01 (audit 25 Nov 2026): outline: none di sini mematikan indikator fokus
+     keyboard di tema default. Outline biru solid #1D4ED8 = 5,32:1 terhadap
+     kanvas (WCAG 2.4.11 butuh 3:1) — jangan pernah dihapus lagi. */
+  outline: 3px solid #1D4ED8 !important;
+  outline-offset: 2px;
   box-shadow:
     inset -4px -4px 8px rgba(255, 255, 255, 0.90),
     inset  4px  4px 8px rgba(13, 39, 80, 0.16) !important;
@@ -2866,12 +2888,15 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 /* Explicit Dynamic Nominal Colors */
 [data-theme="neumorphism"] input.tx-nominal-expense,
 [data-theme="neumorphism"] .tx-nominal-expense {
-  color: #EB5353 !important;
+  /* A01: #EB5353 = 2,83:1. #A92E2E = 5,35:1. */
+  color: #A92E2E !important;
 }
 
 [data-theme="neumorphism"] input.tx-nominal-expense:focus,
 [data-theme="neumorphism"] input.tx-nominal-expense:focus-visible {
-  outline: none !important;
+  /* C01: jangan matikan outline fokus (lihat blok input:focus di atas). */
+  outline: 3px solid #1D4ED8 !important;
+  outline-offset: 2px;
   box-shadow:
     inset -4px -4px 8px rgba(255, 255, 255, 0.90),
     inset  4px  4px 8px rgba(235, 83, 83, 0.30) !important;
@@ -2879,12 +2904,15 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 [data-theme="neumorphism"] input.tx-nominal-income,
 [data-theme="neumorphism"] .tx-nominal-income {
-  color: #36AE7C !important;
+  /* A01: #36AE7C = 2,22:1. #1E6B48 = 5,13:1. */
+  color: #1E6B48 !important;
 }
 
 [data-theme="neumorphism"] input.tx-nominal-income:focus,
 [data-theme="neumorphism"] input.tx-nominal-income:focus-visible {
-  outline: none !important;
+  /* C01: jangan matikan outline fokus (lihat blok input:focus di atas). */
+  outline: 3px solid #1D4ED8 !important;
+  outline-offset: 2px;
   box-shadow:
     inset -4px -4px 8px rgba(255, 255, 255, 0.90),
     inset  4px  4px 8px rgba(54, 174, 124, 0.30) !important;
@@ -2934,7 +2962,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active.is-expense {
-  background: #EB5353 !important;
+  background: #A92E2E !important;
   color: #FFFFFF !important;
   box-shadow:
     -3px -3px 8px rgba(255, 255, 255, 0.70),
@@ -2944,7 +2972,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 [data-theme="neumorphism"] .clay-segment-item.is-active.is-income {
-  background: #36AE7C !important;
+  background: #1E6B48 !important;
   color: #FFFFFF !important;
   box-shadow:
     -3px -3px 8px rgba(255, 255, 255, 0.70),
@@ -3066,7 +3094,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .nav-icon-wrap.nav-icon-active,
 [data-theme="neumorphism"] .nav-icon-wrap.is-active {
   background-color: #E5E5E5 !important;
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
   box-shadow:
     inset -2.5px -2.5px 5px rgba(255, 255, 255, 0.90),
     inset  2.5px  2.5px 5px rgba(13, 39, 80, 0.18) !important;
@@ -3090,8 +3118,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 [data-theme="neumorphism"] .clay-fab.clay-key-primary:not(.fab-dial-btn),
 [data-theme="neumorphism"] .clay-fab:not(.fab-dial-btn) {
-  background-color: #36AE7C !important;
-  background-image: linear-gradient(145deg, #42C28D 0%, #2E976B 100%) !important;
+  background-color: #1E6B48 !important;
+  background-image: linear-gradient(145deg, #35795a 0%, #1b4332 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
      7px  7px 18px rgba(46, 151, 107, 0.40),
@@ -3103,8 +3131,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 [data-theme="neumorphism"] .clay-fab.clay-key-danger:not(.fab-dial-btn) {
-  background-color: #EB5353 !important;
-  background-image: linear-gradient(145deg, #F38282 0%, #C73838 100%) !important;
+  background-color: #A92E2E !important;
+  background-image: linear-gradient(145deg, #C73838 0%, #A92E2E 60%, #8F1D1D 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
      7px  7px 18px rgba(235, 83, 83, 0.40),
@@ -3114,7 +3142,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 
 [data-theme="neumorphism"] .clay-fab.clay-key-blue:not(.fab-dial-btn) {
   background-color: #187498 !important;
-  background-image: linear-gradient(145deg, #4B9EBF 0%, #125773 100%) !important;
+  background-image: linear-gradient(145deg, #187498 0%, #125773 100%) !important;
   box-shadow:
     -6px -6px 14px rgba(255, 255, 255, 0.75),
      7px  7px 18px rgba(24, 116, 152, 0.40),
@@ -3157,7 +3185,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   color: #2B8C63 !important;
 }
 [data-theme="neumorphism"] .fab-dial-btn.solid-danger {
-  color: #EB5353 !important;
+  color: #A92E2E !important;
 }
 [data-theme="neumorphism"] .fab-dial-btn.solid-blue {
   color: #187498 !important;
@@ -3260,7 +3288,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .embossed-blue,
 [data-theme="neumorphism"] .text-blue-600,
 [data-theme="neumorphism"] .text-info {
-  color: #187498 !important;
+  /* A01: #187498 sebagai teks = 4,18:1 di atas kanvas (gagal 4,5). #125773 = 6,32:1. */
+  color: #125773 !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
@@ -3274,7 +3303,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .text-emerald-600,
 [data-theme="neumorphism"] .text-primary,
 [data-theme="neumorphism"] .tx-nominal-income {
-  color: #36AE7C !important;
+  /* A01: #36AE7C sebagai teks = 2,22:1 di atas kanvas. #1E6B48 = 5,13:1. */
+  color: #1E6B48 !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
@@ -3288,7 +3318,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .text-red-600,
 [data-theme="neumorphism"] .text-danger,
 [data-theme="neumorphism"] .tx-nominal-expense {
-  color: #EB5353 !important;
+  /* A01: #EB5353 sebagai teks = 2,83:1 di atas kanvas. #A92E2E = 5,35:1. */
+  color: #A92E2E !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
@@ -3299,7 +3330,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .embossed-amber,
 [data-theme="neumorphism"] .text-amber-600,
 [data-theme="neumorphism"] .text-warning {
-  color: #D4AF0D !important;
+  /* A01: #D4AF0D sebagai teks = 1,68:1 di atas kanvas. #7A5C00 = 4,96:1. */
+  color: #7A5C00 !important;
   text-shadow:
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
@@ -3315,12 +3347,13 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .neu-btn-primary,
 [data-theme="neumorphism"] .btn-primary,
 [data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab) {
-  background-color: #36AE7C !important;
+  /* A01: #36AE7C dengan teks putih = 2,80:1 (gagal AA). #1E6B48 = 6,46:1. */
+  background-color: #1E6B48 !important;
   background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
-     6px  6px 14px rgba(43, 140, 99, 0.40),
+     6px  6px 14px rgba(30, 107, 72, 0.40),
     inset  0px  0px 0px rgba(255, 255, 255, 0),
     inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
   transition:
@@ -3336,12 +3369,13 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .btn-danger,
 [data-theme="neumorphism"] .clay-chip.solid-danger,
 [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab) {
-  background-color: #EB5353 !important;
+  /* A01: #EB5353 dengan teks putih = 3,56:1 (gagal AA). #A92E2E = 6,74:1. */
+  background-color: #A92E2E !important;
   background-image: none !important;
   color: #FFFFFF !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.70),
-     6px  6px 14px rgba(235, 83, 83, 0.38),
+     6px  6px 14px rgba(169, 46, 46, 0.38),
     inset  0px  0px 0px rgba(255, 255, 255, 0),
     inset  0px  0px 0px rgba(0, 0, 0, 0) !important;
   transition:
@@ -3378,7 +3412,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   [data-theme="neumorphism"] .neu-btn-primary:hover:not(:disabled),
   [data-theme="neumorphism"] .solid-primary:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
     transform: translateY(-1.5px) !important;
-    background-color: #2E9B6D !important;
+    /* A01: hover lama #2E9B6D (3,49:1) gagal AA. #26805B = 4,86:1. */
+    background-color: #26805B !important;
     box-shadow:
       -6px -6px 15px rgba(255, 255, 255, 0.80),
        8px  8px 18px rgba(43, 140, 99, 0.48),
@@ -3391,7 +3426,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   [data-theme="neumorphism"] .clay-chip.solid-danger:hover:not(:disabled),
   [data-theme="neumorphism"] .solid-danger:not(.fab-dial-btn):not(.clay-fab):hover:not(:disabled) {
     transform: translateY(-1.5px) !important;
-    background-color: #D94343 !important;
+    /* A01: hover lama #D94343 (4,34:1) gagal AA. #9E2B2B = 7,41:1. */
+    background-color: #9E2B2B !important;
     box-shadow:
       -6px -6px 15px rgba(255, 255, 255, 0.80),
        8px  8px 18px rgba(235, 83, 83, 0.48),
@@ -3471,7 +3507,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 [data-theme="neumorphism"] .splash-tagline {
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
   font-weight: 700 !important;
 }
 
@@ -3480,7 +3516,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 
 [data-theme="neumorphism"] .splash-dot {
-  background: #36AE7C !important;
+  /* A01 ronde 2: #36AE7C di kanvas 2,22:1 — titik dekoratif pun butuh 3:1. */
+  background: #1E6B48 !important;
 }
 
 [data-theme="claymorphism"] {
@@ -3831,9 +3868,9 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   }
   [data-theme="neumorphism"] .flatpickr-calendar .flatpickr-day.today,
   .flatpickr-calendar .flatpickr-day.today {
-    border-color: #36AE7C !important;
+    border-color: #1E6B48 !important;
     background: #E5E5E5 !important;
-    color: #36AE7C !important;
+    color: #1E6B48 !important;
     box-shadow:
       0 0 0 rgba(54, 174, 124, 0),
       0 0 0 rgba(255, 255, 255, 0),
@@ -3852,8 +3889,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   .flatpickr-calendar .flatpickr-day.startRange:hover,
   .flatpickr-calendar .flatpickr-day.endRange,
   .flatpickr-calendar .flatpickr-day.endRange:hover {
-    background: #36AE7C !important;
-    border-color: #36AE7C !important;
+    background: #1E6B48 !important;
+    border-color: #1E6B48 !important;
     color: #FFFFFF !important;
     font-weight: 800 !important;
     box-shadow:
@@ -3935,7 +3972,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
       inset -1.5px -1.5px 3px rgba(255, 255, 255, 0.80) !important;
   }
   [data-theme="neumorphism"] .clay-select-option.is-selected {
-    background-color: #36AE7C !important;
+    background-color: #1E6B48 !important;
     color: #FFFFFF !important;
     font-weight: 800 !important;
     box-shadow:
@@ -4019,7 +4056,9 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     background-color: transparent !important;
     box-shadow: none !important;
     -webkit-box-shadow: none !important;
-    outline: none !important;
+    /* C01: field tanggal juga butuh indikator fokus yang terlihat. */
+    outline: 3px solid #1D4ED8 !important;
+    outline-offset: 2px;
     border: none !important;
   }
 
@@ -4031,7 +4070,8 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .mutasi-identitas {
   background: #E5E5E5 !important;
   background-image: none !important;
-  color: #36AE7C !important;
+  /* A01: #36AE7C = 2,22:1. #1E6B48 = 5,13:1. */
+  color: #1E6B48 !important;
   box-shadow:
     -5px -5px 12px rgba(255, 255, 255, 0.85),
      5px  5px 12px rgba(0, 0, 0, 0.16) !important;
@@ -4078,7 +4118,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .mutasi-tab.is-aktif {
   background: #E5E5E5 !important;
   background-image: none !important;
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
   font-weight: 800 !important;
   box-shadow:
      0px  0px 0px rgba(255, 255, 255, 0),
@@ -4094,10 +4134,10 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
      3px  3px 8px rgba(0, 0, 0, 0.1) !important;
 }
 [data-theme="neumorphism"] .mutasi-item__nominal.is-masuk {
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
 }
 [data-theme="neumorphism"] .mutasi-item__nominal.is-keluar {
-  color: #EB5353 !important;
+  color: #A92E2E !important;
 }
 [data-theme="neumorphism"] .mutasi-badge.is-transfer {
   background-color: rgba(24, 116, 152, 0.12) !important;
@@ -4105,11 +4145,11 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 [data-theme="neumorphism"] .mutasi-badge.is-masuk {
   background-color: rgba(54, 174, 124, 0.12) !important;
-  color: #36AE7C !important;
+  color: #1E6B48 !important;
 }
 [data-theme="neumorphism"] .mutasi-badge.is-keluar {
   background-color: rgba(235, 83, 83, 0.12) !important;
-  color: #EB5353 !important;
+  color: #A92E2E !important;
 }
 
 [data-theme="neumorphism"] .mutasi-item__saldo {
@@ -4143,7 +4183,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 }
 .bulk-selectable.bulk-selected .bulk-check {
   border: none !important;
-  background-color: #36AE7C !important;
+  background-color: #1E6B48 !important;
   box-shadow:
     2px 2px 6px rgba(54, 174, 124, 0.45),
     -1px -1px 3px rgba(255, 255, 255, 0.8),
@@ -4210,7 +4250,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   width: 8px !important;
   height: 8px !important;
   border-radius: 9999px !important;
-  background-color: #36AE7C !important;
+  background-color: #1E6B48 !important;
   box-shadow: 0 0 4px rgba(54, 174, 124, 0.5) !important;
   animation: checkPop var(--motion-dur-fast) var(--motion-ease-spring) both;
 }

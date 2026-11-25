@@ -4,9 +4,15 @@ export const EVENT_KURS = 'myduit:kurs-update'
 export const EVENT_BASIS_MATA_UANG = 'myduit:basis-update'
 const STORAGE_KURS_CACHE = 'myduit:kurs_cache'
 const STORAGE_BASIS_LOKAL = 'myduit:kurs_basis'
+const STORAGE_KUNCI_BASIS = 'myduit:kurs_terkunci'
 const TTL_SEGAR_MS = 30_000
 
 // Tabel cadangan offline berbasis 1 USD bila belum pernah tersambung internet sama sekali.
+// Nilai di sini PERKIRAAN (Nov 2026) — hanya jaring pengaman offline; kurs live
+// selalu menang begitu perangkat tersambung. Daftar ini JUGA adalah whitelist:
+// mata uang yang tidak ada di sini (dan tidak ada di cache kurs live) TIDAK BOLEH
+// dipakai sebagai basis — dulu CLP/ISK diterima sebagai basis padahal tak ada
+// kursnya, lalu konversi diam-diam memakai rasio 1 (CLP 95.000 tampil "US$ 95.000").
 export const KURS_CADANGAN_USD = {
   USD: 1,
   IDR: 16800,
@@ -34,6 +40,37 @@ export const KURS_CADANGAN_USD = {
   SAR: 3.75,
   AED: 3.67,
   BND: 1.34,
+  // Mata uang besar lain yang sebelumnya "diterima tapi tanpa kurs":
+  CLP: 950,
+  ISK: 128,
+  BRL: 5.4,
+  MXN: 17.2,
+  ZAR: 17.9,
+  TRY: 41.5,
+  PLN: 3.65,
+  CZK: 21.2,
+  HUF: 332,
+  ILS: 3.25,
+  EGP: 48,
+  NGN: 1520,
+  KES: 129,
+  COP: 4050,
+  PEN: 3.5,
+  ARS: 1380,
+  RUB: 82,
+  UAH: 41.5,
+  RON: 4.45,
+  SEK: 9.4,
+  NOK: 10.2,
+  DKK: 6.45,
+  QAR: 3.64,
+  KWD: 0.305,
+  BHD: 0.377,
+  OMR: 0.385,
+  MMK: 2100,
+  KHR: 4000,
+  LAK: 21500,
+  MOP: 8.0,
 }
 
 const MATA_UANG_NOL_DESIMAL = new Set(['IDR', 'JPY', 'VND', 'KRW', 'CLP', 'ISK'])
@@ -102,14 +139,16 @@ export function statusKurs() {
     fetchedAt: c.fetchedAt,
     isFallback: c.isFallback,
     basis: bacaBasisMataUang(),
-    terkunci: _basisTerkunci,
+    terkunci: bacaStatusBasis().terkunci,
   }
 }
 
 export function bacaStatusBasis() {
+  // Kunci ikut dibaca dari storage: di sesi baru _basisTerkunci (memori) masih
+  // false sebelum inisialisasi, padahal basis sudah dikunci di sesi sebelumnya.
   return {
     basis: bacaBasisMataUang(),
-    terkunci: _basisTerkunci,
+    terkunci: _basisTerkunci || bacaStorageAman(STORAGE_KUNCI_BASIS) === '1',
   }
 }
 
@@ -120,7 +159,9 @@ export function bacaStatusBasis() {
 export function bacaBasisMataUang() {
   if (_basisCache !== undefined) return _basisCache
   const s = bacaStorageAman(STORAGE_BASIS_LOKAL)
-  if (s && /^[A-Z]{3}$/.test(s)) {
+  // Basis tersimpan yang tidak punya kurs (data lama/corrupt) diperlakukan
+  // sebagai belum diinisialisasi — jangan pernah mengembalikannya sebagai basis.
+  if (s && /^[A-Z]{3}$/.test(s) && mataUangDidukung(s)) {
     _basisCache = s
     return _basisCache
   }
@@ -128,12 +169,29 @@ export function bacaBasisMataUang() {
   return null
 }
 
+/**
+ * Apakah kode mata uang punya kurs yang bisa dipakai? Didukung = ada di tabel
+ * cadangan offline ATAU ada di cache kurs live (mis. mata uang di luar tabel
+ * yang kursnya sudah pernah diunduh). Selain itu -> tidak didukung.
+ */
+export function mataUangDidukung(currency) {
+  const code = String(currency || '').trim().toUpperCase()
+  if (!/^[A-Z]{3}$/.test(code)) return false
+  if (Object.prototype.hasOwnProperty.call(KURS_CADANGAN_USD, code)) return true
+  const { rates } = muatCacheKurs()
+  return Number.isFinite(Number(rates?.[code])) && Number(rates[code]) > 0
+}
+
 export function simpanBasisMataUang(currency, { terkunci = true } = {}) {
   const code = String(currency || '').trim().toUpperCase()
   if (!/^[A-Z]{3}$/.test(code)) return null
+  // Fail-closed: jangan simpan basis yang tidak punya kurs. Sebelumnya kode
+  // apa pun diterima, lalu semua konversi memakai rasio 1 secara diam-diam.
+  if (!mataUangDidukung(code)) return null
   _basisCache = code
   _basisTerkunci = Boolean(terkunci)
   tulisStorageAman(STORAGE_BASIS_LOKAL, code)
+  tulisStorageAman(STORAGE_KUNCI_BASIS, _basisTerkunci ? '1' : '0')
   emitEventBasis()
   emitEventKurs()
   return code
@@ -143,6 +201,7 @@ export function resetBasisMataUang() {
   _basisCache = null
   _basisTerkunci = false
   tulisStorageAman(STORAGE_BASIS_LOKAL, null)
+  tulisStorageAman(STORAGE_KUNCI_BASIS, null)
   emitEventBasis()
 }
 
@@ -178,7 +237,9 @@ export function sanitasiKursSnapshot(raw) {
   const usdKe = {}
   let jumlah = 0
   for (const [k, v] of Object.entries(rawRates)) {
-    if (jumlah >= 40) break
+    // Batas 80: tabel cadangan kini 56 entri; batas lama (40) bisa membuang
+    // basis dari snapshot bila basis itu urutannya belakangan.
+    if (jumlah >= 80) break
     const code = String(k || '').trim().toUpperCase()
     const num = Number(v)
     if (/^[A-Z]{3}$/.test(code) && Number.isFinite(num) && num > 0 && num < 1e12) {
@@ -242,7 +303,10 @@ export function ambilRasioKurs(dari, ke, kursSnapshot = null) {
   const { rates } = muatCacheKurs()
   const rA = Number(rates[a])
   const rB = Number(rates[b])
-  if (!Number.isFinite(rA) || rA <= 0 || !Number.isFinite(rB) || rB <= 0) return 1
+  // JANGAN pernah mengembalikan 1 untuk kurs yang tidak diketahui — itu
+  // membuat CLP 95.000 tampil sebagai "US$ 95.000". Kembalikan NaN supaya
+  // pemanggil yang jujur menanganinya (batas UI: rasioKursTampil di format.js).
+  if (!Number.isFinite(rA) || rA <= 0 || !Number.isFinite(rB) || rB <= 0) return NaN
   return rB / rA
 }
 

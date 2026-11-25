@@ -224,9 +224,16 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const submittedRef = useRef(false)
+  // R01 (re-review 25 Nov 2026): ID dokumen dibuat sekali per sesi form dan
+  // dipakai ulang bila submit diulang — retry memakai ID yang sama sehingga
+  // bayarUtang mengenalinya sebagai retry (dokumen sudah ada = no-op).
+  const docIdRef = useRef(null)
 
   useEffect(() => {
-    if (open) submittedRef.current = false
+    if (open) {
+      submittedRef.current = false
+      docIdRef.current = null
+    }
   }, [open, utang?.id, lunasin])
 
   // Sama seperti FormUtangModal: kunciLama mulai dari null supaya reset
@@ -279,7 +286,8 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
     const nSnap = n
     const tanggalSnap = tanggal
     const akunSnap = akun
-    const docId = buatTransaksiId(uid)
+    // ID sekali per sesi form (lihat docIdRef di atas) — retry pakai ID sama.
+    const docId = (docIdRef.current ??= buatTransaksiId(uid))
 
     const optTx = {
       id: docId,

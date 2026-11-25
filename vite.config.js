@@ -113,6 +113,14 @@ export default defineConfig({
           'favicon.svg',
         ],
         globIgnores: [
+          // BUN-01 (audit 25 Nov 2026): 'assets/*.js' di atas cocok dengan
+          // SEMUA chunk JS, termasuk vendor-* (chart + seluruh Firebase).
+          // Komentar lama mengklaim chunk besar "sengaja TIDAK diprecache",
+          // tapi globIgnores lama hanya mengecualikan xlsx/jspdf — vendor-chart
+          // dan vendor-firebase-* tetap ikut terprecache (>2MB di kunjungan
+          // pertama). Kecualikan semua chunk vendor di sini; yang tersisa
+          // di precache hanyalah bundel entry + CSS + ikon.
+          '**/vendor-*.js',
           '**/vendor-xlsx-*.js',
           '**/jspdf*.js',
           '**/autotable*.js',

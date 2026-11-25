@@ -117,9 +117,11 @@ export default function ToastHost() {
         {lain.map((t) => t.msg).join('. ')}
       </div>
 
+      {/* JANGAN pasang aria-hidden di sini: kontainer ini berisi tombol aksi &
+          tombol tutup yang bisa difokuskan (axe: aria-hidden-focus). Live region
+          sr-only di atas sudah menangani pengumuman ke pembaca layar. */}
       <div
         className="pointer-events-none fixed inset-x-0 top-3 z-[10100] flex flex-col items-center gap-2 px-3 md:left-1/2 md:right-auto md:w-[420px] md:-translate-x-1/2"
-        aria-hidden="true"
       >
         {items.map((t) => {
           const g = GAYA[t.type]
@@ -145,7 +147,7 @@ export default function ToastHost() {
                       tutup(t.id)
                     }
                   }}
-                  className="clay-chip clay-key-primary shrink-0 self-center rounded-full px-3 py-1 text-[11px] font-extrabold text-primary"
+                  className="clay-chip clay-key-primary shrink-0 self-center rounded-full px-3 py-1 text-[11px] font-extrabold text-[#1E6B48]"
                 >
                   {t.actionLabel}
                 </button>

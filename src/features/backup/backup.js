@@ -3,7 +3,7 @@ import { Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, writeBatc
 import { getFirebase, googleProvider } from '../../lib/firebase.js'
 import { jamValid, kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 import { IS_DEMO_UID } from '../../lib/mockData.js'
-import { bacaBasisMataUang, resetBasisMataUang, sanitasiKursSnapshot, simpanBasisMataUang } from '../../lib/kurs.js'
+import { bacaBasisMataUang, bacaStatusBasis, mataUangDidukung, resetBasisMataUang, sanitasiKursSnapshot, simpanBasisMataUang } from '../../lib/kurs.js'
 
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
@@ -239,8 +239,53 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
   const writeBatchFn = deps.writeBatch || writeBatch
   const serverTimestampFn = deps.serverTimestamp || serverTimestamp
 
+  // Penjaga restore (F05/F17 audit 25 Nov 2026) — semua dicek SEBELUM satu pun
+  // dokumen ditulis, supaya restore yang ditolak tidak meninggalkan setengah data.
+  if (json.uid && String(json.uid) !== uid) {
+    throw new Error('Backup ini milik akun lain (UID tidak cocok) — restore dibatalkan.')
+  }
+  if (json.version !== undefined && json.version !== null && json.version !== 1) {
+    throw new Error(`Versi backup tidak didukung: ${json.version}.`)
+  }
+
   const basisRaw = String(json.baseCurrency || '').trim().toUpperCase()
   const basisPulih = /^[A-Z]{3}$/.test(basisRaw) ? basisRaw : 'IDR'
+  // Basis backup harus didukung (punya kurs). Tanpa ini, backup berisi kode
+  // tak dikenal (mis. 'XXX') bisa menulis basis tak valid ke meta/mataUang —
+  // dan karena rules mengunci baseCurrency, basis itu sesudahnya tidak bisa
+  // diperbaiki lewat update biasa. Tolak lebih awal, sebelum menulis apa pun.
+  if (!mataUangDidukung(basisPulih)) {
+    throw new Error(`Basis mata uang backup (${basisPulih}) tidak didukung — restore dibatalkan.`)
+  }
+  // R02/P2 (re-review 25 Nov 2026): basis akun yang sah adalah yang tersimpan
+  // di SERVER (meta/mataUang), bukan flag kunci lokal — di perangkat baru atau
+  // setelah ganti perangkat, flag lokal belum ada sehingga penjaga lama
+  // meloloskan restore lintas-basis, lalu penulisan meta ditolak rules di
+  // akhir (data sudah ter-commit setengah). Baca server dulu sebagai otoritas;
+  // bila baca gagal (offline), jatuh ke flag lokal seperti sebelumnya.
+  const getDocFn = deps.getDoc || getDoc
+  let basisServer = null
+  try {
+    const metaSnap = await getDocFn(docFn(db, 'users', uid, 'meta', 'mataUang'))
+    if (metaSnap?.exists?.()) basisServer = String(metaSnap.data()?.baseCurrency || '').trim().toUpperCase()
+  } catch {
+    // Offline — pakai flag lokal di bawah.
+  }
+  // Basis berbeda = angka akan salah label (USD 5.000 jadi Rp 5.000) karena
+  // restore tidak mengonversi apa pun. Tolak bila basis akun sudah ada
+  // (server dulu, lalu flag lokal); bila belum ada, adopsi basis backup.
+  const statusBasis = bacaStatusBasis()
+  const basisOtoritatif = /^[A-Z]{3}$/.test(basisServer || '')
+    ? basisServer
+    : statusBasis.terkunci
+      ? statusBasis.basis
+      : null
+  if (basisOtoritatif && basisOtoritatif !== basisPulih) {
+    throw new Error(
+      `Basis mata uang backup (${basisPulih}) berbeda dengan basis akun ini (${basisOtoritatif}). ` +
+        'Angka tidak dikonversi otomatis saat restore — restore dibatalkan supaya saldo tidak salah label.',
+    )
+  }
 
   // Kumpulkan & validasi semua operasi tulis dulu sebelum menyentuh Firestore.
   const ops = []
@@ -256,18 +301,55 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
       const { id: _id, ...rest } = item
       const revived = hidupkanTimestamp(rest)
       const cleaned = bersihkanDokumenRestore(c, revived)
-      ops.push({ koleksi: c, ref: docFn(db, 'users', uid, c, safeId), data: cleaned })
+      ops.push({ koleksi: c, ref: docFn(db, 'users', uid, c, safeId), data: cleaned, id: safeId })
     }
   }
 
   const totalDok = ops.length
   if (totalDok === 0) return 0
 
-  ops.push({
-    koleksi: 'meta',
-    ref: docFn(db, 'users', uid, 'meta', 'mataUang'),
-    data: { baseCurrency: basisPulih, updatedAt: serverTimestampFn() },
-  })
+  // P2: tulis basis DULU dalam batch sendiri, SEBELUM satu pun data ditulis.
+  // Dulu meta ditulis terakhir — bila rules menolaknya (basis server berbeda
+  // dengan backup), data sudah ter-commit setengah dengan label basis yang
+  // salah. Sekarang penolakan terjadi sebelum ada data yang tersentuh.
+  const metaRef = docFn(db, 'users', uid, 'meta', 'mataUang')
+  const metaBatch = writeBatchFn(db)
+  metaBatch.set(metaRef, { baseCurrency: basisPulih, updatedAt: serverTimestampFn() }, { merge: true })
+  await metaBatch.commit()
+
+  // P2: dokumen yang di backup masih hidup tapi di server sudah di-soft-delete
+  // tidak bisa dipulihkan lewat set-merge — rules menolak update pada dokumen
+  // terhapus (belumDihapus), sehingga slice yang memuatnya gagal di tengah
+  // restore dan akun pulih setengah. Berdamai dulu dengan state server:
+  // hapus permanen (hard-delete, diizinkan rules) dokumen-dokumen itu, lalu
+  // set-merge berjalan sebagai create. Bila baca server gagal (offline),
+  // rekonsiliasi dilewati — perilaku lama; tulis yang tertunda akan dinilai
+  // rules saat sinkronisasi.
+  const getDocsFn = deps.getDocs || getDocs
+  const collectionFn = deps.collection || collection
+  const idBackupPerKoleksi = new Map()
+  for (const op of ops) {
+    if (!idBackupPerKoleksi.has(op.koleksi)) idBackupPerKoleksi.set(op.koleksi, new Set())
+    idBackupPerKoleksi.get(op.koleksi).add(op.id)
+  }
+  const hapusDulu = []
+  for (const [c, idSet] of idBackupPerKoleksi.entries()) {
+    try {
+      const snap = await getDocsFn(collectionFn(db, 'users', uid, c))
+      for (const d of snap?.docs || []) {
+        if (idSet.has(d.id) && d.data()?.deleted === true) {
+          hapusDulu.push(docFn(db, 'users', uid, c, d.id))
+        }
+      }
+    } catch {
+      // Baca koleksi gagal (offline) — lewati rekonsiliasi koleksi ini.
+    }
+  }
+  for (let i = 0; i < hapusDulu.length; i += BATCH_LIMIT) {
+    const batch = writeBatchFn(db)
+    for (const ref of hapusDulu.slice(i, i + BATCH_LIMIT)) batch.delete(ref)
+    await batch.commit()
+  }
 
   const total = ops.length
   let done = 0
