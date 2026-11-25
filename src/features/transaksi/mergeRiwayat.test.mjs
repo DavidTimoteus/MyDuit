@@ -150,6 +150,73 @@ cek('createdAtMillis: mengekstrak milidetik dari objek Timestamp', createdAtMill
 cek('createdAtMillis: mengekstrak milidetik dari string ISO', createdAtMillis(baruOptimis.createdAt), 1762675000000)
 cek('createdAtMillis: fallback aman untuk nilai null/undefined', createdAtMillis(null), 0)
 
+// ===== Urutan list: jam inputan pengguna ikut menentukan, bukan cuma timestamp =====
+// Bug (dilaporkan 25 Nov 2026): dua transaksi di tanggal yang sama diurutkan
+// HANYA dari createdAt — jam yang dimasukkan user diabaikan. Akibatnya makan
+// siang jam 12:00 yang dibuat jam 09:00 tampil DI ATAS makan malam jam 19:00
+// yang dibuat jam 08:00, padahal makan malam terjadi belakangan.
+// Urutan yang benar (terbaru dulu): tanggal desc, lalu jam desc, lalu createdAt desc.
+const trxJ = (id, tanggal, jam, createdAt) => ({ id, tanggal, jam, createdAt, jumlah: 1000 })
+
+const siang = trxJ('siang', '2026-11-09', '12:00', '2026-11-09T09:00:00.000Z')
+const malam = trxJ('malam', '2026-11-09', '19:00', '2026-11-09T08:00:00.000Z')
+cek(
+  'jam inputan menang atas createdAt: makan malam 19:00 di atas makan siang 12:00 meski dibuat lebih dulu',
+  [siang, malam].sort(urutkanTransaksi).map((t) => t.id),
+  ['malam', 'siang'],
+)
+cek(
+  'tanggal tetap dominan: 10 Nov jam 08:00 di atas 9 Nov jam 23:00',
+  [trxJ('a', '2026-11-09', '23:00', '2026-11-09T23:00:00.000Z'), trxJ('b', '2026-11-10', '08:00', '2026-11-10T08:00:00.000Z')]
+    .sort(urutkanTransaksi)
+    .map((t) => t.id),
+  ['b', 'a'],
+)
+cek(
+  'jam sama: createdAt tetap jadi penentu (yang dibuat belakangan di atas)',
+  [
+    trxJ('lama', '2026-11-09', '19:00', '2026-11-09T08:00:00.000Z'),
+    trxJ('baru', '2026-11-09', '19:00', '2026-11-09T09:00:00.000Z'),
+  ]
+    .sort(urutkanTransaksi)
+    .map((t) => t.id),
+  ['baru', 'lama'],
+)
+cek(
+  'tanpa jam: dokumen tanpa jam jatuh di bawah yang berjam di tanggal yang sama',
+  [
+    { id: 'tanpajam', tanggal: '2026-11-09', createdAt: '2026-11-09T10:00:00.000Z', jumlah: 1000 },
+    trxJ('berjam', '2026-11-09', '07:00', '2026-11-09T06:00:00.000Z'),
+  ]
+    .sort(urutkanTransaksi)
+    .map((t) => t.id),
+  ['berjam', 'tanpajam'],
+)
+
+// Daftar penuh lewat snapshot: urutan akhir harus tanggal desc, jam desc.
+let urutState = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_SEMUA })
+urutState = kurangRiwayat(urutState, {
+  type: 'snapshot',
+  kunci: K_SEMUA,
+  list: [siang, malam, trxJ('pagi', '2026-11-09', '07:30', '2026-11-09T07:00:00.000Z')],
+})
+cek('snapshot: daftar tampil 19:00, 12:00, 07:30', urutState.docs.map((t) => t.id), ['malam', 'siang', 'pagi'])
+
+// "Muat lagi" di dalam satu tanggal yang sama: jam 22:00 dari halaman 2 wajib
+// naik ke atas jam 08:00 halaman 1 (sebelumnya 'lanjut' hanya menempel tanpa urut ulang).
+let lanjutJam = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_SEMUA })
+lanjutJam = kurangRiwayat(lanjutJam, {
+  type: 'snapshot',
+  kunci: K_SEMUA,
+  list: [trxJ('p1-pagi', '2026-11-09', '08:00', '2026-11-09T08:00:00.000Z')],
+})
+lanjutJam = kurangRiwayat(lanjutJam, {
+  type: 'lanjut',
+  kunci: K_SEMUA,
+  list: [trxJ('p2-malam', '2026-11-09', '22:00', '2026-11-09T07:00:00.000Z')],
+})
+cek('muat lagi: jam 22:00 halaman 2 naik ke atas jam 08:00 halaman 1', lanjutJam.docs.map((t) => t.id), ['p2-malam', 'p1-pagi'])
+
 // ===== Bug Halaman 4: salinan item tua (di luar Top-50 snapshot) WAJIB tetap di posisi kronologis Hal. 4 =====
 const K_PERIODE = 'u1|semua|2026-10-10|2026-11-11'
 let hal4State = kurangRiwayat(RIWAYAT_AWAL, { type: 'mulai', kunci: K_PERIODE })

@@ -12,7 +12,7 @@
 //     dan mencatat ID terhapus agar snapshot lambat dari server tidak
 //     membangkitkan kembali transaksi yang sudah dibuang.
 //  4. Penambahan optimis (aksi 'tambah') langsung menyisipkan transaksi ke state
-//     secara kronologis (tanggal desc) sehingga seketika tampil di UI tanpa reload.
+//     secara kronologis (tanggal + jam desc) sehingga seketika tampil di UI tanpa reload.
 
 export const RIWAYAT_AWAL = {
   kunci: null,
@@ -43,13 +43,19 @@ export function createdAtMillis(val) {
   return isNaN(d.getTime()) ? 0 : d.getTime()
 }
 
-// Pengurutan deterministik transaksi:
+// Pengurutan deterministik transaksi (terbaru dulu), berdasarkan waktu
+// INPUTAN PENGGUNA dulu, baru waktu pembuatan:
 //  1. Tanggal transaksi menurun (YYYY-MM-DD desc).
-//  2. Waktu pembuatan menurun (createdAtMillis desc) — memastikan transaksi baru selalu di atas.
-//  3. Bila sama persis atau kosong, pertahankan urutan snapshot (stabil / return 0).
+//  2. Jam transaksi menurun (HH:MM desc) — jam yang dimasukkan pengguna.
+//     Dokumen tanpa jam jatuh di bawah yang berjam di tanggal yang sama.
+//  3. Waktu pembuatan menurun (createdAtMillis desc) — penentu bila tanggal
+//     dan jam sama persis, memastikan transaksi baru selalu di atas.
+//  4. Bila sama persis atau kosong, pertahankan urutan snapshot (stabil / return 0).
 export function urutkanTransaksi(a, b) {
   const cmpTgl = String(b.tanggal || '').localeCompare(String(a.tanggal || ''))
   if (cmpTgl !== 0) return cmpTgl
+  const cmpJam = String(b.jam || '').localeCompare(String(a.jam || ''))
+  if (cmpJam !== 0) return cmpJam
   const ma = createdAtMillis(a.createdAt)
   const mb = createdAtMillis(b.createdAt)
   if (ma !== mb) return mb - ma
@@ -162,10 +168,15 @@ export function kurangRiwayat(state, aksi) {
       if (aksi.kunci !== state.kunci) return state
       const ada = new Set(state.docs.map((t) => t.id))
       const isDeleted = (id) => state.deletedIds && state.deletedIds.has(id)
+      const docs = [...state.docs, ...aksi.list.filter((t) => !ada.has(t.id) && !isDeleted(t.id))]
+      // Halaman lanjutan datang dari query yang hanya mengurutkan tanggal:
+      // di dalam satu tanggal yang sama, urutkan ulang supaya jam inputan
+      // dari halaman 2 tidak tersangkut di bawah jam halaman 1.
+      docs.sort(urutkanTransaksi)
       return {
         ...state,
         adaLanjutan: true,
-        docs: [...state.docs, ...aksi.list.filter((t) => !ada.has(t.id) && !isDeleted(t.id))],
+        docs,
       }
     }
     case 'tambah': {
