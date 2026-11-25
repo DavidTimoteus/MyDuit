@@ -63,7 +63,7 @@ export default function ClayTimeInput({ id, value, onChange, placeholder = '--:-
           tabIndex={-1}
           aria-label={tr('jam')}
           onClick={() => setOpen(true)}
-          className="flex shrink-0 cursor-pointer items-center justify-center text-[#36AE7C] transition-transform hover:opacity-80 active:scale-95"
+          className="flex shrink-0 cursor-pointer items-center justify-center text-primary transition-transform hover:opacity-80 active:scale-95"
         >
           <span className="material-symbols-outlined icon-md">schedule</span>
         </button>

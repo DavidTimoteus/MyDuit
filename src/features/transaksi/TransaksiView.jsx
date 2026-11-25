@@ -699,18 +699,18 @@ export default function TransaksiView({ user }) {
                 <div key={i} className="riwayat-dot-spinner__dot"></div>
               ))}
             </div>
-            <span>{tr('muat_riwayat_kas')}</span>
+            <span>{tr('memuat_riwayat_kas')}</span>
           </div>
         ) : loading && pageItems.length === 0 ? (
           <div className="min-h-[240px]" aria-busy="true" />
         ) : pageItems.length === 0 ? (
           <div className="neu-card mx-auto my-6 flex max-w-sm flex-col items-center justify-center rounded-[28px] bg-[#E5E5E5] p-8 text-center">
-            <div className="neu-well mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#E5E5E5] text-[#36AE7C]">
+            <div className="neu-well mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[#E5E5E5] text-primary">
               <span className="material-symbols-outlined text-3xl">receipt_long</span>
             </div>
             <p className="text-base font-extrabold text-slate-800 tracking-tight">{tr('belum_ada_transaksi')}</p>
             <p className="mt-1 text-xs leading-relaxed text-slate-500">
-              {tr('empty_tx_desc1')}<span className="font-extrabold text-[#36AE7C]">+</span>{tr('empty_tx_desc2')}
+              {tr('empty_tx_desc1')}<span className="font-extrabold text-primary">+</span>{tr('empty_tx_desc2')}
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2.5">
               <button

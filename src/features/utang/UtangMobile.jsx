@@ -35,7 +35,7 @@ function statusKartu(t, tr = tTerjemah) {
   if (terlambat)
     return {
       label: tr('terlambat'),
-      cls: 'text-[#EB5353]',
+      cls: 'text-danger',
       aksen: 'bg-[#EB5353]',
       lunas,
       terlambat,
@@ -44,7 +44,7 @@ function statusKartu(t, tr = tTerjemah) {
   if (mendekati)
     return {
       label: tr('segera'),
-      cls: 'text-[#D4AF0D]',
+      cls: 'text-warning',
       aksen: 'bg-[#D4AF0D]',
       lunas,
       terlambat,
@@ -125,7 +125,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
           <button
             onClick={() => onHapus?.(t)}
             aria-label={tr('hapus_utang_nama_aria', { nama: t.namaPihak })}
-            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-[#EB5353] active:scale-95"
+            className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-[color,transform,box-shadow] duration-150 hover:text-danger active:scale-95"
           >
             <span className="material-symbols-outlined icon-xs">delete</span>
           </button>
@@ -136,7 +136,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
       <div className="mt-3 pl-1.5">
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{tr('sisa_utang')}</p>
         <div className="flex items-baseline justify-between gap-2 mt-0.5">
-          <p className={`font-mono text-2xl font-black leading-tight tracking-tight tabular-nums ${st.lunas ? 'text-[#36AE7C]' : 'text-slate-800'}`}>
+          <p className={`font-mono text-2xl font-black leading-tight tracking-tight tabular-nums ${st.lunas ? 'text-primary' : 'text-slate-800'}`}>
             {formatRupiah(Math.max(0, Number(t.sisa) || 0))}
           </p>
           <p className="text-xs font-semibold text-slate-500 tabular-nums">
@@ -155,7 +155,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
         </div>
         <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
           <span className="font-semibold text-slate-500">{tr('terbayar')} {persen}%</span>
-          <span className={`inline-flex items-center gap-0.5 font-bold ${st.terlambat ? 'text-[#EB5353]' : st.lunas ? 'text-[#36AE7C]' : 'text-slate-700'}`}>
+          <span className={`inline-flex items-center gap-0.5 font-bold ${st.terlambat ? 'text-danger' : st.lunas ? 'text-primary' : 'text-slate-700'}`}>
             {st.terlambat && <span className="material-symbols-outlined icon-xs">error</span>}
             {st.lunas && <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>}
             {teksJatuhTempo(t, st, tr)}
@@ -167,7 +167,7 @@ const KartuUtangMobile = memo(function KartuUtangMobile({ t, currencyTag: _curre
       <div className="mt-2.5 grid grid-cols-2 gap-2 pl-1.5">
         <div className="rounded-xl neu-inset bg-[#E5E5E5] px-3 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">{tr('sudah_dibayar')}</p>
-          <p className="mt-0.5 truncate font-mono text-xs font-black text-[#36AE7C]">{formatRupiah(terbayar)}</p>
+          <p className="mt-0.5 truncate font-mono text-xs font-black text-primary">{formatRupiah(terbayar)}</p>
         </div>
         <div className="rounded-xl neu-inset bg-[#E5E5E5] px-3 py-2">
           <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
@@ -365,7 +365,7 @@ export default function UtangMobile({
             </div>
             <h2 className="brand-title-embossed font-display text-2xl font-extrabold leading-tight">Utang &amp; Cicilan</h2>
           </div>
-          <span className="neu-inset rounded-full px-3 py-1 text-xs font-bold text-[#EB5353] bg-[#E5E5E5]">
+          <span className="neu-inset rounded-full px-3 py-1 text-xs font-bold text-danger bg-[#E5E5E5]">
             {ringkasan.aktifCount} aktif
           </span>
         </div>
@@ -375,10 +375,10 @@ export default function UtangMobile({
       <div className="grid grid-cols-3 gap-2 my-1">
         <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            <span className="material-symbols-outlined icon-xs text-[#EB5353]" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
+            <span className="material-symbols-outlined icon-xs text-danger" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
             <span>Total</span>
           </div>
-          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#EB5353] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-danger tabular-nums mt-1 truncate">
             {formatRupiah(ringkasan.totalSisa)}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">{ringkasan.aktifCount} aktif</p>
@@ -386,10 +386,10 @@ export default function UtangMobile({
 
         <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            <span className="material-symbols-outlined icon-xs text-[#36AE7C]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+            <span className="material-symbols-outlined icon-xs text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             <span>Lunas</span>
           </div>
-          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#36AE7C] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-primary tabular-nums mt-1 truncate">
             {formatRupiah(ringkasan.totalLunasNominal)}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">{ringkasan.lunasCount} item</p>
@@ -397,10 +397,10 @@ export default function UtangMobile({
 
         <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-            <span className="material-symbols-outlined icon-xs text-[#187498]">schedule</span>
+            <span className="material-symbols-outlined icon-xs text-info">schedule</span>
             <span>Cicilan</span>
           </div>
-          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#187498] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-info tabular-nums mt-1 truncate">
             {ringkasan.cicilanAktif}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">
@@ -424,8 +424,8 @@ export default function UtangMobile({
               className={`h-8.5 shrink-0 px-3.5 text-xs font-bold rounded-xl transition-[color,transform,box-shadow] duration-150 ${
                 active
                   ? f.id === 'terlambat'
-                    ? 'neu-well text-[#EB5353]'
-                    : 'neu-well text-[#36AE7C]'
+                    ? 'neu-well text-danger'
+                    : 'neu-well text-primary'
                   : 'neu-btn bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95'
               }`}
             >

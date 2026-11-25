@@ -119,7 +119,7 @@ export function AppLockScreen({ onUnlocked, onForgotSignOut }) {
         />
 
         {error && (
-          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-[#EB5353]">
+          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-danger">
             {error}
           </p>
         )}
@@ -131,7 +131,7 @@ export function AppLockScreen({ onUnlocked, onForgotSignOut }) {
               hapusAppLockPaksa()
               onForgotSignOut()
             }}
-            className="mt-5 text-xs font-bold text-slate-500 underline-offset-4 hover:text-[#EB5353] hover:underline"
+            className="mt-5 text-xs font-bold text-slate-500 underline-offset-4 hover:text-danger hover:underline"
           >
             {t('pin_lupa_keluar')}
           </button>
@@ -261,7 +261,7 @@ export function AppLockSetupModal({ open, mode = 'enable', onClose, onStatusChan
         />
 
         {error && (
-          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-[#EB5353]">
+          <p className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-danger">
             {error}
           </p>
         )}

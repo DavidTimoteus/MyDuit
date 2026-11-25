@@ -40,7 +40,7 @@ export default function BudgetPanel({
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {budgets.length === 0 ? (
           <div className="col-span-full flex flex-col items-center justify-center p-8 text-center neu-card rounded-2xl bg-[#E5E5E5] w-full my-4">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl neu-inset bg-[#E5E5E5] text-[#187498]">
+            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl neu-inset bg-[#E5E5E5] text-info">
               <span className="material-symbols-outlined icon-2xl" style={{ fontVariationSettings: "'FILL' 0" }}>savings</span>
             </div>
             <p className="text-sm font-bold text-slate-800">{tr('belum_ada_budget')}</p>
@@ -63,10 +63,10 @@ export default function BudgetPanel({
             const ikonStatus = status === 'lewat' ? 'error' : status === 'waspada' ? 'warning' : 'check_circle'
             const labelStatus = status === 'lewat' ? tr('status_lewat') : status === 'waspada' ? tr('status_waspada') : tr('status_aman')
             const badgeCls = status === 'lewat'
-              ? 'text-[#EB5353] bg-red-50'
+              ? 'text-danger bg-red-50'
               : status === 'waspada'
-                ? 'text-[#D4AF0D] bg-amber-50'
-                : 'text-[#187498] bg-blue-50'
+                ? 'text-warning bg-amber-50'
+                : 'text-info bg-blue-50'
             const barFill = status === 'lewat' ? 'bg-[#EB5353]' : status === 'waspada' ? 'bg-[#D4AF0D]' : 'bg-[#187498]'
             return (
               <div key={b.id} data-reveal="" className="neu-card rounded-2xl p-4.5 bg-[#E5E5E5] relative">
@@ -85,14 +85,14 @@ export default function BudgetPanel({
                     <button onClick={() => setModal({ open: true, edit: b })} aria-label={tr('edit_budget_aria', { nama: kategoriNama })} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-slate-900 active:scale-95">
                       <span className="material-symbols-outlined icon-xs">edit</span>
                     </button>
-                    <button onClick={() => setHapusTarget(b)} aria-label={tr('hapus_budget_aria', { nama: kategoriNama })} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-[#EB5353] active:scale-95">
+                    <button onClick={() => setHapusTarget(b)} aria-label={tr('hapus_budget_aria', { nama: kategoriNama })} className="neu-btn flex h-7.5 w-7.5 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-600 transition-all hover:text-danger active:scale-95">
                       <span className="material-symbols-outlined icon-xs">delete</span>
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-3">
-                  <p className={`font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${sisa < 0 ? 'text-[#EB5353]' : 'text-slate-800'}`}>
+                  <p className={`font-mono text-2xl font-black leading-none tracking-tight tabular-nums ${sisa < 0 ? 'text-danger' : 'text-slate-800'}`}>
                     {sisa < 0 ? formatRupiah(-sisa) : formatRupiah(sisa)}
                   </p>
                   <p className="mt-1 text-[11px] font-semibold text-slate-500">
@@ -106,7 +106,7 @@ export default function BudgetPanel({
                   </div>
                   <div className="mt-1.5 flex items-center justify-between gap-2 text-[11px]">
                     <span className="font-semibold text-slate-500">{tr('terpakai_nominal', { nominal: formatRupiah(b.terpakai) })}</span>
-                    <span className={`font-mono font-black ${status === 'lewat' ? 'text-[#EB5353]' : status === 'waspada' ? 'text-[#D4AF0D]' : 'text-[#187498]'}`}>{b.lewat ? `+${b.persen - 100}%` : `${b.persen}%`}</span>
+                    <span className={`font-mono font-black ${status === 'lewat' ? 'text-danger' : status === 'waspada' ? 'text-warning' : 'text-info'}`}>{b.lewat ? `+${b.persen - 100}%` : `${b.persen}%`}</span>
                   </div>
                 </div>
               </div>

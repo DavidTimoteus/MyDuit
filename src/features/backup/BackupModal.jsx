@@ -267,7 +267,7 @@ export default function BackupModal({ open, onClose, uid }) {
                 setMsg(null)
               }}
               disabled={loading}
-              className="clay-btn clay-btn-secondary btn-md w-full text-xs font-bold text-[#EB5353] hover:bg-red-50 disabled:opacity-60"
+              className="clay-btn clay-btn-secondary btn-md w-full text-xs font-bold text-danger hover:bg-red-50 disabled:opacity-60"
             >
               <span className="material-symbols-outlined icon-sm">delete_forever</span>
               {t('hapus_total_btn')}
@@ -275,7 +275,7 @@ export default function BackupModal({ open, onClose, uid }) {
           ) : (
             <div className="neu-inset rounded-2xl bg-red-50/75 p-3.5 border border-red-200/80">
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined icon-md mt-0.5 shrink-0 text-[#EB5353]">warning</span>
+                <span className="material-symbols-outlined icon-md mt-0.5 shrink-0 text-danger">warning</span>
                 <div className="min-w-0">
                   <h4 className="text-xs font-extrabold text-red-700">{t('hapus_permanen_judul')}</h4>
                   <p className="mt-1 text-[11px] leading-relaxed text-red-700/90">

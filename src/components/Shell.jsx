@@ -487,7 +487,7 @@ function LokasiModal({ open, onClose, aktifCode, otomatis }) {
         {/* Keamanan Kunci PIN Lokal */}
         <div className="shrink-0 border-b border-slate-100/80 px-5 py-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="material-symbols-outlined icon-sm text-[#187498]">lock</span>
+            <span className="material-symbols-outlined icon-sm text-info">lock</span>
             <span className="text-[11px] font-bold uppercase tracking-wide text-slate-500 truncate">
               {tr("pin_label")}
             </span>
@@ -821,7 +821,7 @@ export default function Shell({ user }) {
                 type="button"
                 onClick={keluar}
                 title={tr("keluar")}
-                className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-95"
+                className="neu-btn flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[#E5E5E5] text-danger hover:text-red-700 active:scale-95"
               >
                 <span className="material-symbols-outlined icon-sm">logout</span>
               </button>

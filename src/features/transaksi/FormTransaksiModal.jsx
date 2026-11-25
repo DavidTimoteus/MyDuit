@@ -700,7 +700,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             </div>
             <div className="relative flex items-center">
               <span className={`pointer-events-none absolute left-3.5 text-base font-extrabold font-mono transition-colors ${
-                isPemasukan ? 'text-[#36AE7C]' : 'text-[#EB5353]'
+                isPemasukan ? 'text-primary' : 'text-danger'
               }`}>
                 {simbolUang()}
               </span>
@@ -739,7 +739,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 required
                 autoFocus
                 className={`clay-input field-lg w-full rounded-2xl pl-11 pr-12 text-xl font-black font-mono tracking-tight ${
-                  isPemasukan ? 'tx-nominal-income !text-[#36AE7C]' : 'tx-nominal-expense !text-[#EB5353]'
+                  isPemasukan ? 'tx-nominal-income !text-primary' : 'tx-nominal-expense !text-danger'
                 }`}
               />
               <button
@@ -792,10 +792,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     </span>
                     <span className={`shrink-0 font-mono text-sm font-black ${
                       calcErr || (live && (!live.ok || live.dibulatkan <= 0))
-                        ? 'text-[#EB5353]'
+                        ? 'text-danger'
                         : isPemasukan
-                          ? 'text-[#36AE7C]'
-                          : 'text-[#EB5353]'
+                          ? 'text-primary'
+                          : 'text-danger'
                     }`}>
                       {calcErr
                         ? calcErr
@@ -815,18 +815,18 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
 
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { k: 'C', label: 'C', cls: 'text-[#EB5353]', aria: 'Bersihkan hitungan' },
+                      { k: 'C', label: 'C', cls: 'text-danger', aria: 'Bersihkan hitungan' },
                       { k: 'DEL', label: '⌫', cls: 'text-slate-600', aria: 'Hapus karakter terakhir' },
-                      { k: '/', label: '÷', cls: 'text-[#187498]', aria: 'Bagi' },
-                      { k: '*', label: '×', cls: 'text-[#187498]', aria: 'Kali' },
+                      { k: '/', label: '÷', cls: 'text-info', aria: 'Bagi' },
+                      { k: '*', label: '×', cls: 'text-info', aria: 'Kali' },
                       { k: '7', label: '7' },
                       { k: '8', label: '8' },
                       { k: '9', label: '9' },
-                      { k: '-', label: '−', cls: 'text-[#187498]', aria: 'Kurang' },
+                      { k: '-', label: '−', cls: 'text-info', aria: 'Kurang' },
                       { k: '4', label: '4' },
                       { k: '5', label: '5' },
                       { k: '6', label: '6' },
-                      { k: '+', label: '+', cls: 'text-[#187498]', aria: 'Tambah' },
+                      { k: '+', label: '+', cls: 'text-info', aria: 'Tambah' },
                       { k: '1', label: '1' },
                       { k: '2', label: '2' },
                       { k: '3', label: '3' },
@@ -873,7 +873,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
             <div className="neu-inset flex flex-col gap-2 rounded-2xl p-2.5 sm:px-3 sm:py-2 bg-[#E5E5E5]">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="material-symbols-outlined icon-sm shrink-0 text-[#EB5353]">document_scanner</span>
+                  <span className="material-symbols-outlined icon-sm shrink-0 text-danger">document_scanner</span>
                   <label className="truncate text-[11px] font-semibold text-textSecondary">Scan Struk</label>
                   {scanHasil?.engine === 'gemini-flash' ? (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
@@ -902,7 +902,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                     title="Pengaturan Engine OCR"
                     aria-label="Pengaturan Engine OCR"
                     className={`neu-btn ml-auto sm:ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#E5E5E5] transition-transform active:scale-95 ${
-                      showOcrConfig ? 'text-[#36AE7C]' : 'text-slate-500 hover:text-slate-800'
+                      showOcrConfig ? 'text-primary' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     <span className="material-symbols-outlined icon-xs">tune</span>
@@ -963,7 +963,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         }}
                         className={`rounded-lg py-1.5 text-center text-[10.5px] font-bold transition-all ${
                           ocrEnginePref === opt.id
-                            ? 'neu-btn bg-[#E5E5E5] text-[#36AE7C] shadow-sm font-extrabold'
+                            ? 'neu-btn bg-[#E5E5E5] text-primary shadow-sm font-extrabold'
                             : 'text-slate-600 hover:text-slate-900 bg-transparent'
                         }`}
                       >
@@ -991,7 +991,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                               }}
                               className={`rounded-md px-2 py-0.5 transition-all ${
                                 puterProvider === prov.id
-                                  ? 'bg-white text-[#36AE7C] shadow-sm'
+                                  ? 'bg-white text-primary shadow-sm'
                                   : 'text-slate-500 hover:text-slate-800'
                               }`}
                             >
@@ -1008,7 +1008,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                           type="button"
                           onClick={hubungkanAtauCekPuter}
                           disabled={puterTesting}
-                          className="neu-btn shrink-0 px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[10.5px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
+                          className="neu-btn shrink-0 px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-primary font-extrabold text-[10.5px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
                         >
                           {puterTesting ? '...' : puterSignedIn ? 'Terhubung' : 'Hubungkan Puter'}
                         </button>
@@ -1028,7 +1028,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                       <button
                         type="button"
                         onClick={() => setShowTutorialModal(true)}
-                        className="inline-flex items-center gap-1 text-[#36AE7C] hover:underline font-bold text-[10px]"
+                        className="inline-flex items-center gap-1 text-primary hover:underline font-bold text-[10px]"
                       >
                         <span className="material-symbols-outlined icon-2xs">help</span>
                         Panduan Kunci Gratis
@@ -1046,7 +1046,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         type="button"
                         onClick={simpanDanUjiGeminiKey}
                         disabled={geminiTesting}
-                        className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#36AE7C] font-extrabold text-[11px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
+                        className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-primary font-extrabold text-[11px] transition-all hover:text-emerald-700 active:scale-95 disabled:opacity-50"
                       >
                         {geminiTesting ? '...' : 'Simpan'}
                       </button>
@@ -1054,7 +1054,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                         <button
                           type="button"
                           onClick={hapusKey}
-                          className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-[#EB5353] font-extrabold text-[11px] active:scale-95"
+                          className="neu-btn px-3 py-1.5 rounded-xl bg-[#E5E5E5] text-danger font-extrabold text-[11px] active:scale-95"
                         >
                           Hapus
                         </button>

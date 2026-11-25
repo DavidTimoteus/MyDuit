@@ -919,7 +919,7 @@ export default function StatistikView({ user }) {
             pct={pctIn}
             banding={labelBanding}
             cls="hero-primary"
-            aksenCls="text-[#36AE7C]"
+            aksenCls="text-primary"
           />
           <SummaryCard
             icon="trending_down"
@@ -928,7 +928,7 @@ export default function StatistikView({ user }) {
             pct={pctOut}
             banding={labelBanding}
             cls="hero-danger"
-            aksenCls="text-[#EB5353]"
+            aksenCls="text-danger"
           />
           <SummaryCard
             icon="savings"
@@ -937,7 +937,7 @@ export default function StatistikView({ user }) {
             pct={pctSaldo}
             banding={labelBanding}
             cls="hero-blue"
-            aksenCls="text-[#187498]"
+            aksenCls="text-info"
           />
         </div>
 
@@ -1121,7 +1121,7 @@ export default function StatistikView({ user }) {
                         </p>
                       </div>
                       <p
-                        className={`shrink-0 font-mono text-sm font-extrabold ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
+                        className={`shrink-0 font-mono text-sm font-extrabold ${detail.jenis === "pemasukan" ? "text-primary" : "text-danger"}`}
                       >
                         {detail.jenis === "pemasukan" ? "+" : "−"}
                         {formatRupiah(t.jumlah || 0, { kursSnapshot: t.kursSnapshot })}
@@ -1137,7 +1137,7 @@ export default function StatistikView({ user }) {
                 {tr(detail.jenis === "pemasukan" ? "total_pemasukan" : "total_pengeluaran")}
               </span>
               <span
-                className={`font-mono text-base font-black tabular-nums ${detail.jenis === "pemasukan" ? "text-[#36AE7C]" : "text-[#EB5353]"}`}
+                className={`font-mono text-base font-black tabular-nums ${detail.jenis === "pemasukan" ? "text-primary" : "text-danger"}`}
               >
                 {(() => {
                   const { currency, locale } = uangAktif();
@@ -1152,7 +1152,7 @@ export default function StatistikView({ user }) {
   );
 }
 
-function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
+function SummaryCard({ icon, label, value, pct, cls, aksenCls, banding }) {
   // pct null = tidak ada data pembanding (periode sebelumnya kosong) — jangan
   // menampilkan persen palsu "+100%", ganti teks netral.
   const { t: tr } = useBahasa();
@@ -1162,7 +1162,10 @@ function SummaryCard({ icon, label, value, pct, _cls, aksenCls, banding }) {
     pct === null ? "trending_flat" : positif ? "trending_up" : "trending_down";
   const valNum = Number(value) || 0;
   return (
-    <div data-reveal="" className="neu-card rounded-2xl bg-[#E5E5E5] p-4">
+    // R-03 re-audit: prop `cls` dulu bernama `_cls` di definisi tapi tidak
+    // pernah dipakai — kelas hero-* dari call site tidak pernah sampai ke DOM,
+    // jadi pewarnaan .stat-card-val di index.css tidak pernah aktif.
+    <div data-reveal="" className={`neu-card hero-card rounded-2xl bg-[#E5E5E5] p-4 ${cls ?? ""}`}>
       <div className="mb-2 flex items-center gap-2">
         <span
           className={`material-symbols-outlined icon-md ${aksenCls}`}

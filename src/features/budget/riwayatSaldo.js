@@ -42,14 +42,14 @@ export function deltaMutasi(t, akunId) {
 export function infoMutasi(t, akunId) {
   if (t?.jenis === 'pindah saldo') {
     if (t.dariId === akunId && t.keId === akunId) {
-      return { label: 'Pindah saldo', ikon: 'swap_horiz', kelas: 'text-[#187498] bg-[#187498]/10' }
+      return { label: 'Pindah saldo', ikon: 'swap_horiz', kelas: 'text-info bg-[#187498]/10' }
     }
     return t.dariId === akunId
-      ? { label: 'Transfer keluar', ikon: 'swap_horiz', kelas: 'text-[#187498] bg-[#187498]/10' }
-      : { label: 'Transfer masuk', ikon: 'swap_horiz', kelas: 'text-[#187498] bg-[#187498]/10' }
+      ? { label: 'Transfer keluar', ikon: 'swap_horiz', kelas: 'text-info bg-[#187498]/10' }
+      : { label: 'Transfer masuk', ikon: 'swap_horiz', kelas: 'text-info bg-[#187498]/10' }
   }
-  if (t?.jenis === 'pemasukan') return { label: 'Pemasukan', ikon: 'trending_up', kelas: 'text-[#36AE7C] bg-[#36AE7C]/10' }
-  return { label: 'Pengeluaran', ikon: 'trending_down', kelas: 'text-[#EB5353] bg-[#EB5353]/10' }
+  if (t?.jenis === 'pemasukan') return { label: 'Pemasukan', ikon: 'trending_up', kelas: 'text-primary bg-[#36AE7C]/10' }
+  return { label: 'Pengeluaran', ikon: 'trending_down', kelas: 'text-danger bg-[#EB5353]/10' }
 }
 
 // Bangun baris riwayat mutasi untuk satu akun.

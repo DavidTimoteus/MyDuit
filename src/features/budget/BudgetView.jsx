@@ -316,7 +316,7 @@ export default function BudgetView({ user }) {
           <div className="neu-card mb-3 shrink-0 rounded-2xl p-4 bg-[#E5E5E5]">
             <div className="mb-2 flex items-center gap-2.5">
               <span
-                className="material-symbols-outlined icon-md text-[#187498]"
+                className="material-symbols-outlined icon-md text-info"
                 style={{ fontVariationSettings: "'FILL' 1" }}
               >
                 wallet
@@ -341,13 +341,13 @@ export default function BudgetView({ user }) {
             <div className="mt-3 grid grid-cols-2 gap-3 pt-1">
               <div className="neu-inset rounded-xl p-2.5 min-w-0">
                 <p className="text-[10px] font-medium text-slate-500">{tr('pemasukan_bulan_ini')}</p>
-                <p className="font-mono truncate text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
+                <p className="font-mono truncate text-sm font-black text-primary tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPemasukan)}
                 </p>
               </div>
               <div className="neu-inset rounded-xl p-2.5 min-w-0 text-right">
                 <p className="text-[10px] font-medium text-slate-500">{tr('pengeluaran_bulan_ini')}</p>
-                <p className="font-mono truncate text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
+                <p className="font-mono truncate text-sm font-black text-danger tabular-nums mt-0.5">
                   {formatRupiah(ringkasan.totalPengeluaran)}
                 </p>
               </div>

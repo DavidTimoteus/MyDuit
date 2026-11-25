@@ -99,7 +99,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
       <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
-            <span className="material-symbols-outlined text-[#EB5353]">account_balance_wallet</span>
+            <span className="material-symbols-outlined text-danger">account_balance_wallet</span>
             {tr(edit ? 'edit_utang' : 'tambah_utang')}
           </h3>
           <button type="button" onClick={onClose} aria-label={tr('tutup_form_utang')} className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">
@@ -115,7 +115,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               onClick={() => setTipe('Utang')}
               className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-3 text-xs font-extrabold rounded-xl transition-all duration-200 touch-manipulation ${
                 tipe === 'Utang'
-                  ? 'neu-btn bg-[#E5E5E5] text-[#EB5353] shadow-sm'
+                  ? 'neu-btn bg-[#E5E5E5] text-danger shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 bg-transparent'
               }`}
             >
@@ -127,7 +127,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               onClick={() => setTipe('Cicilan')}
               className={`flex flex-1 items-center justify-center gap-1.5 py-2 px-3 text-xs font-extrabold rounded-xl transition-all duration-200 touch-manipulation ${
                 tipe === 'Cicilan'
-                  ? 'neu-btn bg-[#E5E5E5] text-[#187498] shadow-sm'
+                  ? 'neu-btn bg-[#E5E5E5] text-info shadow-sm'
                   : 'text-slate-600 hover:text-slate-900 bg-transparent'
               }`}
             >
@@ -144,7 +144,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
             {tr('total_tipe', { tipe, symbol: simbolUang() })}
           </label>
           <div className="relative flex items-center">
-            <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#EB5353]">
+            <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-danger">
               {simbolUang()}
             </span>
             <input
@@ -153,7 +153,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               inputMode="decimal"
               placeholder="0"
               required
-              className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight tx-nominal-expense !text-[#EB5353]"
+              className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-xl font-black font-mono tracking-tight tx-nominal-expense !text-danger"
             />
           </div>
           <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampil(total))} className="mt-1" />
@@ -176,7 +176,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
               {tr('cicilan_per_bulan', { symbol: simbolUang() })}
             </label>
             <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
+              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-info">
                 {simbolUang()}
               </span>
               <input
@@ -184,7 +184,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
                 onChange={(e) => setCicilan(sanitizeKetikNominal(e.target.value))}
                 inputMode="decimal"
                 placeholder="0"
-                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight !text-[#187498]"
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight !text-info"
               />
             </div>
           </div>
@@ -370,7 +370,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
         </div>
 
         {n > 0 && (
-          <div className="neu-inset mb-4 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-bold text-[#36AE7C]">
+          <div className="neu-inset mb-4 flex items-center justify-between rounded-xl bg-[#E5E5E5] px-3.5 py-2 text-xs font-bold text-primary">
             <span>Sisa setelah bayar: {formatRupiah(sisaBaru)}</span>
             <span>{sisaBaru === 0 ? tr('lunas_badge') : ''}</span>
           </div>

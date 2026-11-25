@@ -39,24 +39,24 @@ function logMutasi(m, tr) {
   const tglJam = tanggalJam(m?.at)
   const teks = `${tglJam ? tglJam + ' — ' : ''}${ket}: ${tanda}${formatRupiah(Math.abs(delta))}`
   let warna = 'text-slate-600'
-  if (/pindah/i.test(ket)) warna = 'text-[#187498] font-bold'
-  else if (delta < 0) warna = 'text-[#EB5353] font-bold'
-  else if (delta > 0) warna = 'text-[#36AE7C] font-bold'
+  if (/pindah/i.test(ket)) warna = 'text-info font-bold'
+  else if (delta < 0) warna = 'text-danger font-bold'
+  else if (delta > 0) warna = 'text-primary font-bold'
   return { teks, warna }
 }
 
 function getAkunVisual(tipe) {
   const t = (tipe || '').toLowerCase()
   if (t.includes('dompet') || t.includes('tunai') || t.includes('cash')) {
-    return { icon: 'payments', bgCls: 'text-[#D4AF0D]' }
+    return { icon: 'payments', bgCls: 'text-warning' }
   }
   if (t.includes('ewallet') || t.includes('e-wallet') || t.includes('gopay') || t.includes('ovo') || t.includes('dana') || t.includes('shopee')) {
-    return { icon: 'smartphone', bgCls: 'text-[#36AE7C]' }
+    return { icon: 'smartphone', bgCls: 'text-primary' }
   }
   if (t.includes('investasi') || t.includes('saham') || t.includes('kripto') || t.includes('reksadana')) {
-    return { icon: 'trending_up', bgCls: 'text-[#187498]' }
+    return { icon: 'trending_up', bgCls: 'text-info' }
   }
-  return { icon: 'account_balance', bgCls: 'text-[#187498]' }
+  return { icon: 'account_balance', bgCls: 'text-info' }
 }
 
 export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
@@ -178,7 +178,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         <div className="min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <span
-              className="material-symbols-outlined icon-md text-[#187498]"
+              className="material-symbols-outlined icon-md text-info"
               style={{ fontVariationSettings: "'FILL' 1" }}
             >
               account_balance_wallet
@@ -202,13 +202,13 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
         <div className="mt-2.5 grid shrink-0 grid-cols-2 gap-2 md:mt-0 md:text-right md:grid-cols-1">
           <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">{tr('pemasukan_bulan_ini')}</p>
-            <p className="font-mono text-sm font-black text-[#36AE7C] tabular-nums mt-0.5">
+            <p className="font-mono text-sm font-black text-primary tabular-nums mt-0.5">
               {formatCurrency(arusBulan.masuk, currency, locale)}
             </p>
           </div>
           <div className="neu-inset rounded-xl p-2 min-w-0">
             <p className="text-[11px] font-medium text-slate-500">{tr('pengeluaran_bulan_ini')}</p>
-            <p className="font-mono text-sm font-black text-[#EB5353] tabular-nums mt-0.5">
+            <p className="font-mono text-sm font-black text-danger tabular-nums mt-0.5">
               {formatCurrency(arusBulan.keluar, currency, locale)}
             </p>
           </div>
@@ -365,7 +365,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         <span className="font-bold text-base text-slate-800 truncate">{a.nama}</span>
                       </div>
                       {a.tipe && (
-                        <span className="neu-inset text-[10px] px-2.5 py-0.5 rounded-full font-bold text-[#187498] shrink-0 whitespace-nowrap ml-auto bg-[#E5E5E5]">
+                        <span className="neu-inset text-[10px] px-2.5 py-0.5 rounded-full font-bold text-info shrink-0 whitespace-nowrap ml-auto bg-[#E5E5E5]">
                           {a.tipe}
                         </span>
                       )}
@@ -374,7 +374,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         onClick={(e) => { e.stopPropagation(); setRiwayatId(a.id) }}
                         title="Detail perubahan rekening"
                         aria-label={`Detail perubahan ${a.nama}`}
-                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#187498] bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
+                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-info bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
                       >
                         <span className="material-symbols-outlined icon-xs">history</span>
                       </button>
@@ -392,7 +392,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                         onClick={(e) => { e.stopPropagation(); setHapusTarget(a) }}
                         title="Hapus rekening"
                         aria-label="Hapus rekening"
-                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-[#EB5353] bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
+                        className="neu-btn w-8 h-8 rounded-xl flex items-center justify-center text-slate-500 hover:text-danger bg-[#E5E5E5] transition-all shrink-0 active:scale-95"
                       >
                         <span className="material-symbols-outlined icon-xs">delete</span>
                       </button>
@@ -401,7 +401,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     {/* Saldo Akhir */}
                     <div className="mb-2">
                       <p className="text-xs text-slate-500">Saldo Akhir</p>
-                      <p className={`font-mono text-xl font-black ${negatif ? 'text-[#EB5353]' : 'text-slate-900'}`}>
+                      <p className={`font-mono text-xl font-black ${negatif ? 'text-danger' : 'text-slate-900'}`}>
                         {formatRupiah(a.saldo)}
                       </p>
                     </div>
@@ -418,7 +418,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                       {log ? (
                         <>
                           <span className={`block text-xs ${log.warna} font-mono truncate`}>{log.teks}</span>
-                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-[#187498]/90 font-medium">
+                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-info/90 font-medium">
                             <span className="flex items-center gap-0.5 truncate"><span className="material-symbols-outlined icon-2xs">touch_app</span>Ketuk riwayat</span>
                             <span className="flex items-center gap-0.5 shrink-0 text-slate-400"><span className="material-symbols-outlined icon-2xs">swipe</span>Geser kartu</span>
                           </div>
@@ -426,7 +426,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                       ) : (
                         <>
                           <span className="block text-[10px] text-slate-500">Belum ada riwayat</span>
-                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-[#187498]/90 font-medium">
+                          <div className="mt-1.5 flex items-center justify-between gap-1 text-[10px] text-info/90 font-medium">
                             <span className="flex items-center gap-0.5 truncate"><span className="material-symbols-outlined icon-2xs">history</span>Ketuk utk lihat detail rekening</span>
                             <span className="flex items-center gap-0.5 shrink-0 text-slate-400"><span className="material-symbols-outlined icon-2xs">swipe</span>Geser kartu</span>
                           </div>
@@ -500,7 +500,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
                     onClick={() => setHapusTarget(a)}
                     aria-label="Hapus rekening"
                     title="Hapus rekening"
-                    className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-500 hover:text-[#EB5353] active:scale-95 transition-all"
+                    className="neu-btn flex h-8 w-8 items-center justify-center rounded-xl bg-[#E5E5E5] text-slate-500 hover:text-danger active:scale-95 transition-all"
                   >
                     <span className="material-symbols-outlined icon-xs">delete</span>
                   </button>
@@ -508,7 +508,7 @@ export default function RekeningPanel({ uid, transBulan: propTransBulan }) {
               </div>
               <div className="mb-2.5">
                 <p className="text-xs font-semibold text-slate-500">Saldo Akhir</p>
-                <p className={`font-mono text-xl font-extrabold tracking-tight ${negatif ? 'text-[#EB5353]' : 'text-slate-800'}`}>
+                <p className={`font-mono text-xl font-extrabold tracking-tight ${negatif ? 'text-danger' : 'text-slate-800'}`}>
                   {formatRupiah(a.saldo)}
                 </p>
               </div>

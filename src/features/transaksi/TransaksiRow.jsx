@@ -164,7 +164,7 @@ export const TransaksiRow = memo(function TransaksiRow({
               }}
               aria-label={tr('salin_transaksi')}
               title={tr('salin_transaksi')}
-              className="tx-action-pop salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#36AE7C] hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
+              className="tx-action-pop salin-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-primary hover:text-emerald-700 active:scale-90 flex items-center justify-center touch-manipulation"
             >
               <span className="material-symbols-outlined icon-md">content_copy</span>
             </button>
@@ -178,7 +178,7 @@ export const TransaksiRow = memo(function TransaksiRow({
             aria-label={tr('hapus_transaksi')}
             title={tr('hapus_transaksi')}
             style={{ '--pop-delay': !isPindahSaldo ? '35ms' : '0ms' }}
-            className="tx-action-pop delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-[#EB5353] hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
+            className="tx-action-pop delete-btn-action neu-btn h-9 w-9 rounded-full bg-[#E5E5E5] text-danger hover:text-red-700 active:scale-90 flex items-center justify-center touch-manipulation"
           >
             <span className="material-symbols-outlined icon-md" style={{ fontVariationSettings: "'FILL' 1" }}>delete</span>
           </button>

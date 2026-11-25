@@ -2723,12 +2723,16 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   --color-primary-dark: #2B8C63;
   --color-primary-light: #4EC593;
   --color-income: #36AE7C;
-  --color-incomeText: #26805B;
+  /* Fase 4 re-audit (R-04): #26805B = 3,86:1 di atas kanvas (gagal AA).
+     Nilai di @theme sudah #1E6B48 (5,13:1) sejak A01, tapi blok tema ini
+     menimpanya kembali — itulah yang selama ini benar-benar dipakai. */
+  --color-incomeText: #1E6B48;
 
   --color-danger: #EB5353;
   --color-danger-light: #FDEDED;
   --color-expense: #EB5353;
-  --color-expenseText: #C73838;
+  /* Fase 4 re-audit (R-04): #C73838 = 4,12:1 (gagal AA); #A92E2E = 5,35:1. */
+  --color-expenseText: #A92E2E;
 
   --color-info: #187498;
   --color-info-light: #E2F1F8;
@@ -3329,6 +3333,7 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
 [data-theme="neumorphism"] .brand-title-embossed.embossed-amber,
 [data-theme="neumorphism"] .embossed-amber,
 [data-theme="neumorphism"] .text-amber-600,
+[data-theme="neumorphism"] .text-amber-700,
 [data-theme="neumorphism"] .text-warning {
   /* A01: #D4AF0D sebagai teks = 1,68:1 di atas kanvas. #7A5C00 = 4,96:1. */
   color: #7A5C00 !important;
@@ -3336,6 +3341,17 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
     -1px -1px 2px rgba(255, 255, 255, 0.85),
      2px  2px 3px rgba(0, 0, 0, 0.22),
      3px  4px 6px rgba(0, 0, 0, 0.14) !important;
+}
+
+/* Fase 4 re-audit (R-04): teks sekunder slate gagal AA di atas kanvas
+   (#64748B = 3,78:1; #94A3B8 = 2,04:1). Dipetakan ke abu gelap yang lolos:
+   slate-500 -> #475569 (6,02:1), slate-400 -> #52657D (4,74:1) — hierarki
+   terang-gelap dipertahankan, keduanya >= 4,5:1. */
+[data-theme="neumorphism"] .text-slate-500 {
+  color: #475569 !important;
+}
+[data-theme="neumorphism"] .text-slate-400 {
+  color: #52657D !important;
 }
 
 /* Color Variants on Neumorphic Action Buttons (+ .neu-btn-primary & .neu-btn-danger lengkap) */
@@ -3528,6 +3544,56 @@ button:active:where(:not(:disabled):not([aria-disabled="true"])) {
   --clay-h-neutral: 100, 116, 139;
   --clay-h-blue: 31, 84, 200;
   --clay-h-info: 29, 78, 216;
+}
+
+/* Fase 4 re-audit (R-05): override kontras token SEMULA hanya ada di tema
+   Neumorphism — ganti ke Claymorphism, teks semantik kembali ke warna mentah
+   yang gagal AA (#36AE7C = 2,22:1; #EB5353 = 2,83:1; #D4AF0D = 1,68:1 di
+   atas kanvas #E5E5E5). Warna yang dipakai sama dengan Neumorphism (semua
+   >= 4,5:1), tanpa text-shadow emboss — tema Clay punya bahasa kedalamannya
+   sendiri. Kanvas Clay tetap #E5E5E5, jadi rasio yang sama berlaku. */
+[data-theme="claymorphism"] .hero-card.hero-blue .stat-card-val,
+[data-theme="claymorphism"] .hero-card.hero-blue .font-mono,
+[data-theme="claymorphism"] .embossed-blue,
+[data-theme="claymorphism"] .text-blue-600,
+[data-theme="claymorphism"] .text-info {
+  color: #125773 !important;
+}
+
+[data-theme="claymorphism"] .hero-card.hero-primary .stat-card-val,
+[data-theme="claymorphism"] .hero-card.hero-primary .font-mono,
+[data-theme="claymorphism"] .embossed-green,
+[data-theme="claymorphism"] .text-emerald-600,
+[data-theme="claymorphism"] .text-primary,
+[data-theme="claymorphism"] .text-incomeText,
+[data-theme="claymorphism"] .tx-nominal-income {
+  color: #1E6B48 !important;
+}
+
+[data-theme="claymorphism"] .hero-card.hero-danger .stat-card-val,
+[data-theme="claymorphism"] .hero-card.hero-danger .font-mono,
+[data-theme="claymorphism"] .embossed-red,
+[data-theme="claymorphism"] .text-red-600,
+[data-theme="claymorphism"] .text-danger,
+[data-theme="claymorphism"] .text-expenseText,
+[data-theme="claymorphism"] .tx-nominal-expense {
+  color: #A92E2E !important;
+}
+
+[data-theme="claymorphism"] .embossed-amber,
+[data-theme="claymorphism"] .text-amber-600,
+[data-theme="claymorphism"] .text-amber-700,
+[data-theme="claymorphism"] .text-warning {
+  color: #7A5C00 !important;
+}
+
+/* Fase 4 re-audit (R-04): teks sekunder slate di tema Clay — sama seperti
+   Neumorphism (slate-500 -> #475569 = 6,02:1; slate-400 -> #52657D = 4,74:1). */
+[data-theme="claymorphism"] .text-slate-500 {
+  color: #475569 !important;
+}
+[data-theme="claymorphism"] .text-slate-400 {
+  color: #52657D !important;
 }
 
 /* Right Aside Panels & Cards in Neumorphism */

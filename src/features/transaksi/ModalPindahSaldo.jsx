@@ -186,7 +186,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
               {tr('nominal')} ({simbolUang()}) <span className="text-red-500">*</span>
             </label>
             <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-[#187498]">
+              <span className="pointer-events-none absolute left-3.5 text-base font-extrabold font-mono text-info">
                 {simbolUang()}
               </span>
               <input
@@ -196,7 +196,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
                 inputMode="decimal"
                 placeholder="0"
                 required
-                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none !text-[#187498]"
+                className="clay-input field-lg w-full rounded-2xl pl-11 pr-4 text-base font-black font-mono tracking-tight outline-none !text-info"
               />
             </div>
             <InfoLensaKurs nilaiBasis={konversiKeBasis(parseInputTampil(jumlah))} className="mt-1" />

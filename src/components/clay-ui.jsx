@@ -503,7 +503,7 @@ export function ClayDateInput({ id, value, onChange, range = false, accent = fal
         type="button"
         tabIndex={-1}
         aria-label="Buka kalender"
-        className="flex shrink-0 items-center justify-center cursor-pointer text-[#36AE7C] hover:opacity-80 active:scale-95 transition-all"
+        className="flex shrink-0 items-center justify-center cursor-pointer text-primary hover:opacity-80 active:scale-95 transition-all"
       >
         <span className="material-symbols-outlined icon-md">calendar_month</span>
       </button>

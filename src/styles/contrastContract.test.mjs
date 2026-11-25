@@ -104,4 +104,89 @@ const clayUi = readFileSync(join(DIR, '..', 'components', 'clay-ui.jsx'), 'utf8'
 assert.ok(!clayUi.includes(".style.outline = 'none'"), 'clay-ui masih mematikan outline altInput');
 console.log("  ok    clay-ui: tidak ada style.outline = 'none'");
 
+// ============================================================================
+// FASE 4 (re-audit R-04/R-05, 25 Nov 2026): kontras teks semantik + override
+// per-tema. Tes ini DULU hanya menegaskan background-color di CSS — 100+
+// pemakaian teks gagal lolos begitu saja. Sekarang: (1) rasio dihitung untuk
+// SEMUA nilai token teks, (2) override Claymorphism benar-benar ada,
+// (3) tidak ada lagi kelas teks arbitrer yang gagal di src.
+// ============================================================================
+console.log('\n--- Fase 4: kontras teks semantik (R-04/R-05) ---');
+
+// Nilai token teks hasil perbaikan — semuanya >= 4,5:1 di atas kanvas.
+for (const [hex, nama] of [
+  ['#1E6B48', 'teks hijau (primary/income)'],
+  ['#A92E2E', 'teks merah (danger/expense)'],
+  ['#125773', 'teks biru (info)'],
+  ['#7A5C00', 'teks kuning (warning/amber)'],
+  ['#475569', 'teks abu slate-500'],
+  ['#52657D', 'teks abu slate-400'],
+]) {
+  assertKontras(hex, KANVAS, 4.5, `Fase 4: ${nama} ${hex} di kanvas`);
+}
+
+// (a) Blok tema Neumorphism tidak lagi menimpa incomeText/expenseText ke
+// nilai lama yang gagal (A01 dulu hanya memperbaiki @theme — blok inilah
+// yang benar-benar dipakai saat data-theme="neumorphism").
+const blokNeu = css.slice(css.indexOf('[data-theme="neumorphism"] {'))
+assert.ok(blokNeu.includes('--color-incomeText: #1E6B48;'), 'blok neumorphism masih memakai incomeText lama #26805B')
+assert.ok(blokNeu.includes('--color-expenseText: #A92E2E;'), 'blok neumorphism masih memakai expenseText lama #C73838')
+assert.ok(!blokNeu.includes('--color-incomeText: #26805B;'), 'blok neumorphism masih memuat --color-incomeText: #26805B')
+assert.ok(!blokNeu.includes('--color-expenseText: #C73838;'), 'blok neumorphism masih memuat --color-expenseText: #C73838')
+console.log('  ok    css: blok neumorphism memakai incomeText/expenseText yang lolos')
+
+// (b) Override kontras token ada di KEDUA tema (R-05), bukan cuma Neumorphism.
+for (const tema of ['neumorphism', 'claymorphism']) {
+  for (const [selektor, warna] of [
+    ['.text-primary', '#1E6B48'],
+    ['.text-danger', '#A92E2E'],
+    ['.text-warning', '#7A5C00'],
+    ['.text-info', '#125773'],
+    ['.text-blue-600', '#125773'],
+    ['.text-red-600', '#A92E2E'],
+    ['.text-emerald-600', '#1E6B48'],
+    ['.text-slate-500', '#475569'],
+    ['.text-slate-400', '#52657D'],
+  ]) {
+    assert.ok(
+      css.includes(`[data-theme="${tema}"] ${selektor}`),
+      `index.css: override ${selektor} tidak ada di tema ${tema}`,
+    )
+  }
+  console.log(`  ok    css: override token teks lengkap di tema ${tema}`)
+}
+assert.ok(
+  css.includes('[data-theme="claymorphism"] .hero-card.hero-primary .stat-card-val'),
+  'index.css: pewarnaan kartu hero-primary tidak ada di tema claymorphism',
+)
+console.log('  ok    css: kartu hero diwarnai di tema claymorphism')
+
+// (c) Tidak ada lagi kelas teks arbitrer yang gagal di src (sudah diganti
+// token: text-primary/text-danger/text-info/text-warning). text-[#1E6B48]
+// dikecualikan — nilainya sendiri lolos 5,13:1.
+import { readdirSync, statSync } from 'node:fs'
+function jalan(dir, keluar = []) {
+  for (const entri of readdirSync(dir)) {
+    const p = join(dir, entri)
+    const st = statSync(p)
+    if (st.isDirectory()) {
+      if (entri === 'node_modules' || entri === 'dist') continue
+      jalan(p, keluar)
+    } else if ((p.endsWith('.js') || p.endsWith('.jsx')) && !p.includes('.test.')) {
+      keluar.push(p)
+    }
+  }
+  return keluar
+}
+const TERLARANG = ['text-[#36AE7C]', 'text-[#EB5353]', 'text-[#187498]', 'text-[#D4AF0D]']
+const pelanggaran = []
+for (const file of jalan(join(DIR, '..'))) {
+  const isi = readFileSync(file, 'utf8')
+  for (const pola of TERLARANG) {
+    if (isi.includes(pola)) pelanggaran.push(`${pola} di ${file.replace(join(DIR, '..') + '/', '')}`)
+  }
+}
+assert.deepEqual(pelanggaran, [], `Kelas teks arbitrer yang gagal masih ada di src:\n- ${pelanggaran.join('\n- ')}`)
+console.log('  ok    src: tidak ada lagi text-[#36AE7C]/text-[#EB5353]/text-[#187498]/text-[#D4AF0D]')
+
 console.log('\nLULUS: Semua uji Contrast Contract lolos.\n');

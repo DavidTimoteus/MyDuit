@@ -201,7 +201,7 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
                       {b.catatan && <p className="mutasi-item__catatan">{b.catatan}</p>}
                       <p className="mutasi-item__saldo flex items-center justify-end gap-1.5 font-mono text-[11px] font-semibold">
                         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Saldo sesudah:</span>
-                        <span className="font-extrabold text-[#187498] tabular-nums">{formatRupiah(b.saldoSesudah)}</span>
+                        <span className="font-extrabold text-info tabular-nums">{formatRupiah(b.saldoSesudah)}</span>
                       </p>
                     </div>
                   </li>
