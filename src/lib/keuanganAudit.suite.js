@@ -234,6 +234,20 @@ await cek('backup restore memangkas unknown fields (>25), kontrol char docId, & 
   assert.equal(json.data.akun[0].nama.length <= 120, true)
 })
 
+await cek('importGas: semua transaksi impor membawa jam (orderBy jam menyaring dokumen tanpa jam)', () => {
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([
+    { ID: 't1', Jenis: 'Pengeluaran', AkunID: 'a1', Tanggal: new Date(2026, 10, 10, 14, 30), Jumlah: 50000 },
+    { ID: 't2', Jenis: 'Pemasukan', AkunID: 'a1', Tanggal: '2026-11-11', Jumlah: 100000 },
+  ]), 'Transaksi')
+  const { json } = konversiBackupGas(wb, XLSX, 'uid_test')
+  const tx = json.data.transaksi
+  assert.equal(tx.length, 2)
+  for (const d of tx) assert.match(d.jam, /^([01]\d|2[0-3]):[0-5]\d$/, `dok ${d.id} tanpa jam valid`)
+  assert.equal(tx.find((d) => d.id === 't1').jam, '14:30')
+  assert.equal(tx.find((d) => d.id === 't2').jam, '00:00')
+})
+
 await cek('validasiEndpointOcr menolak kredensial tertanam dan host metadata cloud', () => {
   assert.throws(() => validasiEndpointOcr('https://user:pass@evil.example.com'))
   assert.throws(() => validasiEndpointOcr('https://169.254.169.254/latest'))

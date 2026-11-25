@@ -133,12 +133,22 @@ export default function App() {
   useEffect(() => {
     if (!user?.uid || IS_DEMO_UID(user.uid) || uidBersih !== user.uid) return
     const flag = `myduit-migrasi-norm-${user.uid}`
+    const flagJam = `myduit-migrasi-jam-${user.uid}`
     try {
-      if (localStorage.getItem(flag)) return
-      import('./lib/db.js')
-        .then(({ migrasiNormalisasi }) => migrasiNormalisasi(user.uid))
-        .then(() => localStorage.setItem(flag, '1'))
-        .catch((e) => console.warn('[migrasi] ditunda:', e?.message ?? e))
+      if (!localStorage.getItem(flag)) {
+        import('./lib/db.js')
+          .then(({ migrasiNormalisasi }) => migrasiNormalisasi(user.uid))
+          .then(() => localStorage.setItem(flag, '1'))
+          .catch((e) => console.warn('[migrasi] ditunda:', e?.message ?? e))
+      }
+      // REGRESI JAM 25 Nov 2026: isi jam dokumen lama (khususnya impor XLSX)
+      // supaya orderBy jam bisa diaktifkan lagi tanpa menghilangkan dokumen.
+      if (!localStorage.getItem(flagJam)) {
+        import('./lib/db.js')
+          .then(({ migrasiJam }) => migrasiJam(user.uid))
+          .then(() => localStorage.setItem(flagJam, '1'))
+          .catch((e) => console.warn('[migrasi-jam] ditunda:', e?.message ?? e))
+      }
     } catch {
       /* abaikan */
     }

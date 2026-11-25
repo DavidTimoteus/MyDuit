@@ -51,5 +51,18 @@ cek(
   'denganTransaksi dipakai updateAkun (bukan writeBatch polos)',
   src.includes('await denganTransaksi(\n    db,\n    async (tx) => {\n      const snap = await tx.get(refAkun)'),
 )
+cek(
+  'REGRESI JAM 25 Nov 2026: buildTransQuery TIDAK orderBy jam — orderBy Firestore menyaring dokumen tanpa field itu, dan dokumen impor XLSX tidak punya jam',
+  !src
+    .slice(src.indexOf('export function buildTransQuery'), src.indexOf('export function docKeTransaksi'))
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|\s)\/\/.*$/gm, '$1')
+    .includes("orderBy('jam'"),
+)
+const appSrc = readFileSync(new URL('../App.jsx', import.meta.url), 'utf8')
+cek(
+  'migrasiJam diekspor db.js dan dipanggil App.jsx saat login (backfill jam dokumen lama)',
+  src.includes('export async function migrasiJam') && appSrc.includes('migrasiJam'),
+)
 
 console.log(`dbKontrak: ${lulus} cek lulus`)

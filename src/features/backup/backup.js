@@ -373,6 +373,12 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
     const slice = ops.slice(i, i + BATCH_LIMIT)
     const batch = writeBatchFn(db)
     for (const op of slice) {
+      // REGRESI JAM 25 Nov 2026: dokumen backup tanpa jam (impor lama) harus
+      // diisi '00:00' di sini — kalau tidak, dokumen hasil restore hilang
+      // dari query orderBy jam. jamValid sudah mengunci format HH:MM.
+      if (op.koleksi === 'transaksi' && !jamValid(op.data?.jam)) {
+        op.data = { ...op.data, jam: '00:00' }
+      }
       if (op.koleksi === 'akun' && Number.isFinite(Number(op.data?.saldo)) && saldoServerPerAkun.has(op.id)) {
         const saldoServer = saldoServerPerAkun.get(op.id)
         const delta = Number(op.data.saldo) - saldoServer

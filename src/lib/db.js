@@ -991,15 +991,13 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
     constraints.push(where('tanggal', '<=', range.end))
   }
   constraints.push(orderBy('tanggal', 'desc'))
-  // Urutan server (25 Nov 2026): jam inputan ikut diurutkan di server supaya
-  // halaman pertama "Muat lagi" tidak lagi membawa transaksi jam kecil di
-  // atas jam besar — sebelumnya hanya klien yang mengurutkan (mergeRiwayat),
-  // jadi halaman >50 transaksi/hari bisa salah urut di batas halaman.
-  // Butuh 2 composite index baru di firestore.indexes.json (dengan/tanpa
-  // filter jenis); index HARUS READY sebelum build ini di-deploy, kalau
-  // tidak query gagal failed-precondition. Dokumen tanpa jam diperlakukan
-  // null -> jatuh paling akhir (desc), sama seperti urutan klien.
-  constraints.push(orderBy('jam', 'desc'))
+  // REGRESI JAM 25 Nov 2026 — JANGAN tambah orderBy('jam') di sini sebelum
+  // migrasiJam() terbukti jalan di semua akun: orderBy Firestore JUGA
+  // menyaring keberadaan field — dokumen tanpa `jam` (semua hasil impor
+  // XLSX sebelum perbaikan ini) HILANG dari hasil query, bukan jatuh
+  // paling akhir seperti asumsi awal. Urutan jam tetap dijaga klien
+  // (mergeRiwayat.js). Index jam di firestore.indexes.json tetap
+  // dipertahankan untuk pengaktifan ulang nanti; lihat dbKontrak.test.mjs.
   constraints.push(orderBy('createdAt', 'desc'))
   // Nilai 0/tidak valid jatuh ke batas; nilai di atasnya dijepit ke batas.
   const batas =
@@ -1149,6 +1147,37 @@ export async function migrasiNormalisasi(uid) {
     patches.push({ ref: doc(db, 'users', uid, 'pembayaranUtang', d.id), data: patch })
   }
 
+  for (let i = 0; i < patches.length; i += 400) {
+    const b = writeBatch(db)
+    patches.slice(i, i + 400).forEach((p) => b.set(p.ref, p.data, { merge: true }))
+    await b.commit()
+  }
+  await setDoc(markerRef, { done: true, at: serverTimestamp() })
+  return patches.length
+}
+
+// REGRESI JAM 25 Nov 2026: orderBy('jam') di buildTransQuery menyaring
+// dokumen tanpa field jam (dokumen impor XLSX tidak punya jam) — dokumen
+// itu hilang dari SEMUA list. Migrasi sekali jalan (marker sendiri,
+// terpisah dari migrasiNormalisasi yang sudah done): isi jam '00:00'
+// untuk transaksi non-hapus tanpa jam valid. '00:00' = waktu tak
+// diketahui — diurutkan klien paling bawah dalam tanggalnya, sama seperti
+// perilaku dokumen tanpa jam sebelumnya. Baru setelah migrasi ini jalan,
+// orderBy('jam') boleh diaktifkan lagi di buildTransQuery.
+export async function migrasiJam(uid) {
+  if (!uid || IS_DEMO_UID(uid)) return 0
+  const { db } = getFirebase()
+  const markerRef = doc(userCol(uid, 'meta'), 'migrasiJam')
+  const markerSnap = await getDoc(markerRef)
+  if (markerSnap.exists() && markerSnap.data()?.done) return 0
+  const txSnap = await getDocs(userCol(uid, 'transaksi'))
+  const patches = []
+  for (const d of txSnap.docs) {
+    const v = d.data()
+    if (v.deleted) continue
+    if (jamValid(v.jam)) continue
+    patches.push({ ref: transaksiRef(uid, d.id), data: { jam: '00:00' } })
+  }
   for (let i = 0; i < patches.length; i += 400) {
     const b = writeBatch(db)
     patches.slice(i, i + 400).forEach((p) => b.set(p.ref, p.data, { merge: true }))

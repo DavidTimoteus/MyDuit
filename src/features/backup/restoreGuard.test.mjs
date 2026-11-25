@@ -201,4 +201,14 @@ await cek('restore akun membawa mutasiTerakhir konsisten (R-03)', async () => {
   assert.equal(akun.data.mutasiTerakhir?.keterangan, 'Pulihkan backup')
 })
 
+// 10. Restore transaksi tanpa jam: merge-set mengisi jam '00:00' supaya
+// dokumen hasil restore tidak hilang dari query orderBy jam.
+await cek('restore transaksi tanpa jam diisi jam 00:00 (REGRESI JAM)', async () => {
+  const { deps, writes } = buatDeps()
+  await restoreData('uid-1', jsonDasar(), undefined, deps)
+  const tx = writes.find((w) => w.ref.__path === 'users/uid-1/transaksi/t1')
+  assert.ok(tx, 't1 harus ditulis')
+  assert.equal(tx.data.jam, '00:00')
+})
+
 console.log(`restoreGuard.test: OK (${lulus} kasus lulus)`)

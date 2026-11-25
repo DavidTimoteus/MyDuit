@@ -47,6 +47,24 @@ function keTimestamp(v) {
   return d ? Timestamp.fromDate(d) : null
 }
 
+// Jam dari sel Tanggal: '2026-11-10 14:30' -> '14:30'; tanggal saja -> '00:00'.
+// Dipakai supaya dokumen impor SELALU punya jam — orderBy('jam') Firestore
+// menyaring dokumen tanpa field itu (REGRESI JAM 25 Nov 2026: impor tanpa
+// jam hilang dari semua list). String diparse regex supaya '2026-11-11'
+// (yang new Date()-nya tengah malam UTC) tidak jadi '07:00' di WIB.
+function keJam(v) {
+  if (typeof v === 'string') {
+    const m = v.match(/(\d{1,2}):(\d{2})/)
+    if (!m) return '00:00'
+    const hh = Math.min(23, Number(m[1]))
+    const mm = Math.min(59, Number(m[2]))
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+  }
+  const d = keDate(v)
+  if (!d) return '00:00'
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 function keAngka(v) {
   return parseAngkaEksternal(v)
 }
@@ -205,6 +223,7 @@ export function konversiBackupGas(wb, XLSX, uid) {
       const akunId = teks(kolom(r, 'AkunID'))
       const akunTujuanId = teks(kolom(r, 'AkunTujuanID'))
       const tanggal = keTanggalIso(kolom(r, 'Tanggal')) || kanonikTanggal(null)
+      const jam = keJam(kolom(r, 'Tanggal'))
       const jumlah = Math.max(0, keAngka(kolom(r, 'Nominal', 'Jumlah')))
       const deletedRaw = keDeleted(r)
       const deleted = deletedRaw || jumlah <= 0
@@ -215,6 +234,7 @@ export function konversiBackupGas(wb, XLSX, uid) {
         kategoriId: teks(kolom(r, 'KategoriID')),
         akunId,
         tanggal,
+        jam,
         catatan: teks(kolom(r, 'Keterangan', 'Catatan'), 500),
         deleted,
         createdAt: keTimestamp(kolom(r, 'Tanggal')) ?? Timestamp.now(),
