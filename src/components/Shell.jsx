@@ -838,7 +838,11 @@ export default function Shell({ user }) {
           100dvh - bottom-nav dan TIDAK boleh scroll. Tampilan utang mobile
           memakai pager satu-kartu-per-halaman supaya semua muat. Di luar itu
           (dan di desktop) tetap bisa scroll normal. */}
-      <main className="flex-1 min-w-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
+      {/* Fase 6 (R-14): skip link — elemen fokus pertama halaman supaya
+          pengguna keyboard bisa loncat langsung ke konten tanpa melewati
+          puluhan item navigasi. Tersembunyi sampai fokus (lihat .skip-link). */}
+      <a href="#konten-utama" className="skip-link">{tr('lewati_ke_konten')}</a>
+      <main id="konten-utama" tabIndex={-1} className="flex-1 min-w-0 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:flex md:flex-col md:h-full md:overflow-hidden md:pb-6 md:px-6">
         <div className="min-w-0 md:h-full md:overflow-hidden md:pr-2 md:rounded-[28px]">
           <div
             ref={mainScrollRef}

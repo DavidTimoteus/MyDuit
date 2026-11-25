@@ -127,6 +127,7 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
         id={id}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={id ? `${id}-listbox` : undefined}
         {...rest}
         ref={triggerRef}
         onClick={() => (open ? setOpen(false) : openList())}
@@ -153,6 +154,7 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
           <div
             ref={listRef}
             role="listbox"
+            id={id ? `${id}-listbox` : undefined}
             data-placement={pos.top === 'auto' ? 'top' : 'bottom'}
             className="clay-select-list"
             style={pos}
@@ -162,6 +164,8 @@ export function ClaySelect({ id, value, onChange, options, placeholder = 'Pilih'
               <div
                 key={o.value}
                 role="option"
+                id={id ? `${id}-option-${i}` : undefined}
+                aria-selected={o.value === value}
                 aria-disabled={o.disabled || undefined}
                 className={`clay-select-option ${o.disabled ? 'is-disabled' : ''} ${o.value === value ? 'is-selected' : ''} ${i === hl ? 'is-highlighted' : ''}`}
                 onMouseEnter={() => !o.disabled && setHl(i)}
@@ -210,6 +214,14 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
         required={required}
         autoComplete="off"
         placeholder={placeholder}
+        // Fase 6 (D03 re-audit): combobox tanpa ARIA sama sekali — pembaca
+        // layar tidak tahu ada daftar opsi, mana yang disorot, atau apakah
+        // daftar sedang terbuka.
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={id ? `${id}-listbox` : undefined}
+        aria-activedescendant={open && hl >= 0 && matches[hl] ? `${id}-option-${hl}` : undefined}
+        aria-autocomplete="list"
         onChange={(e) => {
           onChange(e.target.value)
           setOpen(true)
@@ -238,6 +250,8 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
         createPortal(
           <div
             ref={listRef}
+            role="listbox"
+            id={id ? `${id}-listbox` : undefined}
             data-placement={pos.top === 'auto' ? 'top' : 'bottom'}
             className="clay-select-list"
             style={pos}
@@ -250,6 +264,9 @@ export function ClayCombobox({ id, value, onChange, options, placeholder, requir
               matches.map((o, i) => (
                 <div
                   key={o.value}
+                  role="option"
+                  id={id ? `${id}-option-${i}` : undefined}
+                  aria-selected={o.label === value}
                   className={`clay-select-option ${o.label === value ? 'is-selected' : ''} ${i === hl ? 'is-highlighted' : ''}`}
                   onMouseEnter={() => setHl(i)}
                   onPointerDown={(e) => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { formatRupiah, isoHariIni, jamSekarang, jamValid, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { buatTransaksiId, pindahSaldo } from '../../lib/db.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
@@ -14,6 +15,9 @@ import { useBahasa } from '../../lib/i18n.js'
 // peringatan bila rekening sama; submit biru "Pindahkan Saldo").
 export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
   const { t: tr } = useBahasa()
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
   const [tanggal, setTanggal] = useState(isoHariIni())
   const [jam, setJam] = useState('')
   const [dariId, setDariId] = useState('')
@@ -131,7 +135,7 @@ export default function ModalPindahSaldo({ uid, open, onClose, akunList }) {
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="clay-sheet clay-key-blue flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div ref={refDialog} role="dialog" aria-modal="true" aria-label={tr('pindah_saldo')} tabIndex={-1} className="clay-sheet clay-key-blue flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 pb-2 pt-4">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
             <span className="material-symbols-outlined shrink-0 icon-lg text-blue-600">sync_alt</span>

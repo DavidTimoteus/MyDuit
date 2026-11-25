@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { isoHariIni, tanggalTampil } from '../../lib/format.js'
 import { ClayDateInput } from '../../components/clay-ui.jsx'
 import { portalBody } from '../../lib/portal.js'
@@ -15,6 +16,10 @@ function rentangNHari(n) {
 // radio .clay-radio dgn subtitle rentang, "Pilih periode" memunculkan 1 field
 // flatpickr mode range (maks hari ini), footer Batal/Terapkan.
 export default function FilterTransaksiModal({ open, chip, rentang, onClose, onApply }) {
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  // Hook HARUS di atas `if (!open) return null` supaya urutan hook stabil.
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
   const [tipe, setTipe] = useState('hari')
   const [range, setRange] = useState({ start: '', end: '' })
   const [errMsg, setErrMsg] = useState('')
@@ -70,7 +75,7 @@ export default function FilterTransaksiModal({ open, chip, rentang, onClose, onA
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
     >
-      <div className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div ref={refDialog} role="dialog" aria-modal="true" aria-label="Filter Transaksi" tabIndex={-1} className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 pb-4 pt-5">
           <h3 className="text-lg font-bold text-slate-800">Filter Transaksi</h3>
           <button

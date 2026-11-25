@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { formatInputTampil, formatRupiah, isoHariIni, konversiKeBasis, konversiUntukTampil, parseInputTampil, rasioKursTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { bayarUtang, buatTransaksiId, simpanUtang } from '../../lib/db.js'
 import { bacaBasisMataUang, buatSnapshotKurs } from '../../lib/kurs.js'
@@ -26,6 +27,9 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const submittedRef = useRef(false)
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
 
   useEffect(() => {
     if (open) submittedRef.current = false
@@ -96,7 +100,7 @@ export function FormUtangModal({ open, onClose, uid, edit, mode = 'utang' }) {
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
+      <form ref={refDialog} role="dialog" aria-modal="true" aria-label={tr(edit ? 'edit_utang' : 'tambah_utang')} tabIndex={-1} onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
             <span className="material-symbols-outlined text-danger">account_balance_wallet</span>
@@ -224,6 +228,9 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const submittedRef = useRef(false)
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  const refDialogBayar = useRef(null)
+  useDialogAkses(refDialogBayar, open, onClose)
   // R01 (re-review 25 Nov 2026): ID dokumen dibuat sekali per sesi form dan
   // dipakai ulang bila submit diulang — retry memakai ID yang sama sehingga
   // bayarUtang mengenalinya sebagai retry (dokumen sudah ada = no-op).
@@ -325,7 +332,7 @@ export function BayarUtangModal({ open, onClose, uid, utang, akunList, lunasin }
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
+      <form ref={refDialogBayar} role="dialog" aria-modal="true" aria-label={`${tr(lunasin ? 'lunasin' : 'bayar')} — ${utang.namaPihak}`} tabIndex={-1} onClick={(e) => e.stopPropagation()} onSubmit={submit} className="neu-card w-full max-w-sm rounded-3xl bg-[#E5E5E5] p-6 shadow-2xl border border-white/50">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{tr(lunasin ? 'lunasin' : 'bayar')} — {utang.namaPihak}</h3>
           <button type="button" onClick={onClose} aria-label={tr('tutup_pembayaran')} className="neu-btn flex h-8 w-8 items-center justify-center rounded-full bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95 transition-all">

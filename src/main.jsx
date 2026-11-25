@@ -2,8 +2,17 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary.jsx'
+import { bacaBahasaAktif } from './lib/i18n.js'
 import 'flatpickr/dist/flatpickr.min.css'
 import './styles/index.css'
+
+// Fase 6 (R-17): sinkronkan atribut lang dokumen dengan bahasa aktif saat
+// boot — sebelumnya index.html selalu lang="id" walau user memilih English,
+// jadi pembaca layar mengucapkan teks Inggris dengan aturan bahasa Indonesia.
+// simpanBahasa() sudah menjaga lang saat bahasa diganti di tengah sesi.
+if (typeof document !== 'undefined' && document.documentElement) {
+  document.documentElement.lang = bacaBahasaAktif()
+}
 
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
   const hadController = Boolean(navigator.serviceWorker.controller)

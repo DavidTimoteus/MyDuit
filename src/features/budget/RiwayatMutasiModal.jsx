@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { formatRupiah, rangeForFilter, tanggalLabel } from '../../lib/format.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import { ClayDateInput } from '../../components/clay-ui.jsx'
@@ -26,6 +27,10 @@ function jamDari(at) {
 // yang sama dengan tab Transaksi — tanpa index baru); penyaringan per-akun +
 // perhitungan saldo sesudah ada di riwayatSaldo.js (murni, teruji Node).
 export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClose }) {
+  // Fase 6: modal ini selalu terpasang saat dirender (tanpa prop open), jadi
+  // penjaga dipasang dengan terbuka=true; Escape + Tab terjebak di dalam.
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, true, onClose)
   const [chip, setChip] = useState('7hari')
   const [rentang, setRentang] = useState({ start: '', end: '' })
 
@@ -74,11 +79,13 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
     <div
       className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/40 p-0 backdrop-blur-sm sm:items-center sm:p-4"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={`Riwayat perubahan ${akun.nama}`}
     >
       <div
+        ref={refDialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Riwayat perubahan ${akun.nama}`}
+        tabIndex={-1}
         className="clay-sheet clay-key-primary mutasi-sheet modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-md"
         onClick={(e) => e.stopPropagation()}
       >

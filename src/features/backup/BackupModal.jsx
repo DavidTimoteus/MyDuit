@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { exportData, hapusAkunPermanen, hapusSemuaData, restoreData } from './backup.js'
 import { portalBody } from '../../lib/portal.js'
 import { useBahasa } from '../../lib/i18n.js'
@@ -14,6 +15,9 @@ export default function BackupModal({ open, onClose, uid }) {
   const [konfirmTeks, setKonfirmTeks] = useState('')
   const [hapusAkunIkut, setHapusAkunIkut] = useState(false)
   const fileRef = useRef(null)
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
 
   useEffect(() => {
     if (open) {
@@ -171,7 +175,7 @@ export default function BackupModal({ open, onClose, uid }) {
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 backdrop-blur-sm md:items-center" onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom max-h-[90vh] w-full max-w-sm overflow-y-auto p-5">
+      <div ref={refDialog} role="dialog" aria-modal="true" aria-label={t('backup_restore')} tabIndex={-1} onClick={(e) => e.stopPropagation()} className="clay-sheet clay-key-neutral modal-sheet-bottom max-h-[90vh] w-full max-w-sm overflow-y-auto p-5">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-extrabold text-slate-800">{t('backup_restore')}</h3>
           <button onClick={onClose} aria-label={t('tutup')} className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200">

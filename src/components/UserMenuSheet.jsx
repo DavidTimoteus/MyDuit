@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useDialogAkses } from '../lib/aksesDialog.js'
 import InstallButton from './InstallButton.jsx'
 import { portalBody } from '../lib/portal.js'
 
@@ -36,18 +37,11 @@ export default function UserMenuSheet({
   const btnRef = useRef(null)
   const wasOpenRef = useRef(false)
 
-  // Tutup saat tekan Escape — perilaku dasar dialog yang sering hilang.
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        onClose()
-      }
-    }
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  // Fase 6: Escape menutup + Tab terjebak di dalam sheet (lib/aksesDialog.js).
+  // Menggantikan effect Escape lama di sini. Fokus kembali ke pemicu tetap
+  // ditangani effect wasOpenRef di bawah (hook juga mengembalikan fokus,
+  // jadi perilaku itu kini ganda tapi aman: fokus yang sama dipulihkan).
+  useDialogAkses(sheetRef, open, onClose)
 
   // Kembalikan fokus ke pemicu hanya setelah sheet ditutup dari kondisi terbuka.
   useEffect(() => {
@@ -64,11 +58,15 @@ export default function UserMenuSheet({
   const iconCls = 'clay-icon-tile clay-key-neutral flex h-10 w-10 shrink-0 items-center justify-center'
 
   return portalBody(
-    <div className="modal-backdrop-wrap fixed inset-0 z-[70] md:hidden" role="dialog" aria-modal="true" aria-label="Menu pengguna">
+    <div className="modal-backdrop-wrap fixed inset-0 z-[70] md:hidden">
       <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
 
       <div
         ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu pengguna"
+        tabIndex={-1}
         className="clay clay-sheet clay-key-neutral modal-sheet-bottom absolute inset-x-0 bottom-0 flex flex-col gap-2 rounded-b-none rounded-t-[28px] px-4 pb-6 pt-3"
       >
         {/* Gagang tarik */}

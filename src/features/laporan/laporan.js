@@ -22,7 +22,9 @@ const rpTampil = (nilaiTampil) => {
   const dec = maksDes > 0 && Math.abs(v) > 0 && Math.abs(v) < 0.01 ? 4 : maksDes
   return `${simbolPdf()}${v.toLocaleString(locale, { maximumFractionDigits: dec })}`
 }
-const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+// Helper tanggal diekspor (Fase 6) supaya bisa diuji langsung — sebelumnya
+// laporan.js 547 baris tanpa satu pun tes.
+export const iso = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 
 // Palet laporan profesional (RGB untuk jsPDF).
 // Sengaja netral: satu warna aksen + tinta gelap + abu redup. Laporan keuangan
@@ -42,7 +44,7 @@ const C = {
   putih: [255, 255, 255],
 }
 
-function selisihHari(tglIso, tipe, terakhirBayar) {
+export function selisihHari(tglIso, tipe, terakhirBayar) {
   if (!tglIso) return null
   const tglRef = new Date(`${tglIso}T00:00:00`)
   if (Number.isNaN(tglRef.getTime())) return null
@@ -89,7 +91,7 @@ function selisihHari(tglIso, tipe, terakhirBayar) {
   return Math.round((tglRef - kini) / 86400000)
 }
 
-function tglSingkat(tglIso) {
+export function tglSingkat(tglIso) {
   const d = new Date(`${tglIso}T00:00:00`)
   if (Number.isNaN(d.getTime())) return tglIso ?? '—'
   return `${String(d.getDate()).padStart(2, '0')} ${BULAN[d.getMonth()].slice(0, 3)}`
@@ -214,7 +216,7 @@ export async function ambilDataLaporan(uid, bulan, tahun) {
   }
 }
 
-function labelJatuhTempo(hari) {
+export function labelJatuhTempo(hari) {
   if (hari === null) return 'Tanpa jatuh tempo'
   if (hari < 0) return `Terlambat ${Math.abs(hari)} hari`
   if (hari === 0) return 'Jatuh tempo hari ini'

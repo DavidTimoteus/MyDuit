@@ -85,6 +85,28 @@ textarea:focus-visible,
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.55) !important;
 }
 
+/* Fase 6 (R-14): skip link — tersembunyi di luar layar sampai menerima
+   fokus keyboard, lalu muncul sebagai tombol biru di kiri atas. */
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: -4rem;
+  z-index: 10002;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: #1d4ed8;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus-visible {
+  top: 1rem;
+  outline: 3px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

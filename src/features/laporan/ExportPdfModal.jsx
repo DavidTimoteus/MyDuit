@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { ambilDataLaporan, unduhLaporanPdf } from './laporan.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
 import InfoLensaKurs from '../../components/InfoLensaKurs.jsx'
@@ -15,14 +16,10 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  useEffect(() => {
-    if (!open) return
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') onClose?.()
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open, onClose])
+  // Fase 6: Escape menutup + Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  // Menggantikan effect Escape lama di sini.
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
 
   if (!open) return null
 
@@ -45,7 +42,7 @@ export default function ExportPdfModal({ open, onClose, uid, userName }) {
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-end justify-center bg-slate-900/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
-      <div className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
+      <div ref={refDialog} role="dialog" aria-modal="true" aria-label={t('pdf_judul')} tabIndex={-1} className="clay-sheet clay-key-primary modal-sheet-bottom flex max-h-[90vh] w-full flex-col overflow-hidden sm:max-w-sm" onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 pb-4 pt-5">
           <h3 className="text-lg font-extrabold text-slate-800">{t('pdf_judul')}</h3>
           <button onClick={onClose} aria-label={t('tutup')} className="clay-chip clay-key-neutral flex h-8 w-8 items-center justify-center rounded-full text-slate-500 hover:text-slate-600">

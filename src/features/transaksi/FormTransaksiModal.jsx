@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { formatInputTampil, formatNominal, isoHariIni, jamSekarang, jamValid, jumlahSimpanDariTampil, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
 import { bacaBasisMataUang, buatSnapshotKurs, desimalMataUang, konversiNilai } from '../../lib/kurs.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
@@ -44,6 +45,10 @@ function formatHasilOcrTampil(totalIdr) {
 // dan pemindaian struk otomatis (OCR) pada pengeluaran.
 export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkunBaru, akunList, kategoriList, mode, doc: sumber }) {
   const { t: tr } = useBahasa()
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog, fokus kembali ke
+  // pemicu saat ditutup (lihat lib/aksesDialog.js).
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
   const isEditAtauSalin = (mode === 'edit' || mode === 'salin') && Boolean(sumber)
   const [jenis, setJenis] = useState(() =>
     isEditAtauSalin ? (sumber.jenis ?? 'pengeluaran') : (sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
@@ -75,6 +80,10 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   )
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  // Fase 6 (E03/F01 re-audit): bidang yang gagal validasi, supaya input yang
+  // salah mendapat aria-invalid + aria-describedby ke pesan error (bukan
+  // sekadar <p role="alert"> di bawah form yang tidak terikat ke input).
+  const [errorBidang, setErrorBidang] = useState(null)
   const [calcOpen, setCalcOpen] = useState(false)
   const [calcExpr, setCalcExpr] = useState('')
   const [calcErr, setCalcErr] = useState('')
@@ -100,6 +109,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   const [geminiStatus, setGeminiStatus] = useState('')
   const [geminiTesting, setGeminiTesting] = useState(false)
   const [showTutorialModal, setShowTutorialModal] = useState(false)
+  // Dialog panduan Gemini adalah dialog kedua di dalam komponen ini.
+  const refDialogTutorial = useRef(null)
+  useDialogAkses(refDialogTutorial, showTutorialModal, () => setShowTutorialModal(false))
   // Sumber pembayaran yang terdeteksi dari struk tapi BELUM ada di akunList
   // (mis. user punya struk SeaBank tapi belum menambah rekening SeaBank).
   // null = tidak ada saran. Object = { nama, jenis } siap ditawarkan ke user.
@@ -159,7 +171,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     if (!open) return
     submittedRef.current = false
     docIdRef.current = null
-    setError('')
+    bersihkanError()
     setSaving(false)
     setCalcOpen(false)
     setCalcExpr('')
@@ -213,7 +225,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     const bersih = nama.trim()
     if (!bersih || tambahAkunBusy) return
     setTambahAkunBusy(true)
-    setError('')
+    bersihkanError()
     try {
       const tipe = saran?.tipe || 'Dompet Digital'
       const id = await tambahAkun(uid, { nama: bersih, tipe, saldoAwal: 0 })
@@ -427,7 +439,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       tanggal: tanggal || sumber?.tanggal || isoHariIni(),
       catatan: catatan ?? sumber?.catatan ?? '',
     }
-    setError('')
+    bersihkanError()
     onSalin?.(drafSalinan)
   }
 
@@ -466,10 +478,24 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       setJumlah(hasilTampil.toLocaleString(locale, { maximumFractionDigits: desimalMataUang(currency) }))
       setCalcExpr(String(hasilTampil))
       setCalcOpen(false)
-      setError('')
+      bersihkanError()
       return
     }
     setCalcExpr((prev) => sisipTokenKalkulator(prev, token))
+  }
+
+  // Pesan error dan bidangnya selalu dibersihkan bersamaan — satu helper
+  // supaya penanda aria-invalid tidak basi saat pesan dihapus di tempat lain.
+  function bersihkanError() {
+    setErrorBidang(null)
+    setError('')
+  }
+
+  // Gagal validasi submit: tandai bidangnya supaya aria-invalid menunjuk
+  // input yang salah (bukan sekadar pesan form di bawah).
+  function gagalSubmit(pesan, bidang) {
+    setErrorBidang(bidang)
+    return setError(pesan)
   }
 
   async function submit(e) {
@@ -480,12 +506,12 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       const calcRes = evaluasiEkspresiNominal(calcExpr)
       if (!calcRes.ok) {
         setCalcErr(calcRes.error)
-        return setError(calcRes.error)
+        return gagalSubmit(calcRes.error, 'jumlah')
       }
       const hasilTampil = bulatkanUntukTampil(calcRes.nilai)
       if (hasilTampil <= 0) {
         setCalcErr('Hasil harus lebih dari 0.')
-        return setError(tr('nominal_harus_positif'))
+        return gagalSubmit(tr('nominal_harus_positif'), 'jumlah')
       }
       n = konversiKeBasis(hasilTampil, mode === 'edit' ? sumber?.kursSnapshot : null)
     } else {
@@ -497,9 +523,9 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
         kursSnapshot: mode === 'edit' ? sumber?.kursSnapshot : null,
       })
     }
-    if (n <= 0) return setError(tr('nominal_harus_positif'))
-    if (!akunId) return setError(tr('rekening_wajib'))
-    if (!kategoriNama.trim()) return setError(tr('isi_kategori_dulu'))
+    if (n <= 0) return gagalSubmit(tr('nominal_harus_positif'), 'jumlah')
+    if (!akunId) return gagalSubmit(tr('rekening_wajib'), 'akun')
+    if (!kategoriNama.trim()) return gagalSubmit(tr('isi_kategori_dulu'), 'kategori')
     submittedRef.current = true
 
     // Snapshot data SEBELUM tutup modal — state komponen boleh berubah setelahnya.
@@ -575,7 +601,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       }
     }
 
-    setError('')
+    bersihkanError()
     setSaving(false)
     onClose()
 
@@ -620,7 +646,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     <>
       {portalBody(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm modal-backdrop-wrap" onClick={tutupModal}>
-      <div className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[92vh] w-full max-w-md sm:max-w-[540px] flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
+      <div ref={refDialog} role="dialog" aria-modal="true" aria-label={judul} tabIndex={-1} className={`clay-sheet ${isPemasukan ? 'clay-key-primary' : 'clay-key-danger'} flex max-h-[92vh] w-full max-w-md sm:max-w-[540px] flex-col overflow-hidden`} onClick={(e) => e.stopPropagation()}>
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 sm:px-5 pb-2 pt-3.5">
           <h3 className="flex min-w-0 items-center gap-2 text-sm font-bold text-slate-800 sm:text-base">
             <span className={`material-symbols-outlined icon-lg shrink-0 ${isPemasukan ? 'text-primary' : 'text-danger'}`}>
@@ -658,7 +684,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               type="button"
               onClick={() => {
                 setJenis('pengeluaran')
-                setError('')
+                bersihkanError()
               }}
               aria-pressed={!isPemasukan}
               className={`clay-segment-item ${!isPemasukan ? 'is-active is-expense !text-white' : ''}`}
@@ -670,7 +696,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
               type="button"
               onClick={() => {
                 setJenis('pemasukan')
-                setError('')
+                bersihkanError()
               }}
               aria-pressed={isPemasukan}
               className={`clay-segment-item ${isPemasukan ? 'is-active is-income !text-white' : ''}`}
@@ -738,6 +764,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 placeholder="0"
                 required
                 autoFocus
+                aria-invalid={errorBidang === 'jumlah'}
+                aria-describedby={errorBidang === 'jumlah' ? 'tx-error' : undefined}
                 className={`clay-input field-lg w-full rounded-2xl pl-11 pr-12 text-xl font-black font-mono tracking-tight ${
                   isPemasukan ? 'tx-nominal-income !text-primary' : 'tx-nominal-expense !text-danger'
                 }`}
@@ -1156,6 +1184,8 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 value={akunId}
                 onChange={setAkunId}
                 placeholder="Pilih Sumber/Akun"
+                aria-invalid={errorBidang === 'akun'}
+                aria-describedby={errorBidang === 'akun' ? 'tx-error' : undefined}
                 options={akunList.map((a) => ({ value: a.id, label: a.nama }))}
               />
             </div>
@@ -1253,7 +1283,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
                 onChange={setKategoriNama}
                 placeholder="Pilih atau ketik kategori..."
                 required
-                inputProps={{ maxLength: 100 }}
+                inputProps={{
+                  maxLength: 100,
+                  'aria-invalid': errorBidang === 'kategori',
+                  'aria-describedby': errorBidang === 'kategori' ? 'tx-error' : undefined,
+                }}
                 // Filter kategori berdasarkan JENIS transaksi (pengeluaran → hanya
                 // kategori jenis pengeluaran; pemasukan → hanya pemasukan). Untuk
                 // mode edit/salin, jika kategori sumber tidak masuk filter (mis.
@@ -1294,7 +1328,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           </div>
 
           {error && (
-            <p role="alert" aria-live="assertive" className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
+            <p id="tx-error" role="alert" aria-live="assertive" className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-600">
               {error}
             </p>
           )}
@@ -1319,6 +1353,11 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
           onClick={() => setShowTutorialModal(false)}
         >
           <div
+            ref={refDialogTutorial}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Panduan ambil kunci Gemini gratis"
+            tabIndex={-1}
             className="clay-sheet clay-key-neutral flex max-h-[85vh] w-full max-w-sm flex-col overflow-hidden rounded-2xl p-4"
             onClick={(e) => e.stopPropagation()}
           >

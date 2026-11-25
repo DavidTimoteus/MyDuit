@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useDialogAkses } from '../../lib/aksesDialog.js'
 import { formatInputTampil, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang } from '../../lib/format.js'
 import { simpanBudget } from '../../lib/db.js'
 import { ClaySelect } from '../../components/clay-ui.jsx'
@@ -15,6 +16,9 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const submittedRef = useRef(false)
+  // Fase 6: Escape menutup, Tab terjebak di dalam dialog (lib/aksesDialog.js).
+  const refDialog = useRef(null)
+  useDialogAkses(refDialog, open, onClose)
 
   useEffect(() => {
     if (open) submittedRef.current = false
@@ -71,7 +75,7 @@ export default function FormBudgetModal({ open, onClose, uid, kategoriList, exis
 
   return portalBody(
     <div className="modal-backdrop-wrap fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm" onClick={onClose}>
-      <form onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-blue w-full max-w-sm rounded-[24px] p-5">
+      <form ref={refDialog} role="dialog" aria-modal="true" aria-label={edit ? 'Edit Budget' : 'Tambah Budget'} tabIndex={-1} onClick={(e) => e.stopPropagation()} onSubmit={submit} className="clay-sheet clay-key-blue w-full max-w-sm rounded-[24px] p-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-base font-extrabold text-slate-800">
             <span className="material-symbols-outlined text-blue-700">savings</span>

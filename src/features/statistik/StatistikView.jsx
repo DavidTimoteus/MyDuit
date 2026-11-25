@@ -959,7 +959,31 @@ export default function StatistikView({ user }) {
             </div>
           </div>
           <div className="neu-well relative rounded-2xl p-3 h-64 md:h-72">
-            <canvas ref={chartRef}></canvas>
+            <canvas ref={chartRef} role="img" aria-label={trendTitle}></canvas>
+            {/* Fase 6 (G01): alternatif teks grafik — canvas tidak terbaca
+                pembaca layar, jadi data yang sama disajikan sebagai tabel
+                tersembunyi (sr-only) yang bisa dijelajahi pembaca layar. */}
+            <table className="sr-only">
+              <caption>{trendTitle}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{tr('tanggal')}</th>
+                  <th scope="col">{tr('pemasukan')}</th>
+                  <th scope="col">{tr('pengeluaran')}</th>
+                  <th scope="col">{tr('saldo')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tren.labels.map((label, i) => (
+                  <tr key={label}>
+                    <th scope="row">{label}</th>
+                    <td>{formatRupiah(tren.dataIn[i] ?? 0)}</td>
+                    <td>{formatRupiah(tren.dataOut[i] ?? 0)}</td>
+                    <td>{formatRupiah(tren.dataSaldo[i] ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
             {loading ? (
               <div className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
                 {tr("memuat")}

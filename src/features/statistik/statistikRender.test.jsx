@@ -43,6 +43,14 @@ cek(
 cek('kartu memakai token teks yang lolos kontras (bukan hex mentah)', html, (s) =>
   s.includes('text-primary') && s.includes('text-danger') && s.includes('text-info'),
 )
+// Fase 6 (G01): grafik canvas punya alternatif teks — tabel sr-only dengan
+// data yang sama + canvas berlabel role=img.
+cek('canvas grafik berlabel role=img', html, (s) => s.includes('role="img"'))
+cek(
+  'tabel alternatif grafik ter-render (sr-only, berisi kolom Pemasukan)',
+  html,
+  (s) => s.includes('<table class="sr-only"') && s.includes('Pemasukan') && s.includes('<th scope="row">'),
+)
 
 console.log(`\n${galat.length ? 'GAGAL' : 'LULUS'}: ${total - galat.length}/${total} cek lolos`)
 if (galat.length) throw new Error(`Render StatistikView gagal: ${galat.join(' | ')}`)
