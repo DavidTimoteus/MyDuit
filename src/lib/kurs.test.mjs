@@ -205,6 +205,57 @@ cek('simpanBasisMataUang menolak kode tanpa kurs', () => {
   kurs.simpanBasisMataUang('IDR', { terkunci: true })
 })
 
+// 6. R-02 re-audit: parseAngkaEksternal menjaga sen (bukan Math.round ke bulat).
+cek('R-02: parseAngkaEksternal menjaga sen', () => {
+  assert.equal(fmt.parseAngkaEksternal('12.50'), 12.5)
+  assert.equal(fmt.parseAngkaEksternal('10,50'), 10.5)
+  assert.equal(fmt.parseAngkaEksternal('0.50'), 0.5)
+  assert.equal(fmt.parseAngkaEksternal('50.000,50'), 50000.5)
+  assert.equal(fmt.parseAngkaEksternal('1.234.567,89'), 1234567.89)
+  assert.equal(fmt.parseAngkaEksternal(12.5), 12.5)
+  assert.equal(fmt.parseAngkaEksternal('12.500'), 12500) // ribuan tetap bulat
+})
+
+// 7. R-03 re-audit: parseInputTampil lintas-locale tidak 100x.
+cek('R-03: parseInputTampil lintas-locale', () => {
+  kurs.simpanBasisMataUang('IDR')
+  fmt.simpanNegaraManual('EU') // de-DE, EUR, pemisah desimal ','
+  assert.equal(fmt.parseInputTampil('10,50'), 10.5)
+  assert.equal(fmt.parseInputTampil('10.50'), 10.5) // gaya lain tetap dibaca sebagai desimal
+  assert.equal(fmt.parseInputTampil('1.234,56'), 1234.56)
+  assert.equal(fmt.parseInputTampil('1.234'), 1234) // '.' = ribuan di de-DE
+  fmt.simpanNegaraManual('US') // en-US, USD, pemisah desimal '.'
+  assert.equal(fmt.parseInputTampil('10,50'), 10.5)
+  assert.equal(fmt.parseInputTampil('1,234.56'), 1234.56)
+  assert.equal(fmt.parseInputTampil('1,234'), 1234) // ',' = ribuan di en-US
+  assert.equal(fmt.parseInputTampil('10.50'), 10.5)
+  fmt.simpanNegaraManual('ID')
+})
+
+// 8. R-04 re-audit: edit tanpa ubah angka tidak mengubah jumlah basis.
+cek('R-04: jumlahSimpanDariTampil pakai jumlah basis asli bila tampil tak berubah', () => {
+  kurs.simpanBasisMataUang('IDR')
+  fmt.simpanNegaraManual('US')
+  // Kurs 16800: Rp100.000 tampil "5.95"; simpan tanpa ubah angka harus tetap 100000.
+  const snap = { basis: 'IDR', usdKe: { IDR: 16800, USD: 1 }, tanggal: '2026-11-25', sumber: 'test' }
+  const tampilAwal = fmt.formatInputTampil(100000, { kursSnapshot: snap })
+  assert.equal(tampilAwal, '5.95')
+  assert.equal(
+    fmt.jumlahSimpanDariTampil(tampilAwal, { mode: 'edit', jumlahBasisAsli: 100000, teksAwalTampil: tampilAwal, kursSnapshot: snap }),
+    100000,
+  )
+  assert.equal(
+    fmt.jumlahSimpanDariTampil('6', { mode: 'edit', jumlahBasisAsli: 100000, teksAwalTampil: tampilAwal, kursSnapshot: snap }),
+    100800,
+  )
+  // Mode baru/salin tetap konversi biasa (tidak ada jumlah basis asli yang dipertahankan).
+  assert.equal(
+    fmt.jumlahSimpanDariTampil('5.95', { mode: 'baru', jumlahBasisAsli: 100000, teksAwalTampil: tampilAwal, kursSnapshot: snap }),
+    99960,
+  )
+  fmt.simpanNegaraManual('ID')
+})
+
 // Reset bersih
 kurs.resetBasisMataUang()
 fmt.simpanNegaraManual('')

@@ -3,6 +3,7 @@ import {
   collection,
   deleteField,
   getDoc,
+  getDocFromCache,
   getDocFromServer,
   getDocs,
   getDocsFromCache,
@@ -142,6 +143,46 @@ export function deltaSaldo(trans) {
   return 0
 }
 
+// ===== LOGIKA MURNI R-05/R-06/R-07 (re-audit 25 Nov 2026) =====
+// Dipisah murni supaya bisa diuji tanpa emulator (yang rusak di VM ini):
+// keputusan angkanya diuji di saldoCukup.test.mjs, pemakaian di jalur
+// transaksi dikunci kontrak sumber dbKontrak.test.mjs.
+
+// R-05: sisa utang baru dari data SERVER (bukan snapshot UI yang bisa basi).
+// dibayar = totalServer - sisaServer (yang sudah dibayar tidak boleh hilang).
+// Total baru tidak boleh lebih kecil dari yang sudah dibayar.
+export function hitungSisaUtangBaru({ totalServer, sisaServer, totalBaru }) {
+  const totalSrv = angkaAman(totalServer)
+  const sisaSrv = angkaAman(sisaServer)
+  const dibayar = Math.max(0, totalSrv - sisaSrv)
+  const total = angkaAman(totalBaru)
+  if (total < dibayar) {
+    throw new Error(
+      `Total utang baru (Rp${total.toLocaleString('id-ID')}) lebih kecil dari yang sudah dibayar (Rp${dibayar.toLocaleString('id-ID')}).`,
+    )
+  }
+  return { sisaBaru: Math.max(0, total - dibayar), dibayar }
+}
+
+// R-06: delta koreksi saldo dari saldo SERVER (bukan saldoLama dari UI).
+export function hitungDeltaKoreksi({ saldoServer, saldoBaru }) {
+  return angkaAman(saldoBaru) - angkaAman(saldoServer)
+}
+
+// R-07: tolak tulis yang membuat saldo sumber negatif. Koreksi manual lewat
+// updateAkun tetap boleh negatif (tindakan eksplisit user, tercatat di
+// mutasiLog) — yang diblokir di sini adalah belanja/pindah/bayar yang
+// menggerus saldo diam-diam.
+export function cekSaldoCukup({ saldo, jumlah }) {
+  const s = angkaAman(saldo)
+  const j = angkaAman(jumlah)
+  if (j > s) {
+    throw new Error(
+      `Saldo tidak mencukupi (saldo Rp${s.toLocaleString('id-ID')}, perlu Rp${j.toLocaleString('id-ID')}).`,
+    )
+  }
+}
+
 // ===== KATEGORI DEFAULT (seed sekali saat pertama login) =====
 export const KATEGORI_DEFAULT = {
   pemasukan: ['Gaji', 'Bonus', 'Hadiah', 'Penjualan', 'Lainnya'],
@@ -232,40 +273,89 @@ export async function updateAkun(uid, id, { nama, tipe, saldo, saldoLama }) {
     }
     return
   }
-  const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
-  let deltaKoreksi = 0
-  if (saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))) {
-    const saldoBaru = angkaAman(saldo)
-    patch.saldo = saldoBaru
-    const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
-    const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
-    deltaKoreksi = adaLama ? saldoBaru - saldoLamaInt : 0
-    if (!adaLama || deltaKoreksi !== 0) {
-      patch.mutasiTerakhir = {
-        delta: deltaKoreksi,
-        keterangan: 'Koreksi penyesuaian saldo',
-        at: serverTimestamp(),
-      }
-    }
-  }
-
-  // Setiap koreksi saldo dicatat sebagai entri BARU di mutasiLog (append-only).
-  // Tidak pernah menimpa entri lama, jadi edit berulang per hari/bulan tetap
-  // lengkap. Tidak menyentuh koleksi transaksi sama sekali.
+  const adaSaldoBaru = saldo !== undefined && saldo !== null && Number.isFinite(Number(saldo))
+  const saldoBaru = adaSaldoBaru ? angkaAman(saldo) : null
   const { db } = getFirebase()
-  const batch = writeBatch(db)
-  batch.update(akunRef(uid, id), patch)
-  if (deltaKoreksi !== 0) {
-    batch.set(doc(userCol(uid, 'mutasiLog')), {
-      akunId: id,
-      aksi: 'koreksi saldo',
-      delta: deltaKoreksi,
-      timestamp: serverTimestamp(),
-      deleted: false,
-      createdAt: serverTimestamp(),
-    })
-  }
-  await batch.commit()
+  const refAkun = akunRef(uid, id)
+  // R-06: delta koreksi dihitung dari saldo SERVER di dalam transaksi, bukan
+  // dari saldoLama UI. Offline: coba cache dulu; tanpa cache pakai saldoLama
+  // UI (perilaku lama — delta bisa 0 bila saldoLama tidak dikirim).
+  await denganTransaksi(
+    db,
+    async (tx) => {
+      const snap = await tx.get(refAkun)
+      if (!snap.exists()) throw new Error('Rekening tidak ditemukan.')
+      const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
+      let deltaKoreksi = 0
+      if (adaSaldoBaru) {
+        patch.saldo = saldoBaru
+        deltaKoreksi = hitungDeltaKoreksi({ saldoServer: snap.data()?.saldo, saldoBaru })
+        if (deltaKoreksi !== 0) {
+          patch.mutasiTerakhir = {
+            delta: deltaKoreksi,
+            keterangan: 'Koreksi penyesuaian saldo',
+            at: serverTimestamp(),
+          }
+        }
+      }
+      tx.update(refAkun, patch)
+      if (deltaKoreksi !== 0) {
+        tx.set(doc(userCol(uid, 'mutasiLog')), {
+          akunId: id,
+          aksi: 'koreksi saldo',
+          delta: deltaKoreksi,
+          timestamp: serverTimestamp(),
+          deleted: false,
+          createdAt: serverTimestamp(),
+        })
+      }
+    },
+    async () => {
+      const patch = { nama: namaBersih, tipe: tipeAman, updatedAt: serverTimestamp() }
+      let deltaKoreksi = 0
+      if (adaSaldoBaru) {
+        patch.saldo = saldoBaru
+        let saldoAcuan = null
+        try {
+          const c = await getDocFromCache(refAkun)
+          if (c.exists()) saldoAcuan = c.data()?.saldo
+        } catch {
+          // Tanpa cache — pakai saldoLama UI (perilaku lama).
+        }
+        if (saldoAcuan !== null && saldoAcuan !== undefined) {
+          deltaKoreksi = hitungDeltaKoreksi({ saldoServer: saldoAcuan, saldoBaru })
+        } else {
+          const adaLama = saldoLama !== undefined && saldoLama !== null && Number.isFinite(Number(saldoLama))
+          const saldoLamaInt = adaLama ? angkaAman(saldoLama) : saldoBaru
+          deltaKoreksi = adaLama ? saldoBaru - saldoLamaInt : 0
+        }
+        if (deltaKoreksi !== 0) {
+          patch.mutasiTerakhir = {
+            delta: deltaKoreksi,
+            keterangan: 'Koreksi penyesuaian saldo',
+            at: serverTimestamp(),
+          }
+        }
+      }
+
+      // Setiap koreksi saldo dicatat sebagai entri BARU di mutasiLog (append-only).
+      // Tidak pernah menimpa entri lama, jadi edit berulang per hari/bulan tetap
+      // lengkap. Tidak menyentuh koleksi transaksi sama sekali.
+      const batch = writeBatch(db)
+      batch.update(refAkun, patch)
+      if (deltaKoreksi !== 0) {
+        batch.set(doc(userCol(uid, 'mutasiLog')), {
+          akunId: id,
+          aksi: 'koreksi saldo',
+          delta: deltaKoreksi,
+          timestamp: serverTimestamp(),
+          deleted: false,
+          createdAt: serverTimestamp(),
+        })
+      }
+      await batch.commit()
+    },
+  )
 }
 
 export async function hapusAkun(uid, id) {
@@ -344,11 +434,28 @@ export async function simpanTransaksi(uid, data) {
       if (snap.exists()) return transId // dokumen sudah ada = retry; saldo sudah diterapkan
       const akunSnap = await tx.get(akunDoc)
       if (!akunSnap.exists()) throw new Error('Rekening tidak ditemukan.')
+      // R-07: pengeluaran tidak boleh membuat saldo negatif (baca dari server).
+      if (trans.jenis === 'pengeluaran') {
+        cekSaldoCukup({ saldo: akunSnap.data()?.saldo, jumlah: jumlahInt })
+      }
       tx.set(ref, trans)
       tx.update(akunDoc, mutasiAkun)
       return transId
     },
     async () => {
+      // Offline: cek terhadap cache lokal bila ada (sumber kebenaran saat
+      // offline); tanpa cache, cek dilewati — tidak bisa dipastikan (R-07).
+      if (trans.jenis === 'pengeluaran') {
+        let akunCache = null
+        try {
+          akunCache = await getDocFromCache(akunDoc)
+        } catch {
+          akunCache = null
+        }
+        if (akunCache?.exists()) {
+          cekSaldoCukup({ saldo: akunCache.data()?.saldo, jumlah: jumlahInt })
+        }
+      }
       const batch = writeBatch(db)
       batch.set(ref, trans)
       batch.update(akunDoc, mutasiAkun)
@@ -695,6 +802,8 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
       const dariSnap = await tx.get(dariDoc)
       const keSnap = await tx.get(keDoc)
       if (!dariSnap.exists() || !keSnap.exists()) throw new Error('Rekening tidak ditemukan.')
+      // R-07: sumber tidak boleh minus (baca dari server).
+      cekSaldoCukup({ saldo: dariSnap.data()?.saldo, jumlah: jumlahInt })
       tx.set(ref, trans)
       tx.update(dariDoc, {
         saldo: increment(-jumlahInt),
@@ -709,6 +818,16 @@ export async function pindahSaldo(uid, { id, dariId, dariNama, keId, keNama, jum
       return transId
     },
     async () => {
+      // Offline: cek terhadap cache lokal bila ada; tanpa cache dilewati (R-07).
+      let dariCache = null
+      try {
+        dariCache = await getDocFromCache(dariDoc)
+      } catch {
+        dariCache = null
+      }
+      if (dariCache?.exists()) {
+        cekSaldoCukup({ saldo: dariCache.data()?.saldo, jumlah: jumlahInt })
+      }
       const batch = writeBatch(db)
       batch.set(ref, trans)
       batch.update(dariDoc, {
@@ -1097,16 +1216,58 @@ export async function simpanUtang(uid, { id, namaPihak, deskripsi, total, tipe, 
     return newId
   }
   if (id) {
-    // Total berubah -> sisa bergeser sebanyak selisih (jumlah terbayar tetap).
-    const selisih = totalInt - angkaAman(totalLama)
-    const sisaBaru = Math.max(0, angkaAman(sisaLama) + selisih)
-    await updateDoc(utangRef(uid, id), {
-      ...data,
-      sisa: sisaBaru,
-      status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
-      updatedAt: serverTimestamp(),
-    })
-    return id
+    // R-05: total berubah -> sisa dihitung dari data SERVER (jumlah terbayar
+    // tetap). Snapshot UI (sisaLama/totalLama) hanya dipakai bila offline
+    // dan cache tidak punya dokumennya.
+    const { db } = getFirebase()
+    const utangDoc = utangRef(uid, id)
+    const hasil = await denganTransaksi(
+      db,
+      async (tx) => {
+        const snap = await tx.get(utangDoc)
+        if (!snap.exists()) throw new Error('Data utang tidak ditemukan.')
+        const { sisaBaru } = hitungSisaUtangBaru({
+          totalServer: snap.data()?.total,
+          sisaServer: snap.data()?.sisa,
+          totalBaru: totalInt,
+        })
+        tx.update(utangDoc, {
+          ...data,
+          sisa: sisaBaru,
+          status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
+          updatedAt: serverTimestamp(),
+        })
+        return id
+      },
+      async () => {
+        let totalCache = null
+        let sisaCache = null
+        try {
+          const c = await getDocFromCache(utangDoc)
+          if (c.exists()) {
+            totalCache = c.data()?.total
+            sisaCache = c.data()?.sisa
+          }
+        } catch {
+          // Tanpa cache — pakai snapshot UI (perilaku lama).
+        }
+        let sisaBaru
+        if (totalCache !== null && sisaCache !== null) {
+          sisaBaru = hitungSisaUtangBaru({ totalServer: totalCache, sisaServer: sisaCache, totalBaru: totalInt }).sisaBaru
+        } else {
+          const selisih = totalInt - angkaAman(totalLama)
+          sisaBaru = Math.max(0, angkaAman(sisaLama) + selisih)
+        }
+        await updateDoc(utangDoc, {
+          ...data,
+          sisa: sisaBaru,
+          status: sisaBaru <= 0 ? 'Lunas' : 'Belum Lunas',
+          updatedAt: serverTimestamp(),
+        })
+        return id
+      },
+    )
+    return hasil
   }
   const ref = await addDoc(userCol(uid, 'utang'), {
     ...data,
@@ -1251,6 +1412,8 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
         )
       }
       const sisaBaruServer = sisaServer - jumlahInt
+      // R-07: rekening sumber harus cukup (baca dari server).
+      cekSaldoCukup({ saldo: akunSnap.data()?.saldo, jumlah: jumlahInt })
       tx.set(bayarRef, {
         utangId: utang.id,
         transaksiId: txId,
@@ -1288,6 +1451,18 @@ export async function bayarUtang(uid, { id, utang, jumlah, tanggal, akun }) {
       return txId
     },
     async () => {
+      // Offline: cek saldo terhadap cache lokal bila ada; tanpa cache dilewati
+      // (R-07). Overpay offline tetap mengikuti perilaku lama (R-08, di luar
+      // cakupan perbaikan ini): sisa dijepit ke 0, bukan negatif.
+      let akunCache = null
+      try {
+        akunCache = await getDocFromCache(akunDoc)
+      } catch {
+        akunCache = null
+      }
+      if (akunCache?.exists()) {
+        cekSaldoCukup({ saldo: akunCache.data()?.saldo, jumlah: jumlahInt })
+      }
       const batch = writeBatch(db)
       batch.set(bayarRef, {
         utangId: utang.id,

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import * as XLSX from 'xlsx'
-import { deltaSaldo, kunciKategori, pindahSaldo, simpanBudget, simpanTransaksi, simpanUtang, bayarUtang } from './db.js'
+import { cekSaldoCukup, deltaSaldo, hitungDeltaKoreksi, hitungSisaUtangBaru, kunciKategori, pindahSaldo, simpanBudget, simpanTransaksi, simpanUtang, bayarUtang } from './db.js'
 import { bersihkanDokumenRestore, hidupkanTimestamp, validDocId } from '../features/backup/backup.js'
 import { konversiBackupGas } from '../features/backup/importGas.js'
 import { aturanAnalitik, hitungPersenPerubahan } from '../features/statistik/_aturan.js'
@@ -53,6 +53,33 @@ await cek('db.js menolak nominal <= 0 / NaN dan pindah saldo ke rekening sama', 
   // F02 (audit 25 Nov 2026): overpay harus ditolak — kelebihan tidak boleh menguap.
   await assert.rejects(() => bayarUtang('demo_user_001', { utang: { id: 'u1', sisa: 1000 }, jumlah: 1500, akun: { id: 'a1' } }))
   await assert.rejects(() => bayarUtang('demo_user_001', { utang: { id: 'u1', sisa: 1000 }, jumlah: 1001, akun: { id: 'a1' } }))
+})
+
+// 2b. Logika murni R-05/R-06/R-07 (re-audit 25 Nov 2026). Jalur Firestore
+// (runTransaction) tidak bisa diuji di VM ini (emulator rusak), jadi
+// keputusan angkanya diuji di sini; pemakaian di jalur transaksi dikunci
+// kontrak sumber dbKontrak.test.mjs.
+await cek('R-05: edit total utang pakai sisa server, bukan snapshot UI basi', () => {
+  assert.deepEqual(
+    hitungSisaUtangBaru({ totalServer: 10000000, sisaServer: 9000000, totalBaru: 11000000 }),
+    { sisaBaru: 10000000, dibayar: 1000000 },
+  )
+  assert.throws(
+    () => hitungSisaUtangBaru({ totalServer: 10000000, sisaServer: 9000000, totalBaru: 500000 }),
+    /sudah dibayar/,
+  )
+})
+
+await cek('R-06: delta koreksi dihitung dari saldo server', () => {
+  assert.equal(hitungDeltaKoreksi({ saldoServer: 5000000, saldoBaru: 4500000 }), -500000)
+  assert.equal(hitungDeltaKoreksi({ saldoServer: 4000000, saldoBaru: 4500000 }), 500000)
+  assert.equal(hitungDeltaKoreksi({ saldoServer: 5000000, saldoBaru: 5000000 }), 0)
+})
+
+await cek('R-07: pengeluaran melebihi saldo ditolak', () => {
+  assert.throws(() => cekSaldoCukup({ saldo: 100000, jumlah: 500000 }), /tidak mencukupi/)
+  cekSaldoCukup({ saldo: 500000, jumlah: 500000 }) // sama persis lolos
+  cekSaldoCukup({ saldo: 500000, jumlah: 100000 })
 })
 
 // 3. Perhitungan Statistik (trend negatif & proyeksi bulan lampau)

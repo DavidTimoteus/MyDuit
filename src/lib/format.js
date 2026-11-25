@@ -293,10 +293,15 @@ export function parseNominalBertanda(str) {
 
 // Parser angka toleran untuk sumber eksternal (XLSX/CSV/JSON/OCR):
 // membedakan akhiran desimal 1-2 digit ("50000.00", "50.000,50") dari ribuan ("50.000").
+// Sen dipertahankan (pembulatan 2 desimal, bukan ke bulat) — R-02 re-audit.
+function bulatDuaDesimal(n) {
+  return Math.round(n * 100) / 100
+}
+
 export function parseAngkaEksternal(val) {
   if (typeof val === 'number') {
     if (!Number.isFinite(val)) return 0
-    return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, Math.round(val)))
+    return Math.max(-MAX_NOMINAL, Math.min(MAX_NOMINAL, bulatDuaDesimal(val)))
   }
   const raw = String(val ?? '').trim()
   if (!raw) return 0
@@ -308,7 +313,7 @@ export function parseAngkaEksternal(val) {
     const bulat = mDec[1].replace(/[.,]/g, '')
     const num = Number(`${bulat || 0}.${mDec[2]}`)
     if (!Number.isFinite(num)) return 0
-    const clamped = Math.min(MAX_NOMINAL, Math.round(num))
+    const clamped = Math.min(MAX_NOMINAL, bulatDuaDesimal(num))
     return negatif ? -clamped : clamped
   }
   const digits = s.replace(/[.,]/g, '')
@@ -399,15 +404,39 @@ export function parseInputTampil(str) {
   const raw = String(str ?? '').trim()
   if (!raw) return 0
   const sep = pemisahDesimalLocale(locale)
-  const idx = raw.indexOf(sep)
-  if (idx === -1) {
-    return parseNominal(raw)
+  const lain = sep === '.' ? ',' : '.'
+  // 1) Pemisah locale ada: pemisah TERAKHIR adalah desimal, sisanya ribuan
+  //    ("1.234,56" de-DE dan "1,234.56" en-US sama-sama 1234.56).
+  const idx = raw.lastIndexOf(sep)
+  if (idx !== -1) {
+    const intDigits = raw.slice(0, idx).replace(/\D/g, '') || '0'
+    const fracDigits = raw.slice(idx + 1).replace(/\D/g, '').slice(0, dMaks)
+    const num = Number(`${intDigits}.${fracDigits || '0'}`)
+    if (!Number.isFinite(num) || num <= 0) return 0
+    return Math.min(MAX_NOMINAL, num)
   }
-  const intDigits = raw.slice(0, idx).replace(/\D/g, '') || '0'
-  const fracDigits = raw.slice(idx + 1).replace(/\D/g, '').slice(0, dMaks)
-  const num = Number(`${intDigits}.${fracDigits || '0'}`)
-  if (!Number.isFinite(num) || num <= 0) return 0
-  return Math.min(MAX_NOMINAL, num)
+  // 2) Pemisah locale tidak ada, tapi pemisah lain ada — jangan buang diam-diam
+  //    lewat parseNominal (itu yang membuat "10.50" de-DE jadi 1050, R-03).
+  //    Tentukan dari ekor setelah pemisah terakhir: 1-2 digit = desimal,
+  //    0 digit = sedang diketik, 3+ digit = ribuan.
+  const idxLain = raw.lastIndexOf(lain)
+  if (idxLain !== -1) {
+    const ekor = raw.slice(idxLain + 1).replace(/\D/g, '')
+    if (ekor.length >= 1 && ekor.length <= 2) {
+      const intDigits = raw.slice(0, idxLain).replace(/\D/g, '') || '0'
+      const num = Number(`${intDigits}.${ekor}`)
+      if (!Number.isFinite(num) || num <= 0) return 0
+      return Math.min(MAX_NOMINAL, num)
+    }
+    if (ekor.length === 0) {
+      const intDigits = raw.slice(0, idxLain).replace(/\D/g, '') || '0'
+      const num = Number(intDigits)
+      if (!Number.isFinite(num) || num <= 0) return 0
+      return Math.min(MAX_NOMINAL, num)
+    }
+  }
+  // 3) Tanpa pemisah yang bisa dibaca: hanya digit (ribuan sudah dibuang).
+  return parseNominal(raw)
 }
 
 export function parseInputTampilBertanda(str) {
@@ -438,6 +467,20 @@ export function formatInputTampil(nilaiDasar, { kursSnapshot = null } = {}) {
   const dibulat = Math.round(v * faktor) / faktor
   if (!dibulat) return ''
   return dibulat.toLocaleString(locale, { maximumFractionDigits: dMaks })
+}
+
+// Edit transaksi: bila angka tampil tidak berubah dari nilai awal, pakai
+// jumlah basis asli — jangan putar lewat tampil lalu konversi balik, karena
+// pembulatan 2 desimal menggerogoti jumlah (R-04 re-audit: Rp100.000 yang
+// tampil "5.95" kembali sebagai Rp99.960 bila dihitung ulang).
+// Mode selain 'edit' (baru/salin) selalu konversi biasa.
+export function jumlahSimpanDariTampil(teksTampil, { mode, jumlahBasisAsli, teksAwalTampil, kursSnapshot = null } = {}) {
+  const nTampil = parseInputTampil(teksTampil)
+  if (mode === 'edit' && Number.isFinite(jumlahBasisAsli) && jumlahBasisAsli > 0 && teksAwalTampil != null) {
+    const nAwal = parseInputTampil(teksAwalTampil)
+    if (nTampil > 0 && nTampil === nAwal) return jumlahBasisAsli
+  }
+  return konversiKeBasis(nTampil, kursSnapshot)
 }
 
 export function formatInputTampilBertanda(nilaiDasar) {

@@ -52,9 +52,10 @@ assert.equal(f.formatRibuanInputBertanda(-50000), '-50.000')
 assert.equal(f.formatRibuanInputBertanda(0), '0')
 
 // parseAngkaEksternal membedakan desimal vs ribuan agar tidak berlipat 100x.
+// Sen dipertahankan (R-02 re-audit): '1,250.75' = 1250.75, bukan 1251.
 assert.equal(f.parseAngkaEksternal('50000.00'), 50000)
 assert.equal(f.parseAngkaEksternal('Rp 50.000,00'), 50000)
-assert.equal(f.parseAngkaEksternal('1,250.75'), 1251)
+assert.equal(f.parseAngkaEksternal('1,250.75'), 1250.75)
 assert.equal(f.parseAngkaEksternal('-25.000,00'), -25000)
 
 // Tanggal korup tidak pernah melempar RangeError dan kalender invalid ditolak.

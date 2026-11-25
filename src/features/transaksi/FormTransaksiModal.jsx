@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { formatInputTampil, formatNominal, isoHariIni, jamSekarang, jamValid, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
+import { formatInputTampil, formatNominal, isoHariIni, jamSekarang, jamValid, jumlahSimpanDariTampil, konversiKeBasis, parseInputTampil, sanitizeKetikNominal, simbolUang, uangAktif } from '../../lib/format.js'
 import { bacaBasisMataUang, buatSnapshotKurs, desimalMataUang, konversiNilai } from '../../lib/kurs.js'
 import { ambilAtauBuatKategori, buatTransaksiId, simpanTransaksi, tambahAkun, updateTransaksi } from '../../lib/db.js'
 import { ClayCombobox, ClayDateInput, ClaySelect } from '../../components/clay-ui.jsx'
@@ -49,6 +49,13 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     isEditAtauSalin ? (sumber.jenis ?? 'pengeluaran') : (sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
   )
   const [jumlah, setJumlah] = useState(() =>
+    isEditAtauSalin
+      ? formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined)
+      : ''
+  )
+  // Teks jumlah tampil saat modal dibuka (mode edit): bila user menyimpan tanpa
+  // mengubah angka, jumlah basis asli dipakai kembali (R-04 re-audit).
+  const jumlahAwalTampilRef = useRef(
     isEditAtauSalin
       ? formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined)
       : ''
@@ -170,6 +177,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
     if ((mode === 'edit' || mode === 'salin') && sumber) {
       setJenis(sumber.jenis ?? 'pengeluaran')
       setJumlah(formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined))
+      jumlahAwalTampilRef.current = formatInputTampil(sumber.jumlah, mode === 'edit' ? { kursSnapshot: sumber.kursSnapshot } : undefined)
       setKategoriNama(sumber.kategoriNama ?? '')
       setAkunId(sumber.akunId ?? akunList[0]?.id ?? '')
       setTanggal(sumber.tanggal ?? isoHariIni())
@@ -179,6 +187,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
       // Preset dari pemicu (Aksi Cepat / speed-dial) atau default pengeluaran
       setJenis(sumber?.preset === 'pemasukan' ? 'pemasukan' : 'pengeluaran')
       setJumlah('')
+      jumlahAwalTampilRef.current = ''
       setKategoriNama('')
       setAkunId(akunList[0]?.id ?? '')
       setTanggal(isoHariIni())
@@ -466,7 +475,7 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
   async function submit(e) {
     e.preventDefault()
     if (submittedRef.current) return
-    let nTampil = parseInputTampil(jumlah)
+    let n
     if (calcOpen && calcExpr.trim()) {
       const calcRes = evaluasiEkspresiNominal(calcExpr)
       if (!calcRes.ok) {
@@ -478,9 +487,16 @@ export default function FormTransaksiModal({ uid, open, onClose, onSalin, onAkun
         setCalcErr('Hasil harus lebih dari 0.')
         return setError(tr('nominal_harus_positif'))
       }
-      nTampil = hasilTampil
+      n = konversiKeBasis(hasilTampil, mode === 'edit' ? sumber?.kursSnapshot : null)
+    } else {
+      // Edit tanpa ubah angka: pakai jumlah basis asli (R-04 re-audit).
+      n = jumlahSimpanDariTampil(jumlah, {
+        mode,
+        jumlahBasisAsli: mode === 'edit' ? sumber?.jumlah : null,
+        teksAwalTampil: jumlahAwalTampilRef.current,
+        kursSnapshot: mode === 'edit' ? sumber?.kursSnapshot : null,
+      })
     }
-    const n = konversiKeBasis(nTampil, mode === 'edit' ? sumber?.kursSnapshot : null)
     if (n <= 0) return setError(tr('nominal_harus_positif'))
     if (!akunId) return setError(tr('rekening_wajib'))
     if (!kategoriNama.trim()) return setError(tr('isi_kategori_dulu'))
