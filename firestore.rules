@@ -62,7 +62,12 @@ service cloud.firestore {
         d.kursSnapshot is map
         && d.kursSnapshot.keys().hasOnly(['basis', 'usdKe', 'tanggal', 'sumber'])
         && (!('basis' in d.kursSnapshot) || (d.kursSnapshot.basis is string && d.kursSnapshot.basis.matches('^[A-Z]{3}$')))
-        && (!('usdKe' in d.kursSnapshot) || (d.kursSnapshot.usdKe is map && d.kursSnapshot.usdKe.keys().size() <= 40))
+        // Cap 96: menutupi maks sanitasiKursSnapshot (80 kunci + USD yang
+        // dipaksa masuk = 81) dan tabel cadangan 56 entri + 1 kunci basis,
+        // dengan margin bila tabel bertambah — cap lama 40 menolak semua
+        // tulis transaksi bila rules di-deploy (R-01 re-audit).
+        // Dijaga test src/lib/snapshotKursRules.test.mjs (membaca cap dari file ini).
+        && (!('usdKe' in d.kursSnapshot) || (d.kursSnapshot.usdKe is map && d.kursSnapshot.usdKe.keys().size() <= 96))
         && (!('tanggal' in d.kursSnapshot) || (d.kursSnapshot.tanggal is string && d.kursSnapshot.tanggal.size() <= 20))
         && (!('sumber' in d.kursSnapshot) || (d.kursSnapshot.sumber is string && d.kursSnapshot.sumber.size() <= 60))
       );
