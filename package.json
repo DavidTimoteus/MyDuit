@@ -29,7 +29,7 @@
     "test:render": "node src/features/budget/render.test.mjs",
     "test:events": "node src/lib/eventContract.test.mjs",
     "test:classes": "node src/styles/classContract.test.mjs",
-    "test:utang": "node src/features/utang/prefill.test.mjs",
+    "test:utang": "node src/features/utang/prefill.test.mjs && node src/features/utang/chipRowMobile.test.mjs",
     "test:struk": "node src/lib/strukMeta.test.mjs",
     "test:image": "node src/lib/imageFilters.test.mjs",
     "test:gemini": "node src/lib/geminiOcr.test.mjs",

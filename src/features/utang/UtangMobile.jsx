@@ -372,34 +372,34 @@ export default function UtangMobile({
 
       {/* 3 Metric Cards */}
       <div className="grid grid-cols-3 gap-2 my-1">
-        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2.5 flex flex-col justify-between">
+        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             <span className="material-symbols-outlined icon-xs text-[#EB5353]" style={{ fontVariationSettings: "'FILL' 1" }}>receipt_long</span>
             <span>Total</span>
           </div>
-          <p className="font-mono text-[13px] sm:text-sm font-black text-[#EB5353] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#EB5353] tabular-nums mt-1 truncate">
             {formatRupiah(ringkasan.totalSisa)}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">{ringkasan.aktifCount} aktif</p>
         </div>
 
-        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2.5 flex flex-col justify-between">
+        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             <span className="material-symbols-outlined icon-xs text-[#36AE7C]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
             <span>Lunas</span>
           </div>
-          <p className="font-mono text-[13px] sm:text-sm font-black text-[#36AE7C] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#36AE7C] tabular-nums mt-1 truncate">
             {formatRupiah(ringkasan.totalLunasNominal)}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">{ringkasan.lunasCount} item</p>
         </div>
 
-        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2.5 flex flex-col justify-between">
+        <div className="neu-card rounded-2xl bg-[#E5E5E5] p-2 min-[360px]:p-2.5 flex flex-col justify-between">
           <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
             <span className="material-symbols-outlined icon-xs text-[#187498]">schedule</span>
             <span>Cicilan</span>
           </div>
-          <p className="font-mono text-[13px] sm:text-sm font-black text-[#187498] tabular-nums mt-1 truncate">
+          <p className="font-mono text-[10px] min-[360px]:text-[11px] sm:text-sm font-black text-[#187498] tabular-nums mt-1 truncate">
             {ringkasan.cicilanAktif}
           </p>
           <p className="text-[10px] font-semibold text-slate-500 mt-0.5 truncate">
@@ -408,8 +408,11 @@ export default function UtangMobile({
         </div>
       </div>
 
-      {/* Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar py-2 my-1">
+      {/* Filter Chips — flex-wrap (bukan overflow-x-auto): di HP sempit
+          (<=320px) keempat chip butuh ~298px sementara konten cuma ~288px,
+          jadi "Terlambat" terpotong tanpa petunjuk scroll. Dengan wrap, chip
+          yang tidak muat turun ke baris 2 dan semuanya tetap terlihat. */}
+      <div className="flex flex-wrap items-center gap-2 py-2 my-1">
         {FILTERS.map((f) => {
           const active = filter === f.id
           return (
