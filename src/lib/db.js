@@ -991,6 +991,15 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
     constraints.push(where('tanggal', '<=', range.end))
   }
   constraints.push(orderBy('tanggal', 'desc'))
+  // Urutan server (25 Nov 2026): jam inputan ikut diurutkan di server supaya
+  // halaman pertama "Muat lagi" tidak lagi membawa transaksi jam kecil di
+  // atas jam besar — sebelumnya hanya klien yang mengurutkan (mergeRiwayat),
+  // jadi halaman >50 transaksi/hari bisa salah urut di batas halaman.
+  // Butuh 2 composite index baru di firestore.indexes.json (dengan/tanpa
+  // filter jenis); index HARUS READY sebelum build ini di-deploy, kalau
+  // tidak query gagal failed-precondition. Dokumen tanpa jam diperlakukan
+  // null -> jatuh paling akhir (desc), sama seperti urutan klien.
+  constraints.push(orderBy('jam', 'desc'))
   constraints.push(orderBy('createdAt', 'desc'))
   // Nilai 0/tidak valid jatuh ke batas; nilai di atasnya dijepit ke batas.
   const batas =

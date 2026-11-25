@@ -20,6 +20,27 @@
       ]
     },
     {
+      "collectionGroup": "transaksi",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "tanggal", "order": "DESCENDING" },
+        { "fieldPath": "jam", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "transaksi",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "jenis", "order": "ASCENDING" },
+        { "fieldPath": "tanggal", "order": "DESCENDING" },
+        { "fieldPath": "jam", "order": "DESCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "utang",
       "queryScope": "COLLECTION",
       "fields": [
