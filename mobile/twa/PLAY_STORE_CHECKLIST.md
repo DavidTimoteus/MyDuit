@@ -1,11 +1,11 @@
 # Google Play Store Release Checklist — MyDuit (`app.web.myduit001.twa`)
 
 ## 1. Technical & Digital Asset Links Verification
-- [ ] Generate release keystore (`android.keystore`) safely (keep backup in password manager, **never** commit to git).
-- [ ] Build `.aab` via `mobile/twa` (`npx @bubblewrap/cli update && npx @bubblewrap/cli build`) or GitHub Actions `.github/workflows/release-android.yml`.
+- [x] Generate release keystore (`android.keystore`) safely (keep backup in password manager, **never** commit to git). — SELESAI 25 Nov 2026 18:14 WIB: alias `myduit`, RSA 2048, validity 10000 hari, fingerprint SHA-256 `B9:F9:F9:F8:2B:FE:04:7B:7D:FB:F4:4C:9D:1D:B2:12:3E:F8:60:85:F5:21:8C:CF:86:02:36:F6:91:CA:B6:D2`. Password + base64 ada di file `MyDuit-keystore-credentials.txt` (di luar repo, mode 600) — pindahkan ke password manager + pasang 3 GitHub secrets (ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_PASSWORD), lalu hapus file itu dari VM. Keystore WAJIB di-backup ke PC — kalau hilang, app Play Store tidak bisa di-update lagi.
+- [ ] Build `.aab` via `mobile/twa` (`npx @bubblewrap/cli update && npx @bubblewrap/cli build`) or GitHub Actions `.github/workflows/release-android.yml`. — MENUNGGU 3 GitHub secrets di atas.
 - [ ] Copy **both** SHA-256 fingerprints into `public/.well-known/assetlinks.json`:
-  1. Upload key SHA-256 (from `keytool -list -v -keystore android.keystore`)
-  2. Google Play App Signing SHA-256 (from **Play Console → Setup → App signing**)
+  1. Upload key SHA-256 (from `keytool -list -v -keystore android.keystore`) — SELESAI 25 Nov 2026 18:14 WIB (fingerprint di atas, sudah live).
+  2. Google Play App Signing SHA-256 (from **Play Console → Setup → App signing**) — MENUNGGU pembuatan app di Play Console; tambahkan sebagai fingerprint kedua di entry yang sama.
 - [ ] Run `npm run deploy:hosting` and confirm `https://myduit001.web.app/.well-known/assetlinks.json` returns HTTP `200` with `Content-Type: application/json`.
 - [ ] Verify APK opens without a Chrome URL bar on Android device (`adb install app-release-signed.apk`).
 

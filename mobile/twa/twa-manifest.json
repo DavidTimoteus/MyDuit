@@ -57,6 +57,8 @@
   "fullScopeUrl": "https://myduit001.web.app/",
   "minSdkVersion": 21,
   "orientation": "portrait",
-  "fingerprints": []
+  "fingerprints": [
+    "B9:F9:F9:F8:2B:FE:04:7B:7D:FB:F4:4C:9D:1D:B2:12:3E:F8:60:85:F5:21:8C:CF:86:02:36:F6:91:CA:B6:D2"
+  ]
 }
 
