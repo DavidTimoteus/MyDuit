@@ -209,15 +209,36 @@ function createWindow(startUrl) {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // H-01 re-audit: DevTools dimatikan supaya data lokal (IndexedDB,
+      // localStorage) tidak bisa dibaca begitu saja dari perangkat.
+      devTools: false,
     },
+  })
+
+  // H-01 re-audit: cegah navigasi jendela utama ke origin luar (tautan yang
+  // lolos atau konten yang disuntikkan). Hanya origin aplikasi sendiri yang
+  // boleh dinavigasi; sisanya dibuka di browser sistem.
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(activeAppOrigin)) {
+      event.preventDefault()
+      shell.openExternal(url)
+    }
   })
 
   // Izinkan popup Firebase Auth (accounts.google.com / firebaseapp) sebagai fallback;
   // tautan luar lainnya diarahkan aman ke browser sistem pengguna.
   win.webContents.setWindowOpenHandler(({ url }) => {
+    let parsed = null
+    try {
+      parsed = new URL(url)
+    } catch {
+      return { action: 'deny' }
+    }
+    // Cek origin, bukan substring: `includes('.firebaseapp.com/__/auth/')`
+    // yang lama bisa dilewati URL jahat yang mengandung teks itu.
     const isAuthPopup =
-      url.startsWith('https://accounts.google.com/') ||
-      url.includes('.firebaseapp.com/__/auth/') ||
+      parsed.origin === 'https://accounts.google.com' ||
+      (parsed.hostname.endsWith('.firebaseapp.com') && parsed.pathname.startsWith('/__/auth/')) ||
       url.startsWith(activeAppOrigin)
     if (isAuthPopup) {
       return {
@@ -231,6 +252,7 @@ function createWindow(startUrl) {
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: true,
+            devTools: false,
           },
         },
       }

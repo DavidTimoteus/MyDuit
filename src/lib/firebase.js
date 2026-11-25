@@ -2,9 +2,11 @@ import { initializeApp } from 'firebase/app'
 import { ReCaptchaV3Provider, initializeAppCheck } from 'firebase/app-check'
 import { GoogleAuthProvider, getAuth } from 'firebase/auth'
 import {
+  clearIndexedDbPersistence,
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  terminate,
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -65,3 +67,25 @@ export function getFirebase() {
 }
 
 export const googleProvider = new GoogleAuthProvider()
+
+// H-01 re-audit: keluar / lupa-PIN harus menghapus cache Firestore lokal
+// (IndexedDB) supaya data tidak bisa dibaca dari perangkat setelah sign-out
+// lewat DevTools. Panggil SETELAH signOut; pemanggil WAJIB reload halaman
+// sesudahnya karena terminate() mematikan instance db yang di-cache modul
+// ini dan login berikutnya butuh instance baru. Mengembalikan true bila
+// persistence berhasil dibersihkan; false bila tab lain masih memegangnya
+// (best-effort — reload tetap jalan).
+export async function hapusCacheFirestoreLokal() {
+  if (!db) return false
+  try {
+    await terminate(db)
+  } catch {
+    // Instance sudah mati / belum sempat dipakai — lanjut ke pembersihan.
+  }
+  try {
+    await clearIndexedDbPersistence(db)
+  } catch {
+    return false
+  }
+  return true
+}

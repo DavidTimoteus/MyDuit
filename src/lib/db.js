@@ -198,12 +198,16 @@ export async function seedKategoriJikaKosong(uid) {
   // pemanggilan berikutnya skip dengan 1 pembacaan dokumen saja tanpa baca besar.
   const markerRef = doc(userCol(uid, 'meta'), 'seedKategori')
   const markerSnap = await getDoc(markerRef)
-  if (markerSnap.exists() && markerSnap.data()?.done) return false
+  // Marker yang di-soft-delete (mis. habis hapusSemuaData) dianggap tidak ada —
+  // kalau tidak, kategori tidak pernah di-seed ulang setelah wipe.
+  if (markerSnap.exists() && markerSnap.data()?.done && !markerSnap.data()?.deleted) return false
 
   const existing = new Set()
   const katSnap = await getDocs(userCol(uid, 'kategori'))
   katSnap.docs.forEach((d) => {
     const dt = d.data()
+    // Kategori yang di-soft-delete tidak dihitung sebagai "sudah ada".
+    if (dt.deleted) return
     const j = (dt.jenis ?? '').toLowerCase()
     const n = (dt.nama ?? '').toLowerCase()
     existing.add(`${j}::${n}`)

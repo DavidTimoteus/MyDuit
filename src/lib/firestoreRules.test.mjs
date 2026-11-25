@@ -25,6 +25,7 @@ import {
 import {
   getFirestore,
   connectFirestoreEmulator,
+  deleteField,
   doc,
   setDoc,
   updateDoc,
@@ -173,9 +174,16 @@ await ditolak('akun tanpa nama DITOLAK', async () => {
   await setDoc(doc(db, `users/${uidA}/akun/a1`), { deleted: false, saldo: 100 })
 })
 
-// 8. Hard-delete masih diizinkan pemilik (celah R-01 keamanan — ditutup di Fase 3).
-await berhasil('hard-delete pemilik diizinkan (catat: celah delete+create, Fase 3)', async () => {
+// 8. Fase 3: hard-delete DITOLAK (R-01 ditutup); un-delete (bendera saja)
+// diizinkan, lalu dokumen bisa diperbarui lagi sebagai update biasa.
+// Un-delete memakai payload restore yang sebenarnya (deletedAt ikut
+// dihapus via deleteField — isUnDelete harus mengizinkan field itu hilang).
+await ditolak('hard-delete pemilik DITOLAK (R-01 ditutup)', async () => {
   await deleteDoc(doc(db, `users/${uidA}/transaksi/t1`))
+})
+await berhasil('soft-delete lalu un-delete diizinkan', async () => {
+  await updateDoc(doc(db, `users/${uidA}/transaksi/t1`), { deleted: true, deletedAt: new Date() })
+  await updateDoc(doc(db, `users/${uidA}/transaksi/t1`), { deleted: false, deletedAt: deleteField() })
 })
 
 console.log(`firestoreRules: ${lulus} cek lulus (emulator)`)

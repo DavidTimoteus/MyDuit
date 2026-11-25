@@ -18,7 +18,7 @@
     "lint": "eslint src/",
     "deploy:hosting": "npm run build && firebase deploy --only hosting",
     "check:format": "node src/lib/format.check.mjs",
-    "test:kurs": "node src/lib/kurs.test.mjs && node src/lib/snapshotKursRules.test.mjs",
+    "test:kurs": "node src/lib/kurs.test.mjs && node src/lib/snapshotKursRules.test.mjs && node src/lib/rulesKeamanan.test.mjs",
     "test:rules": "unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY all_proxy; export JAVA_HOME=\"$HOME/workspace/.java/current\"; export PATH=\"$JAVA_HOME/bin:$PATH\" XDG_CONFIG_HOME=\"$HOME/.firebase-cli-config\" NO_UPDATE_NOTIFIER=1; firebase emulators:exec --only firestore,auth --project myduit001 \"node src/lib/firestoreRules.test.mjs\"",
     "test:idempotensi": "node src/lib/idempotensi.test.mjs",
     "test:backup": "node src/features/backup/backupDelete.test.mjs && node src/features/backup/restoreGuard.test.mjs",

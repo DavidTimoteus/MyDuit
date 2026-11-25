@@ -64,10 +64,12 @@ let lulus = 0
 }
 
 // 3. Menghapus bertahap per batch <= 450 & membersihkan penanda lokal
+// (Fase 3: soft-delete, bukan hard-delete; dokumen yang sudah terhapus dilewati)
 {
   const batches = []
+  const softDeleted = []
   const docsByKol = {
-    transaksi: Array.from({ length: 460 }, (_, i) => ({ id: `tx-${i}`, ref: { path: `transaksi/tx-${i}` } })),
+    transaksi: Array.from({ length: 460 }, (_, i) => ({ id: `tx-${i}`, ref: { path: `transaksi/tx-${i}` }, data: () => ({ deleted: i === 0 }) })),
     akun: [{ id: 'a1', ref: { path: 'akun/a1' } }],
     kategori: [{ id: 'k1', ref: { path: 'kategori/k1' } }],
     budget: [],
@@ -86,22 +88,27 @@ let lulus = 0
       collection: (_db, _u, _uid, k) => k,
       getDocs: async (k) => ({ docs: docsByKol[k] || [] }),
       writeBatch: () => {
-        const deletedRefs = []
+        const updatedRefs = []
         return {
-          delete: (ref) => deletedRefs.push(ref),
+          update: (ref, data) => updatedRefs.push({ ref, data }),
           commit: async () => {
-            batches.push(deletedRefs.length)
+            batches.push(updatedRefs.length)
+            softDeleted.push(...updatedRefs)
           },
         }
       },
+      serverTimestamp: () => 'SERVER_TS',
     },
   )
 
-  assert.equal(res.deleted, 464)
+  // 464 dokumen dibaca, 1 sudah terhapus (tx-0) -> 463 di-soft-delete.
+  assert.equal(res.deleted, 463)
   assert.equal(res.perKoleksi.meta, 2)
-  assert.deepEqual(batches, [450, 14])
+  assert.deepEqual(batches, [450, 13])
   assert.equal(progressEvents.length, 2)
-  assert.equal(progressEvents[1].done, 464)
+  assert.equal(progressEvents[1].done, 463)
+  assert.ok(softDeleted.every((u) => u.data.deleted === true), 'semua tulis adalah soft-delete')
+  assert.ok(!softDeleted.some((u) => u.ref.path === 'transaksi/tx-0'), 'dokumen yang sudah terhapus dilewati')
   assert.equal(_store['myduit-migrasi-norm-uid-1'], undefined)
   assert.equal(_store['myduit:tx_chip'], undefined)
   assert.equal(_store['myduit:kurs_basis'], undefined)
@@ -152,7 +159,7 @@ let lulus = 0
     getFirebase: () => ({ auth: { currentUser: { uid: 'uid-1' } }, db: {} }),
     collection: (_db, _u, _uid, k) => k,
     getDocs: async () => ({ docs: [] }),
-    writeBatch: () => ({ delete: () => {}, commit: async () => {} }),
+    writeBatch: () => ({ update: () => {}, commit: async () => {} }),
     deleteUser: async () => {
       deleteCalls++
       if (deleteCalls === 1) throw { code: 'auth/requires-recent-login' }

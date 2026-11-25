@@ -45,11 +45,11 @@ const { restoreData } = await import(pathToFileURL(hasil).href)
 
 function buatDeps({ metaServer = null, docsServer = {} } = {}) {
   const writes = []
-  const deletes = []
+  const updates = []
   let committed = 0
   return {
     writes,
-    deletes,
+    updates,
     get committed() { return committed },
     deps: {
       getFirebase: () => ({ auth: { currentUser: { uid: 'uid-1' } }, db: {} }),
@@ -62,7 +62,7 @@ function buatDeps({ metaServer = null, docsServer = {} } = {}) {
       getDocs: async (ref) => ({ docs: docsServer[ref.__path] || [] }),
       writeBatch: () => ({
         set(ref, data) { writes.push({ ref, data }) },
-        delete(ref) { deletes.push(ref) },
+        update(ref, data) { updates.push({ ref, data }) },
         commit: async () => { committed++ },
       }),
       serverTimestamp: () => 'TS',
@@ -138,10 +138,11 @@ await cek('restore se-basis + se-UID berhasil', async () => {
   assert.equal(meta.data.baseCurrency, 'IDR')
 })
 
-// 6. Dokumen server yang sudah di-soft-delete dipulihkan: di-hard-delete dulu
-// lalu dibuat ulang — restore tidak gagal di tengah (P2).
-await cek('restore di atas dokumen server terhapus berhasil (hard-delete dulu)', async () => {
-  const { deps, writes, deletes } = buatDeps({
+// 6. Dokumen server yang sudah di-soft-delete dipulihkan: flag hapusnya
+// dibatalkan dulu (un-delete, Fase 3) lalu set-merge — restore tidak gagal
+// di tengah (P2) dan TIDAK ada lagi hard-delete.
+await cek('restore di atas dokumen server terhapus berhasil (un-delete dulu)', async () => {
+  const { deps, writes, updates } = buatDeps({
     docsServer: {
       'users/uid-1/transaksi': [{ id: 't1', data: () => ({ deleted: true }) }],
       'users/uid-1/akun': [{ id: 'a1', data: () => ({ deleted: false }) }],
@@ -149,8 +150,9 @@ await cek('restore di atas dokumen server terhapus berhasil (hard-delete dulu)',
   })
   const n = await restoreData('uid-1', jsonDasar(), undefined, deps)
   assert.equal(n, 2)
-  assert.equal(deletes.length, 1, 'tepat satu dokumen terhapus yang dibersihkan dulu')
-  assert.equal(deletes[0].__path, 'users/uid-1/transaksi/t1')
+  assert.equal(updates.length, 1, 'tepat satu dokumen terhapus yang dibatalkan dulu')
+  assert.equal(updates[0].ref.__path, 'users/uid-1/transaksi/t1')
+  assert.equal(updates[0].data.deleted, false, 'un-delete: deleted dibalik ke false')
   assert.ok(writes.some((w) => w.ref.__path === 'users/uid-1/transaksi/t1'), 't1 tetap ditulis ulang')
 })
 
@@ -159,13 +161,13 @@ await cek('restore di atas dokumen server terhapus berhasil (hard-delete dulu)',
 await cek('restore lintas-basis ditolak bila basis SERVER berbeda (flag lokal belum terkunci)', async () => {
   _store['myduit:kurs_terkunci'] = '0'
   try {
-    const { deps, writes, deletes } = buatDeps({ metaServer: { baseCurrency: 'USD' } })
+    const { deps, writes, updates } = buatDeps({ metaServer: { baseCurrency: 'USD' } })
     await assert.rejects(
       () => restoreData('uid-1', jsonDasar(), undefined, deps),
       /basis/i,
     )
     assert.equal(writes.length, 0, 'tidak boleh ada satu pun tulis sebelum ditolak')
-    assert.equal(deletes.length, 0)
+    assert.equal(updates.length, 0)
   } finally {
     _store['myduit:kurs_terkunci'] = '1'
   }
@@ -177,6 +179,26 @@ await cek('tulis basis (meta) terjadi sebelum data', async () => {
   await restoreData('uid-1', jsonDasar(), undefined, deps)
   assert.equal(writes[0].ref.__path, 'users/uid-1/meta/mataUang')
   assert.equal(writes[0].data.baseCurrency, 'IDR')
+  assert.equal(writes[0].data.deleted, false, 'meta yang sempat terhapus ikut hidup kembali')
+})
+
+// 9. Restore akun yang saldonya berubah sejak backup: merge-set membawa
+// mutasiTerakhir segar yang deltanya sama dengan perubahan saldo (R-03),
+// supaya rules tidak menolak tulisnya.
+await cek('restore akun membawa mutasiTerakhir konsisten (R-03)', async () => {
+  const { deps, writes } = buatDeps({
+    docsServer: {
+      'users/uid-1/transaksi': [{ id: 't1', data: () => ({ deleted: false }) }],
+      'users/uid-1/akun': [{ id: 'a1', data: () => ({ deleted: false, saldo: 60000 }) }],
+    },
+  })
+  const n = await restoreData('uid-1', jsonDasar(), undefined, deps)
+  assert.equal(n, 2)
+  const akun = writes.find((w) => w.ref.__path === 'users/uid-1/akun/a1')
+  assert.ok(akun, 'akun a1 harus ditulis')
+  assert.equal(akun.data.saldo, 100000)
+  assert.equal(akun.data.mutasiTerakhir?.delta, 40000, 'delta = saldo backup - saldo server')
+  assert.equal(akun.data.mutasiTerakhir?.keterangan, 'Pulihkan backup')
 })
 
 console.log(`restoreGuard.test: OK (${lulus} kasus lulus)`)

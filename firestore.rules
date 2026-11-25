@@ -57,6 +57,26 @@ service cloud.firestore {
         && (!keys.hasAny(['updatedAt']) || d.updatedAt is timestamp);
     }
 
+    // Kebalikan soft-delete: membatalkan penghapusan (deleted true -> false)
+    // tanpa mengubah isi apa pun. Satu-satunya jalan memulihkan dokumen yang
+    // di-soft-delete — hard-delete dihapus dari rules (R-01 re-audit), jadi
+    // restore tidak lagi menghapus permanen lalu membuat ulang; ia
+    // membatalkan flag dulu, lalu set-merge berjalan sebagai update biasa
+    // yang tetap dinilai validator (kursSnapshot/baseCurrency tetap terkunci).
+    function isUnDelete() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      let d = request.resource.data;
+      return resource != null
+        && resource.data.deleted == true
+        && keys.hasOnly(['deleted', 'deletedAt', 'updatedAt'])
+        && keys.hasAny(['deleted'])
+        && d.deleted == false
+        // deletedAt boleh dihapus (deleteField -> tidak ada di dokumen baru)
+        // atau diisi timestamp; tidak boleh diisi nilai lain.
+        && (!keys.hasAny(['deletedAt']) || !('deletedAt' in d) || d.deletedAt is timestamp)
+        && (!keys.hasAny(['updatedAt']) || d.updatedAt is timestamp);
+    }
+
     function validKursSnapshot(d) {
       return !('kursSnapshot' in d) || d.kursSnapshot == null || (
         d.kursSnapshot is map
@@ -103,8 +123,20 @@ service cloud.firestore {
           'nama' in d && d.nama is string && d.nama.size() > 0 && d.nama.size() <= 120 &&
           'saldo' in d
         ))
-        // Update tidak boleh menghapus nama/tipe lewat deleteField().
-        && (isCreate || (fieldTetapAda('nama') && fieldTetapAda('tipe')))
+        // Update tidak boleh menghapus nama/tipe/saldo lewat deleteField().
+        && (isCreate || (fieldTetapAda('nama') && fieldTetapAda('tipe') && fieldTetapAda('saldo')))
+        // R-03 re-audit: perubahan saldo wajib tercatat konsisten — mutasiTerakhir
+        // harus ada dan deltanya sama dengan perubahan saldo. Tulis absolut
+        // diam-diam (update({saldo: X}) tanpa jejak) ditolak. Ini BUKAN
+        // pengganti Cloud Function + rekonsiliasi: penyerang yang tahu aturan
+        // bisa menulis pasangan yang konsisten sendiri — tapi jejak audit tetap
+        // utuh dan pola satu-field yang paling gampang sudah tertutup.
+        // Pengecualian: dokumen legacy yang memang belum punya saldo.
+        && (isCreate || resource == null || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['saldo'])
+          || !('saldo' in resource.data)
+          || (('mutasiTerakhir' in d) && d.mutasiTerakhir is map && ('delta' in d.mutasiTerakhir)
+            && d.mutasiTerakhir.delta is number
+            && d.mutasiTerakhir.delta == d.saldo - resource.data.saldo))
         && (!('saldo' in d) || (d.saldo is number && d.saldo >= -maxNum() && d.saldo <= maxNum()))
         && (!('nama' in d) || (d.nama is string && d.nama.size() <= 120))
         && (!('tipe' in d) || (d.tipe is string && d.tipe.size() <= 60));
@@ -117,6 +149,8 @@ service cloud.firestore {
           'deleted' in d && d.deleted is bool &&
           'nama' in d && d.nama is string && d.nama.size() > 0 && d.nama.size() <= 100
         ))
+        // R-02 re-audit: nama tidak boleh hilang lewat deleteField().
+        && (isCreate || fieldTetapAda('nama'))
         && (!('nama' in d) || (d.nama is string && d.nama.size() <= 100))
         && (!('jenis' in d) || d.jenis in ['pemasukan', 'pengeluaran', '']);
     }
@@ -130,6 +164,8 @@ service cloud.firestore {
           'bulan' in d &&
           'tahun' in d
         ))
+        // R-02 re-audit: limit/bulan/tahun tidak boleh hilang lewat deleteField().
+        && (isCreate || (fieldTetapAda('limitNominal') && fieldTetapAda('bulan') && fieldTetapAda('tahun')))
         && (!('limitNominal' in d) || (d.limitNominal is number && d.limitNominal >= 0 && d.limitNominal <= maxNum()))
         && (!('bulan' in d) || (d.bulan is int && d.bulan >= 0 && d.bulan <= 11))
         && (!('tahun' in d) || (d.tahun is int && d.tahun >= 2000 && d.tahun <= 2100));
@@ -144,6 +180,8 @@ service cloud.firestore {
           'total' in d &&
           'sisa' in d
         ))
+        // R-02 re-audit: identitas + nominal tidak boleh hilang lewat deleteField().
+        && (isCreate || (fieldTetapAda('namaPihak') && fieldTetapAda('total') && fieldTetapAda('sisa')))
         && (!('namaPihak' in d) || (d.namaPihak is string && d.namaPihak.size() <= 150))
         && (!('deskripsi' in d) || (d.deskripsi is string && d.deskripsi.size() <= 500))
         && (!('total' in d) || (d.total is number && d.total > 0 && d.total <= maxNum()))
@@ -160,6 +198,8 @@ service cloud.firestore {
       return validBase()
         && validKursSnapshot(d)
         && (!isCreate || ('deleted' in d && d.deleted is bool && 'jumlah' in d && (d.deleted == true || d.jumlah > 0)))
+        // R-02 re-audit: jumlah tidak boleh hilang lewat deleteField().
+        && (isCreate || fieldTetapAda('jumlah'))
         // Sama seperti transaksi: kursSnapshot tidak boleh diubah setelah dibuat.
         && (isCreate || resource == null || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['kursSnapshot']))
         && (!('jumlah' in d) || (d.jumlah is number && d.jumlah >= 0 && d.jumlah <= maxNum()))
@@ -174,7 +214,7 @@ service cloud.firestore {
 
     function validMeta() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['done', 'at', 'baseCurrency', 'updatedAt'])
+      return d.keys().hasOnly(['done', 'at', 'baseCurrency', 'updatedAt', 'deleted', 'deletedAt'])
         && (!('done' in d) || d.done is bool)
         && (!('at' in d) || d.at is timestamp || (d.at is string && d.at.size() <= 40))
         && (!('baseCurrency' in d) || (d.baseCurrency is string && d.baseCurrency.matches('^[A-Z]{3}$')))
@@ -183,8 +223,9 @@ service cloud.firestore {
         // diganti lewat update — menggantinya tanpa konversi membuat semua
         // angka lama salah label. Pengecualian: basis lama tidak ada atau
         // formatnya rusak (jalur perbaikan). Basis yang valid tapi tidak
-        // didukung klien harus dihapus dulu (delete diizinkan) lalu dibuat
-        // ulang — perubahan basis tidak boleh terjadi diam-diam.
+        // didukung klien TIDAK bisa diganti lewat klien sama sekali sejak
+        // hard-delete dihapus (R-01 re-audit) — perbaikannya butuh jalur
+        // admin/Cloud Function, bukan delete lalu buat ulang.
         && (resource == null || !('baseCurrency' in resource.data)
           || !(resource.data.baseCurrency is string && resource.data.baseCurrency.matches('^[A-Z]{3}$'))
           || ('baseCurrency' in d && d.baseCurrency == resource.data.baseCurrency));
@@ -194,50 +235,62 @@ service cloud.firestore {
     // (perlindungan double-delete / update-setelah-hapus). Soft-delete pertama
     // tetap lolos lewat isSoftDelete(); percobaan kedua gagal karena dokumen
     // sudah deleted dan isSoftDelete() butuh perubahan field deleted.
+    // R-01 re-audit: `allow delete` DIHAPUS dari semua koleksi. Hard-delete
+    // + create ulang ID yang sama melewati semua perlindungan update
+    // (kursSnapshot immutable, kunci baseCurrency, belumDihapus) karena create
+    // tidak tahu dokumen itu pernah ada. Penghapusan kini hanya soft-delete;
+    // pemulihan lewat isUnDelete() (bendera saja); purge permanen butuh
+    // Cloud Function dengan re-autentikasi + masa tenggang (belum ada).
     match /users/{uid}/transaksi/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validTransaksi(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validTransaksi(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validTransaksi(false)));
     }
 
     match /users/{uid}/akun/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validAkun(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validAkun(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validAkun(false)));
     }
 
     match /users/{uid}/kategori/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validKategori(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validKategori(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validKategori(false)));
     }
 
     match /users/{uid}/budget/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validBudget(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validBudget(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validBudget(false)));
     }
 
     match /users/{uid}/utang/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validUtang(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validUtang(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validUtang(false)));
     }
 
     match /users/{uid}/pembayaranUtang/{docId} {
-      allow read, delete: if isOwner(uid);
+      allow read: if isOwner(uid);
       allow create: if isOwner(uid) && validPembayaranUtang(true);
-      allow update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validPembayaranUtang(false)));
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || (belumDihapus() && validPembayaranUtang(false)));
     }
 
+    // M-02 re-audit: mutasiLog append-only di sisi isi — update hanya boleh
+    // membalik bendera (soft-delete / un-delete) atau tanpa perubahan sama
+    // sekali (no-op, mis. merge-set restore atas dokumen yang sudah identik).
+    // delta/aksi/timestamp tidak bisa diubah maupun dihapus lewat update.
     match /users/{uid}/mutasiLog/{docId} {
-      allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid) && (isSoftDelete() || (belumDihapus() && validMutasiLog()));
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && validMutasiLog();
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || request.resource.data.diff(resource.data).affectedKeys().size() == 0);
     }
 
     match /users/{uid}/meta/{docId} {
-      allow read, delete: if isOwner(uid);
-      allow create, update: if isOwner(uid) && validMeta();
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid) && validMeta();
+      allow update: if isOwner(uid) && (isSoftDelete() || isUnDelete() || validMeta());
     }
 
     // Semua jalur lain (termasuk subkoleksi asing atau koleksi root lain) ditolak eksplisit.

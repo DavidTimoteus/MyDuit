@@ -4,7 +4,7 @@ import InstallButton from "./InstallButton.jsx";
 import ModulSkeleton from "./ModulSkeleton.jsx";
 import UserMenuSheet from "./UserMenuSheet.jsx";
 // Theme locked to Neumorphism
-import { getFirebase } from "../lib/firebase.js";
+import { getFirebase, hapusCacheFirestoreLokal } from "../lib/firebase.js";
 import { portalBody } from "../lib/portal.js";
 import {
   detectCountryInfo,
@@ -680,15 +680,12 @@ export default function Shell({ user }) {
 
     // Bersihkan penanda migrasi milik user yang keluar saja.
     //
-    // Cache Firestore di IndexedDB SENGAJA tidak dihapus: itu yang membuat app
-    // bisa dibuka offline, dan di perangkat sendiri data memang seharusnya
-    // tetap ada saat login lagi. Yang dibersihkan hanya penanda per-user supaya
-    // user berikutnya di perangkat ini tidak mewarisi state lama.
-    //
-    // CATATAN: jangan memanggil db.terminate() di sini. getFirebase() meng-cache
-    // instance db di variabel modul, jadi terminate() membuat referensi itu mati
-    // permanen — login berikutnya di sesi yang sama tidak akan bisa menulis
-    // sama sekali sampai halaman di-reload.
+    // H-01 re-audit: keluar HARUS menghapus cache Firestore lokal (IndexedDB).
+    // Sebelumnya cache sengaja dipertahankan supaya app bisa dibuka offline
+    // setelah login lagi — tapi itu berarti siapa pun yang memegang perangkat
+    // bisa membaca seluruh data lewat DevTools sesudah sign-out ("Lupa PIN").
+    // terminate() mematikan instance db yang di-cache modul firebase.js, jadi
+    // halaman di-reload supaya login berikutnya mendapat instance baru.
     try {
       if (uid) localStorage.removeItem(`myduit-migrasi-norm-${uid}`);
       localStorage.removeItem("myduit_gemini_api_key");
@@ -700,6 +697,12 @@ export default function Shell({ user }) {
     } catch (e) {
       console.warn("bersihkan penanda lokal gagal:", e?.message);
     }
+    try {
+      await hapusCacheFirestoreLokal();
+    } catch {
+      // Best-effort: reload tetap jalan supaya sesi bersih.
+    }
+    window.location.reload();
   }
 
   // RESPONSIF - grid 2 sampai 3 kolom, sesuai jumlah panel yang tampil.

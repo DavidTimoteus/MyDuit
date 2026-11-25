@@ -1,5 +1,5 @@
 import { deleteUser, reauthenticateWithPopup } from 'firebase/auth'
-import { Timestamp, collection, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { Timestamp, collection, deleteField, doc, getDoc, getDocs, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { getFirebase, googleProvider } from '../../lib/firebase.js'
 import { jamValid, kanonikTanggal, parseAngkaEksternal } from '../../lib/format.js'
 import { IS_DEMO_UID } from '../../lib/mockData.js'
@@ -314,40 +314,56 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
   // salah. Sekarang penolakan terjadi sebelum ada data yang tersentuh.
   const metaRef = docFn(db, 'users', uid, 'meta', 'mataUang')
   const metaBatch = writeBatchFn(db)
-  metaBatch.set(metaRef, { baseCurrency: basisPulih, updatedAt: serverTimestampFn() }, { merge: true })
+  // deleted:false ikut ditulis supaya meta yang sempat di-soft-delete oleh
+  // hapusSemuaData hidup kembali bersama basisnya (merge tanpa field ini
+  // akan mempertahankan deleted:true server).
+  metaBatch.set(metaRef, { baseCurrency: basisPulih, deleted: false, updatedAt: serverTimestampFn() }, { merge: true })
   await metaBatch.commit()
 
   // P2: dokumen yang di backup masih hidup tapi di server sudah di-soft-delete
   // tidak bisa dipulihkan lewat set-merge — rules menolak update pada dokumen
   // terhapus (belumDihapus), sehingga slice yang memuatnya gagal di tengah
   // restore dan akun pulih setengah. Berdamai dulu dengan state server:
-  // hapus permanen (hard-delete, diizinkan rules) dokumen-dokumen itu, lalu
-  // set-merge berjalan sebagai create. Bila baca server gagal (offline),
-  // rekonsiliasi dilewati — perilaku lama; tulis yang tertunda akan dinilai
-  // rules saat sinkronisasi.
+  // batalkan flag hapusnya (un-delete, diizinkan rules Fase 3 — bendera saja,
+  // isi tidak berubah), lalu set-merge berjalan sebagai update biasa yang
+  // tetap dinilai validator. Hard-delete TIDAK lagi dipakai (dihapus dari
+  // rules, R-01 re-audit). Bila baca server gagal (offline), rekonsiliasi
+  // dilewati — perilaku lama; tulis yang tertunda akan dinilai rules saat
+  // sinkronisasi.
+  // Sambil membaca server, catat saldo akun saat ini: merge-set akun yang
+  // saldonya berubah wajib membawa mutasiTerakhir yang deltanya sama dengan
+  // perubahan saldo (R-03) — jejak lama di backup sudah basi.
   const getDocsFn = deps.getDocs || getDocs
   const collectionFn = deps.collection || collection
+  const deleteFieldFn = deps.deleteField || deleteField
   const idBackupPerKoleksi = new Map()
   for (const op of ops) {
     if (!idBackupPerKoleksi.has(op.koleksi)) idBackupPerKoleksi.set(op.koleksi, new Set())
     idBackupPerKoleksi.get(op.koleksi).add(op.id)
   }
-  const hapusDulu = []
+  const pulihkanDulu = []
+  const saldoServerPerAkun = new Map()
   for (const [c, idSet] of idBackupPerKoleksi.entries()) {
     try {
       const snap = await getDocsFn(collectionFn(db, 'users', uid, c))
       for (const d of snap?.docs || []) {
-        if (idSet.has(d.id) && d.data()?.deleted === true) {
-          hapusDulu.push(docFn(db, 'users', uid, c, d.id))
+        const dataServer = typeof d.data === 'function' ? d.data() : null
+        if (c === 'akun' && Number.isFinite(Number(dataServer?.saldo))) {
+          saldoServerPerAkun.set(d.id, Number(dataServer.saldo))
+        }
+        if (idSet.has(d.id) && dataServer?.deleted === true) {
+          pulihkanDulu.push(docFn(db, 'users', uid, c, d.id))
         }
       }
     } catch {
       // Baca koleksi gagal (offline) — lewati rekonsiliasi koleksi ini.
     }
   }
-  for (let i = 0; i < hapusDulu.length; i += BATCH_LIMIT) {
+  for (let i = 0; i < pulihkanDulu.length; i += BATCH_LIMIT) {
     const batch = writeBatchFn(db)
-    for (const ref of hapusDulu.slice(i, i + BATCH_LIMIT)) batch.delete(ref)
+    for (const ref of pulihkanDulu.slice(i, i + BATCH_LIMIT)) {
+      batch.update(ref, { deleted: false, deletedAt: deleteFieldFn(), updatedAt: serverTimestampFn() })
+    }
     await batch.commit()
   }
 
@@ -356,7 +372,19 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
   for (let i = 0; i < total; i += BATCH_LIMIT) {
     const slice = ops.slice(i, i + BATCH_LIMIT)
     const batch = writeBatchFn(db)
-    for (const op of slice) batch.set(op.ref, op.data, { merge: true })
+    for (const op of slice) {
+      if (op.koleksi === 'akun' && Number.isFinite(Number(op.data?.saldo)) && saldoServerPerAkun.has(op.id)) {
+        const saldoServer = saldoServerPerAkun.get(op.id)
+        const delta = Number(op.data.saldo) - saldoServer
+        if (delta !== 0) {
+          op.data = {
+            ...op.data,
+            mutasiTerakhir: { delta, keterangan: 'Pulihkan backup', at: serverTimestampFn() },
+          }
+        }
+      }
+      batch.set(op.ref, op.data, { merge: true })
+    }
     await batch.commit()
     done += slice.length
     onProgress?.({ done: Math.min(done, totalDok), total: totalDok, koleksi: slice[slice.length - 1]?.koleksi })
@@ -366,8 +394,15 @@ export async function restoreData(uid, json, onProgress, deps = {}) {
 }
 
 /**
- * Menghapus permanen seluruh dokumen pengguna di Firestore (`KOLEKSI` + `meta`)
+ * Menghapus seluruh dokumen pengguna di Firestore (`KOLEKSI` + `meta`)
  * secara bertahap per `BATCH_LIMIT` dan membersihkan penanda lokal di `localStorage`.
+ *
+ * Fase 3 re-audit: penghapusan kini SOFT-DELETE (deleted:true), bukan
+ * hard-delete — `allow delete` sudah dihapus dari rules (R-01). Dokumen yang
+ * sudah di-soft-delete dilewati (update ulang pada dokumen terhapus ditolak
+ * rules, dan satu penolakan menggagalkan seluruh batch). Data tetap ada di
+ * Firestore bertanda terhapus sampai purge permanen tersedia lewat Cloud
+ * Function; akun Auth sendiri tetap dicabut permanen oleh hapusAkunPermanen.
  *
  * @param {string} uid
  * @param {({ done, total, koleksi }) => void} [onProgress]
@@ -382,6 +417,7 @@ export async function hapusSemuaData(uid, onProgress, deps = {}) {
   const collectionFn = deps.collection || collection
   const getDocsFn = deps.getDocs || getDocs
   const writeBatchFn = deps.writeBatch || writeBatch
+  const serverTimestampFn = deps.serverTimestamp || serverTimestamp
 
   const ops = []
   const perKoleksi = {}
@@ -391,7 +427,9 @@ export async function hapusSemuaData(uid, onProgress, deps = {}) {
     const daftar = snap?.docs || []
     perKoleksi[k] = daftar.length
     for (const d of daftar) {
-      ops.push({ koleksi: k, ref: d.ref })
+      // Dokumen yang sudah terhapus dilewati — men-soft-delete ulang ditolak rules.
+      const sudahHapus = typeof d.data === 'function' ? d.data()?.deleted === true : false
+      if (!sudahHapus) ops.push({ koleksi: k, ref: d.ref })
     }
   }
 
@@ -400,7 +438,9 @@ export async function hapusSemuaData(uid, onProgress, deps = {}) {
   for (let i = 0; i < total; i += BATCH_LIMIT) {
     const slice = ops.slice(i, i + BATCH_LIMIT)
     const batch = writeBatchFn(db)
-    for (const op of slice) batch.delete(op.ref)
+    for (const op of slice) {
+      batch.update(op.ref, { deleted: true, deletedAt: serverTimestampFn(), updatedAt: serverTimestampFn() })
+    }
     await batch.commit()
     done += slice.length
     onProgress?.({ done, total, koleksi: slice[slice.length - 1]?.koleksi })
@@ -422,6 +462,12 @@ export async function hapusSemuaData(uid, onProgress, deps = {}) {
 /**
  * Menghapus seluruh data Firestore + mencabut akun Firebase Auth pengguna secara permanen
  * (kepatuhan kebijakan Account Deletion Google Play Store).
+ *
+ * Catatan Fase 3: akun Auth dicabut permanen, tapi dokumen Firestore kini
+ * hanya di-SOFT-DELETE (hard-delete dihapus dari rules, R-01) — datanya tetap
+ * ada bertanda terhapus dan tidak bisa dibaca siapa pun (UID itu tidak bisa
+ * dipakai login lagi). Purge permanen yang sesungguhnya masih menunggu Cloud
+ * Function dengan re-autentikasi + masa tenggang.
  */
 export async function hapusAkunPermanen(uid, onProgress, deps = {}) {
   const hasilData = await hapusSemuaData(uid, onProgress, deps)

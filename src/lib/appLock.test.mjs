@@ -82,7 +82,48 @@ async function run() {
   hapusAppLockPaksa(ls)
   assert.equal(isAppLockAktif(ls), false)
 
-  console.log('appLock.test: OK (7 kasus lulus)')
+  // 8. Aktivasi baru memakai PBKDF2 v2 (bukan SHA-256 sekali jalan) —
+  // hash-nya berbeda dari SHA-256(salt:PIN) yang lama.
+  const { createHash } = await import('node:crypto')
+  const ok2 = await aktifkanAppLock('112233', ls)
+  assert.equal(ok2.ok, true)
+  const rec2 = bacaDataAppLock(ls)
+  assert.equal(rec2.v, 2, 'rekaman baru harus v2')
+  assert.equal(rec2.hash.length, 64)
+  const shaLama = createHash('sha256').update(`${rec2.salt}:112233`).digest('hex')
+  assert.notEqual(rec2.hash, shaLama, 'hash PBKDF2 tidak boleh sama dengan SHA-256 lama')
+  const v2 = await verifikasiPinAppLock('112233', ls, 60_000)
+  assert.equal(v2.ok, true)
+  const v2Salah = await verifikasiPinAppLock('000000', ls, 61_000)
+  assert.equal(v2Salah.ok, false)
+
+  // 9. Rekaman v1 lama (SHA-256) masih bisa dibuka, lalu MIGRASI ke v2
+  // pada verifikasi pertama yang berhasil.
+  const saltLama = 'aabbccddeeff00112233445566778899'
+  const hashLama = createHash('sha256').update(`${saltLama}:445566`).digest('hex')
+  ls.setItem(
+    'myduit:app_lock_v1',
+    JSON.stringify({ v: 1, salt: saltLama, hash: hashLama, failCount: 0, lockedUntil: 0 }),
+  )
+  assert.equal(bacaDataAppLock(ls).v, 1)
+  const mig = await verifikasiPinAppLock('445566', ls, 70_000)
+  assert.equal(mig.ok, true)
+  const sesudahMig = bacaDataAppLock(ls)
+  assert.equal(sesudahMig.v, 2, 'rekaman v1 harus naik ke v2 sesudah verifikasi berhasil')
+  assert.notEqual(sesudahMig.hash, hashLama, 'hash lama harus diganti PBKDF2')
+  const migLagi = await verifikasiPinAppLock('445566', ls, 71_000)
+  assert.equal(migLagi.ok, true, 'PIN tetap lolos sesudah migrasi')
+
+  // 10. PIN salah pada rekaman v1 TIDAK memigrasi.
+  ls.setItem(
+    'myduit:app_lock_v1',
+    JSON.stringify({ v: 1, salt: saltLama, hash: hashLama, failCount: 0, lockedUntil: 0 }),
+  )
+  const gagalV1 = await verifikasiPinAppLock('000000', ls, 72_000)
+  assert.equal(gagalV1.ok, false)
+  assert.equal(bacaDataAppLock(ls).v, 1, 'rekaman v1 gagal verifikasi tetap v1')
+
+  console.log('appLock.test: OK (10 kasus lulus)')
 }
 
 run().catch((e) => {

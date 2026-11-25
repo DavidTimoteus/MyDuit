@@ -14,7 +14,7 @@ import ToastHost from './components/ToastHost.jsx'
 import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
 import { IDLE_LOCK_MS, LS_APP_LOCK, isAppLockAktif } from './lib/appLock.js'
-import { getFirebase, isFirebaseConfigured } from './lib/firebase.js'
+import { getFirebase, hapusCacheFirestoreLokal, isFirebaseConfigured } from './lib/firebase.js'
 import { bersihkanTransaksiRusak, inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
@@ -170,8 +170,20 @@ export default function App() {
             <AppLockScreen
               onUnlocked={() => setTerkunciPin(false)}
               onForgotSignOut={() => {
+                // H-01 re-audit: "Lupa PIN" bukan sekadar keluar — cache lokal
+                // (IndexedDB) ikut dihapus supaya data tidak bisa dibaca dari
+                // perangkat sesudah sign-out, lalu halaman di-reload.
                 setTerkunciPin(false)
-                signOut(getFirebase().auth).catch(() => {})
+                signOut(getFirebase().auth)
+                  .catch(() => {})
+                  .finally(async () => {
+                    try {
+                      await hapusCacheFirestoreLokal()
+                    } catch {
+                      // Best-effort: reload tetap jalan supaya sesi bersih.
+                    }
+                    window.location.reload()
+                  })
               }}
             />
           ) : (
