@@ -38,6 +38,12 @@ export default defineConfig({
               id.includes('/scheduler/')) return 'vendor-react'
           if (id.includes('chart.js')) return 'vendor-chart'
           if (id.includes('xlsx')) return 'vendor-xlsx'
+          // R-02 Fase 5 re-audit: SDK Puter (@heyputer/puter.js, 541 kB)
+          // dulu lolos sebagai chunk `index-*` karena tidak ada cabangnya —
+          // ikut terprecache dan membengkak 37% dari precache. Pisahkan
+          // supaya namanya vendor-puter-* (dikecualikan precache, di-cache
+          // runtime saat OCR Puter pertama dipakai).
+          if (id.includes('@heyputer')) return 'vendor-puter'
           // Pecah Firebase per subsistem agar ukuran chunk tetap < 700 kB dan cache lebih efisien
           if (id.includes('@firebase/firestore') || id.includes('firebase/firestore')) {
             return 'vendor-firebase-firestore'
@@ -102,12 +108,17 @@ export default defineConfig({
         // mematikan alasan utama PWA ini ada (dipakai offline di HP).
         // Chunk yang sudah terunduh tetap tersimpan di HTTP cache biasa dan
         // service worker runtime-cache saat benar-benar dibuka.
+        // R-02 Fase 5 re-audit: 'assets/*.js' diganti allowlist eksplisit
+        // 'assets/index-*.js' — pola lama tetap menelan SEMUA chunk lazy
+        // (TransaksiView, Shell, BackupModal, ...) + SDK Puter 541 kB yang
+        // lolos sebagai index-* (1,43 MB precache). Chunk entry Vite selalu
+        // bernama index-*.js; chunk lazy bernama sesuai modulnya.
         globPatterns: [
           'index.html',
           'boot.js',
           'manifest.webmanifest',
           'registerSW.js',
-          'assets/*.js',
+          'assets/index-*.js',
           'assets/*.css',
           'icons/*.png',
           'favicon.svg',
@@ -120,8 +131,11 @@ export default defineConfig({
           // dan vendor-firebase-* tetap ikut terprecache (>2MB di kunjungan
           // pertama). Kecualikan semua chunk vendor di sini; yang tersisa
           // di precache hanyalah bundel entry + CSS + ikon.
+          // R-02 Fase 5: allowlist di atas sudah menyaring, tapi abaikan ini
+          // tetap dipertahankan sebagai jaring pengaman bila pola berubah.
           '**/vendor-*.js',
           '**/vendor-xlsx-*.js',
+          '**/vendor-puter-*.js',
           '**/jspdf*.js',
           '**/autotable*.js',
           '**/purify*.js',

@@ -46,8 +46,12 @@ export default function RiwayatMutasiModal({ uid, akun, kategoriById = {}, onClo
   const { docs, loading, loadingMore, hasMore, error, muatLagi } = useTransaksi(uid, {
     jenis: 'semua',
     range: queryRange,
-    // Rentang berbatas butuh semua transaksi dari range.start s/d kini tanpa potong 50 global.
-    pageSize: queryRange ? 0 : 200,
+    // R-03 Fase 5: dulu `queryRange ? 0 : 200` — rentang berbatas menarik
+    // SEMUA transaksi dari range.start s/d kini tanpa batas (ribuan dokumen
+    // dalam satu snapshot). 200 + paginasi "Muat lagi" sudah cukup:
+    // bangunMutasi menghitung mundur dari saldo kini, jadi saldo tiap baris
+    // yang sudah dimuat tetap benar walau halaman lama belum dimuat.
+    pageSize: 200,
   })
 
   const baris = useMemo(

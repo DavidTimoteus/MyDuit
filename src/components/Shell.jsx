@@ -1232,18 +1232,26 @@ export default function Shell({ user }) {
         {tab === "utang" && <UtangAsidePanel />}
       </Suspense>
 
+      {/* R-05 Fase 5 re-audit: kedua modal dulu dirender tanpa syarat — React.lazy
+          memicu import() saat pertama dirender meski open=false, jadi chunk
+          BackupModal + ExportPdfModal terunduh di setiap mount Shell. Render
+          kondisional: chunk baru diunduh saat modal benar-benar dibuka. */}
       <Suspense fallback={null}>
-        <BackupModal
-          open={backupOpen}
-          uid={user.uid}
-          onClose={() => setBackupOpen(false)}
-        />
-        <ExportPdfModal
-          open={pdfOpen}
-          uid={user.uid}
-          userName={user.displayName ?? user.email ?? "Pengguna"}
-          onClose={() => setPdfOpen(false)}
-        />
+        {backupOpen && (
+          <BackupModal
+            open={backupOpen}
+            uid={user.uid}
+            onClose={() => setBackupOpen(false)}
+          />
+        )}
+        {pdfOpen && (
+          <ExportPdfModal
+            open={pdfOpen}
+            uid={user.uid}
+            userName={user.displayName ?? user.email ?? "Pengguna"}
+            onClose={() => setPdfOpen(false)}
+          />
+        )}
       </Suspense>
       <LokasiModal
         open={lokasiOpen}

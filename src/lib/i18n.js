@@ -238,6 +238,7 @@ export const KAMUS = {
 
     // ==== Panel kanan Transaksi ====
     ringkasan: 'Ringkasan',
+    ringkasan_terpotong: 'Transaksi bulan ini melebihi {batas} — ringkasan memakai {batas} transaksi terbaru.',
     total_saldo: 'Total Saldo',
     defisit: 'Defisit',
     surplus: 'Surplus',
@@ -758,6 +759,7 @@ export const KAMUS = {
 
     // ==== Right panel Transaksi ====
     ringkasan: 'Summary',
+    ringkasan_terpotong: 'This month has over {batas} transactions — the summary uses the newest {batas}.',
     total_saldo: 'Total Balance',
     defisit: 'Deficit',
     surplus: 'Surplus',

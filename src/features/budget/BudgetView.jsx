@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { onSnapshot, query, where, orderBy, collection } from 'firebase/firestore'
+import { onSnapshot, query, where, orderBy, limit as fbLimit, collection } from 'firebase/firestore'
 import { getFirebase } from '../../lib/firebase.js'
 import { IS_DEMO_UID, MOCK_TRANSAKSI } from '../../lib/mockData.js'
 import { formatRupiah } from '../../lib/format.js'
-import { enrichTransaksi } from '../../lib/db.js'
+import { BATAS_DOKUMEN_QUERY, enrichTransaksi } from '../../lib/db.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
 import { useBahasa } from '../../lib/i18n.js'
@@ -66,6 +66,9 @@ export default function BudgetView({ user }) {
       where('tanggal', '>=', range.start),
       where('tanggal', '<=', range.end),
       orderBy('tanggal', 'desc'),
+      // R-03 Fase 5: rentang bulan tanpa limit menarik sebulan penuh dokumen
+      // dalam satu snapshot. 1000 dokumen terbaru jauh di atas pemakaian wajar.
+      fbLimit(BATAS_DOKUMEN_QUERY),
     )
     const unsub = onSnapshot(
       q,

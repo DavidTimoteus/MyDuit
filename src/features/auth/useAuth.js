@@ -1,6 +1,6 @@
 import { onAuthStateChanged } from 'firebase/auth'
 import { useEffect, useState } from 'react'
-import { getFirebase } from '../../lib/firebase.js'
+import { getFirebaseApp } from '../../lib/firebaseApp.js'
 
 export function isLocalMockAllowed() {
   if (import.meta.env?.DEV) return true
@@ -39,7 +39,7 @@ export function useAuth() {
     }
     let unsub = () => {}
     try {
-      const { auth } = getFirebase()
+      const { auth } = getFirebaseApp()
       unsub = onAuthStateChanged(auth, (user) => {
         setState({ status: user ? 'masuk' : 'keluar', user })
       })

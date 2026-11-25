@@ -971,6 +971,18 @@ export async function bersihkanTransaksiRusak(uid) {
 // Filter tanggal pakai perbandingan string 'YYYY-MM-DD' (aman kronologis).
 // Butuh composite index (lihat firestore.indexes.json); bila error missing-index
 // saat dev, klik link di pesan error untuk membuatnya sekali di console.
+
+// R-03 Fase 5 re-audit: BATAS ATAS dokumen per snapshot/query transaksi.
+// Tidak ada langganan/getDocs transaksi yang boleh tanpa batas — nilai nol
+// dulu berarti "tanpa limit" (0 falsy), jadi satu listener di modal Riwayat
+// Mutasi (rentang tahunan) bisa menarik ribuan dokumen dalam satu snapshot.
+// 1000 = 33 transaksi/hari selama sebulan penuh, atau 2,7/hari selama
+// setahun — jauh di atas pemakaian keuangan pribadi yang wajar, tapi tetap
+// berhingga sehingga tagihan baca tidak bisa meledak diam-diam. Pemakaian
+// yang butuh lebih (riwayat mutasi) memakai paginasi "Muat lagi", bukan
+// menaikkan batas ini.
+export const BATAS_DOKUMEN_QUERY = 1000
+
 export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
   const constraints = [where('deleted', '==', false)]
   if (jenis && jenis !== 'semua') constraints.push(where('jenis', '==', jenis))
@@ -980,9 +992,12 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
   }
   constraints.push(orderBy('tanggal', 'desc'))
   constraints.push(orderBy('createdAt', 'desc'))
-  if (pageSize && Number.isFinite(pageSize) && pageSize > 0) {
-    constraints.push(fbLimit(pageSize))
-  }
+  // Nilai 0/tidak valid jatuh ke batas; nilai di atasnya dijepit ke batas.
+  const batas =
+    Number.isFinite(pageSize) && pageSize > 0
+      ? Math.min(pageSize, BATAS_DOKUMEN_QUERY)
+      : BATAS_DOKUMEN_QUERY
+  constraints.push(fbLimit(batas))
   if (cursor) constraints.push(startAfter(cursor))
   return query(userCol(uid, 'transaksi'), ...constraints)
 }

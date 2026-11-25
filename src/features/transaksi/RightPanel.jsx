@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { formatCurrency, formatNominal, isoHariIni, konversiUntukTampil, simbolUang, uangAktif } from '../../lib/format.js'
 import { useAkunKategori } from '../../lib/useAkunKategori.js'
 import { useKursVersi } from '../../lib/useKurs.js'
-import { enrichTransaksi } from '../../lib/db.js'
+import { BATAS_DOKUMEN_QUERY, enrichTransaksi } from '../../lib/db.js'
 import { useTransaksi } from '../transaksi/useTransaksi.js'
 import { useBahasa } from '../../lib/i18n.js'
 
@@ -29,13 +29,21 @@ export default function RightPanel({ uid }) {
   const kursVer = useKursVersi()
   const { akunList, kategoriList } = useAkunKategori(uid)
   const bulan = useMemo(rangeBulanIni, [])
-  // Gunakan pageSize: 0 (tanpa batas 50 dokumen) agar perhitungan Surplus/Defisit
-  // dan Top Kategori di panel kanan 100% konsisten dengan StatistikView & BudgetView.
-  const { docs: transBulan } = useTransaksi(uid, { range: bulan, jenis: 'semua', pageSize: 0 })
+  // R-03 Fase 5: listener TIDAK BOLEH tanpa batas. Dulu tanpa batas
+  // (pageSize nol) agar Surplus/Defisit dan Top Kategori 100% konsisten
+  // dengan StatistikView & BudgetView — tapi satu snapshot bulan bisa
+  // menarik ribuan dokumen. Batas 1000/bulan tetap jauh di atas pemakaian
+  // wajar (33 transaksi/hari); bila terpotong, hasMore menyalakan catatan
+  // di bawah kartu supaya angka tidak diam-diam salah.
+  const { docs: transBulan, hasMore: adaLagiBulan } = useTransaksi(uid, {
+    range: bulan,
+    jenis: 'semua',
+    pageSize: BATAS_DOKUMEN_QUERY,
+  })
   const { docs: transHariIni } = useTransaksi(uid, {
     range: { start: isoHariIni(), end: isoHariIni() },
     jenis: 'pengeluaran',
-    pageSize: 0,
+    pageSize: BATAS_DOKUMEN_QUERY,
   })
 
   const akunById = useMemo(() => Object.fromEntries(akunList.map((a) => [a.id, a])), [akunList])
@@ -163,6 +171,11 @@ export default function RightPanel({ uid }) {
                 {rpSudahTampil(topKategori ? topKategori.total : 0)}
               </p>
             </div>
+            {adaLagiBulan && (
+              <p className="px-1 text-[11px] font-medium leading-snug text-warning">
+                {tr('ringkasan_terpotong', { batas: BATAS_DOKUMEN_QUERY })}
+              </p>
+            )}
           </div>
 
           <div className="my-3 h-px shrink-0 bg-slate-200/70"></div>

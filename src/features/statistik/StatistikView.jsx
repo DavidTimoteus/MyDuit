@@ -11,6 +11,7 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { getFirebase } from "../../lib/firebase.js";
+import { BATAS_DOKUMEN_QUERY } from "../../lib/db.js";
 import { useAkunKategori } from "../../lib/useAkunKategori.js";
 import { useScrollReveal } from "../../lib/useScrollEffects.js";
 import { portalBody } from "../../lib/portal.js";
@@ -187,6 +188,10 @@ export default function StatistikView({ user }) {
       where("tanggal", ">=", range.start),
       where("tanggal", "<=", range.end),
       orderBy("tanggal", "desc"),
+      // R-03 Fase 5: tanpa limit, mode tahunan menarik setahun penuh dokumen
+      // dalam satu snapshot. 1000 dokumen terbaru sudah jauh di atas
+      // pemakaian wajar; selebihnya terpotong (grafik memakai yang terbaru).
+      fbLimit(BATAS_DOKUMEN_QUERY),
     );
     const unsub = onSnapshot(
       q,
@@ -365,6 +370,8 @@ export default function StatistikView({ user }) {
             where("tanggal", ">=", prevRange.start),
             where("tanggal", "<=", prevRange.end),
             orderBy("tanggal", "desc"),
+            // R-03 Fase 5: periode pembanding ikut dibatasi (lihat di atas).
+            fbLimit(BATAS_DOKUMEN_QUERY),
           ),
         );
         if (batal) return;

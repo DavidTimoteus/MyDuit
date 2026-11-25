@@ -1,6 +1,6 @@
 import { GoogleAuthProvider, signInWithCredential, signInWithPopup } from 'firebase/auth'
 import { useState } from 'react'
-import { getFirebase, googleProvider } from '../lib/firebase.js'
+import { getFirebaseApp, googleProvider } from '../lib/firebaseApp.js'
 
 const PESAN_ERROR = {
   'auth/popup-closed-by-user': 'Jendela login ditutup sebelum selesai.',
@@ -38,7 +38,7 @@ export default function AuthScreen() {
     setError('')
     setLoading(true)
     try {
-      const { auth } = getFirebase()
+      const { auth } = getFirebaseApp()
       const desktop = typeof window !== 'undefined' ? window.myduitDesktop : null
       if (desktop?.hasLoopbackClient && typeof desktop.loginGoogleLoopback === 'function') {
         const res = await desktop.loginGoogleLoopback()

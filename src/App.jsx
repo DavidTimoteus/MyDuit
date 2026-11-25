@@ -1,21 +1,21 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { signOut } from 'firebase/auth'
-import { clearIndexedDbPersistence, terminate } from 'firebase/firestore'
 import { AppLockScreen } from './components/AppLockGate.jsx'
 import AuthScreen from './components/AuthScreen.jsx'
 import Splash from './components/Splash.jsx'
-// BUN-02 (audit 25 Nov 2026): Shell hanya dipakai SETELAH login, tapi dulu
-// diimpor statis — halaman login ikut mengunduh Shell (1.262 baris) beserta
-// seluruh modul di baliknya. Sekarang lazy: chunk Shell baru diunduh setelah
-// auth sukses. Catatan: db.js tetap ada di bundel awal karena efek App.jsx
-// (migrasi/pembersih/inisialisasi basis) — memindahkannya butuh refactor efek.
+// BUN-02 (audit 25 Nov 2026) + R-01 Fase 5 re-audit: Shell hanya dipakai
+// SETELAH login — lazy. Dulu db.js tetap ada di bundel awal karena efek
+// App.jsx (migrasi/pembersih/inisialisasi basis) mengimpornya statis, dan
+// firebase.js lama ikut menyeret SDK Firestore (577 kB) ke bundel login.
+// Sekarang: db.js + firebase.js dimuat dinamis di dalam efek pasca-login,
+// AkunKategoriProvider juga lazy (rantainya membawa firestore + db.js),
+// dan jalur login hanya memakai firebaseApp.js (App + Auth saja).
 const Shell = lazy(() => import('./components/Shell.jsx'))
+const AkunKategoriProvider = lazy(() => import('./lib/AkunKategoriProvider.jsx'))
 import ToastHost from './components/ToastHost.jsx'
-import AkunKategoriProvider from './lib/AkunKategoriProvider.jsx'
 import { useAuth } from './features/auth/useAuth.js'
 import { IDLE_LOCK_MS, LS_APP_LOCK, isAppLockAktif } from './lib/appLock.js'
-import { getFirebase, hapusCacheFirestoreLokal, isFirebaseConfigured } from './lib/firebase.js'
-import { bersihkanTransaksiRusak, inisialisasiMataUangDasar, migrasiNormalisasi } from './lib/db.js'
+import { getFirebaseApp, isFirebaseConfigured } from './lib/firebaseApp.js'
 import { IS_DEMO_UID } from './lib/mockData.js'
 import { initTema } from './lib/theme.js'
 
@@ -92,16 +92,21 @@ export default function App() {
         sessionStorage.setItem('myduit-uid-clean', uid)
         KUNCI_PREF_SESI.forEach((k) => localStorage.removeItem(k))
         localStorage.setItem('myduit:last_uid', uid)
-        const { db } = getFirebase()
-        terminate(db)
-          .then(() => clearIndexedDbPersistence(db))
-          .catch((e) => console.warn('[isolasi-sesi] bersihkan IndexedDB gagal:', e?.message ?? e))
-          .finally(() => {
+        // R-01 Fase 5: Firestore dimuat dinamis — efek ini jalan pasca-login,
+        // jadi tidak boleh menarik SDK-nya ke bundel awal.
+        ;(async () => {
+          try {
+            const { getFirebase } = await import('./lib/firebase.js')
+            const { terminate, clearIndexedDbPersistence } = await import('firebase/firestore')
+            const { db } = getFirebase()
+            await terminate(db)
+            await clearIndexedDbPersistence(db)
+          } catch (e) {
+            console.warn('[isolasi-sesi] bersihkan IndexedDB gagal:', e?.message ?? e)
+          } finally {
             if (!batal) window.location.reload()
-          })
-        return () => {
-          batal = true
-        }
+          }
+        })()
       }
       localStorage.setItem('myduit:last_uid', uid)
     } catch {
@@ -114,19 +119,24 @@ export default function App() {
   }, [user?.uid])
 
   // Inisialisasi basis mata uang akun & tarik kurs global live saat online
+  // R-01 Fase 5: db.js dimuat dinamis — efek ini jalan pasca-login.
   useEffect(() => {
     if (!user?.uid || uidBersih !== user.uid) return
-    inisialisasiMataUangDasar(user.uid)
+    import('./lib/db.js')
+      .then(({ inisialisasiMataUangDasar }) => inisialisasiMataUangDasar(user.uid))
+      .catch((e) => console.warn('[basis] ditunda:', e?.message ?? e))
   }, [user?.uid, uidBersih])
 
   // Migrasi anti-redundansi sekali per user (hanya saat splash sudah lewat
   // supaya tidak memblokir loading utama).
+  // R-01 Fase 5: db.js dimuat dinamis — efek ini jalan pasca-login.
   useEffect(() => {
     if (!user?.uid || IS_DEMO_UID(user.uid) || uidBersih !== user.uid) return
     const flag = `myduit-migrasi-norm-${user.uid}`
     try {
       if (localStorage.getItem(flag)) return
-      migrasiNormalisasi(user.uid)
+      import('./lib/db.js')
+        .then(({ migrasiNormalisasi }) => migrasiNormalisasi(user.uid))
         .then(() => localStorage.setItem(flag, '1'))
         .catch((e) => console.warn('[migrasi] ditunda:', e?.message ?? e))
     } catch {
@@ -135,12 +145,14 @@ export default function App() {
   }, [user?.uid, uidBersih])
 
   // Bersihkan baris transaksi rusak (jumlah 0 tanpa kategori/akun) sekali per user.
+  // R-01 Fase 5: db.js dimuat dinamis — efek ini jalan pasca-login.
   useEffect(() => {
     if (!user?.uid || IS_DEMO_UID(user.uid) || uidBersih !== user.uid) return
     const flag = `myduit-bersih-tx-rusak-${user.uid}`
     try {
       if (localStorage.getItem(flag)) return
-      bersihkanTransaksiRusak(user.uid)
+      import('./lib/db.js')
+        .then(({ bersihkanTransaksiRusak }) => bersihkanTransaksiRusak(user.uid))
         .then((n) => {
           localStorage.setItem(flag, '1')
           if (n > 0) console.info(`[bersih-tx] ${n} transaksi rusak disembunyikan`)
@@ -173,11 +185,13 @@ export default function App() {
                 // H-01 re-audit: "Lupa PIN" bukan sekadar keluar — cache lokal
                 // (IndexedDB) ikut dihapus supaya data tidak bisa dibaca dari
                 // perangkat sesudah sign-out, lalu halaman di-reload.
+                // R-01 Fase 5: firebase.js dimuat dinamis (auth dari firebaseApp.js).
                 setTerkunciPin(false)
-                signOut(getFirebase().auth)
+                signOut(getFirebaseApp().auth)
                   .catch(() => {})
                   .finally(async () => {
                     try {
+                      const { hapusCacheFirestoreLokal } = await import('./lib/firebase.js')
                       await hapusCacheFirestoreLokal()
                     } catch {
                       // Best-effort: reload tetap jalan supaya sesi bersih.
@@ -189,12 +203,13 @@ export default function App() {
           ) : (
             // Satu langganan akun+kategori untuk seluruh modul (lihat
             // useAkunKategori.js). Dibungkus di sini, bukan di dalam Shell, supaya
-            // tetap aktif saat tab berganti.
-            <AkunKategoriProvider uid={user.uid}>
-              <Suspense fallback={<Splash ready={false} />}>
+            // tetap aktif saat tab berganti. Provider-nya lazy (R-01 Fase 5) —
+            // Suspense dipindah ke luar supaya chunk-nya bisa dimuat dulu.
+            <Suspense fallback={<Splash ready={false} />}>
+              <AkunKategoriProvider uid={user.uid}>
                 <Shell user={user} />
-              </Suspense>
-            </AkunKategoriProvider>
+              </AkunKategoriProvider>
+            </Suspense>
           )
         ) : null
       )}
