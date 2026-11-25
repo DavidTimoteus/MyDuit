@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Delete Account — MyDuit</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7f5;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #1b4332;
+      --accent-soft: #ecfdf5;
+      --danger: #a92e2e;
+      --danger-soft: #fef2f2;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.65;
+      padding: 24px 16px 56px;
+    }
+    main {
+      max-width: 780px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .badge {
+      display: inline-block;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      line-height: 1.25;
+    }
+    .meta {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    h2 {
+      margin: 26px 0 10px;
+      font-size: 18px;
+      color: var(--accent);
+    }
+    p, li {
+      color: #334155;
+      font-size: 15px;
+    }
+    ul, ol {
+      padding-left: 20px;
+      margin: 8px 0 14px;
+    }
+    .box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 14px 0;
+    }
+    .box-danger {
+      background: var(--danger-soft);
+      border-color: #fecaca;
+    }
+    .box-danger h2 {
+      color: var(--danger);
+      margin-top: 0;
+    }
+    footer {
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+    }
+    a { color: var(--accent); font-weight: 600; }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 15px;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      margin: 6px 8px 6px 0;
+    }
+    .btn-danger {
+      background: var(--danger);
+    }
+    .btn-secondary {
+      background: #ffffff;
+      color: var(--accent);
+      border: 1px solid var(--border);
+    }
+    .check {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 12px 0;
+      font-size: 15px;
+      color: #334155;
+    }
+    .check input {
+      margin-top: 4px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--danger);
+      flex-shrink: 0;
+    }
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    .warn {
+      color: var(--danger);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span class="badge">MyDuit · Delete Account / Hapus Akun</span>
+      <h1>Delete Your MyDuit Account</h1>
+      <p class="meta">MyDuit · https://myduit001.web.app · This page is the web resource for requesting deletion of your MyDuit account and all associated data.</p>
+    </header>
+
+    <p>
+      You can delete your MyDuit account and all of your financial data in
+      <strong>two ways</strong>. Deleting your account is permanent: your
+      transactions, accounts, budgets, debts, and payment records are removed
+      and cannot be restored.
+    </p>
+
+    <div class="box">
+      <h2>Option A — Delete inside the app (fastest)</h2>
+      <p style="margin-top:0">If you can still open MyDuit, this deletes everything immediately:</p>
+      <ol style="margin-bottom:12px">
+        <li>Open <strong>MyDuit</strong> and sign in with your Google account.</li>
+        <li>Click <strong>Backup &amp; Restore</strong> (or <em>Cadangkan &amp; Pulihkan</em>).</li>
+        <li>Open the <strong>Delete All Data</strong> tab.</li>
+        <li>Check <em>"Also permanently delete my Google login account from MyDuit"</em> and confirm the deletion phrase.</li>
+      </ol>
+      <a class="btn" href="/">Open MyDuit App</a>
+    </div>
+
+    <div class="box box-danger">
+      <h2>Option B — Request deletion from the web</h2>
+      <p style="margin-top:0">
+        If you no longer have the app installed, use this page to start a
+        deletion request. Clicking the button below opens a pre-filled request
+        on our public support page (GitHub Issues) — you only need a free
+        GitHub account to submit it.
+      </p>
+      <label class="check">
+        <input type="checkbox" id="paham" />
+        <span>I understand this permanently deletes my MyDuit account and all of my financial data, and it cannot be undone.</span>
+      </label>
+      <button class="btn btn-danger" id="kirim" type="button">Submit Deletion Request</button>
+      <button class="btn btn-secondary" id="salin" type="button">Copy Request Text</button>
+      <p class="hint" id="pesan"></p>
+      <label for="pratinjau" style="font-size:13px;color:var(--muted)">The exact text that will be sent:</label>
+      <textarea id="pratinjau" readonly></textarea>
+      <p class="hint">
+        Do <strong>not</strong> write your account email address in the request — the
+        developer will reply to the request so you can confirm which Google
+        account to delete. No GitHub account? Reinstall the app and use
+        Option A above — it is the fastest way.
+      </p>
+    </div>
+
+    <h2>What gets deleted</h2>
+    <ul>
+      <li><strong>Your MyDuit account</strong> — the Google sign-in linked to MyDuit.</li>
+      <li><strong>All financial records</strong> — transactions, accounts and balances, categories, monthly budgets, debts, and debt payments.</li>
+      <li><strong>Preferences</strong> — base currency and saved settings tied to the account.</li>
+    </ul>
+    <p>
+      After your request is verified, the account and its associated data are
+      deleted. Data kept on your own device (offline cache) is removed when
+      you uninstall the app or clear its data.
+    </p>
+
+    <h2>Ringkasan Bahasa Indonesia</h2>
+    <p>
+      Anda dapat menghapus akun MyDuit dan seluruh data keuangan Anda dengan
+      dua cara: <strong>(A)</strong> dari dalam aplikasi — buka MyDuit, masuk
+      ke <strong>Cadangkan &amp; Pulihkan → Hapus Total</strong>, centang
+      hapus akun, lalu konfirmasi; atau <strong>(B)</strong> dari halaman ini
+      — centang pernyataan di atas lalu klik
+      <strong>"Submit Deletion Request"</strong> untuk membuka permintaan
+      yang sudah terisi di halaman dukungan kami (GitHub Issues). Jangan
+      menulis alamat email akun Anda di permintaan itu — developer akan
+      membalas untuk mengonfirmasi akun Google mana yang dihapus. Penghapusan
+      bersifat permanen dan tidak dapat dibatalkan.
+    </p>
+
+    <footer>
+      <span>&copy; 2026 MyDuit</span>
+      <span>
+        <a href="/privacy.html">Privacy Policy</a> ·
+        <a href="/terms.html">Terms of Service</a> ·
+        <a href="/">Open MyDuit App</a>
+      </span>
+    </footer>
+  </main>
+  <script>
+    (function () {
+      var teks = [
+        "Hello,",
+        "",
+        "I am requesting deletion of my MyDuit account and all associated financial data.",
+        "",
+        "I understand this deletion is permanent and cannot be undone.",
+        "",
+        "Please reply to this request so I can confirm the Google account email I used in MyDuit.",
+        "",
+        "Sent from: https://myduit001.web.app/delete-account.html"
+      ].join("\n");
+      var pratinjau = document.getElementById("pratinjau");
+      var pesan = document.getElementById("pesan");
+      pratinjau.value = teks;
+      document.getElementById("kirim").addEventListener("click", function () {
+        if (!document.getElementById("paham").checked) {
+          pesan.textContent = "Please tick the confirmation box first — deletion is permanent.";
+          pesan.className = "hint warn";
+          return;
+        }
+        pesan.textContent = "";
+        pesan.className = "hint";
+        var url = "https://github.com/DavidTimoteus/MyDuit/issues/new"
+          + "?title=" + encodeURIComponent("Account deletion request — MyDuit")
+          + "&body=" + encodeURIComponent(teks);
+        window.open(url, "_blank", "noopener");
+      });
+      document.getElementById("salin").addEventListener("click", function () {
+        var done = function () {
+          pesan.textContent = "Request text copied. Paste it wherever you contact the developer.";
+          pesan.className = "hint";
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(teks).then(done, function () {
+            pratinjau.select();
+            document.execCommand("copy");
+            done();
+          });
+        } else {
+          pratinjau.select();
+          document.execCommand("copy");
+          done();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

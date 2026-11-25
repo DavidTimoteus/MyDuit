@@ -11,7 +11,7 @@
 
 ## 2. Play Console Policy & Declarations
 - [ ] **Privacy Policy URL**: `https://myduit001.web.app/privacy.html`
-- [ ] **Account & Data Deletion URL**: `https://myduit001.web.app/` (in-app deletion verified at *Backup & Restore → Delete All Data / Account*).
+- [x] **Account & Data Deletion URL**: `https://myduit001.web.app/delete-account.html` — SELESAI 25 Nov 2026 18:33 WIB: halaman khusus penghapusan akun (dwi-bahasa, gaya sama dengan privacy.html) dengan 2 jalur — (A) hapus dari dalam aplikasi, (B) permintaan web yang membuka GitHub Issues terisi otomatis. In-app deletion verified at *Backup & Restore → Delete All Data / Account*.
 - [ ] **Data Safety Form**:
   - Account info: *Name, Email address, User IDs* (Collected via Google Sign-In for app functionality & sync; not shared with third-party data brokers).
   - Financial info: *User-entered transactions/budgets/debts* (Encrypted in transit via HTTPS/Firestore TLS; user-initiated deletion supported).
