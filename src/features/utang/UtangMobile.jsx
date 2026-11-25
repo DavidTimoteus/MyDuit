@@ -211,6 +211,7 @@ export default function UtangMobile({
   onHapus,
 }) {
   const [halaman, setHalaman] = useState(0)
+  const { t: tr } = useBahasa() // label chip filter (tr(f.id)) + teks kartu
   const cardWrapRef = useRef(null)
   const dragXRef = useRef(0)
   const dragRafRef = useRef(0)
@@ -428,7 +429,7 @@ export default function UtangMobile({
                   : 'neu-btn bg-[#E5E5E5] text-slate-600 hover:text-slate-900 active:scale-95'
               }`}
             >
-              {f.label}
+              {tr(f.id)}
             </button>
           )
         })}
