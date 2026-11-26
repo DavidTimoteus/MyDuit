@@ -991,13 +991,16 @@ export function buildTransQuery(uid, { jenis, range, pageSize, cursor }) {
     constraints.push(where('tanggal', '<=', range.end))
   }
   constraints.push(orderBy('tanggal', 'desc'))
-  // REGRESI JAM 25 Nov 2026 — JANGAN tambah orderBy('jam') di sini sebelum
-  // migrasiJam() terbukti jalan di semua akun: orderBy Firestore JUGA
-  // menyaring keberadaan field — dokumen tanpa `jam` (semua hasil impor
-  // XLSX sebelum perbaikan ini) HILANG dari hasil query, bukan jatuh
-  // paling akhir seperti asumsi awal. Urutan jam tetap dijaga klien
-  // (mergeRiwayat.js). Index jam di firestore.indexes.json tetap
-  // dipertahankan untuk pengaktifan ulang nanti; lihat dbKontrak.test.mjs.
+  // Urutan jam server AKTIF (26 Nov 2026) — prasyarat sudah terpenuhi:
+  // migrasiJam() jalan saat login (backfill '00:00' untuk dokumen lama),
+  // importGas selalu menulis jam, dan restore mengisi jam '00:00' untuk
+  // dokumen backup tanpa jam. Index komposit jam di firestore.indexes.json
+  // sudah READY. Catatan: orderBy Firestore JUGA menyaring keberadaan
+  // field — dokumen tanpa `jam` HILANG dari hasil, bukan jatuh terakhir;
+  // karena semua jalur tulis kini menjamin jam ada, itu tidak terjadi.
+  // Urutan jam klien (mergeRiwayat.js) tetap dipertahankan sebagai jaring
+  // pengaman untuk dokumen yang jam-nya '00:00' (waktu tak diketahui).
+  constraints.push(orderBy('jam', 'desc'))
   constraints.push(orderBy('createdAt', 'desc'))
   // Nilai 0/tidak valid jatuh ke batas; nilai di atasnya dijepit ke batas.
   const batas =
@@ -1162,8 +1165,9 @@ export async function migrasiNormalisasi(uid) {
 // terpisah dari migrasiNormalisasi yang sudah done): isi jam '00:00'
 // untuk transaksi non-hapus tanpa jam valid. '00:00' = waktu tak
 // diketahui — diurutkan klien paling bawah dalam tanggalnya, sama seperti
-// perilaku dokumen tanpa jam sebelumnya. Baru setelah migrasi ini jalan,
-// orderBy('jam') boleh diaktifkan lagi di buildTransQuery.
+// perilaku dokumen tanpa jam sebelumnya. orderBy('jam') DIAKTIFKAN LAGI
+// 26 Nov 2026 setelah prasyarat terpenuhi (migrasi jalan saat login,
+// importGas + restore selalu isi jam, index jam READY).
 export async function migrasiJam(uid) {
   if (!uid || IS_DEMO_UID(uid)) return 0
   const { db } = getFirebase()

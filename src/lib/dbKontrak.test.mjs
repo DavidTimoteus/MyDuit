@@ -52,8 +52,8 @@ cek(
   src.includes('await denganTransaksi(\n    db,\n    async (tx) => {\n      const snap = await tx.get(refAkun)'),
 )
 cek(
-  'REGRESI JAM 25 Nov 2026: buildTransQuery TIDAK orderBy jam — orderBy Firestore menyaring dokumen tanpa field itu, dan dokumen impor XLSX tidak punya jam',
-  !src
+  'REGRESI JAM 25 Nov 2026 — DIAKTIFKAN LAGI 26 Nov 2026: buildTransQuery orderBy jam (tanggal desc, jam desc, createdAt desc); prasyarat: migrasiJam backfill dokumen lama + importGas/restore selalu isi jam + index jam READY',
+  src
     .slice(src.indexOf('export function buildTransQuery'), src.indexOf('export function docKeTransaksi'))
     .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|\s)\/\/.*$/gm, '$1')
